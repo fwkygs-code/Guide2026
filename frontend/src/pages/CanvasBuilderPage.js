@@ -185,27 +185,35 @@ const CanvasBuilderPage = () => {
         await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
         // Update steps
-        for (const step of walkthrough.steps) {
+        const nextSteps = [...(walkthrough.steps || [])];
+        for (let i = 0; i < nextSteps.length; i++) {
+          const step = nextSteps[i];
           if (step.id && !step.isNew) {
             await api.updateStep(workspaceId, walkthroughId, step.id, {
               title: step.title,
               content: step.content,
               media_url: step.media_url,
               media_type: step.media_type,
+              navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
               blocks: step.blocks || []
             });
           } else if (step.isNew) {
-            await api.addStep(workspaceId, walkthroughId, {
+            const res = await api.addStep(workspaceId, walkthroughId, {
               title: step.title,
               content: step.content,
               media_url: step.media_url,
               media_type: step.media_type,
+              navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
               blocks: step.blocks || []
             });
+            // IMPORTANT: mark as persisted so future saves don't re-add duplicates
+            nextSteps[i] = { ...step, id: res.data.id, isNew: false };
           }
         }
+        // If we persisted any new steps, update local state to prevent duplicates.
+        setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
         if (showToast) toast.success('Saved!');
       } else {
@@ -219,6 +227,7 @@ const CanvasBuilderPage = () => {
             content: step.content,
             media_url: step.media_url,
             media_type: step.media_type,
+            navigation_type: step.navigation_type || 'next_prev',
             common_problems: step.common_problems || [],
             blocks: step.blocks || []
           });
@@ -354,6 +363,7 @@ const CanvasBuilderPage = () => {
       content: '<p>Click to edit...</p>',
       media_url: null,
       media_type: null,
+      navigation_type: 'next_prev',
       common_problems: [],
       order: walkthrough.steps.length,
       isNew: true

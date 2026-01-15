@@ -103,25 +103,31 @@ const WalkthroughBuilderPage = () => {
       if (isEditing) {
         await api.updateWalkthrough(workspaceId, walkthroughId, data);
         
-        for (const step of steps) {
+        const nextSteps = [...(steps || [])];
+        for (let i = 0; i < nextSteps.length; i++) {
+          const step = nextSteps[i];
           if (step.id && !step.isNew) {
             await api.updateStep(workspaceId, walkthroughId, step.id, {
               title: step.title,
               content: step.content,
               media_url: step.media_url,
               media_type: step.media_type,
+              navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || []
             });
           } else if (step.isNew) {
-            await api.addStep(workspaceId, walkthroughId, {
+            const res = await api.addStep(workspaceId, walkthroughId, {
               title: step.title,
               content: step.content,
               media_url: step.media_url,
               media_type: step.media_type,
+              navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || []
             });
+            nextSteps[i] = { ...step, id: res.data.id, isNew: false };
           }
         }
+        setSteps(nextSteps);
         
         if (publishNow) {
           await api.updateWalkthrough(workspaceId, walkthroughId, { ...data, status: 'published' });
@@ -140,6 +146,7 @@ const WalkthroughBuilderPage = () => {
             content: step.content,
             media_url: step.media_url,
             media_type: step.media_type,
+            navigation_type: step.navigation_type || 'next_prev',
             common_problems: step.common_problems || []
           });
         }
@@ -175,6 +182,7 @@ const WalkthroughBuilderPage = () => {
         content: '',
         media_url: null,
         media_type: null,
+        navigation_type: 'next_prev',
         common_problems: [],
         order: steps.length,
         isNew: true
