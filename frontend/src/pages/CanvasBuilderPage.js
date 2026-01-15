@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -20,7 +20,6 @@ const CanvasBuilderPage = () => {
   const navigate = useNavigate();
   const isEditing = !!walkthroughId;
   const draftKey = `interguide:draft:${workspaceId}`;
-  const isCreatingRef = useRef(false);
 
   // Core state
   const [walkthrough, setWalkthrough] = useState({
@@ -47,9 +46,6 @@ const CanvasBuilderPage = () => {
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [selectStepsMode, setSelectStepsMode] = useState(false);
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
-
-  // Auto-save timer
-  const [autoSaveTimer, setAutoSaveTimer] = useState(null);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -78,21 +74,6 @@ const CanvasBuilderPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, isEditing]);
 
-  // Auto-save on changes
-  useEffect(() => {
-    if (!isEditing || loading) return;
-
-    if (autoSaveTimer) clearTimeout(autoSaveTimer);
-
-    const timer = setTimeout(() => {
-      handleAutoSave();
-    }, 3000);
-
-    setAutoSaveTimer(timer);
-
-    return () => clearTimeout(timer);
-  }, [walkthrough]);
-
   // Always keep a local draft, and auto-create draft walkthrough on first changes.
   useEffect(() => {
     if (loading) return;
@@ -105,32 +86,6 @@ const CanvasBuilderPage = () => {
     } catch {
       // ignore
     }
-
-    // If it's a new walkthrough, auto-create on first meaningful edits (so uploads/steps don't get lost)
-    if (isEditing) return;
-    const hasMeaningfulContent =
-      (walkthrough.title && walkthrough.title !== 'Untitled Walkthrough') ||
-      (walkthrough.description && walkthrough.description.trim().length > 0) ||
-      (walkthrough.steps && walkthrough.steps.length > 0);
-    if (!hasMeaningfulContent) return;
-    if (isCreatingRef.current || isSaving) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        isCreatingRef.current = true;
-        setIsSaving(true);
-        await saveWalkthrough(false);
-        setLastSaved(new Date());
-      } catch (e) {
-        // keep local draft; user can still manually save later
-        console.error('Auto-create failed:', e);
-      } finally {
-        setIsSaving(false);
-        isCreatingRef.current = false;
-      }
-    }, 1500);
-
-    return () => clearTimeout(timer);
   }, [walkthrough, isEditing, loading]);
 
   const fetchData = async () => {
@@ -153,20 +108,6 @@ const CanvasBuilderPage = () => {
       setLoading(false);
     }
   };
-
-  const handleAutoSave = useCallback(async () => {
-    if (!isEditing || isSaving) return;
-
-    try {
-      setIsSaving(true);
-      await saveWalkthrough(false);
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [walkthrough, isEditing]);
 
   const saveWalkthrough = async (showToast = true) => {
     if (isSaving) return;
@@ -218,6 +159,7 @@ const CanvasBuilderPage = () => {
         setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
         if (showToast) toast.success('Saved!');
+        setLastSaved(new Date());
       } else {
         // IMPORTANT: prevent creating multiple empty walkthroughs on repeated clicks
         const response = await api.createWalkthrough(workspaceId, data);
@@ -236,6 +178,7 @@ const CanvasBuilderPage = () => {
         }
 
         if (showToast) toast.success('Created!');
+        setLastSaved(new Date());
         // Once created, clear local draft so refresh doesn't duplicate work
         try {
           localStorage.removeItem(draftKey);
