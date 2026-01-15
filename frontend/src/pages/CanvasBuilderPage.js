@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -45,6 +45,8 @@ const CanvasBuilderPage = () => {
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
+  const [selectStepsMode, setSelectStepsMode] = useState(false);
+  const [selectedStepIds, setSelectedStepIds] = useState(new Set());
 
   // Auto-save timer
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
@@ -449,6 +451,27 @@ const CanvasBuilderPage = () => {
     }
   };
 
+  const toggleStepSelected = (id) => {
+    setSelectedStepIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllSteps = () => setSelectedStepIds(new Set((walkthrough.steps || []).map((s) => s.id)));
+  const clearSelectedSteps = () => setSelectedStepIds(new Set());
+
+  const deleteSelectedSteps = async () => {
+    const ids = Array.from(selectedStepIds);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Delete ${ids.length} selected steps?`)) return;
+    await deleteSteps(ids);
+    clearSelectedSteps();
+    setSelectStepsMode(false);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -496,6 +519,45 @@ const CanvasBuilderPage = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Step selection actions */}
+            <Button
+              variant={selectStepsMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setSelectStepsMode((v) => !v);
+                clearSelectedSteps();
+              }}
+              data-testid="select-steps-button"
+            >
+              {selectStepsMode ? <CheckSquare className="w-4 h-4 mr-2" /> : <Square className="w-4 h-4 mr-2" />}
+              {selectStepsMode ? 'Selecting' : 'Select steps'}
+            </Button>
+            {selectStepsMode && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedStepIds.size === (walkthrough.steps || []).length) clearSelectedSteps();
+                    else selectAllSteps();
+                  }}
+                  data-testid="select-all-steps-button"
+                >
+                  {selectedStepIds.size === (walkthrough.steps || []).length ? 'Unselect all' : 'Select all'}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deleteSelectedSteps}
+                  disabled={selectedStepIds.size === 0}
+                  data-testid="delete-selected-steps-button"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete selected
+                </Button>
+              </>
+            )}
+
             {isEditing && (
               <Button
                 variant="outline"
@@ -556,7 +618,9 @@ const CanvasBuilderPage = () => {
           currentStepIndex={currentStepIndex}
           onStepClick={setCurrentStepIndex}
           onDeleteStep={deleteStep}
-          onDeleteSteps={deleteSteps}
+          selectMode={selectStepsMode}
+          selectedIds={selectedStepIds}
+          onToggleSelect={toggleStepSelected}
         />
 
         {/* Main Editor Area */}
