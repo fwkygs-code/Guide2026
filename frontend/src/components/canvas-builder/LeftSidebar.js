@@ -47,6 +47,23 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
             </Select>
           </div>
 
+          {walkthrough.privacy === 'password' && (
+            <div>
+              <label className="text-xs text-slate-500 mb-1.5 block">Portal password</label>
+              <Input
+                type="password"
+                value={walkthrough.password || ''}
+                onChange={(e) => onUpdate({ ...walkthrough, password: e.target.value })}
+                placeholder="Set a password"
+                className="h-9"
+                data-testid="portal-password-input"
+              />
+              <div className="text-xs text-slate-400 mt-1">
+                This is only stored as a hash on the server.
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="text-xs text-slate-500 mb-1.5 block">Status</label>
             <Badge variant={walkthrough.status === 'published' ? 'default' : 'secondary'}>

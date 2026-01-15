@@ -26,6 +26,7 @@ const WalkthroughBuilderPage = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [privacy, setPrivacy] = useState('public');
+  const [password, setPassword] = useState('');
   const [status, setStatus] = useState('draft');
   const [steps, setSteps] = useState([]);
   const [loading, setLoading] = useState(isEditing);
@@ -67,6 +68,7 @@ const WalkthroughBuilderPage = () => {
       setTitle(wt.title);
       setDescription(wt.description || '');
       setPrivacy(wt.privacy);
+      setPassword('');
       setStatus(wt.status);
       setSteps(wt.steps || []);
       setSelectedCategories(wt.category_ids || []);
@@ -90,6 +92,7 @@ const WalkthroughBuilderPage = () => {
         title,
         description,
         privacy,
+        password: privacy === 'password' ? password : undefined,
         category_ids: selectedCategories,
         navigation_type: 'next_prev',
         navigation_placement: 'bottom'
@@ -373,6 +376,20 @@ const WalkthroughBuilderPage = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {privacy === 'password' && (
+                <div>
+                  <Label htmlFor="portal-password">Password</Label>
+                  <Input
+                    id="portal-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Set a password"
+                    className="mt-1.5"
+                  />
+                </div>
+              )}
             </div>
           </div>
 

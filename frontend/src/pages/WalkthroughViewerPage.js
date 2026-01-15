@@ -28,6 +28,7 @@ const WalkthroughViewerPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());
+  const [checkoffSteps, setCheckoffSteps] = useState(new Set());
   const [showFeedback, setShowFeedback] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [sessionId] = useState(`session-${Date.now()}`);
@@ -39,6 +40,8 @@ const WalkthroughViewerPage = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [portalPassword, setPortalPassword] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -66,9 +69,27 @@ const WalkthroughViewerPage = () => {
       const response = await axios.get(`${API}/portal/${slug}/walkthroughs/${walkthroughId}`);
       setWalkthrough(response.data);
     } catch (error) {
-      toast.error('Walkthrough not found');
+      if (error.response?.status === 401) {
+        setShowPasswordDialog(true);
+      } else {
+        toast.error('Walkthrough not found');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const submitPortalPassword = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(`${API}/portal/${slug}/walkthroughs/${walkthroughId}/access`, {
+        password: portalPassword
+      });
+      setWalkthrough(response.data);
+      setShowPasswordDialog(false);
+      setPortalPassword('');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Invalid password');
     }
   };
 
@@ -111,7 +132,21 @@ const WalkthroughViewerPage = () => {
     }
   };
 
+  const isStepCheckoffRequired = () => {
+    const st = walkthrough?.steps?.[currentStep];
+    return st?.navigation_type === 'checkoff';
+  };
+
+  const canProceedNext = () => {
+    if (!walkthrough) return false;
+    if (!isStepCheckoffRequired()) return true;
+    const stepObj = walkthrough.steps?.[currentStep];
+    if (!stepObj?.id) return true;
+    return checkoffSteps.has(stepObj.id);
+  };
+
   const handleNext = () => {
+    if (!canProceedNext()) return;
     if (currentStep < walkthrough.steps.length - 1) {
       const currentStepObj = walkthrough.steps[currentStep];
       if (currentStepObj) {
@@ -350,6 +385,7 @@ const WalkthroughViewerPage = () => {
                                 handleNext();
                               }
                             }}
+                            disabled={block.data?.action === 'next' && !canProceedNext()}
                           >
                             {block.data?.text || 'Button'}
                           </Button>
@@ -383,6 +419,26 @@ const WalkthroughViewerPage = () => {
 
               {/* Navigation */}
               <div className="flex items-center justify-between pt-6 border-t border-slate-200">
+                {isStepCheckoffRequired() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const stepObj = walkthrough.steps?.[currentStep];
+                      if (!stepObj?.id) return;
+                      const next = new Set(checkoffSteps);
+                      next.add(stepObj.id);
+                      setCheckoffSteps(next);
+                    }}
+                    className={`text-sm font-medium px-3 py-2 rounded-lg border ${
+                      canProceedNext()
+                        ? 'border-success text-success bg-success/5'
+                        : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}
+                    data-testid="checkoff-button"
+                  >
+                    {canProceedNext() ? 'Done' : 'Mark as done'}
+                  </button>
+                )}
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
@@ -394,6 +450,7 @@ const WalkthroughViewerPage = () => {
                 </Button>
                 <Button
                   onClick={handleNext}
+                  disabled={!canProceedNext()}
                   data-testid="next-button"
                 >
                   {currentStep === walkthrough.steps.length - 1 ? (
@@ -570,6 +627,34 @@ const WalkthroughViewerPage = () => {
               </form>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Password required</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitPortalPassword} className="space-y-4 mt-2">
+            <div>
+              <Label htmlFor="portal-password">Password</Label>
+              <Input
+                id="portal-password"
+                type="password"
+                value={portalPassword}
+                onChange={(e) => setPortalPassword(e.target.value)}
+                required
+                className="mt-1.5"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">Unlock</Button>
+              <Button type="button" variant="outline" onClick={() => navigate(`/portal/${slug}`)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
@@ -41,6 +42,9 @@ const CanvasBuilderPage = () => {
   const [categories, setCategories] = useState([]);
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(isEditing);
+  const [showVersions, setShowVersions] = useState(false);
+  const [versions, setVersions] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
 
   // Auto-save timer
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
@@ -93,7 +97,9 @@ const CanvasBuilderPage = () => {
 
     // Save local draft (both new + edit)
     try {
-      localStorage.setItem(draftKey, JSON.stringify({ updatedAt: Date.now(), data: walkthrough }));
+      // Never persist portal passwords into localStorage drafts
+      const { password, ...draftWalkthrough } = walkthrough;
+      localStorage.setItem(draftKey, JSON.stringify({ updatedAt: Date.now(), data: draftWalkthrough }));
     } catch {
       // ignore
     }
@@ -167,6 +173,7 @@ const CanvasBuilderPage = () => {
       title: walkthrough.title,
       description: walkthrough.description,
       privacy: walkthrough.privacy,
+      password: walkthrough.privacy === 'password' ? walkthrough.password : undefined,
       category_ids: walkthrough.category_ids,
       navigation_type: walkthrough.navigation_type,
       navigation_placement: walkthrough.navigation_placement,
@@ -228,6 +235,33 @@ const CanvasBuilderPage = () => {
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const openVersions = async () => {
+    if (!isEditing) return;
+    setShowVersions(true);
+    setVersionsLoading(true);
+    try {
+      const res = await api.getWalkthroughVersions(workspaceId, walkthroughId);
+      setVersions(res.data || []);
+    } catch (e) {
+      toast.error('Failed to load versions');
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
+  const rollbackToVersion = async (versionNumber) => {
+    const ok = window.confirm(`Rollback to version ${versionNumber}? This will overwrite the current draft.`);
+    if (!ok) return;
+    try {
+      const res = await api.rollbackWalkthrough(workspaceId, walkthroughId, versionNumber);
+      setWalkthrough(res.data);
+      toast.success(`Rolled back to version ${versionNumber}`);
+      setShowVersions(false);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Rollback failed');
     }
   };
 
@@ -416,6 +450,17 @@ const CanvasBuilderPage = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {isEditing && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openVersions}
+                data-testid="versions-button"
+              >
+                <History className="w-4 h-4 mr-2" />
+                Versions
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -512,6 +557,35 @@ const CanvasBuilderPage = () => {
           </DndContext>
         </div>
       </div>
+
+      <Dialog open={showVersions} onOpenChange={setShowVersions}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Version history</DialogTitle>
+          </DialogHeader>
+          {versionsLoading ? (
+            <div className="py-8 text-center text-slate-500">Loading…</div>
+          ) : versions.length > 0 ? (
+            <div className="space-y-3">
+              {versions.map((v) => (
+                <div key={v.id} className="flex items-center justify-between border border-slate-200 rounded-lg p-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-slate-900">Version {v.version}</div>
+                    <div className="text-xs text-slate-500 truncate">{v.created_at}</div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => rollbackToVersion(v.version)}>
+                    Rollback
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-slate-500">
+              No versions yet. A version is created each time you publish.
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

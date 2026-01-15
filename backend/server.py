@@ -136,6 +136,7 @@ class Step(BaseModel):
     content: str
     media_url: Optional[str] = None
     media_type: Optional[str] = None
+    navigation_type: NavigationType = NavigationType.NEXT_PREV
     common_problems: List[CommonProblem] = []
     blocks: List[Dict[str, Any]] = []
     order: int
@@ -175,6 +176,7 @@ class StepCreate(BaseModel):
     content: str
     media_url: Optional[str] = None
     media_type: Optional[str] = None
+    navigation_type: NavigationType = NavigationType.NEXT_PREV
     common_problems: List[CommonProblem] = []
     blocks: List[Dict[str, Any]] = []
 
@@ -204,6 +206,19 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def sanitize_public_walkthrough(w: dict) -> dict:
+    """Remove sensitive/private fields from walkthrough docs returned to the public portal."""
+    if not w:
+        return w
+    w = {k: v for k, v in w.items() if k != "_id"}
+    # Never leak password material
+    w.pop("password", None)
+    w.pop("password_hash", None)
+    # Never expose archived walkthroughs in public
+    w.pop("archived", None)
+    w.pop("archived_at", None)
+    return w
 
 def create_token(user_id: str) -> str:
     payload = {
@@ -372,19 +387,29 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Store password safely (hash only) if password-protected
+    password_hash = None
+    if walkthrough_data.privacy == Privacy.PASSWORD:
+        if not walkthrough_data.password:
+            raise HTTPException(status_code=400, detail="Password is required for password-protected walkthroughs")
+        password_hash = hash_password(walkthrough_data.password)
+
     walkthrough = Walkthrough(
         workspace_id=workspace_id,
         title=walkthrough_data.title,
         description=walkthrough_data.description,
         category_ids=walkthrough_data.category_ids,
         privacy=walkthrough_data.privacy,
-        password=walkthrough_data.password,
+        password=None,
+        status=walkthrough_data.status or WalkthroughStatus.DRAFT,
         navigation_type=walkthrough_data.navigation_type,
         navigation_placement=walkthrough_data.navigation_placement,
         created_by=current_user.id
     )
     
     walkthrough_dict = walkthrough.model_dump()
+    if password_hash:
+        walkthrough_dict["password_hash"] = password_hash
     walkthrough_dict['created_at'] = walkthrough_dict['created_at'].isoformat()
     walkthrough_dict['updated_at'] = walkthrough_dict['updated_at'].isoformat()
     await db.walkthroughs.insert_one(walkthrough_dict)
@@ -424,7 +449,52 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    existing = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+
     update_data = walkthrough_data.model_dump(exclude_none=True)
+
+    # Password handling: store hash only, never store plaintext.
+    if update_data.get("privacy") == Privacy.PASSWORD or walkthrough_data.privacy == Privacy.PASSWORD:
+        if walkthrough_data.password:
+            update_data["password_hash"] = hash_password(walkthrough_data.password)
+        # never store plaintext
+        update_data.pop("password", None)
+    else:
+        # If changing away from password-protected, remove any password hash.
+        update_data.pop("password", None)
+        if update_data.get("privacy") and update_data.get("privacy") != Privacy.PASSWORD:
+            update_data["password_hash"] = None
+
+    # Versioning: when transitioning to published, snapshot the previous version and increment.
+    becoming_published = update_data.get("status") == WalkthroughStatus.PUBLISHED and existing.get("status") != "published"
+    if becoming_published:
+        next_version = int(existing.get("version", 1)) + 1
+        version_doc = {
+            "id": str(uuid.uuid4()),
+            "workspace_id": workspace_id,
+            "walkthrough_id": walkthrough_id,
+            "version": next_version,
+            "created_by": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "snapshot": sanitize_public_walkthrough(existing) | {
+                # snapshot should include private fields needed for rollback, but never password hash
+                "privacy": existing.get("privacy"),
+                "status": existing.get("status"),
+                "category_ids": existing.get("category_ids", []),
+                "navigation_type": existing.get("navigation_type"),
+                "navigation_placement": existing.get("navigation_placement"),
+                "steps": existing.get("steps", []),
+                "version": existing.get("version", 1),
+            }
+        }
+        # Ensure we do not store password hash in version snapshot
+        version_doc["snapshot"].pop("password_hash", None)
+        version_doc["snapshot"].pop("password", None)
+        await db.walkthrough_versions.insert_one(version_doc)
+        update_data["version"] = next_version
+
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
     await db.walkthroughs.update_one(
@@ -486,6 +556,46 @@ async def permanently_delete_walkthrough(workspace_id: str, walkthrough_id: str,
         raise HTTPException(status_code=404, detail="Archived walkthrough not found")
     return {"message": "Walkthrough permanently deleted"}
 
+# Version History / Rollback
+@api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/versions")
+async def list_walkthrough_versions(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    versions = await db.walkthrough_versions.find(
+        {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    return versions
+
+@api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/rollback/{version}")
+async def rollback_walkthrough(workspace_id: str, walkthrough_id: str, version: int, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    v = await db.walkthrough_versions.find_one(
+        {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id, "version": version},
+        {"_id": 0}
+    )
+    if not v or not v.get("snapshot"):
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    snapshot = v["snapshot"]
+    # Never restore password hash from snapshots (password-protected walkthroughs must be reset explicitly)
+    snapshot.pop("password_hash", None)
+    snapshot.pop("password", None)
+    snapshot["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    await db.walkthroughs.update_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}},
+        {"$set": snapshot}
+    )
+
+    updated = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id}, {"_id": 0})
+    return Walkthrough(**updated)
+
 # Backwards-compatible delete: archive instead of hard delete
 @api_router.delete("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}")
 async def delete_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
@@ -517,6 +627,7 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         content=step_data.content,
         media_url=step_data.media_url,
         media_type=step_data.media_type,
+        navigation_type=step_data.navigation_type,
         common_problems=step_data.common_problems,
         blocks=step_data.blocks,
         order=len(walkthrough.get('steps', []))
@@ -550,6 +661,7 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         'content': step_data.content,
         'media_url': step_data.media_url,
         'media_type': step_data.media_type,
+        'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
         'blocks': step_data.blocks
     })
@@ -589,14 +701,14 @@ async def get_portal(slug: str):
     
     categories = await db.categories.find({"workspace_id": workspace['id']}, {"_id": 0}).to_list(1000)
     walkthroughs = await db.walkthroughs.find(
-        {"workspace_id": workspace['id'], "status": "published", "privacy": "public"},
+        {"workspace_id": workspace['id'], "status": "published", "privacy": {"$in": ["public", "password"]}, "archived": {"$ne": True}},
         {"_id": 0}
     ).to_list(1000)
     
     return {
         "workspace": workspace,
         "categories": categories,
-        "walkthroughs": walkthroughs
+        "walkthroughs": [sanitize_public_walkthrough(w) for w in walkthroughs]
     }
 
 @api_router.get("/portal/{slug}/walkthroughs/{walkthrough_id}")
@@ -606,13 +718,44 @@ async def get_public_walkthrough(slug: str, walkthrough_id: str):
         raise HTTPException(status_code=404, detail="Portal not found")
     
     walkthrough = await db.walkthroughs.find_one(
-        {"id": walkthrough_id, "workspace_id": workspace['id'], "status": "published"},
+        {"id": walkthrough_id, "workspace_id": workspace['id'], "status": "published", "archived": {"$ne": True}},
         {"_id": 0}
     )
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
-    
-    return walkthrough
+
+    # Public walkthrough access rules:
+    # - public: allowed
+    # - password: require password via access endpoint
+    # - private: not allowed
+    if walkthrough.get("privacy") == "private":
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+    if walkthrough.get("privacy") == "password":
+        raise HTTPException(status_code=401, detail="Password required")
+
+    return sanitize_public_walkthrough(walkthrough)
+
+class WalkthroughPasswordAccess(BaseModel):
+    password: str
+
+@api_router.post("/portal/{slug}/walkthroughs/{walkthrough_id}/access")
+async def access_password_walkthrough(slug: str, walkthrough_id: str, body: WalkthroughPasswordAccess):
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Portal not found")
+
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace["id"], "status": "published", "archived": {"$ne": True}},
+        {"_id": 0}
+    )
+    if not walkthrough or walkthrough.get("privacy") != "password":
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+
+    password_hash = walkthrough.get("password_hash")
+    if not password_hash or not verify_password(body.password, password_hash):
+        raise HTTPException(status_code=401, detail="Invalid password")
+
+    return sanitize_public_walkthrough(walkthrough)
 
 # Analytics Routes
 @api_router.post("/analytics/event")

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, FolderOpen, Search } from 'lucide-react';
+import { BookOpen, FolderOpen, Search, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -183,6 +183,12 @@ const PortalPage = () => {
                         <Badge variant="outline" className="text-xs">
                           {walkthrough.steps?.length || 0} steps
                         </Badge>
+                        {walkthrough.privacy === 'password' && (
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                            <Lock className="w-3 h-3" />
+                            Locked
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </Link>
