@@ -149,7 +149,7 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
               <InlineRichEditor
                 content={currentStep.title}
                 onChange={(html) => onUpdateStep(currentStep.id, { title: html })}
-                placeholder="שם השלב"
+                  placeholder="Step name"
                 isRTL={isRTL}
                 textSize="text-4xl"
                 isBold={true}
@@ -184,7 +184,7 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
                     data-testid="add-block-button"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    הוסף בלוק
+                    Add block
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80" align="start">
@@ -208,8 +208,8 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
 
             {blocks.length === 0 && (
               <div className="text-center py-12 text-slate-400">
-                <p className="mb-2">אין בלוקים עדיין</p>
-                <p className="text-sm">לחץ על "הוסף בלוק" להתחלה</p>
+                <p className="mb-2">No blocks yet</p>
+                <p className="text-sm">Click “Add block” to get started</p>
               </div>
             )}
           </div>
@@ -219,7 +219,7 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
       {/* Canvas Hint */}
       <div className="h-12 border-t border-slate-200 bg-white flex items-center justify-center">
         <div className="text-sm text-slate-500">
-          גרור בלוקים לשינוי סדר • לחץ לעריכה • {isRTL && 'RTL מופעל'}
+          Drag blocks to reorder • Click to edit • {isRTL && 'RTL enabled'}
         </div>
       </div>
     </div>

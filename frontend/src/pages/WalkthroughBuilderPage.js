@@ -209,7 +209,7 @@ const WalkthroughBuilderPage = () => {
       updateStep(index, 'media_url', fullUrl);
       
       console.log('Media uploaded:', fullUrl);
-      toast.success('קובץ הועלה בהצלחה!');
+      toast.success('File uploaded!');
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('העלאת הקובץ נכשלה');
@@ -573,7 +573,7 @@ const WalkthroughBuilderPage = () => {
 
               {steps.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
-                  <p>אין שלבים עדיין. לחץ על "הוסף שלב" ליצירת השלב הראשון.</p>
+                  <p>No steps yet. Click "Add Step" to create the first one.</p>
                 </div>
               )}
             </div>

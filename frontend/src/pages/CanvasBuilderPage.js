@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -18,6 +18,8 @@ const CanvasBuilderPage = () => {
   const { workspaceId, walkthroughId } = useParams();
   const navigate = useNavigate();
   const isEditing = !!walkthroughId;
+  const draftKey = `interguide:draft:${workspaceId}`;
+  const isCreatingRef = useRef(false);
 
   // Core state
   const [walkthrough, setWalkthrough] = useState({
@@ -55,6 +57,21 @@ const CanvasBuilderPage = () => {
     fetchData();
   }, [workspaceId, walkthroughId]);
 
+  // Restore draft for new walkthroughs (prevents losing long edits on refresh)
+  useEffect(() => {
+    if (isEditing) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.data) return;
+      setWalkthrough((prev) => ({ ...prev, ...parsed.data }));
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, isEditing]);
+
   // Auto-save on changes
   useEffect(() => {
     if (!isEditing || loading) return;
@@ -69,6 +86,44 @@ const CanvasBuilderPage = () => {
 
     return () => clearTimeout(timer);
   }, [walkthrough]);
+
+  // Always keep a local draft, and auto-create draft walkthrough on first changes.
+  useEffect(() => {
+    if (loading) return;
+
+    // Save local draft (both new + edit)
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ updatedAt: Date.now(), data: walkthrough }));
+    } catch {
+      // ignore
+    }
+
+    // If it's a new walkthrough, auto-create on first meaningful edits (so uploads/steps don't get lost)
+    if (isEditing) return;
+    const hasMeaningfulContent =
+      (walkthrough.title && walkthrough.title !== 'Untitled Walkthrough') ||
+      (walkthrough.description && walkthrough.description.trim().length > 0) ||
+      (walkthrough.steps && walkthrough.steps.length > 0);
+    if (!hasMeaningfulContent) return;
+    if (isCreatingRef.current || isSaving) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        isCreatingRef.current = true;
+        setIsSaving(true);
+        await saveWalkthrough(false);
+        setLastSaved(new Date());
+      } catch (e) {
+        // keep local draft; user can still manually save later
+        console.error('Auto-create failed:', e);
+      } finally {
+        setIsSaving(false);
+        isCreatingRef.current = false;
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [walkthrough, isEditing, loading]);
 
   const fetchData = async () => {
     try {
@@ -106,6 +161,8 @@ const CanvasBuilderPage = () => {
   }, [walkthrough, isEditing]);
 
   const saveWalkthrough = async (showToast = true) => {
+    if (isSaving) return;
+    setIsSaving(true);
     const data = {
       title: walkthrough.title,
       description: walkthrough.description,
@@ -116,22 +173,41 @@ const CanvasBuilderPage = () => {
       status: walkthrough.status
     };
 
-    if (isEditing) {
-      await api.updateWalkthrough(workspaceId, walkthroughId, data);
+    try {
+      if (isEditing) {
+        await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
-      // Update steps
-      for (const step of walkthrough.steps) {
-        if (step.id && !step.isNew) {
-          await api.updateStep(workspaceId, walkthroughId, step.id, {
-            title: step.title,
-            content: step.content,
-            media_url: step.media_url,
-            media_type: step.media_type,
-            common_problems: step.common_problems || [],
-            blocks: step.blocks || []
-          });
-        } else if (step.isNew) {
-          await api.addStep(workspaceId, walkthroughId, {
+        // Update steps
+        for (const step of walkthrough.steps) {
+          if (step.id && !step.isNew) {
+            await api.updateStep(workspaceId, walkthroughId, step.id, {
+              title: step.title,
+              content: step.content,
+              media_url: step.media_url,
+              media_type: step.media_type,
+              common_problems: step.common_problems || [],
+              blocks: step.blocks || []
+            });
+          } else if (step.isNew) {
+            await api.addStep(workspaceId, walkthroughId, {
+              title: step.title,
+              content: step.content,
+              media_url: step.media_url,
+              media_type: step.media_type,
+              common_problems: step.common_problems || [],
+              blocks: step.blocks || []
+            });
+          }
+        }
+
+        if (showToast) toast.success('Saved!');
+      } else {
+        // IMPORTANT: prevent creating multiple empty walkthroughs on repeated clicks
+        const response = await api.createWalkthrough(workspaceId, data);
+        const newId = response.data.id;
+
+        for (const step of walkthrough.steps) {
+          await api.addStep(workspaceId, newId, {
             title: step.title,
             content: step.content,
             media_url: step.media_url,
@@ -140,26 +216,18 @@ const CanvasBuilderPage = () => {
             blocks: step.blocks || []
           });
         }
+
+        if (showToast) toast.success('Created!');
+        // Once created, clear local draft so refresh doesn't duplicate work
+        try {
+          localStorage.removeItem(draftKey);
+        } catch {
+          // ignore
+        }
+        navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
       }
-
-      if (showToast) toast.success('Saved!');
-    } else {
-      const response = await api.createWalkthrough(workspaceId, data);
-      const newId = response.data.id;
-
-      for (const step of walkthrough.steps) {
-        await api.addStep(workspaceId, newId, {
-          title: step.title,
-          content: step.content,
-          media_url: step.media_url,
-          media_type: step.media_type,
-          common_problems: step.common_problems || [],
-          blocks: step.blocks || []
-        });
-      }
-
-      if (showToast) toast.success('Created!');
-      navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
+    } finally {
+      setIsSaving(false);
     }
   };
 

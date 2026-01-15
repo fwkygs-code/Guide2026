@@ -55,9 +55,9 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
           } 
         });
       }
-      toast.success('קובץ הועלה!');
+      toast.success('File uploaded!');
     } catch (error) {
-      toast.error('העלאה נכשלה');
+      toast.error('Upload failed');
     }
   };
 
