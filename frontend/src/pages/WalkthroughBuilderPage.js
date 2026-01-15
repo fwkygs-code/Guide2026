@@ -486,7 +486,8 @@ const WalkthroughBuilderPage = () => {
                         onPaste={(e) => handleEditorPaste(index, e)}
                         dangerouslySetInnerHTML={{ __html: step.content }}
                         className="min-h-[200px] p-4 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 prose max-w-none"
-                        style={{ direction: 'ltr' }}
+                        // Let the browser choose RTL/LTR based on content (fixes Hebrew spacing/cursor issues)
+                        style={{ direction: 'auto', unicodeBidi: 'plaintext' }}
                         data-testid={`step-content-${index}`}
                       />
                     </div>

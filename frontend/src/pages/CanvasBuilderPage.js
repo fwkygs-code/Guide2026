@@ -165,8 +165,62 @@ const CanvasBuilderPage = () => {
 
   const handlePublish = async () => {
     try {
-      setWalkthrough({ ...walkthrough, status: 'published' });
-      await saveWalkthrough(false);
+      // IMPORTANT: setState is async; save using the intended status immediately
+      const next = { ...walkthrough, status: 'published' };
+      setWalkthrough(next);
+      await (async () => {
+        const data = {
+          title: next.title,
+          description: next.description,
+          privacy: next.privacy,
+          category_ids: next.category_ids,
+          navigation_type: next.navigation_type,
+          navigation_placement: next.navigation_placement,
+          status: next.status,
+        };
+
+        if (isEditing) {
+          await api.updateWalkthrough(workspaceId, walkthroughId, data);
+
+          for (const step of next.steps) {
+            if (step.id && !step.isNew) {
+              await api.updateStep(workspaceId, walkthroughId, step.id, {
+                title: step.title,
+                content: step.content,
+                media_url: step.media_url,
+                media_type: step.media_type,
+                common_problems: step.common_problems || [],
+                blocks: step.blocks || []
+              });
+            } else if (step.isNew) {
+              await api.addStep(workspaceId, walkthroughId, {
+                title: step.title,
+                content: step.content,
+                media_url: step.media_url,
+                media_type: step.media_type,
+                common_problems: step.common_problems || [],
+                blocks: step.blocks || []
+              });
+            }
+          }
+        } else {
+          const response = await api.createWalkthrough(workspaceId, data);
+          const newId = response.data.id;
+
+          for (const step of next.steps) {
+            await api.addStep(workspaceId, newId, {
+              title: step.title,
+              content: step.content,
+              media_url: step.media_url,
+              media_type: step.media_type,
+              common_problems: step.common_problems || [],
+              blocks: step.blocks || []
+            });
+          }
+
+          navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
+        }
+      })();
       toast.success('Published successfully!');
     } catch (error) {
       toast.error('Failed to publish');

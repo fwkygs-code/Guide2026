@@ -27,7 +27,8 @@ const StepTitleEditor = ({ title, onChange, isRTL = false }) => {
       content: title ? [{ type: 'text', text: title }] : []
     },
     onUpdate: ({ editor }) => {
-      const text = editor.getText();
+      // Preserve spaces (including trailing spaces) better than editor.getText()
+      const text = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n', '\0');
       onChange(text);
     },
     editorProps: {
