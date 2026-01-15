@@ -22,7 +22,6 @@ services:
     name: guide2026-frontend
     env: static
     rootDir: frontend
-    plan: free
     buildCommand: npm ci && npm run build
     staticPublishPath: build
     envVars:
