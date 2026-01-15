@@ -40,7 +40,7 @@ const StepTimeline = ({ steps, currentStepIndex, onStepClick, onDeleteStep, onDe
   if (steps.length === 0) return null;
 
   return (
-    <div className="h-20 border-b border-slate-200 bg-white px-6 flex items-center gap-4 overflow-x-auto">
+    <div className="h-20 border-b border-slate-200 bg-white px-6 flex items-center gap-4 overflow-x-auto overflow-y-visible">
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
@@ -132,7 +132,7 @@ const StepTimeline = ({ steps, currentStepIndex, onStepClick, onDeleteStep, onDe
                       onDeleteStep(step.id);
                     }
                   }}
-                  className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 z-10"
                   data-testid={`timeline-delete-${index}`}
                 >
                   <X className="w-3 h-3" />
