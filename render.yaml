@@ -4,11 +4,12 @@ services:
     name: guide2026-backend
     env: python
     rootDir: backend
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker server:app --bind 0.0.0.0:$PORT
     envVars:
       - key: MONGO_URI
-        value: "YOUR_MONGO_URI_HERE"
+        sync: false
       - key: DB_NAME
         value: "guide2026"
       - key: JWT_SECRET
@@ -16,10 +17,12 @@ services:
       - key: CORS_ORIGINS
         value: "*"
 
-  # Service 2: Frontend (Static Site / CRA build output)
-  - type: static
+  # Service 2: Frontend (Static Site)
+  - type: web
     name: guide2026-frontend
+    env: static
     rootDir: frontend
+    plan: free
     buildCommand: npm ci && npm run build
     staticPublishPath: build
     envVars:
