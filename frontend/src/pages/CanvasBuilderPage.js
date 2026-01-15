@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, PanelLeft, PanelsTopLeft, SlidersHorizontal } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -47,16 +47,11 @@ const CanvasBuilderPage = () => {
   const [selectStepsMode, setSelectStepsMode] = useState(false);
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
-  const [isMutating, setIsMutating] = useState(false); // delete / other blocking ops
-  const didInitialLoadRef = useRef(false);
-  const lastSyncedSnapshotRef = useRef('');
+  const [activeStepId, setActiveStepId] = useState(null);
 
   // Drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 }, // prevents click -> drag jitter
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -113,66 +108,21 @@ const CanvasBuilderPage = () => {
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
-      didInitialLoadRef.current = true;
     }
   };
 
-  const buildSnapshot = (wt) => {
-    // Keep it cheap + stable: enough to detect real changes for autosave.
-    const steps = (wt.steps || []).map((s) => ({
-      id: s.id,
-      isNew: !!s.isNew,
-      order: s.order,
-      title: s.title,
-      content: s.content,
-      media_url: s.media_url,
-      media_type: s.media_type,
-      navigation_type: s.navigation_type,
-      common_problems: s.common_problems || [],
-      blocks: s.blocks || []
-    }));
-
-    return JSON.stringify({
-      title: wt.title,
-      description: wt.description,
-      privacy: wt.privacy,
-      category_ids: wt.category_ids || [],
-      navigation_type: wt.navigation_type,
-      navigation_placement: wt.navigation_placement,
-      status: wt.status,
-      steps
-    });
-  };
-
-  const buildStepUpdatePayload = (step) => {
-    const payload = {
-      title: step.title,
-      content: step.content,
-      navigation_type: step.navigation_type || 'next_prev',
-    };
-    // Only send these fields if they exist in state; prevents wiping older saved GIF blocks.
-    if (step.media_url !== undefined) payload.media_url = step.media_url;
-    if (step.media_type !== undefined) payload.media_type = step.media_type;
-    if (step.common_problems !== undefined) payload.common_problems = step.common_problems;
-    if (step.blocks !== undefined) payload.blocks = step.blocks;
-    return payload;
-  };
-
-  const saveWalkthrough = async ({ showToast = true, blocking = true, overrideWalkthrough, createVersion = false } = {}) => {
-    if (isSaving || isPublishing || isMutating) return;
-    if (blocking) setIsSaving(true);
-    else setIsAutoSaving(true);
-    const wt = overrideWalkthrough || walkthrough;
+  const saveWalkthrough = async (showToast = true) => {
+    if (isSaving || isPublishing) return;
+    setIsSaving(true);
     const data = {
-      title: wt.title,
-      description: wt.description,
-      privacy: wt.privacy,
-      password: wt.privacy === 'password' ? wt.password : undefined,
-      category_ids: wt.category_ids,
-      navigation_type: wt.navigation_type,
-      navigation_placement: wt.navigation_placement,
-      status: wt.status,
-      create_version: !!createVersion,
+      title: walkthrough.title,
+      description: walkthrough.description,
+      privacy: walkthrough.privacy,
+      password: walkthrough.privacy === 'password' ? walkthrough.password : undefined,
+      category_ids: walkthrough.category_ids,
+      navigation_type: walkthrough.navigation_type,
+      navigation_placement: walkthrough.navigation_placement,
+      status: walkthrough.status
     };
 
     try {
@@ -180,11 +130,19 @@ const CanvasBuilderPage = () => {
         await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
         // Update steps
-        const nextSteps = [...(wt.steps || [])];
+        const nextSteps = [...(walkthrough.steps || [])];
         for (let i = 0; i < nextSteps.length; i++) {
           const step = nextSteps[i];
           if (step.id && !step.isNew) {
-            await api.updateStep(workspaceId, walkthroughId, step.id, buildStepUpdatePayload(step));
+            await api.updateStep(workspaceId, walkthroughId, step.id, {
+              title: step.title,
+              content: step.content,
+              media_url: step.media_url,
+              media_type: step.media_type,
+              navigation_type: step.navigation_type || 'next_prev',
+              common_problems: step.common_problems || [],
+              blocks: step.blocks || []
+            });
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
               title: step.title,
@@ -211,13 +169,12 @@ const CanvasBuilderPage = () => {
 
         if (showToast) toast.success('Saved!');
         setLastSaved(new Date());
-        lastSyncedSnapshotRef.current = buildSnapshot({ ...wt, steps: nextSteps });
       } else {
         // IMPORTANT: prevent creating multiple empty walkthroughs on repeated clicks
         const response = await api.createWalkthrough(workspaceId, data);
         const newId = response.data.id;
 
-        for (const step of wt.steps) {
+        for (const step of walkthrough.steps) {
           await api.addStep(workspaceId, newId, {
             title: step.title,
             content: step.content,
@@ -231,7 +188,6 @@ const CanvasBuilderPage = () => {
 
         if (showToast) toast.success('Created!');
         setLastSaved(new Date());
-        lastSyncedSnapshotRef.current = buildSnapshot(wt);
         // Once created, clear local draft so refresh doesn't duplicate work
         try {
           localStorage.removeItem(draftKey);
@@ -242,29 +198,8 @@ const CanvasBuilderPage = () => {
       }
     } finally {
       setIsSaving(false);
-      setIsAutoSaving(false);
     }
   };
-
-  // Robust autosave: only for existing walkthroughs; debounced; never creates new records.
-  useEffect(() => {
-    if (!isEditing) return;
-    if (loading) return;
-    if (!didInitialLoadRef.current) return;
-    if (isSaving || isPublishing || isAutoSaving) return;
-    const currentSnapshot = buildSnapshot(walkthrough);
-    if (currentSnapshot === lastSyncedSnapshotRef.current) return;
-
-    const t = setTimeout(() => {
-      // silent autosave: no overlay, no toast
-      saveWalkthrough({ showToast: false, blocking: false }).catch(() => {
-        // keep working; user can manually save
-      });
-    }, 2000);
-
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walkthrough]);
 
   const openVersions = async () => {
     if (!isEditing) return;
@@ -294,14 +229,65 @@ const CanvasBuilderPage = () => {
   };
 
   const handlePublish = async () => {
-    if (isSaving || isPublishing || isAutoSaving || isMutating) return;
+    if (isSaving || isPublishing) return;
     try {
       setIsPublishing(true);
       // IMPORTANT: setState is async; save using the intended status immediately
       const next = { ...walkthrough, status: 'published' };
       setWalkthrough(next);
-      // Publish uses the same persistence path as Save to avoid any step duplication.
-      await saveWalkthrough({ showToast: false, blocking: true, overrideWalkthrough: next, createVersion: true });
+      await (async () => {
+        const data = {
+          title: next.title,
+          description: next.description,
+          privacy: next.privacy,
+          category_ids: next.category_ids,
+          navigation_type: next.navigation_type,
+          navigation_placement: next.navigation_placement,
+          status: next.status,
+        };
+
+        if (isEditing) {
+          await api.updateWalkthrough(workspaceId, walkthroughId, data);
+
+          for (const step of next.steps) {
+            if (step.id && !step.isNew) {
+              await api.updateStep(workspaceId, walkthroughId, step.id, {
+                title: step.title,
+                content: step.content,
+                media_url: step.media_url,
+                media_type: step.media_type,
+                common_problems: step.common_problems || [],
+                blocks: step.blocks || []
+              });
+            } else if (step.isNew) {
+              await api.addStep(workspaceId, walkthroughId, {
+                title: step.title,
+                content: step.content,
+                media_url: step.media_url,
+                media_type: step.media_type,
+                common_problems: step.common_problems || [],
+                blocks: step.blocks || []
+              });
+            }
+          }
+        } else {
+          const response = await api.createWalkthrough(workspaceId, data);
+          const newId = response.data.id;
+
+          for (const step of next.steps) {
+            await api.addStep(workspaceId, newId, {
+              title: step.title,
+              content: step.content,
+              media_url: step.media_url,
+              media_type: step.media_type,
+              common_problems: step.common_problems || [],
+              blocks: step.blocks || []
+            });
+          }
+
+          navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
+        }
+      })();
       toast.success('Published successfully!');
     } catch (error) {
       toast.error('Failed to publish');
@@ -310,15 +296,24 @@ const CanvasBuilderPage = () => {
     }
   };
 
+  const handleDragStart = (event) => {
+    const { active } = event;
+    const stepIds = new Set((walkthrough.steps || []).map((s) => s.id));
+    if (active?.id && stepIds.has(active.id)) setActiveStepId(active.id);
+  };
+
   const handleDragEnd = (event) => {
     const { active, over } = event;
+    setActiveStepId(null);
+    if (!active?.id || !over?.id) return;
 
-    if (!over) return;
+    const stepIds = new Set((walkthrough.steps || []).map((s) => s.id));
+    if (!stepIds.has(active.id) || !stepIds.has(over.id)) return;
+
     if (active.id !== over.id) {
       setWalkthrough((prev) => {
         const oldIndex = prev.steps.findIndex((s) => s.id === active.id);
         const newIndex = prev.steps.findIndex((s) => s.id === over.id);
-        if (oldIndex < 0 || newIndex < 0) return prev;
         return {
           ...prev,
           steps: arrayMove(prev.steps, oldIndex, newIndex).map((s, i) => ({
@@ -391,7 +386,6 @@ const CanvasBuilderPage = () => {
     }
 
     try {
-      setIsMutating(true);
       // If editing existing walkthrough, delete from server
       if (isEditing && !stepId.startsWith('temp-')) {
         await api.deleteStep(workspaceId, walkthroughId, stepId);
@@ -410,8 +404,6 @@ const CanvasBuilderPage = () => {
     } catch (error) {
       console.error('Failed to delete step:', error);
       toast.error('Failed to delete step');
-    } finally {
-      setIsMutating(false);
     }
   };
 
@@ -425,7 +417,6 @@ const CanvasBuilderPage = () => {
     }
 
     try {
-      setIsMutating(true);
       // Delete persisted steps from server first
       for (const id of unique) {
         if (isEditing && id && !id.startsWith('temp-')) {
@@ -449,11 +440,8 @@ const CanvasBuilderPage = () => {
     } catch (e) {
       console.error('Failed to delete steps:', e);
       toast.error('Failed to delete selected steps');
-    } finally {
-      setIsMutating(false);
     }
   };
-  const isBusy = isSaving || isPublishing || isAutoSaving || isMutating;
 
   const toggleStepSelected = (id) => {
     setSelectedStepIds((prev) => {
@@ -497,20 +485,23 @@ const CanvasBuilderPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="h-screen flex flex-col bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100">
-        {isBusy && (
-          <div className="fixed inset-0 z-[200] bg-black/20 flex items-center justify-center">
+      <div className="h-screen flex flex-col bg-slate-50">
+        {(isSaving || isPublishing) && (
+          <div
+            className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center"
+            style={{ pointerEvents: 'auto' }}
+          >
             <div className="bg-white rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               <div className="text-sm text-slate-700">
-                {isPublishing ? 'Publishing…' : isSaving ? 'Saving…' : isMutating ? 'Working…' : 'Auto-saving…'} Please wait.
+                {isPublishing ? 'Publishing…' : 'Saving…'} Please wait.
               </div>
             </div>
           </div>
         )}
-        {/* Studio Top Bar */}
-        <div className="h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 flex items-center justify-between px-6">
-          <div className="flex items-center gap-4 min-w-0">
+        {/* Top Bar */}
+        <div className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
@@ -521,28 +512,15 @@ const CanvasBuilderPage = () => {
               Back
             </Button>
             <div className="h-6 w-px bg-slate-200" />
-            <div className="flex flex-col min-w-0">
-              <div className="text-sm font-medium text-slate-900 truncate">
-                {workspace?.name ? `${workspace.name} Studio` : 'Studio'}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-                  Studio Beta
-                </span>
-                {isAutoSaving && (
-                  <>
-                    <Clock className="w-3.5 h-3.5 animate-spin" />
-                    Auto-saving…
-                  </>
-                )}
-                {lastSaved && !isSaving && !isPublishing && !isAutoSaving && (
+            <div className="flex items-center gap-2">
+              {isSaving && <Clock className="w-4 h-4 text-slate-400 animate-spin" />}
+              {lastSaved && !isSaving && (
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <Check className="w-4 h-4 text-success" />
                   Saved {Math.round((new Date() - lastSaved) / 1000)}s ago
                 </div>
               )}
             </div>
-          </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -554,7 +532,7 @@ const CanvasBuilderPage = () => {
                 setSelectStepsMode((v) => !v);
                 clearSelectedSteps();
               }}
-              disabled={isBusy}
+              disabled={isSaving || isPublishing}
               data-testid="select-steps-button"
             >
               {selectStepsMode ? <CheckSquare className="w-4 h-4 mr-2" /> : <Square className="w-4 h-4 mr-2" />}
@@ -569,7 +547,7 @@ const CanvasBuilderPage = () => {
                     if (selectedStepIds.size === (walkthrough.steps || []).length) clearSelectedSteps();
                     else selectAllSteps();
                   }}
-                  disabled={isBusy}
+                  disabled={isSaving || isPublishing}
                   data-testid="select-all-steps-button"
                 >
                   {selectedStepIds.size === (walkthrough.steps || []).length ? 'Unselect all' : 'Select all'}
@@ -578,7 +556,7 @@ const CanvasBuilderPage = () => {
                   variant="destructive"
                   size="sm"
                   onClick={deleteSelectedSteps}
-                  disabled={selectedStepIds.size === 0 || isBusy}
+                  disabled={selectedStepIds.size === 0 || isSaving || isPublishing}
                   data-testid="delete-selected-steps-button"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -591,7 +569,7 @@ const CanvasBuilderPage = () => {
               variant="outline"
               size="sm"
               onClick={() => insertStepAt(currentStepIndex + 1)}
-              disabled={isBusy}
+              disabled={isSaving || isPublishing}
               data-testid="insert-step-after-button"
             >
               Add step below
@@ -602,7 +580,7 @@ const CanvasBuilderPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={openVersions}
-                disabled={isBusy}
+                disabled={isSaving || isPublishing}
                 data-testid="versions-button"
               >
                 <History className="w-4 h-4 mr-2" />
@@ -613,7 +591,7 @@ const CanvasBuilderPage = () => {
               variant="outline"
               size="sm"
               onClick={() => setIsPreviewMode(true)}
-              disabled={isBusy}
+              disabled={isSaving || isPublishing}
               data-testid="preview-button"
             >
               <Play className="w-4 h-4 mr-2" />
@@ -626,7 +604,6 @@ const CanvasBuilderPage = () => {
                 size="sm"
                 onClick={() => window.open(`/portal/${workspace.slug}`, '_blank')}
                 data-testid="view-portal-button"
-                disabled={isBusy}
               >
                 <Eye className="w-4 h-4 mr-2" />
                 View Portal
@@ -635,8 +612,8 @@ const CanvasBuilderPage = () => {
 
             <Button
               size="sm"
-              onClick={() => saveWalkthrough({ showToast: true, blocking: true })}
-              disabled={isBusy}
+              onClick={() => saveWalkthrough(true)}
+              disabled={isSaving || isPublishing}
               data-testid="save-button"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -648,93 +625,82 @@ const CanvasBuilderPage = () => {
               onClick={handlePublish}
               data-testid="publish-button"
               className="bg-success hover:bg-success/90"
-              disabled={isBusy}
+              disabled={isSaving || isPublishing}
             >
               Publish
             </Button>
           </div>
         </div>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          {/* Timeline */}
-          <div className="px-4 pt-4">
-            <div className="rounded-2xl bg-white/60 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
-              <div className="h-10 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
-                <PanelsTopLeft className="w-4 h-4 text-slate-500" />
-                <div className="text-xs font-medium text-slate-700">Timeline</div>
-                <div className="ml-auto text-xs text-slate-500">Drag steps to reorder</div>
-              </div>
-              <StepTimeline
-                steps={walkthrough.steps}
-                currentStepIndex={currentStepIndex}
-                onStepClick={setCurrentStepIndex}
-                onDeleteStep={deleteStep}
-                selectMode={selectStepsMode}
-                selectedIds={selectedStepIds}
-                onToggleSelect={toggleStepSelected}
-                disabled={isBusy}
-              />
-            </div>
-          </div>
+        {/* Timeline */}
+        <StepTimeline
+          steps={walkthrough.steps}
+          currentStepIndex={currentStepIndex}
+          onStepClick={setCurrentStepIndex}
+          onDeleteStep={deleteStep}
+          selectMode={selectStepsMode}
+          selectedIds={selectedStepIds}
+          onToggleSelect={toggleStepSelected}
+        />
 
-          {/* Main Editor Area */}
-          <div className="flex-1 flex overflow-hidden p-4 gap-4">
-            <div className="w-80 shrink-0 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
-              <div className="h-11 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
-                <PanelLeft className="w-4 h-4 text-slate-500" />
-                <div className="text-xs font-medium text-slate-700">Guide</div>
-              </div>
-              <LeftSidebar
-                walkthrough={walkthrough}
-                categories={categories}
-                onUpdate={setWalkthrough}
-                onAddStep={addStep}
-                onStepClick={setCurrentStepIndex}
-                onDeleteStep={deleteStep}
-                currentStepIndex={currentStepIndex}
-              />
-            </div>
+        {/* Main Editor Area */}
+        <div className="flex-1 flex overflow-hidden">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            {/* Left Sidebar */}
+            <LeftSidebar
+              walkthrough={walkthrough}
+              categories={categories}
+              onUpdate={setWalkthrough}
+              onAddStep={addStep}
+              onStepClick={setCurrentStepIndex}
+              onDeleteStep={deleteStep}
+              currentStepIndex={currentStepIndex}
+            />
 
-            <div className="flex-1 rounded-2xl bg-white/60 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
-              <div className="h-11 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
-                <div className="text-xs font-medium text-slate-700">Canvas</div>
-                <div className="ml-auto text-xs text-slate-500">Select blocks to edit</div>
-              </div>
-              <LiveCanvas
-                walkthrough={walkthrough}
-                currentStepIndex={currentStepIndex}
-                selectedElement={selectedElement}
-                onSelectElement={setSelectedElement}
-                onUpdateStep={updateStep}
-              />
-            </div>
+            {/* Live Canvas */}
+            <LiveCanvas
+              walkthrough={walkthrough}
+              currentStepIndex={currentStepIndex}
+              selectedElement={selectedElement}
+              onSelectElement={setSelectedElement}
+              onUpdateStep={updateStep}
+            />
 
-            <div className="w-80 shrink-0 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
-              <div className="h-11 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
-                <SlidersHorizontal className="w-4 h-4 text-slate-500" />
-                <div className="text-xs font-medium text-slate-700">Inspector</div>
-              </div>
-              <RightInspector
-                selectedElement={selectedElement}
-                currentStep={walkthrough.steps[currentStepIndex]}
-                onUpdate={(updates) => {
-                  if (walkthrough.steps[currentStepIndex]) {
-                    updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                  }
-                }}
-                onDeleteStep={() => {
-                  if (walkthrough.steps[currentStepIndex]) {
-                    deleteStep(walkthrough.steps[currentStepIndex].id);
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </DndContext>
+            {/* Right Inspector */}
+            <RightInspector
+              selectedElement={selectedElement}
+              currentStep={walkthrough.steps[currentStepIndex]}
+              onUpdate={(updates) => {
+                if (walkthrough.steps[currentStepIndex]) {
+                  updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                }
+              }}
+              onDeleteStep={() => {
+                if (walkthrough.steps[currentStepIndex]) {
+                  deleteStep(walkthrough.steps[currentStepIndex].id);
+                }
+              }}
+            />
+            </SortableContext>
+
+            <DragOverlay>
+              {activeStepId ? (
+                <div className="px-4 py-3 rounded-xl bg-primary text-white shadow-lg max-w-[240px]">
+                  <div className="text-xs font-medium mb-1">Move step</div>
+                  <div className="text-sm font-semibold truncate">
+                    {(walkthrough.steps || []).find((s) => s.id === activeStepId)?.title || 'Step'}
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
       </div>
 
       <Dialog open={showVersions} onOpenChange={setShowVersions}>

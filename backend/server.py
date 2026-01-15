@@ -150,9 +150,6 @@ class WalkthroughCreate(BaseModel):
     status: Optional[WalkthroughStatus] = None
     navigation_type: NavigationType = NavigationType.NEXT_PREV
     navigation_placement: NavigationPlacement = NavigationPlacement.BOTTOM
-    # When true, create a version snapshot on update. This is set by the Publish action,
-    # and is intentionally NOT used by autosave to avoid spamming versions.
-    create_version: bool = False
 
 class Walkthrough(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -183,21 +180,6 @@ class StepCreate(BaseModel):
     order: Optional[int] = None
     common_problems: List[CommonProblem] = []
     blocks: List[Dict[str, Any]] = []
-
-class StepUpdate(BaseModel):
-    """Partial step update model.
-
-    IMPORTANT: This prevents accidentally wiping media/blocks when the client only updates
-    a subset of fields.
-    """
-    title: Optional[str] = None
-    content: Optional[str] = None
-    media_url: Optional[str] = None
-    media_type: Optional[str] = None
-    navigation_type: Optional[NavigationType] = None
-    order: Optional[int] = None
-    common_problems: Optional[List[CommonProblem]] = None
-    blocks: Optional[List[Dict[str, Any]]] = None
 
 class AnalyticsEvent(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -476,7 +458,6 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
     update_data = walkthrough_data.model_dump(exclude_none=True)
-    create_version = bool(update_data.pop("create_version", False))
 
     # Password handling: store hash only, never store plaintext.
     if update_data.get("privacy") == Privacy.PASSWORD or walkthrough_data.privacy == Privacy.PASSWORD:
@@ -490,11 +471,10 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         if update_data.get("privacy") and update_data.get("privacy") != Privacy.PASSWORD:
             update_data["password_hash"] = None
 
-    # Versioning: create a snapshot when explicitly publishing (create_version=True),
-    # or when transitioning draft->published (backwards compatibility).
-    becoming_published = update_data.get("status") == WalkthroughStatus.PUBLISHED and existing.get("status") != "published"
-    should_snapshot = create_version or becoming_published
-    if should_snapshot:
+    # Versioning: create a snapshot on every publish action.
+    # Any update that sets status=published creates a new version entry.
+    is_publish_request = update_data.get("status") == WalkthroughStatus.PUBLISHED
+    if is_publish_request:
         next_version = int(existing.get("version", 1)) + 1
         version_doc = {
             "id": str(uuid.uuid4()),
@@ -679,7 +659,7 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
     return step
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps/{step_id}")
-async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step_data: StepUpdate, current_user: User = Depends(get_current_user)):
+async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step_data: StepCreate, current_user: User = Depends(get_current_user)):
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -694,25 +674,15 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     if step_index is None:
         raise HTTPException(status_code=404, detail="Step not found")
     
-    patch: Dict[str, Any] = {}
-    if step_data.title is not None:
-        patch["title"] = step_data.title
-    if step_data.content is not None:
-        patch["content"] = step_data.content
-    if step_data.media_url is not None:
-        patch["media_url"] = step_data.media_url
-    if step_data.media_type is not None:
-        patch["media_type"] = step_data.media_type
-    if step_data.navigation_type is not None:
-        patch["navigation_type"] = step_data.navigation_type
-    if step_data.common_problems is not None:
-        patch["common_problems"] = [p.model_dump() for p in step_data.common_problems]
-    if step_data.blocks is not None:
-        patch["blocks"] = step_data.blocks
-    if step_data.order is not None:
-        patch["order"] = step_data.order
-
-    steps[step_index].update(patch)
+    steps[step_index].update({
+        'title': step_data.title,
+        'content': step_data.content,
+        'media_url': step_data.media_url,
+        'media_type': step_data.media_type,
+        'navigation_type': step_data.navigation_type,
+        'common_problems': [p.model_dump() for p in step_data.common_problems],
+        'blocks': step_data.blocks
+    })
     
     await db.walkthroughs.update_one(
         {"id": walkthrough_id},
