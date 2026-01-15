@@ -22,6 +22,7 @@ services:
     name: guide2026-frontend
     env: static
     rootDir: frontend
+    # This force-overrides Render's automatic Yarn detection
     buildCommand: npm install && npm run build
     staticPublishPath: build
     envVars:
