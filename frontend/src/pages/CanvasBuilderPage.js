@@ -47,6 +47,9 @@ const CanvasBuilderPage = () => {
   const [selectStepsMode, setSelectStepsMode] = useState(false);
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const didInitialLoadRef = useRef(false);
+  const lastSyncedSnapshotRef = useRef('');
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -107,21 +110,51 @@ const CanvasBuilderPage = () => {
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
+      didInitialLoadRef.current = true;
     }
   };
 
-  const saveWalkthrough = async (showToast = true) => {
+  const buildSnapshot = (wt) => {
+    // Keep it cheap + stable: enough to detect real changes for autosave.
+    const steps = (wt.steps || []).map((s) => ({
+      id: s.id,
+      isNew: !!s.isNew,
+      order: s.order,
+      title: s.title,
+      content: s.content,
+      media_url: s.media_url,
+      media_type: s.media_type,
+      navigation_type: s.navigation_type,
+      common_problems: s.common_problems || [],
+      blocks: s.blocks || []
+    }));
+
+    return JSON.stringify({
+      title: wt.title,
+      description: wt.description,
+      privacy: wt.privacy,
+      category_ids: wt.category_ids || [],
+      navigation_type: wt.navigation_type,
+      navigation_placement: wt.navigation_placement,
+      status: wt.status,
+      steps
+    });
+  };
+
+  const saveWalkthrough = async ({ showToast = true, blocking = true, overrideWalkthrough } = {}) => {
     if (isSaving || isPublishing) return;
-    setIsSaving(true);
+    if (blocking) setIsSaving(true);
+    else setIsAutoSaving(true);
+    const wt = overrideWalkthrough || walkthrough;
     const data = {
-      title: walkthrough.title,
-      description: walkthrough.description,
-      privacy: walkthrough.privacy,
-      password: walkthrough.privacy === 'password' ? walkthrough.password : undefined,
-      category_ids: walkthrough.category_ids,
-      navigation_type: walkthrough.navigation_type,
-      navigation_placement: walkthrough.navigation_placement,
-      status: walkthrough.status
+      title: wt.title,
+      description: wt.description,
+      privacy: wt.privacy,
+      password: wt.privacy === 'password' ? wt.password : undefined,
+      category_ids: wt.category_ids,
+      navigation_type: wt.navigation_type,
+      navigation_placement: wt.navigation_placement,
+      status: wt.status
     };
 
     try {
@@ -129,7 +162,7 @@ const CanvasBuilderPage = () => {
         await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
         // Update steps
-        const nextSteps = [...(walkthrough.steps || [])];
+        const nextSteps = [...(wt.steps || [])];
         for (let i = 0; i < nextSteps.length; i++) {
           const step = nextSteps[i];
           if (step.id && !step.isNew) {
@@ -168,12 +201,13 @@ const CanvasBuilderPage = () => {
 
         if (showToast) toast.success('Saved!');
         setLastSaved(new Date());
+        lastSyncedSnapshotRef.current = buildSnapshot({ ...wt, steps: nextSteps });
       } else {
         // IMPORTANT: prevent creating multiple empty walkthroughs on repeated clicks
         const response = await api.createWalkthrough(workspaceId, data);
         const newId = response.data.id;
 
-        for (const step of walkthrough.steps) {
+        for (const step of wt.steps) {
           await api.addStep(workspaceId, newId, {
             title: step.title,
             content: step.content,
@@ -187,6 +221,7 @@ const CanvasBuilderPage = () => {
 
         if (showToast) toast.success('Created!');
         setLastSaved(new Date());
+        lastSyncedSnapshotRef.current = buildSnapshot(wt);
         // Once created, clear local draft so refresh doesn't duplicate work
         try {
           localStorage.removeItem(draftKey);
@@ -197,8 +232,29 @@ const CanvasBuilderPage = () => {
       }
     } finally {
       setIsSaving(false);
+      setIsAutoSaving(false);
     }
   };
+
+  // Robust autosave: only for existing walkthroughs; debounced; never creates new records.
+  useEffect(() => {
+    if (!isEditing) return;
+    if (loading) return;
+    if (!didInitialLoadRef.current) return;
+    if (isSaving || isPublishing || isAutoSaving) return;
+    const currentSnapshot = buildSnapshot(walkthrough);
+    if (currentSnapshot === lastSyncedSnapshotRef.current) return;
+
+    const t = setTimeout(() => {
+      // silent autosave: no overlay, no toast
+      saveWalkthrough({ showToast: false, blocking: false }).catch(() => {
+        // keep working; user can manually save
+      });
+    }, 2000);
+
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walkthrough]);
 
   const openVersions = async () => {
     if (!isEditing) return;
@@ -228,65 +284,14 @@ const CanvasBuilderPage = () => {
   };
 
   const handlePublish = async () => {
-    if (isSaving || isPublishing) return;
+    if (isSaving || isPublishing || isAutoSaving) return;
     try {
       setIsPublishing(true);
       // IMPORTANT: setState is async; save using the intended status immediately
       const next = { ...walkthrough, status: 'published' };
       setWalkthrough(next);
-      await (async () => {
-        const data = {
-          title: next.title,
-          description: next.description,
-          privacy: next.privacy,
-          category_ids: next.category_ids,
-          navigation_type: next.navigation_type,
-          navigation_placement: next.navigation_placement,
-          status: next.status,
-        };
-
-        if (isEditing) {
-          await api.updateWalkthrough(workspaceId, walkthroughId, data);
-
-          for (const step of next.steps) {
-            if (step.id && !step.isNew) {
-              await api.updateStep(workspaceId, walkthroughId, step.id, {
-                title: step.title,
-                content: step.content,
-                media_url: step.media_url,
-                media_type: step.media_type,
-                common_problems: step.common_problems || [],
-                blocks: step.blocks || []
-              });
-            } else if (step.isNew) {
-              await api.addStep(workspaceId, walkthroughId, {
-                title: step.title,
-                content: step.content,
-                media_url: step.media_url,
-                media_type: step.media_type,
-                common_problems: step.common_problems || [],
-                blocks: step.blocks || []
-              });
-            }
-          }
-        } else {
-          const response = await api.createWalkthrough(workspaceId, data);
-          const newId = response.data.id;
-
-          for (const step of next.steps) {
-            await api.addStep(workspaceId, newId, {
-              title: step.title,
-              content: step.content,
-              media_url: step.media_url,
-              media_type: step.media_type,
-              common_problems: step.common_problems || [],
-              blocks: step.blocks || []
-            });
-          }
-
-          navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
-        }
-      })();
+      // Publish uses the same persistence path as Save to avoid any step duplication.
+      await saveWalkthrough({ showToast: false, blocking: true, overrideWalkthrough: next });
       toast.success('Published successfully!');
     } catch (error) {
       toast.error('Failed to publish');
@@ -473,7 +478,7 @@ const CanvasBuilderPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="h-screen flex flex-col bg-slate-50">
+      <div className="h-screen flex flex-col bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100">
         {(isSaving || isPublishing) && (
           <div className="fixed inset-0 z-[200] bg-black/20 flex items-center justify-center">
             <div className="bg-white rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
@@ -484,9 +489,9 @@ const CanvasBuilderPage = () => {
             </div>
           </div>
         )}
-        {/* Top Bar */}
-        <div className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
-          <div className="flex items-center gap-4">
+        {/* Studio Top Bar */}
+        <div className="h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 flex items-center justify-between px-6">
+          <div className="flex items-center gap-4 min-w-0">
             <Button
               variant="ghost"
               size="sm"
@@ -497,15 +502,25 @@ const CanvasBuilderPage = () => {
               Back
             </Button>
             <div className="h-6 w-px bg-slate-200" />
-            <div className="flex items-center gap-2">
-              {isSaving && <Clock className="w-4 h-4 text-slate-400 animate-spin" />}
-              {lastSaved && !isSaving && (
+            <div className="flex flex-col min-w-0">
+              <div className="text-sm font-medium text-slate-900 truncate">
+                {workspace?.name ? `${workspace.name} Studio` : 'Studio'}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                {isAutoSaving && (
+                  <>
+                    <Clock className="w-3.5 h-3.5 animate-spin" />
+                    Auto-saving…
+                  </>
+                )}
+                {lastSaved && !isSaving && !isPublishing && !isAutoSaving && (
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <Check className="w-4 h-4 text-success" />
                   Saved {Math.round((new Date() - lastSaved) / 1000)}s ago
                 </div>
               )}
             </div>
+          </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -597,8 +612,8 @@ const CanvasBuilderPage = () => {
 
             <Button
               size="sm"
-              onClick={() => saveWalkthrough(true)}
-              disabled={isSaving || isPublishing}
+              onClick={() => saveWalkthrough({ showToast: true, blocking: true })}
+              disabled={isSaving || isPublishing || isAutoSaving}
               data-testid="save-button"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -610,7 +625,7 @@ const CanvasBuilderPage = () => {
               onClick={handlePublish}
               data-testid="publish-button"
               className="bg-success hover:bg-success/90"
-              disabled={isSaving || isPublishing}
+              disabled={isSaving || isPublishing || isAutoSaving}
             >
               Publish
             </Button>
@@ -629,47 +644,50 @@ const CanvasBuilderPage = () => {
         />
 
         {/* Main Editor Area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden p-4 gap-4">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            {/* Left Sidebar */}
-            <LeftSidebar
-              walkthrough={walkthrough}
-              categories={categories}
-              onUpdate={setWalkthrough}
-              onAddStep={addStep}
-              onStepClick={setCurrentStepIndex}
-              onDeleteStep={deleteStep}
-              currentStepIndex={currentStepIndex}
-            />
+            <div className="w-80 shrink-0 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
+              <LeftSidebar
+                walkthrough={walkthrough}
+                categories={categories}
+                onUpdate={setWalkthrough}
+                onAddStep={addStep}
+                onStepClick={setCurrentStepIndex}
+                onDeleteStep={deleteStep}
+                currentStepIndex={currentStepIndex}
+              />
+            </div>
 
-            {/* Live Canvas */}
-            <LiveCanvas
-              walkthrough={walkthrough}
-              currentStepIndex={currentStepIndex}
-              selectedElement={selectedElement}
-              onSelectElement={setSelectedElement}
-              onUpdateStep={updateStep}
-            />
+            <div className="flex-1 rounded-2xl bg-white/60 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
+              <LiveCanvas
+                walkthrough={walkthrough}
+                currentStepIndex={currentStepIndex}
+                selectedElement={selectedElement}
+                onSelectElement={setSelectedElement}
+                onUpdateStep={updateStep}
+              />
+            </div>
 
-            {/* Right Inspector */}
-            <RightInspector
-              selectedElement={selectedElement}
-              currentStep={walkthrough.steps[currentStepIndex]}
-              onUpdate={(updates) => {
-                if (walkthrough.steps[currentStepIndex]) {
-                  updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                }
-              }}
-              onDeleteStep={() => {
-                if (walkthrough.steps[currentStepIndex]) {
-                  deleteStep(walkthrough.steps[currentStepIndex].id);
-                }
-              }}
-            />
+            <div className="w-80 shrink-0 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
+              <RightInspector
+                selectedElement={selectedElement}
+                currentStep={walkthrough.steps[currentStepIndex]}
+                onUpdate={(updates) => {
+                  if (walkthrough.steps[currentStepIndex]) {
+                    updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                  }
+                }}
+                onDeleteStep={() => {
+                  if (walkthrough.steps[currentStepIndex]) {
+                    deleteStep(walkthrough.steps[currentStepIndex].id);
+                  }
+                }}
+              />
+            </div>
           </DndContext>
         </div>
       </div>
