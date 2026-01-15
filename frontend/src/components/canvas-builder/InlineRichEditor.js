@@ -1,9 +1,3 @@
-function stripHtml(html) {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return div.textContent || div.innerText || "";
-}
-
 import React from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -14,6 +8,11 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+function getEditorPlainText(editor) {
+  // Preserve spaces (including trailing) better than HTML/textContent which can drop/collapse them.
+  return editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n', '\0');
+}
 
 const InlineRichEditor = ({ 
   content, 
@@ -51,7 +50,7 @@ const InlineRichEditor = ({
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
-      onChange(stripHtml(editor.getHTML()));
+      onChange(getEditorPlainText(editor));
     },
     onFocus: () => {
       setShowToolbar(true);
@@ -72,8 +71,12 @@ const InlineRichEditor = ({
   });
 
   React.useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content || '');
+    if (!editor) return;
+
+    const current = getEditorPlainText(editor);
+    if ((content || '') !== current) {
+      // Preserve whitespace when syncing controlled value back into editor
+      editor.commands.setContent(content || '', false, { preserveWhitespace: 'full' });
     }
   }, [content]);
 
