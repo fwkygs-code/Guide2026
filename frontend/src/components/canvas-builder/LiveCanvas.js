@@ -153,6 +153,7 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
                 isRTL={isRTL}
                 textSize="text-4xl"
                 isBold={true}
+                  align="center"
                 className="text-slate-900 font-heading"
               />
             </div>

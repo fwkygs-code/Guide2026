@@ -11,6 +11,7 @@ const AnalyticsPage = () => {
   const [walkthroughs, setWalkthroughs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState({});
+  const [feedbackData, setFeedbackData] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -32,6 +33,17 @@ const AnalyticsPage = () => {
         analyticsMap[wt.id] = analyticsResults[index]?.data || {};
       });
       setAnalyticsData(analyticsMap);
+
+      // Fetch feedback for each walkthrough (published or not)
+      const feedbackPromises = response.data.map(wt =>
+        api.getFeedback(workspaceId, wt.id).catch(() => ({ data: [] }))
+      );
+      const feedbackResults = await Promise.all(feedbackPromises);
+      const feedbackMap = {};
+      response.data.forEach((wt, index) => {
+        feedbackMap[wt.id] = feedbackResults[index]?.data || [];
+      });
+      setFeedbackData(feedbackMap);
     } catch (error) {
       toast.error('Failed to load analytics');
     } finally {
@@ -132,6 +144,7 @@ const AnalyticsPage = () => {
             <div className="space-y-4">
               {walkthroughs.filter(w => w.status === 'published').map((wt) => {
                 const analytics = analyticsData[wt.id] || {};
+                const feedback = feedbackData[wt.id] || [];
                 return (
                   <div key={wt.id} className="border border-slate-200 rounded-lg p-4 bg-white">
                     <div className="flex items-start justify-between mb-3">
@@ -159,6 +172,28 @@ const AnalyticsPage = () => {
                           {analytics.completion_rate ? `${analytics.completion_rate.toFixed(1)}%` : '0%'}
                         </div>
                       </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium text-slate-700">Feedback</div>
+                        <div className="text-sm text-slate-600">{feedback.length} submissions</div>
+                      </div>
+                      {feedback.length > 0 ? (
+                        <div className="mt-3 space-y-2">
+                          {feedback.slice(0, 3).map((f) => (
+                            <div key={f.id} className="text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2">
+                              <span className="font-medium">{f.rating}</span>
+                              {f.comment ? <span className="text-slate-600"> — {f.comment}</span> : null}
+                            </div>
+                          ))}
+                          {feedback.length > 3 && (
+                            <div className="text-xs text-slate-500">Showing latest 3</div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-sm text-slate-500">No feedback yet</div>
+                      )}
                     </div>
                   </div>
                 );

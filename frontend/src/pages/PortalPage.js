@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, FolderOpen, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -20,6 +21,7 @@ const PortalPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const isLoggedIn = !!localStorage.getItem('token');
 
   useEffect(() => {
     fetchPortal();
@@ -69,17 +71,27 @@ const PortalPage = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-            style={{ backgroundColor: workspace.brand_color }}
-          >
-            {workspace.name.charAt(0).toUpperCase()}
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+              style={{ backgroundColor: workspace.brand_color }}
+            >
+              {workspace.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-heading font-bold text-slate-900 truncate">{workspace.name}</h1>
+              <p className="text-sm text-slate-600">Knowledge Base</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-heading font-bold text-slate-900">{workspace.name}</h1>
-            <p className="text-sm text-slate-600">Knowledge Base</p>
-          </div>
+
+          {isLoggedIn && (
+            <Link to="/dashboard" data-testid="back-to-dashboard-link">
+              <Button variant="outline" size="sm">
+                Admin Dashboard
+              </Button>
+            </Link>
+          )}
         </div>
       </header>
 

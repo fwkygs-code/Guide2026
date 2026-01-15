@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check, X, Smile, Meh, Frown, LogIn, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 const WalkthroughViewerPage = () => {
   const { slug, walkthroughId } = useParams();
+  const navigate = useNavigate();
   const [walkthrough, setWalkthrough] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
@@ -145,7 +146,8 @@ const WalkthroughViewerPage = () => {
         comment: feedbackComment
       });
       toast.success('Thank you for your feedback!');
-      setShowFeedback(false);
+      // Go back to the portal home (company panel) after completion
+      navigate(`/portal/${slug}`);
     } catch (error) {
       toast.error('Failed to submit feedback');
     }
@@ -179,8 +181,27 @@ const WalkthroughViewerPage = () => {
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-xl font-heading font-bold text-slate-900">{walkthrough.title}</h1>
-            {!isLoggedIn && (
+            <div className="flex items-center gap-3 min-w-0">
+              <Link
+                to={`/portal/${slug}`}
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap"
+                data-testid="back-to-portal-link"
+              >
+                ← Back to portal
+              </Link>
+              <div className="h-4 w-px bg-slate-200" />
+              <h1 className="text-xl font-heading font-bold text-slate-900 truncate">{walkthrough.title}</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              {isLoggedIn && (
+                <Link to="/dashboard" data-testid="back-to-dashboard-link">
+                  <Button variant="outline" size="sm">
+                    Admin Dashboard
+                  </Button>
+                </Link>
+              )}
+
+              {!isLoggedIn && (
               <Button
                 variant="outline"
                 size="sm"
@@ -190,7 +211,8 @@ const WalkthroughViewerPage = () => {
                 <LogIn className="w-4 h-4 mr-2" />
                 Login
               </Button>
-            )}
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <Progress value={progress} className="flex-1" data-testid="walkthrough-progress" />
@@ -451,7 +473,7 @@ const WalkthroughViewerPage = () => {
               <div className="flex gap-3 justify-center">
                 <Button
                   variant="outline"
-                  onClick={() => setShowFeedback(false)}
+                  onClick={() => navigate(`/portal/${slug}`)}
                   data-testid="skip-feedback-button"
                 >
                   Skip
