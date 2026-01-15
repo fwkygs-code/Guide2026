@@ -632,10 +632,17 @@ async def get_media(filename: str):
 # Include router
 app.include_router(api_router)
 
+# CORS
+# IMPORTANT: If allow_credentials=True, you cannot use allow_origins=["*"].
+# Render deployments often start with CORS_ORIGINS="*"; in that case we disable credentials.
+raw_cors_origins = os.environ.get("CORS_ORIGINS", "*")
+cors_origins = [o.strip() for o in raw_cors_origins.split(",") if o.strip()]
+allow_all_origins = "*" in cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=not allow_all_origins,
+    allow_origins=["*"] if allow_all_origins else cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

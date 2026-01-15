@@ -15,7 +15,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
-        value: "*"
+        value: "https://guide2026-frontend.onrender.com,http://localhost:3000"
 
   # Service 2: Frontend (Static Site)
   - type: web
