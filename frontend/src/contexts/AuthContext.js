@@ -3,10 +3,14 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
-const API_BASE =
+const rawBase =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_BACKEND_URL || // backwards compatibility
   'http://127.0.0.1:8000';
+
+// Render `fromService.property: host` provides a bare hostname (no scheme).
+// Axios needs a full URL, otherwise it becomes a relative path on the frontend origin.
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
@@ -38,7 +42,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, { email, password });
-    const { user, token } = response.data;
+    const data = response.data || {};
+    const token = data.token || data.access_token || data.jwt;
+    const user = data.user;
+    if (!token) {
+      throw new Error('Login succeeded but no token was returned (check API base URL/env vars).');
+    }
     localStorage.setItem('token', token);
     setToken(token);
     setUser(user);
@@ -48,7 +57,12 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (email, password, name) => {
     const response = await axios.post(`${API}/auth/signup`, { email, password, name });
-    const { user, token } = response.data;
+    const data = response.data || {};
+    const token = data.token || data.access_token || data.jwt;
+    const user = data.user;
+    if (!token) {
+      throw new Error('Signup succeeded but no token was returned (check API base URL/env vars).');
+    }
     localStorage.setItem('token', token);
     setToken(token);
     setUser(user);

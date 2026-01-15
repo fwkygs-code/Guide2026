@@ -2,10 +2,13 @@ import axios from 'axios';
 
 // Render/Vercel/etc: set REACT_APP_API_URL to your backend base URL (no trailing /api).
 // Example: https://your-backend.onrender.com
-const API_BASE =
+const rawBase =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_BACKEND_URL || // backwards compatibility
   'http://127.0.0.1:8000';
+
+// Render `fromService.property: host` provides a bare hostname (no scheme).
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 

@@ -33,4 +33,4 @@ services:
         fromService:
           name: guide2026-backend
           type: web
-          property: host
+          property: url
