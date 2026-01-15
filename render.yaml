@@ -28,9 +28,9 @@ services:
     staticPublishPath: build
     routes:
       # SPA fallback: allow deep-links like /portal/<slug>
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      - source: "/*"
+        destination: "/index.html"
+        action: rewrite
     envVars:
       - key: NODE_VERSION
         value: "18.20.4"
