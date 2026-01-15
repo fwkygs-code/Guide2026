@@ -1,9 +1,28 @@
-# Service 2: Frontend (Static Site)
+services:
+  # Service 1: Backend (Python)
+  - type: web
+    name: guide2026-backend
+    env: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker server:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: DB_NAME
+        value: "guide2026"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+
+  # Service 2: Frontend (Static Site)
   - type: web
     name: guide2026-frontend
     env: static
     rootDir: frontend
-    buildCommand: "npm install --no-package-lock && npm run build"
+    buildCommand: "npm install && npm run build"
     staticPublishPath: build
     envVars:
       - key: REACT_APP_API_URL
