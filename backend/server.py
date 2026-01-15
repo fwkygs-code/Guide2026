@@ -150,6 +150,9 @@ class WalkthroughCreate(BaseModel):
     status: Optional[WalkthroughStatus] = None
     navigation_type: NavigationType = NavigationType.NEXT_PREV
     navigation_placement: NavigationPlacement = NavigationPlacement.BOTTOM
+    # When true, create a version snapshot on update. This is set by the Publish action,
+    # and is intentionally NOT used by autosave to avoid spamming versions.
+    create_version: bool = False
 
 class Walkthrough(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -473,6 +476,7 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
     update_data = walkthrough_data.model_dump(exclude_none=True)
+    create_version = bool(update_data.pop("create_version", False))
 
     # Password handling: store hash only, never store plaintext.
     if update_data.get("privacy") == Privacy.PASSWORD or walkthrough_data.privacy == Privacy.PASSWORD:
@@ -486,9 +490,11 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         if update_data.get("privacy") and update_data.get("privacy") != Privacy.PASSWORD:
             update_data["password_hash"] = None
 
-    # Versioning: when transitioning to published, snapshot the previous version and increment.
+    # Versioning: create a snapshot when explicitly publishing (create_version=True),
+    # or when transitioning draft->published (backwards compatibility).
     becoming_published = update_data.get("status") == WalkthroughStatus.PUBLISHED and existing.get("status") != "published"
-    if becoming_published:
+    should_snapshot = create_version or becoming_published
+    if should_snapshot:
         next_version = int(existing.get("version", 1)) + 1
         version_doc = {
             "id": str(uuid.uuid4()),

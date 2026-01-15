@@ -48,12 +48,15 @@ const CanvasBuilderPage = () => {
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
   const [isPublishing, setIsPublishing] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isMutating, setIsMutating] = useState(false); // delete / other blocking ops
   const didInitialLoadRef = useRef(false);
   const lastSyncedSnapshotRef = useRef('');
 
   // Drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 }, // prevents click -> drag jitter
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -155,8 +158,8 @@ const CanvasBuilderPage = () => {
     return payload;
   };
 
-  const saveWalkthrough = async ({ showToast = true, blocking = true, overrideWalkthrough } = {}) => {
-    if (isSaving || isPublishing) return;
+  const saveWalkthrough = async ({ showToast = true, blocking = true, overrideWalkthrough, createVersion = false } = {}) => {
+    if (isSaving || isPublishing || isMutating) return;
     if (blocking) setIsSaving(true);
     else setIsAutoSaving(true);
     const wt = overrideWalkthrough || walkthrough;
@@ -168,7 +171,8 @@ const CanvasBuilderPage = () => {
       category_ids: wt.category_ids,
       navigation_type: wt.navigation_type,
       navigation_placement: wt.navigation_placement,
-      status: wt.status
+      status: wt.status,
+      create_version: !!createVersion,
     };
 
     try {
@@ -290,14 +294,14 @@ const CanvasBuilderPage = () => {
   };
 
   const handlePublish = async () => {
-    if (isSaving || isPublishing || isAutoSaving) return;
+    if (isSaving || isPublishing || isAutoSaving || isMutating) return;
     try {
       setIsPublishing(true);
       // IMPORTANT: setState is async; save using the intended status immediately
       const next = { ...walkthrough, status: 'published' };
       setWalkthrough(next);
       // Publish uses the same persistence path as Save to avoid any step duplication.
-      await saveWalkthrough({ showToast: false, blocking: true, overrideWalkthrough: next });
+      await saveWalkthrough({ showToast: false, blocking: true, overrideWalkthrough: next, createVersion: true });
       toast.success('Published successfully!');
     } catch (error) {
       toast.error('Failed to publish');
@@ -387,6 +391,7 @@ const CanvasBuilderPage = () => {
     }
 
     try {
+      setIsMutating(true);
       // If editing existing walkthrough, delete from server
       if (isEditing && !stepId.startsWith('temp-')) {
         await api.deleteStep(workspaceId, walkthroughId, stepId);
@@ -405,6 +410,8 @@ const CanvasBuilderPage = () => {
     } catch (error) {
       console.error('Failed to delete step:', error);
       toast.error('Failed to delete step');
+    } finally {
+      setIsMutating(false);
     }
   };
 
@@ -418,6 +425,7 @@ const CanvasBuilderPage = () => {
     }
 
     try {
+      setIsMutating(true);
       // Delete persisted steps from server first
       for (const id of unique) {
         if (isEditing && id && !id.startsWith('temp-')) {
@@ -441,8 +449,11 @@ const CanvasBuilderPage = () => {
     } catch (e) {
       console.error('Failed to delete steps:', e);
       toast.error('Failed to delete selected steps');
+    } finally {
+      setIsMutating(false);
     }
   };
+  const isBusy = isSaving || isPublishing || isAutoSaving || isMutating;
 
   const toggleStepSelected = (id) => {
     setSelectedStepIds((prev) => {
@@ -487,12 +498,12 @@ const CanvasBuilderPage = () => {
   return (
     <DashboardLayout>
       <div className="h-screen flex flex-col bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100">
-        {(isSaving || isPublishing) && (
+        {isBusy && (
           <div className="fixed inset-0 z-[200] bg-black/20 flex items-center justify-center">
             <div className="bg-white rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               <div className="text-sm text-slate-700">
-                {isPublishing ? 'Publishing…' : 'Saving…'} Please wait.
+                {isPublishing ? 'Publishing…' : isSaving ? 'Saving…' : isMutating ? 'Working…' : 'Auto-saving…'} Please wait.
               </div>
             </div>
           </div>
@@ -543,7 +554,7 @@ const CanvasBuilderPage = () => {
                 setSelectStepsMode((v) => !v);
                 clearSelectedSteps();
               }}
-              disabled={isSaving || isPublishing}
+              disabled={isBusy}
               data-testid="select-steps-button"
             >
               {selectStepsMode ? <CheckSquare className="w-4 h-4 mr-2" /> : <Square className="w-4 h-4 mr-2" />}
@@ -558,7 +569,7 @@ const CanvasBuilderPage = () => {
                     if (selectedStepIds.size === (walkthrough.steps || []).length) clearSelectedSteps();
                     else selectAllSteps();
                   }}
-                  disabled={isSaving || isPublishing}
+                  disabled={isBusy}
                   data-testid="select-all-steps-button"
                 >
                   {selectedStepIds.size === (walkthrough.steps || []).length ? 'Unselect all' : 'Select all'}
@@ -567,7 +578,7 @@ const CanvasBuilderPage = () => {
                   variant="destructive"
                   size="sm"
                   onClick={deleteSelectedSteps}
-                  disabled={selectedStepIds.size === 0 || isSaving || isPublishing}
+                  disabled={selectedStepIds.size === 0 || isBusy}
                   data-testid="delete-selected-steps-button"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -580,7 +591,7 @@ const CanvasBuilderPage = () => {
               variant="outline"
               size="sm"
               onClick={() => insertStepAt(currentStepIndex + 1)}
-              disabled={isSaving || isPublishing}
+              disabled={isBusy}
               data-testid="insert-step-after-button"
             >
               Add step below
@@ -591,7 +602,7 @@ const CanvasBuilderPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={openVersions}
-                disabled={isSaving || isPublishing}
+                disabled={isBusy}
                 data-testid="versions-button"
               >
                 <History className="w-4 h-4 mr-2" />
@@ -602,7 +613,7 @@ const CanvasBuilderPage = () => {
               variant="outline"
               size="sm"
               onClick={() => setIsPreviewMode(true)}
-              disabled={isSaving || isPublishing}
+              disabled={isBusy}
               data-testid="preview-button"
             >
               <Play className="w-4 h-4 mr-2" />
@@ -615,6 +626,7 @@ const CanvasBuilderPage = () => {
                 size="sm"
                 onClick={() => window.open(`/portal/${workspace.slug}`, '_blank')}
                 data-testid="view-portal-button"
+                disabled={isBusy}
               >
                 <Eye className="w-4 h-4 mr-2" />
                 View Portal
@@ -624,7 +636,7 @@ const CanvasBuilderPage = () => {
             <Button
               size="sm"
               onClick={() => saveWalkthrough({ showToast: true, blocking: true })}
-              disabled={isSaving || isPublishing || isAutoSaving}
+              disabled={isBusy}
               data-testid="save-button"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -636,7 +648,7 @@ const CanvasBuilderPage = () => {
               onClick={handlePublish}
               data-testid="publish-button"
               className="bg-success hover:bg-success/90"
-              disabled={isSaving || isPublishing || isAutoSaving}
+              disabled={isBusy}
             >
               Publish
             </Button>
@@ -664,6 +676,7 @@ const CanvasBuilderPage = () => {
                 selectMode={selectStepsMode}
                 selectedIds={selectedStepIds}
                 onToggleSelect={toggleStepSelected}
+                disabled={isBusy}
               />
             </div>
           </div>

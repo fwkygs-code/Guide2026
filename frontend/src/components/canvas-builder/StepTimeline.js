@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, CheckSquare, Square } from 'lucide-react';
+import { X, CheckSquare, Square, GripVertical } from 'lucide-react';
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -15,6 +15,7 @@ const SortableStepChip = ({
   onToggleSelect,
   onDelete,
   canDelete,
+  disabled,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
@@ -26,25 +27,31 @@ const SortableStepChip = ({
     <motion.div
       ref={setNodeRef}
       style={style}
-      className={`relative z-50 ${isDragging ? 'opacity-60' : ''}`}
+      className={`relative z-50 ${isDragging ? 'opacity-70 scale-[0.99]' : ''}`}
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
     >
       <button
         type="button"
         onClick={onClick}
+        disabled={disabled}
         className={`group relative z-50 flex flex-col items-center justify-center p-4 rounded-xl transition-all min-w-[180px] select-none ${
           active ? 'bg-primary text-white shadow-lg scale-105' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-        }`}
+        } ${disabled ? 'opacity-70 cursor-not-allowed' : ''}`}
         data-testid={`timeline-step-${index}`}
       >
-        {/* Drag handle area (whole chip) */}
+        {/* Drag handle (explicit, so clicks still work great) */}
         <div
-          className="absolute inset-0 rounded-xl"
-          {...attributes}
-          {...listeners}
+          className={`absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center ${
+            disabled ? 'opacity-40' : 'opacity-70 hover:opacity-100'
+          } ${disabled ? '' : 'cursor-grab active:cursor-grabbing'}`}
+          onClick={(e) => e.stopPropagation()}
+          {...(disabled ? {} : attributes)}
+          {...(disabled ? {} : listeners)}
           aria-label="Drag to reorder"
-        />
+        >
+          <GripVertical className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
+        </div>
 
         <div className="text-xs font-medium mb-1 pointer-events-none">Step {index + 1}</div>
         <div className="text-sm font-semibold max-w-[140px] text-center line-clamp-2 pointer-events-none" title={title}>
@@ -96,6 +103,7 @@ const StepTimeline = ({
   selectMode = false,
   selectedIds = new Set(),
   onToggleSelect,
+  disabled = false,
 }) => {
 
   if (steps.length === 0) return null;
@@ -117,15 +125,18 @@ const StepTimeline = ({
                 selected={selectedIds.has(step.id)}
                 onToggleSelect={onToggleSelect}
                 onClick={() => {
+                  if (disabled) return;
                   if (selectMode) onToggleSelect?.(step.id);
                   else onStepClick(index);
                 }}
                 canDelete={steps.length > 1}
                 onDelete={() => {
+                  if (disabled) return;
                   if (window.confirm('Delete this step?')) {
                     onDeleteStep(step.id);
                   }
                 }}
+                disabled={disabled}
               />
               {index < steps.length - 1 && <div className="w-8 h-px bg-slate-300 shrink-0" />}
             </React.Fragment>
