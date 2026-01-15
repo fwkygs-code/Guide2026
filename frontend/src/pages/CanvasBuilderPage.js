@@ -46,6 +46,7 @@ const CanvasBuilderPage = () => {
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [selectStepsMode, setSelectStepsMode] = useState(false);
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -110,7 +111,7 @@ const CanvasBuilderPage = () => {
   };
 
   const saveWalkthrough = async (showToast = true) => {
-    if (isSaving) return;
+    if (isSaving || isPublishing) return;
     setIsSaving(true);
     const data = {
       title: walkthrough.title,
@@ -148,6 +149,7 @@ const CanvasBuilderPage = () => {
               media_url: step.media_url,
               media_type: step.media_type,
               navigation_type: step.navigation_type || 'next_prev',
+              order: step.order,
               common_problems: step.common_problems || [],
               blocks: step.blocks || []
             });
@@ -226,7 +228,9 @@ const CanvasBuilderPage = () => {
   };
 
   const handlePublish = async () => {
+    if (isSaving || isPublishing) return;
     try {
+      setIsPublishing(true);
       // IMPORTANT: setState is async; save using the intended status immediately
       const next = { ...walkthrough, status: 'published' };
       setWalkthrough(next);
@@ -286,6 +290,8 @@ const CanvasBuilderPage = () => {
       toast.success('Published successfully!');
     } catch (error) {
       toast.error('Failed to publish');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -468,6 +474,16 @@ const CanvasBuilderPage = () => {
   return (
     <DashboardLayout>
       <div className="h-screen flex flex-col bg-slate-50">
+        {(isSaving || isPublishing) && (
+          <div className="fixed inset-0 z-[200] bg-black/20 flex items-center justify-center">
+            <div className="bg-white rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <div className="text-sm text-slate-700">
+                {isPublishing ? 'Publishing…' : 'Saving…'} Please wait.
+              </div>
+            </div>
+          </div>
+        )}
         {/* Top Bar */}
         <div className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
@@ -501,6 +517,7 @@ const CanvasBuilderPage = () => {
                 setSelectStepsMode((v) => !v);
                 clearSelectedSteps();
               }}
+              disabled={isSaving || isPublishing}
               data-testid="select-steps-button"
             >
               {selectStepsMode ? <CheckSquare className="w-4 h-4 mr-2" /> : <Square className="w-4 h-4 mr-2" />}
@@ -515,6 +532,7 @@ const CanvasBuilderPage = () => {
                     if (selectedStepIds.size === (walkthrough.steps || []).length) clearSelectedSteps();
                     else selectAllSteps();
                   }}
+                  disabled={isSaving || isPublishing}
                   data-testid="select-all-steps-button"
                 >
                   {selectedStepIds.size === (walkthrough.steps || []).length ? 'Unselect all' : 'Select all'}
@@ -523,7 +541,7 @@ const CanvasBuilderPage = () => {
                   variant="destructive"
                   size="sm"
                   onClick={deleteSelectedSteps}
-                  disabled={selectedStepIds.size === 0}
+                  disabled={selectedStepIds.size === 0 || isSaving || isPublishing}
                   data-testid="delete-selected-steps-button"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -536,6 +554,7 @@ const CanvasBuilderPage = () => {
               variant="outline"
               size="sm"
               onClick={() => insertStepAt(currentStepIndex + 1)}
+              disabled={isSaving || isPublishing}
               data-testid="insert-step-after-button"
             >
               Add step below
@@ -546,6 +565,7 @@ const CanvasBuilderPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={openVersions}
+                disabled={isSaving || isPublishing}
                 data-testid="versions-button"
               >
                 <History className="w-4 h-4 mr-2" />
@@ -556,6 +576,7 @@ const CanvasBuilderPage = () => {
               variant="outline"
               size="sm"
               onClick={() => setIsPreviewMode(true)}
+              disabled={isSaving || isPublishing}
               data-testid="preview-button"
             >
               <Play className="w-4 h-4 mr-2" />
@@ -577,7 +598,7 @@ const CanvasBuilderPage = () => {
             <Button
               size="sm"
               onClick={() => saveWalkthrough(true)}
-              disabled={isSaving}
+              disabled={isSaving || isPublishing}
               data-testid="save-button"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -589,6 +610,7 @@ const CanvasBuilderPage = () => {
               onClick={handlePublish}
               data-testid="publish-button"
               className="bg-success hover:bg-success/90"
+              disabled={isSaving || isPublishing}
             >
               Publish
             </Button>

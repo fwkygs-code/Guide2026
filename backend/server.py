@@ -177,6 +177,7 @@ class StepCreate(BaseModel):
     media_url: Optional[str] = None
     media_type: Optional[str] = None
     navigation_type: NavigationType = NavigationType.NEXT_PREV
+    order: Optional[int] = None
     common_problems: List[CommonProblem] = []
     blocks: List[Dict[str, Any]] = []
 
@@ -625,6 +626,14 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     
+    steps = walkthrough.get('steps', [])
+    insert_at = step_data.order if step_data.order is not None else len(steps)
+    try:
+        insert_at = int(insert_at)
+    except Exception:
+        insert_at = len(steps)
+    insert_at = max(0, min(insert_at, len(steps)))
+
     step = Step(
         title=step_data.title,
         content=step_data.content,
@@ -633,12 +642,17 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         navigation_type=step_data.navigation_type,
         common_problems=step_data.common_problems,
         blocks=step_data.blocks,
-        order=len(walkthrough.get('steps', []))
+        order=insert_at
     )
-    
+
+    steps.insert(insert_at, step.model_dump())
+    # Re-number orders
+    for idx, s in enumerate(steps):
+        s["order"] = idx
+
     await db.walkthroughs.update_one(
-        {"id": walkthrough_id},
-        {"$push": {"steps": step.model_dump()}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"$set": {"steps": steps, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
     return step

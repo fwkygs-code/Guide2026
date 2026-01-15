@@ -103,7 +103,7 @@ export const getBlockLabel = (type) => {
   const labels = {
     heading: 'Heading',
     text: 'Text',
-    image: 'Image',
+    image: 'Image/GIF',
     video: 'Video',
     file: 'File',
     button: 'Button',

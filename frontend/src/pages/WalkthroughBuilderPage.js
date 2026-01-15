@@ -31,6 +31,7 @@ const WalkthroughBuilderPage = () => {
   const [steps, setSteps] = useState([]);
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [workspace, setWorkspace] = useState(null);
@@ -86,7 +87,9 @@ const WalkthroughBuilderPage = () => {
       return;
     }
 
-    setSaving(true);
+    if (saving || publishing) return;
+    if (publishNow) setPublishing(true);
+    else setSaving(true);
     try {
       const data = {
         title,
@@ -122,6 +125,7 @@ const WalkthroughBuilderPage = () => {
               media_url: step.media_url,
               media_type: step.media_type,
               navigation_type: step.navigation_type || 'next_prev',
+              order: step.order,
               common_problems: step.common_problems || []
             });
             nextSteps[i] = { ...step, id: res.data.id, isNew: false };
@@ -165,6 +169,7 @@ const WalkthroughBuilderPage = () => {
       toast.error('Failed to save walkthrough');
     } finally {
       setSaving(false);
+      setPublishing(false);
     }
   };
 
@@ -296,6 +301,16 @@ const WalkthroughBuilderPage = () => {
 
   return (
     <DashboardLayout>
+      {(saving || publishing) && (
+        <div className="fixed inset-0 z-[200] bg-black/20 flex items-center justify-center">
+          <div className="bg-white rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <div className="text-sm text-slate-700">
+              {publishing ? 'Publishing…' : 'Saving…'} Please wait.
+            </div>
+          </div>
+        </div>
+      )}
       <div className="p-8 max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -326,7 +341,7 @@ const WalkthroughBuilderPage = () => {
             <Button
               variant="outline"
               onClick={() => handleSave(false)}
-              disabled={saving}
+              disabled={saving || publishing}
               data-testid="save-draft-button"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -334,7 +349,7 @@ const WalkthroughBuilderPage = () => {
             </Button>
             <Button
               onClick={handlePublish}
-              disabled={saving}
+              disabled={saving || publishing}
               data-testid="publish-button"
             >
               <Eye className="w-4 h-4 mr-2" />
