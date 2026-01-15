@@ -160,6 +160,8 @@ class Walkthrough(BaseModel):
     privacy: Privacy = Privacy.PUBLIC
     password: Optional[str] = None
     status: WalkthroughStatus = WalkthroughStatus.DRAFT
+    archived: bool = False
+    archived_at: Optional[datetime] = None
     navigation_type: NavigationType = NavigationType.NEXT_PREV
     navigation_placement: NavigationPlacement = NavigationPlacement.BOTTOM
     steps: List[Step] = []
@@ -395,7 +397,10 @@ async def get_walkthroughs(workspace_id: str, current_user: User = Depends(get_c
     if not member:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    walkthroughs = await db.walkthroughs.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(1000)
+    walkthroughs = await db.walkthroughs.find(
+        {"workspace_id": workspace_id, "archived": {"$ne": True}},
+        {"_id": 0}
+    ).to_list(1000)
     return [Walkthrough(**w) for w in walkthroughs]
 
 @api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
@@ -404,7 +409,10 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
     if not member:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id}, {"_id": 0})
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}},
+        {"_id": 0}
+    )
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     
@@ -420,24 +428,78 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
     await db.walkthroughs.update_one(
-        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}},
         {"$set": update_data}
     )
     
     walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id}, {"_id": 0})
     return Walkthrough(**walkthrough)
 
+@api_router.get("/workspaces/{workspace_id}/walkthroughs-archived", response_model=List[Walkthrough])
+async def get_archived_walkthroughs(workspace_id: str, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    walkthroughs = await db.walkthroughs.find(
+        {"workspace_id": workspace_id, "archived": True},
+        {"_id": 0}
+    ).to_list(1000)
+    return [Walkthrough(**w) for w in walkthroughs]
+
+@api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/archive")
+async def archive_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    res = await db.walkthroughs.update_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"$set": {"archived": True, "archived_at": datetime.now(timezone.utc).isoformat(), "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+    return {"message": "Walkthrough archived"}
+
+@api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/restore")
+async def restore_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    res = await db.walkthroughs.update_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"$set": {"archived": False, "archived_at": None, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+    return {"message": "Walkthrough restored"}
+
+@api_router.delete("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/permanent")
+async def permanently_delete_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    result = await db.walkthroughs.delete_one({"id": walkthrough_id, "workspace_id": workspace_id, "archived": True})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Archived walkthrough not found")
+    return {"message": "Walkthrough permanently deleted"}
+
+# Backwards-compatible delete: archive instead of hard delete
 @api_router.delete("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}")
 async def delete_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    result = await db.walkthroughs.delete_one({"id": walkthrough_id, "workspace_id": workspace_id})
-    if result.deleted_count == 0:
+    res = await db.walkthroughs.update_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"$set": {"archived": True, "archived_at": datetime.now(timezone.utc).isoformat(), "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
-    
-    return {"message": "Walkthrough deleted"}
+    return {"message": "Walkthrough archived"}
 
 # Step Routes
 @api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps")

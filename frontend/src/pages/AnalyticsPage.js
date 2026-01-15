@@ -145,6 +145,11 @@ const AnalyticsPage = () => {
               {walkthroughs.filter(w => w.status === 'published').map((wt) => {
                 const analytics = analyticsData[wt.id] || {};
                 const feedback = feedbackData[wt.id] || [];
+                const happyCount = feedback.filter((f) => f.rating === 'happy').length;
+                const neutralCount = feedback.filter((f) => f.rating === 'neutral').length;
+                const unhappyCount = feedback.filter((f) => f.rating === 'unhappy').length;
+                const totalFeedback = happyCount + neutralCount + unhappyCount;
+                const pct = (n) => (totalFeedback > 0 ? Math.round((n / totalFeedback) * 100) : 0);
                 return (
                   <div key={wt.id} className="border border-slate-200 rounded-lg p-4 bg-white">
                     <div className="flex items-start justify-between mb-3">
@@ -179,6 +184,22 @@ const AnalyticsPage = () => {
                         <div className="text-sm font-medium text-slate-700">Feedback</div>
                         <div className="text-sm text-slate-600">{feedback.length} submissions</div>
                       </div>
+                      {totalFeedback > 0 && (
+                        <div className="mt-3 grid grid-cols-3 gap-3">
+                          <div className="bg-slate-50 rounded-lg px-3 py-2">
+                            <div className="text-sm font-medium text-slate-700">😊 Happy</div>
+                            <div className="text-xs text-slate-600">{happyCount} ({pct(happyCount)}%)</div>
+                          </div>
+                          <div className="bg-slate-50 rounded-lg px-3 py-2">
+                            <div className="text-sm font-medium text-slate-700">😐 Neutral</div>
+                            <div className="text-xs text-slate-600">{neutralCount} ({pct(neutralCount)}%)</div>
+                          </div>
+                          <div className="bg-slate-50 rounded-lg px-3 py-2">
+                            <div className="text-sm font-medium text-slate-700">☹️ Sad</div>
+                            <div className="text-xs text-slate-600">{unhappyCount} ({pct(unhappyCount)}%)</div>
+                          </div>
+                        </div>
+                      )}
                       {feedback.length > 0 ? (
                         <div className="mt-3 space-y-2">
                           {feedback.slice(0, 3).map((f) => (

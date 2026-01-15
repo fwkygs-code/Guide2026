@@ -35,13 +35,13 @@ const WalkthroughsPage = () => {
   };
 
   const handleDelete = async (walkthroughId) => {
-    if (window.confirm('Are you sure you want to delete this walkthrough?')) {
+    if (window.confirm('Move this walkthrough to Archive? You can restore it later from Archive.')) {
       try {
-        await api.deleteWalkthrough(workspaceId, walkthroughId);
+        await api.archiveWalkthrough(workspaceId, walkthroughId);
         setWalkthroughs(walkthroughs.filter(w => w.id !== walkthroughId));
-        toast.success('Walkthrough deleted');
+        toast.success('Moved to Archive');
       } catch (error) {
-        toast.error('Failed to delete walkthrough');
+        toast.error('Failed to archive walkthrough');
       }
     }
   };

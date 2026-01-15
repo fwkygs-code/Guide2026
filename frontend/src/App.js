@@ -13,6 +13,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import PortalPage from './pages/PortalPage';
 import WalkthroughViewerPage from './pages/WalkthroughViewerPage';
+import ArchivePage from './pages/ArchivePage';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -41,6 +42,7 @@ function App() {
           
           <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/walkthroughs" element={<PrivateRoute><WalkthroughsPage /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceId/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/walkthroughs/new" element={<PrivateRoute><CanvasBuilderPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/walkthroughs/:walkthroughId/edit" element={<PrivateRoute><CanvasBuilderPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/categories" element={<PrivateRoute><CategoriesPage /></PrivateRoute>} />

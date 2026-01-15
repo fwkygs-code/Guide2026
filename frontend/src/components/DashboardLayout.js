@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings } from 'lucide-react';
+import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -73,6 +73,15 @@ const DashboardLayout = ({ children }) => {
               >
                 <BookText className="w-4 h-4 mr-2" />
                 Guides
+              </Button>
+              <Button
+                variant={location.pathname.includes('/archive') ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => navigate(`/workspace/${workspaceId}/archive`)}
+                data-testid="nav-workspace-archive"
+              >
+                <Archive className="w-4 h-4 mr-2" />
+                Archive
               </Button>
               <Button
                 variant={location.pathname.includes('/categories') ? 'default' : 'outline'}
