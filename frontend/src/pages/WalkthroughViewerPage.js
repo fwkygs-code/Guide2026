@@ -42,6 +42,7 @@ const WalkthroughViewerPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [portalPassword, setPortalPassword] = useState('');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -282,7 +283,8 @@ const WalkthroughViewerPage = () => {
                     <img 
                       src={step.media_url} 
                       alt={step.title} 
-                      className="max-w-full rounded-lg shadow-soft"
+                      className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
+                      onClick={() => setImagePreviewUrl(step.media_url)}
                     />
                   )}
                   {step.media_type === 'video' && (
@@ -328,7 +330,8 @@ const WalkthroughViewerPage = () => {
                           <img 
                             src={block.data.url} 
                             alt={block.data?.alt || ''} 
-                            className="max-w-full rounded-lg shadow-soft"
+                            className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
+                            onClick={() => setImagePreviewUrl(block.data.url)}
                           />
                           {block.data?.caption && (
                             <figcaption className="text-sm text-slate-500 mt-2 text-center">
@@ -655,6 +658,29 @@ const WalkthroughViewerPage = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!imagePreviewUrl} onOpenChange={(open) => !open && setImagePreviewUrl(null)}>
+        <DialogContent className="sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Image preview</DialogTitle>
+          </DialogHeader>
+          {imagePreviewUrl && (
+            <div className="w-full">
+              <img
+                src={imagePreviewUrl}
+                alt="Preview"
+                className="w-full max-h-[80vh] object-contain rounded-lg bg-slate-50"
+              />
+              <div className="mt-3 flex justify-end">
+                <Button variant="outline" onClick={() => setImagePreviewUrl(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

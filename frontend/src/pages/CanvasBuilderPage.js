@@ -158,6 +158,12 @@ const CanvasBuilderPage = () => {
         // If we persisted any new steps, update local state to prevent duplicates.
         setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
+        // Persist step ordering (only after all steps have real IDs)
+        const persistedIds = nextSteps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
+        if (persistedIds.length === nextSteps.length) {
+          await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
+        }
+
         if (showToast) toast.success('Saved!');
         setLastSaved(new Date());
       } else {
@@ -299,6 +305,31 @@ const CanvasBuilderPage = () => {
         };
       });
     }
+  };
+
+  // Insert a step at a specific position (e.g. between two steps)
+  const insertStepAt = (index) => {
+    const clamped = Math.max(0, Math.min(index, walkthrough.steps.length));
+    const newStep = {
+      id: `temp-${Date.now()}`,
+      title: `Step ${walkthrough.steps.length + 1}`,
+      content: '<p>Click to edit...</p>',
+      media_url: null,
+      media_type: null,
+      navigation_type: 'next_prev',
+      common_problems: [],
+      order: clamped,
+      isNew: true
+    };
+
+    const nextSteps = [
+      ...walkthrough.steps.slice(0, clamped),
+      newStep,
+      ...walkthrough.steps.slice(clamped)
+    ].map((s, i) => ({ ...s, order: i }));
+
+    setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
+    setCurrentStepIndex(clamped);
   };
 
   const addStep = () => {
@@ -500,6 +531,15 @@ const CanvasBuilderPage = () => {
                 </Button>
               </>
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => insertStepAt(currentStepIndex + 1)}
+              data-testid="insert-step-after-button"
+            >
+              Add step below
+            </Button>
 
             {isEditing && (
               <Button

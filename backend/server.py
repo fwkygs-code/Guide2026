@@ -200,6 +200,9 @@ class Feedback(BaseModel):
     hesitation_step: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class StepsReorder(BaseModel):
+    step_ids: List[str]
+
 # Helper Functions
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -691,6 +694,35 @@ async def delete_step(workspace_id: str, walkthrough_id: str, step_id: str, curr
     )
     
     return {"message": "Step deleted"}
+
+@api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps/reorder")
+async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReorder, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}}, {"_id": 0})
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+
+    steps = walkthrough.get("steps", [])
+    step_map = {s["id"]: s for s in steps if "id" in s}
+    # Only allow reordering of existing step ids
+    ordered = [step_map[sid] for sid in body.step_ids if sid in step_map]
+    if len(ordered) != len(steps):
+        # If mismatch, keep any missing steps at the end (stable)
+        missing = [s for s in steps if s.get("id") not in set(body.step_ids)]
+        ordered.extend(missing)
+
+    # Update order fields
+    for idx, s in enumerate(ordered):
+        s["order"] = idx
+
+    await db.walkthroughs.update_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"$set": {"steps": ordered, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Steps reordered"}
 
 # Public Portal Routes
 @api_router.get("/portal/{slug}")
