@@ -20,11 +20,15 @@ services:
   # Service 2: Frontend (Static Site)
   - type: web
     name: guide2026-frontend
-    env: static
+    runtime: static
     rootDir: frontend
-    buildCommand: "npm install && npm run build"
+    buildCommand: "npm ci && npm run build"
     staticPublishPath: build
     envVars:
+      - key: NODE_VERSION
+        value: "18.20.4"
+      - key: CI
+        value: "false"
       - key: REACT_APP_API_URL
         fromService:
           name: guide2026-backend
