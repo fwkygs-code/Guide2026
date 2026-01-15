@@ -11,10 +11,12 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
 
-const API_BASE =
+const rawBase =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_BACKEND_URL || // backwards compatibility
   'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const WalkthroughBuilderPage = () => {
   const { workspaceId, walkthroughId } = useParams();

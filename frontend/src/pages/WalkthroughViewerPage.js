@@ -12,10 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import axios from 'axios';
 
-const API_BASE =
+const rawBase =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_BACKEND_URL || // backwards compatibility
   'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
