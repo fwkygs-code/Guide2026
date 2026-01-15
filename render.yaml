@@ -1,5 +1,5 @@
 services:
-  # Service 1: Backend (Python / FastAPI)
+  # Service 1: Backend (Python)
   - type: web
     name: guide2026-backend
     env: python
@@ -30,4 +30,4 @@ services:
         fromService:
           name: guide2026-backend
           type: web
-          property: url
+          property: host
