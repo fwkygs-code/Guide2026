@@ -1,0 +1,174 @@
+{
+  "identity": {
+    "persona": "E1",
+    "philosophy": "Fusion over Imitation. Emotion First. Negative Space. Contrast.",
+    "anti_patterns": [
+      "Generic Bootstrap Blue",
+      "Inter everywhere",
+      "Center-Everything Disease",
+      "Gradient Overload"
+    ]
+  },
+  "theme": {
+    "default": "light",
+    "strategy": "Apple-style Minimalism 2.0. High clarity, soft shadows, glassmorphism.",
+    "dark_mode_support": true
+  },
+  "typography": {
+    "headings": {
+      "family": "Manrope, sans-serif",
+      "weights": ["600", "700", "800"],
+      "tracking": "-0.02em",
+      "usage": "All H1-H6, Hero text, Feature titles"
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "Paragraphs, UI labels, Inputs, Tooltips"
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "usage": "Code snippets, API keys, Technical data"
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "name": "Electric Indigo",
+        "50": "#eef2ff",
+        "100": "#e0e7ff",
+        "500": "#6366f1",
+        "600": "#4f46e5",
+        "700": "#4338ca",
+        "900": "#312e81",
+        "DEFAULT": "#4f46e5",
+        "foreground": "#ffffff"
+      },
+      "secondary": {
+        "name": "Slate",
+        "50": "#f8fafc",
+        "100": "#f1f5f9",
+        "200": "#e2e8f0",
+        "800": "#1e293b",
+        "900": "#0f172a",
+        "DEFAULT": "#f1f5f9",
+        "foreground": "#0f172a"
+      },
+      "accent": {
+        "name": "Vivid Sky",
+        "DEFAULT": "#0ea5e9",
+        "foreground": "#ffffff"
+      },
+      "success": {
+        "DEFAULT": "#10b981",
+        "foreground": "#ffffff"
+      },
+      "warning": {
+        "DEFAULT": "#f59e0b",
+        "foreground": "#ffffff"
+      },
+      "destructive": {
+        "DEFAULT": "#ef4444",
+        "foreground": "#ffffff"
+      }
+    },
+    "backgrounds": {
+      "page": "bg-slate-50 dark:bg-slate-950",
+      "card": "bg-white dark:bg-slate-900",
+      "sidebar": "bg-slate-50/80 backdrop-blur-xl border-r border-slate-200 dark:bg-slate-900/80 dark:border-slate-800"
+    }
+  },
+  "components": {
+    "buttons": {
+      "radius": "rounded-full",
+      "shadow": "shadow-sm hover:shadow-md",
+      "transition": "transition-all duration-200 ease-out active:scale-95",
+      "variants": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90",
+        "secondary": "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 hover:border-slate-300",
+        "ghost": "hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+      }
+    },
+    "cards": {
+      "radius": "rounded-xl",
+      "border": "border border-slate-200/60 dark:border-slate-800",
+      "shadow": "shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+      "bg": "bg-white/70 backdrop-blur-md supports-[backdrop-filter]:bg-white/40"
+    },
+    "inputs": {
+      "radius": "rounded-lg",
+      "bg": "bg-white dark:bg-slate-900",
+      "border": "border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+    },
+    "navigation": {
+      "style": "Floating or Sidebar",
+      "glass": "backdrop-blur-xl bg-white/80 border-b border-slate-200/50"
+    }
+  },
+  "layout_strategies": {
+    "dashboard": {
+      "type": "Bento Grid",
+      "gap": "gap-6",
+      "padding": "p-8",
+      "rules": "Use col-span-2 for main charts, col-span-1 for stats. Asymmetry is key."
+    },
+    "builder": {
+      "type": "Split View",
+      "left_panel": "w-80 border-r bg-slate-50/50 overflow-y-auto",
+      "canvas": "flex-1 bg-slate-100/50 p-12 flex justify-center",
+      "right_panel": "w-72 border-l bg-white"
+    },
+    "knowledge_base": {
+      "hero": "Centered, large typography, search bar dominant",
+      "grid": "grid-cols-1 md:grid-cols-3 gap-8"
+    }
+  },
+  "motion": {
+    "library": "framer-motion",
+    "transitions": {
+      "page": {
+        "initial": { "opacity": 0, "y": 10 },
+        "animate": { "opacity": 1, "y": 0 },
+        "exit": { "opacity": 0, "y": -10 },
+        "transition": { "duration": 0.3, "ease": "easeOut" }
+      },
+      "hover": {
+        "scale": 1.02,
+        "transition": { "duration": 0.2 }
+      }
+    }
+  },
+  "assets": {
+    "icons": "lucide-react",
+    "images": {
+      "landing_hero": "https://images.pexels.com/photos/8534460/pexels-photo-8534460.jpeg",
+      "feature_collaboration": "https://images.pexels.com/photos/380768/pexels-photo-380768.jpeg",
+      "placeholder_logo": "https://via.placeholder.com/40"
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure WCAG AA compliance. Use slate-600 for secondary text, never lighter.",
+    "focus": "Visible focus rings on all interactive elements.",
+    "testing": "All interactive elements must have data-testid attributes."
+  },
+  "instructions_to_main_agent": [
+    "Install 'framer-motion' and 'lucide-react' if not present.",
+    "Update 'tailwind.config.js' to use the specified color palette and border radius.",
+    "Use 'Manrope' font from Google Fonts via 'next/font' or standard import.",
+    "Implement the 'Bento Grid' layout for the dashboard.",
+    "Ensure all cards use the glassmorphism effect defined in components.cards.",
+    "Do NOT use generic blue. Use the 'Electric Indigo' defined in colors.",
+    "For the Builder, use a 'Split View' layout with a floating toolbar.",
+    "Add 'data-testid' to all buttons, inputs, and links."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Avoid generic centered layouts. Use asymmetry.",
+    "Use 2-3x more spacing than typical designs (p-8, p-12).",
+    "Micro-animations on hover are mandatory.",
+    "No 'Inter' for headings. Use 'Manrope'.",
+    "Dark colors look good when used independently without gradients.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "NEVER use AI assistant Emoji characters like 🤖🧠 etc."
+  ]
+}
