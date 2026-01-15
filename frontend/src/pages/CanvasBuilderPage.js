@@ -413,6 +413,42 @@ const CanvasBuilderPage = () => {
     }
   };
 
+  const deleteSteps = async (stepIds) => {
+    const unique = Array.from(new Set(stepIds || []));
+    if (unique.length === 0) return;
+
+    if (walkthrough.steps.length - unique.length < 1) {
+      toast.error('Cannot delete all steps');
+      return;
+    }
+
+    try {
+      // Delete persisted steps from server first
+      for (const id of unique) {
+        if (isEditing && id && !id.startsWith('temp-')) {
+          await api.deleteStep(workspaceId, walkthroughId, id);
+        }
+      }
+
+      setWalkthrough((prev) => ({
+        ...prev,
+        steps: prev.steps.filter((s) => !unique.includes(s.id))
+      }));
+
+      // Keep the current step index in range
+      setCurrentStepIndex((prevIdx) => {
+        const remaining = walkthrough.steps.filter((s) => !unique.includes(s.id));
+        if (remaining.length === 0) return 0;
+        return Math.min(prevIdx, remaining.length - 1);
+      });
+
+      toast.success(`Deleted ${unique.length} steps`);
+    } catch (e) {
+      console.error('Failed to delete steps:', e);
+      toast.error('Failed to delete selected steps');
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -520,6 +556,7 @@ const CanvasBuilderPage = () => {
           currentStepIndex={currentStepIndex}
           onStepClick={setCurrentStepIndex}
           onDeleteStep={deleteStep}
+          onDeleteSteps={deleteSteps}
         />
 
         {/* Main Editor Area */}
