@@ -272,7 +272,7 @@ const WalkthroughViewerPage = () => {
               exit={{ opacity: 0, x: -20 }}
               className="glass rounded-2xl p-8"
             >
-              <h2 className="text-3xl font-heading font-bold text-slate-900 mb-6" data-testid="step-title">
+              <h2 className="text-3xl font-heading font-bold text-slate-900 mb-6 text-center" data-testid="step-title">
                 {step?.title}
               </h2>
               

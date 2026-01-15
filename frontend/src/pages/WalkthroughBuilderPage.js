@@ -521,7 +521,7 @@ const WalkthroughBuilderPage = () => {
 
                     {/* Media Upload Section */}
                     <div className="border-t pt-3 mt-3">
-                      <Label className="mb-2 block">מדיה (תמונה, וידאו, GIF)</Label>
+                      <Label className="mb-2 block">Media (Photo/GIF/Video)</Label>
                       <div className="space-y-2">
                         <div className="flex gap-2">
                           <Input

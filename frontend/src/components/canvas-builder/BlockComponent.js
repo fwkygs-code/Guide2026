@@ -13,10 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 
-const API_BASE =
+const rawBase =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_BACKEND_URL || // backwards compatibility
   'http://127.0.0.1:8000';
+
+// Render can provide a bare hostname; ensure we always have a valid absolute URL
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDuplicate, isRTL }) => {
   const {
