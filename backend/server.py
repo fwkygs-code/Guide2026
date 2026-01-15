@@ -181,6 +181,21 @@ class StepCreate(BaseModel):
     common_problems: List[CommonProblem] = []
     blocks: List[Dict[str, Any]] = []
 
+class StepUpdate(BaseModel):
+    """Partial step update model.
+
+    IMPORTANT: This prevents accidentally wiping media/blocks when the client only updates
+    a subset of fields.
+    """
+    title: Optional[str] = None
+    content: Optional[str] = None
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None
+    navigation_type: Optional[NavigationType] = None
+    order: Optional[int] = None
+    common_problems: Optional[List[CommonProblem]] = None
+    blocks: Optional[List[Dict[str, Any]]] = None
+
 class AnalyticsEvent(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -658,7 +673,7 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
     return step
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps/{step_id}")
-async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step_data: StepCreate, current_user: User = Depends(get_current_user)):
+async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step_data: StepUpdate, current_user: User = Depends(get_current_user)):
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -673,15 +688,25 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     if step_index is None:
         raise HTTPException(status_code=404, detail="Step not found")
     
-    steps[step_index].update({
-        'title': step_data.title,
-        'content': step_data.content,
-        'media_url': step_data.media_url,
-        'media_type': step_data.media_type,
-        'navigation_type': step_data.navigation_type,
-        'common_problems': [p.model_dump() for p in step_data.common_problems],
-        'blocks': step_data.blocks
-    })
+    patch: Dict[str, Any] = {}
+    if step_data.title is not None:
+        patch["title"] = step_data.title
+    if step_data.content is not None:
+        patch["content"] = step_data.content
+    if step_data.media_url is not None:
+        patch["media_url"] = step_data.media_url
+    if step_data.media_type is not None:
+        patch["media_type"] = step_data.media_type
+    if step_data.navigation_type is not None:
+        patch["navigation_type"] = step_data.navigation_type
+    if step_data.common_problems is not None:
+        patch["common_problems"] = [p.model_dump() for p in step_data.common_problems]
+    if step_data.blocks is not None:
+        patch["blocks"] = step_data.blocks
+    if step_data.order is not None:
+        patch["order"] = step_data.order
+
+    steps[step_index].update(patch)
     
     await db.walkthroughs.update_one(
         {"id": walkthrough_id},

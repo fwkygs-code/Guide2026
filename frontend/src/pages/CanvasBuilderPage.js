@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, PanelLeft, PanelsTopLeft, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -141,6 +141,20 @@ const CanvasBuilderPage = () => {
     });
   };
 
+  const buildStepUpdatePayload = (step) => {
+    const payload = {
+      title: step.title,
+      content: step.content,
+      navigation_type: step.navigation_type || 'next_prev',
+    };
+    // Only send these fields if they exist in state; prevents wiping older saved GIF blocks.
+    if (step.media_url !== undefined) payload.media_url = step.media_url;
+    if (step.media_type !== undefined) payload.media_type = step.media_type;
+    if (step.common_problems !== undefined) payload.common_problems = step.common_problems;
+    if (step.blocks !== undefined) payload.blocks = step.blocks;
+    return payload;
+  };
+
   const saveWalkthrough = async ({ showToast = true, blocking = true, overrideWalkthrough } = {}) => {
     if (isSaving || isPublishing) return;
     if (blocking) setIsSaving(true);
@@ -166,15 +180,7 @@ const CanvasBuilderPage = () => {
         for (let i = 0; i < nextSteps.length; i++) {
           const step = nextSteps[i];
           if (step.id && !step.isNew) {
-            await api.updateStep(workspaceId, walkthroughId, step.id, {
-              title: step.title,
-              content: step.content,
-              media_url: step.media_url,
-              media_type: step.media_type,
-              navigation_type: step.navigation_type || 'next_prev',
-              common_problems: step.common_problems || [],
-              blocks: step.blocks || []
-            });
+            await api.updateStep(workspaceId, walkthroughId, step.id, buildStepUpdatePayload(step));
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
               title: step.title,
@@ -303,10 +309,12 @@ const CanvasBuilderPage = () => {
   const handleDragEnd = (event) => {
     const { active, over } = event;
 
+    if (!over) return;
     if (active.id !== over.id) {
       setWalkthrough((prev) => {
         const oldIndex = prev.steps.findIndex((s) => s.id === active.id);
         const newIndex = prev.steps.findIndex((s) => s.id === over.id);
+        if (oldIndex < 0 || newIndex < 0) return prev;
         return {
           ...prev,
           steps: arrayMove(prev.steps, oldIndex, newIndex).map((s, i) => ({
@@ -507,6 +515,9 @@ const CanvasBuilderPage = () => {
                 {workspace?.name ? `${workspace.name} Studio` : 'Studio'}
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                  Studio Beta
+                </span>
                 {isAutoSaving && (
                   <>
                     <Clock className="w-3.5 h-3.5 animate-spin" />
@@ -632,25 +643,38 @@ const CanvasBuilderPage = () => {
           </div>
         </div>
 
-        {/* Timeline */}
-        <StepTimeline
-          steps={walkthrough.steps}
-          currentStepIndex={currentStepIndex}
-          onStepClick={setCurrentStepIndex}
-          onDeleteStep={deleteStep}
-          selectMode={selectStepsMode}
-          selectedIds={selectedStepIds}
-          onToggleSelect={toggleStepSelected}
-        />
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          {/* Timeline */}
+          <div className="px-4 pt-4">
+            <div className="rounded-2xl bg-white/60 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
+              <div className="h-10 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
+                <PanelsTopLeft className="w-4 h-4 text-slate-500" />
+                <div className="text-xs font-medium text-slate-700">Timeline</div>
+                <div className="ml-auto text-xs text-slate-500">Drag steps to reorder</div>
+              </div>
+              <StepTimeline
+                steps={walkthrough.steps}
+                currentStepIndex={currentStepIndex}
+                onStepClick={setCurrentStepIndex}
+                onDeleteStep={deleteStep}
+                selectMode={selectStepsMode}
+                selectedIds={selectedStepIds}
+                onToggleSelect={toggleStepSelected}
+              />
+            </div>
+          </div>
 
-        {/* Main Editor Area */}
-        <div className="flex-1 flex overflow-hidden p-4 gap-4">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
+          {/* Main Editor Area */}
+          <div className="flex-1 flex overflow-hidden p-4 gap-4">
             <div className="w-80 shrink-0 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
+              <div className="h-11 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
+                <PanelLeft className="w-4 h-4 text-slate-500" />
+                <div className="text-xs font-medium text-slate-700">Guide</div>
+              </div>
               <LeftSidebar
                 walkthrough={walkthrough}
                 categories={categories}
@@ -663,6 +687,10 @@ const CanvasBuilderPage = () => {
             </div>
 
             <div className="flex-1 rounded-2xl bg-white/60 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
+              <div className="h-11 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
+                <div className="text-xs font-medium text-slate-700">Canvas</div>
+                <div className="ml-auto text-xs text-slate-500">Select blocks to edit</div>
+              </div>
               <LiveCanvas
                 walkthrough={walkthrough}
                 currentStepIndex={currentStepIndex}
@@ -673,6 +701,10 @@ const CanvasBuilderPage = () => {
             </div>
 
             <div className="w-80 shrink-0 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/60 shadow-soft-lg overflow-hidden">
+              <div className="h-11 px-4 flex items-center gap-2 border-b border-slate-200/60 bg-white/40">
+                <SlidersHorizontal className="w-4 h-4 text-slate-500" />
+                <div className="text-xs font-medium text-slate-700">Inspector</div>
+              </div>
               <RightInspector
                 selectedElement={selectedElement}
                 currentStep={walkthrough.steps[currentStepIndex]}
@@ -688,8 +720,8 @@ const CanvasBuilderPage = () => {
                 }}
               />
             </div>
-          </DndContext>
-        </div>
+          </div>
+        </DndContext>
       </div>
 
       <Dialog open={showVersions} onOpenChange={setShowVersions}>
