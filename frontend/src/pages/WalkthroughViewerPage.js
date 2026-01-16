@@ -48,7 +48,65 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   
   // Helper to check if URL is a GIF
-  const isGif = (url) => url && url.toLowerCase().endsWith('.gif');
+  const isGif = (url) => url && (url.toLowerCase().endsWith('.gif') || url.toLowerCase().includes('.gif?'));
+  
+  // Force GIF reload when step changes (for mobile playback)
+  useEffect(() => {
+    if (!walkthrough) return;
+    
+    let retryTimeoutId = null;
+    
+    // Wait for DOM to update and animations to complete
+    const timeoutId = setTimeout(() => {
+      // Find all GIF images and force them to reload
+      const gifImages = document.querySelectorAll('img[data-gif-src]');
+      
+      if (gifImages.length === 0) {
+        // If no images found, try again after a longer delay (for AnimatePresence)
+        retryTimeoutId = setTimeout(() => {
+          const retryImages = document.querySelectorAll('img[data-gif-src]');
+          retryImages.forEach((img) => {
+            const originalSrc = img.dataset.gifSrc;
+            if (originalSrc && isGif(originalSrc)) {
+              // Force reload by changing src with cache buster
+              const separator = originalSrc.includes('?') ? '&' : '?';
+              const reloadSrc = `${originalSrc}${separator}_reload=${Date.now()}`;
+              img.src = reloadSrc;
+              
+              // Reset to original after animation starts (this restarts the GIF)
+              setTimeout(() => {
+                if (img && img.dataset.gifSrc === originalSrc) {
+                  img.src = originalSrc;
+                }
+              }, 100);
+            }
+          });
+        }, 300);
+      }
+      
+      gifImages.forEach((img) => {
+        const originalSrc = img.dataset.gifSrc;
+        if (originalSrc && isGif(originalSrc)) {
+          // Force reload by changing src with cache buster
+          const separator = originalSrc.includes('?') ? '&' : '?';
+          const reloadSrc = `${originalSrc}${separator}_reload=${Date.now()}`;
+          img.src = reloadSrc;
+          
+          // Reset to original after animation starts (this restarts the GIF)
+          setTimeout(() => {
+            if (img && img.dataset.gifSrc === originalSrc) {
+              img.src = originalSrc;
+            }
+          }, 100);
+        }
+      });
+    }, 250);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
+    };
+  }, [currentStep, walkthrough]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -306,16 +364,20 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                 <div className="mb-6">
                   {step.media_type === 'image' && (
                     <img 
-                      key={`legacy-img-${currentStep}-${step.media_url}`}
+                      data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
                       src={step.media_url} 
                       alt={step.title} 
                       className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
                       onClick={() => setImagePreviewUrl(step.media_url)}
                       loading="eager"
                       decoding="async"
+                      key={`legacy-${currentStep}-${step.media_url}`}
                       style={isGif(step.media_url) ? {
-                        willChange: 'auto',
-                        backfaceVisibility: 'visible'
+                        imageRendering: 'auto',
+                        WebkitBackfaceVisibility: 'visible',
+                        backfaceVisibility: 'visible',
+                        transform: 'translateZ(0)',
+                        willChange: 'auto'
                       } : {}}
                     />
                   )}
@@ -359,17 +421,21 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       )}
                       {block.type === 'image' && block.data?.url && (
                         <figure>
-                          <img 
-                            key={`block-img-${block.id || idx}-${block.data.url}`}
+                          <img
+                            data-gif-src={isGif(block.data.url) ? block.data.url : undefined}
                             src={block.data.url} 
                             alt={block.data?.alt || ''} 
                             className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
                             onClick={() => setImagePreviewUrl(block.data.url)}
                             loading="eager"
                             decoding="async"
+                            key={`block-${block.id || idx}-${block.data.url}-${currentStep}`}
                             style={isGif(block.data.url) ? {
-                              willChange: 'auto',
-                              backfaceVisibility: 'visible'
+                              imageRendering: 'auto',
+                              WebkitBackfaceVisibility: 'visible',
+                              backfaceVisibility: 'visible',
+                              transform: 'translateZ(0)',
+                              willChange: 'auto'
                             } : {}}
                           />
                           {block.data?.caption && (
@@ -709,16 +775,12 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           {imagePreviewUrl && (
             <div className="w-full">
               <img
-                key={imagePreviewUrl}
                 src={imagePreviewUrl}
                 alt="Preview"
                 className="w-full max-h-[80vh] object-contain rounded-lg bg-slate-50"
                 loading="eager"
                 decoding="async"
-                style={isGif(imagePreviewUrl) ? {
-                  willChange: 'auto',
-                  backfaceVisibility: 'visible'
-                } : {}}
+                key={imagePreviewUrl}
               />
               <div className="mt-3 flex justify-end">
                 <Button variant="outline" onClick={() => setImagePreviewUrl(null)}>

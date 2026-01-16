@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,29 @@ const PreviewMode = ({ walkthrough, onExit }) => {
   const progress = ((currentStep + 1) / walkthrough.steps.length) * 100;
   
   // Helper to check if URL is a GIF
-  const isGif = (url) => url && url.toLowerCase().endsWith('.gif');
+  const isGif = (url) => url && (url.toLowerCase().endsWith('.gif') || url.toLowerCase().includes('.gif?'));
+  
+  // Force GIF reload when step changes (for mobile playback)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const gifImages = document.querySelectorAll('img[data-gif-src]');
+      gifImages.forEach((img) => {
+        const originalSrc = img.dataset.gifSrc;
+        if (originalSrc && isGif(originalSrc)) {
+          const separator = originalSrc.includes('?') ? '&' : '?';
+          const reloadSrc = `${originalSrc}${separator}_reload=${Date.now()}`;
+          img.src = reloadSrc;
+          setTimeout(() => {
+            if (img && img.dataset.gifSrc === originalSrc && img.src === reloadSrc) {
+              img.src = originalSrc;
+            }
+          }, 100);
+        }
+      });
+    }, 150);
+    
+    return () => clearTimeout(timeoutId);
+  }, [currentStep]);
 
   const handleNext = () => {
     if (currentStep < walkthrough.steps.length - 1) {
@@ -74,6 +96,7 @@ const PreviewMode = ({ walkthrough, onExit }) => {
                 <div className="mb-8 rounded-lg overflow-hidden">
                   {step.media_type === 'image' && (
                     <img 
+                      data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
                       key={`preview-img-${currentStep}-${step.media_url}`}
                       src={step.media_url} 
                       alt={step.title} 
@@ -81,8 +104,11 @@ const PreviewMode = ({ walkthrough, onExit }) => {
                       loading="eager"
                       decoding="async"
                       style={isGif(step.media_url) ? {
-                        willChange: 'auto',
-                        backfaceVisibility: 'visible'
+                        imageRendering: 'auto',
+                        WebkitBackfaceVisibility: 'visible',
+                        backfaceVisibility: 'visible',
+                        transform: 'translateZ(0)',
+                        willChange: 'auto'
                       } : {}}
                     />
                   )}
