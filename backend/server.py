@@ -24,11 +24,20 @@ import cloudinary.api
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
+# MongoDB connection - use connection timeout to prevent blocking
 mongo_uri = os.environ.get("MONGO_URI") or os.environ.get("MONGO_URL")
 if not mongo_uri:
     raise RuntimeError("Missing MongoDB connection string. Set MONGO_URI.")
-client = AsyncIOMotorClient(mongo_uri)
+
+# Create client with connection timeout to prevent blocking startup
+# serverSelectionTimeoutMS: How long to wait for server selection
+# connectTimeoutMS: How long to wait for initial connection
+client = AsyncIOMotorClient(
+    mongo_uri,
+    serverSelectionTimeoutMS=5000,  # 5 seconds max for server selection
+    connectTimeoutMS=5000,  # 5 seconds max for initial connection
+    socketTimeoutMS=30000  # 30 seconds for socket operations
+)
 
 db_name = os.environ.get("DB_NAME", "guide2026")
 db = client[db_name]
@@ -1712,21 +1721,30 @@ async def get_media(filename: str):
 # Available at both /health and /api/health for flexibility
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring and load balancers"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "cloudinary_configured": USE_CLOUDINARY
-    }
+    """Health check endpoint for monitoring and load balancers - must be fast"""
+    # Don't check database here - just return immediately
+    # This ensures Render's health check doesn't timeout
+    return JSONResponse(
+        content={
+            "status": "healthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cloudinary_configured": USE_CLOUDINARY
+        },
+        status_code=200
+    )
 
 @api_router.get("/health")
 async def health_check_api():
-    """Health check endpoint under /api prefix"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "cloudinary_configured": USE_CLOUDINARY
-    }
+    """Health check endpoint under /api prefix - must be fast"""
+    # Don't check database here - just return immediately
+    return JSONResponse(
+        content={
+            "status": "healthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cloudinary_configured": USE_CLOUDINARY
+        },
+        status_code=200
+    )
 
 # CORS - MUST be added BEFORE router to handle preflight requests
 # IMPORTANT: If allow_credentials=True, you cannot use allow_origins=["*"].
@@ -1853,6 +1871,18 @@ async def global_exception_handler(request: Request, exc: Exception):
             "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
         }
     )
+
+@app.on_event("startup")
+async def startup_db_client():
+    """Verify MongoDB connection on startup (non-blocking)"""
+    try:
+        # Ping the database to verify connection (with timeout)
+        await client.admin.command('ping')
+        logger.info("MongoDB connection verified successfully")
+    except Exception as e:
+        logger.warning(f"MongoDB connection check failed (will retry on first request): {e}")
+        # Don't raise - let the app start and retry on first request
+        # This prevents deployment timeouts
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
