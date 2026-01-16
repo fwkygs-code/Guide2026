@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -12,8 +12,10 @@ const WalkthroughsPage = () => {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
   const [walkthroughs, setWalkthroughs] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [workspace, setWorkspace] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState(new Set());
 
   useEffect(() => {
     fetchData();
@@ -21,17 +23,65 @@ const WalkthroughsPage = () => {
 
   const fetchData = async () => {
     try {
-      const [wtResponse, wsResponse] = await Promise.all([
+      const [wtResponse, wsResponse, catResponse] = await Promise.all([
         api.getWalkthroughs(workspaceId),
-        api.getWorkspace(workspaceId)
+        api.getWorkspace(workspaceId),
+        api.getCategories(workspaceId)
       ]);
       setWalkthroughs(wtResponse.data);
       setWorkspace(wsResponse.data);
+      setCategories(catResponse.data);
+      // Expand all categories by default
+      const allCategoryIds = new Set(catResponse.data.map(c => c.id));
+      setExpandedCategories(allCategoryIds);
     } catch (error) {
       toast.error('Failed to load walkthroughs');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Organize categories into tree structure
+  const categoryTree = useMemo(() => {
+    const parents = categories.filter(c => !c.parent_id);
+    return parents.map(parent => ({
+      ...parent,
+      children: categories.filter(c => c.parent_id === parent.id)
+    }));
+  }, [categories]);
+
+  // Group walkthroughs by category
+  const walkthroughsByCategory = useMemo(() => {
+    const grouped = {};
+    categoryTree.forEach(cat => {
+      const catIds = [cat.id, ...cat.children.map(c => c.id)];
+      const items = walkthroughs.filter(wt => 
+        wt.category_ids?.some(id => catIds.includes(id))
+      );
+      if (items.length > 0) {
+        grouped[cat.id] = { category: cat, walkthroughs: items };
+      }
+    });
+    // Uncategorized
+    const uncategorized = walkthroughs.filter(wt => 
+      !wt.category_ids || wt.category_ids.length === 0
+    );
+    if (uncategorized.length > 0) {
+      grouped['_uncategorized'] = { category: null, walkthroughs: uncategorized };
+    }
+    return grouped;
+  }, [categoryTree, walkthroughs]);
+
+  const toggleCategory = (categoryId) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
   };
 
   const handleDelete = async (walkthroughId) => {
@@ -85,57 +135,118 @@ const WalkthroughsPage = () => {
           </div>
         </div>
 
-        {walkthroughs.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {walkthroughs.map((walkthrough, index) => (
+        {Object.keys(walkthroughsByCategory).length > 0 ? (
+          <div className="space-y-8">
+            {Object.entries(walkthroughsByCategory).map(([key, { category, walkthroughs: categoryWalkthroughs }], sectionIndex) => (
               <motion.div
-                key={walkthrough.id}
+                key={key}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all"
-                data-testid={`walkthrough-card-${walkthrough.id}`}
+                transition={{ delay: sectionIndex * 0.1 }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-heading font-semibold text-slate-900 mb-1">
-                      {walkthrough.title}
-                    </h3>
-                    <p className="text-sm text-slate-600 line-clamp-2">
-                      {walkthrough.description || 'No description'}
-                    </p>
+                {category ? (
+                  <div className="mb-6">
+                    <button
+                      onClick={() => toggleCategory(category.id)}
+                      className="flex items-center gap-3 group"
+                    >
+                      <ChevronRight
+                        className={`w-5 h-5 text-slate-400 transition-transform ${
+                          expandedCategories.has(category.id) ? 'rotate-90' : ''
+                        }`}
+                      />
+                      <FolderOpen className="w-6 h-6 text-primary" />
+                      <div className="text-left">
+                        <h2 className="text-2xl font-heading font-bold text-slate-900 group-hover:text-primary transition-colors">
+                          {category.name}
+                        </h2>
+                        {category.description && (
+                          <p className="text-sm text-slate-600 mt-1">{category.description}</p>
+                        )}
+                        {category.children.length > 0 && (
+                          <div className="flex gap-2 mt-2">
+                            {category.children.map(subCat => (
+                              <Badge key={subCat.id} variant="secondary" className="text-xs">
+                                {subCat.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-heading font-bold text-slate-900">Uncategorized</h2>
+                  </div>
+                )}
 
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge variant={walkthrough.status === 'published' ? 'default' : 'secondary'}>
-                    {walkthrough.status}
-                  </Badge>
-                  <Badge variant="outline">
-                    {walkthrough.steps?.length || 0} steps
-                  </Badge>
-                </div>
+                {(!category || expandedCategories.has(category.id)) && (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 ml-8">
+                    {categoryWalkthroughs.map((walkthrough, index) => (
+                      <motion.div
+                        key={walkthrough.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
+                        className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all"
+                        data-testid={`walkthrough-card-${walkthrough.id}`}
+                      >
+                        <div className="flex items-start gap-3 mb-4">
+                          {walkthrough.icon_url ? (
+                            <img
+                              src={walkthrough.icon_url}
+                              alt={walkthrough.title}
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-6 h-6 text-primary" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-heading font-semibold text-slate-900 mb-1">
+                              {walkthrough.title}
+                            </h3>
+                            <p className="text-sm text-slate-600 line-clamp-2">
+                              {walkthrough.description || 'No description'}
+                            </p>
+                          </div>
+                        </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/${walkthrough.id}/edit`)}
-                    data-testid={`edit-walkthrough-${walkthrough.id}`}
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(walkthrough.id)}
-                    data-testid={`delete-walkthrough-${walkthrough.id}`}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Badge variant={walkthrough.status === 'published' ? 'default' : 'secondary'}>
+                            {walkthrough.status}
+                          </Badge>
+                          <Badge variant="outline">
+                            {walkthrough.steps?.length || 0} steps
+                          </Badge>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/${walkthrough.id}/edit`)}
+                            data-testid={`edit-walkthrough-${walkthrough.id}`}
+                          >
+                            <Edit className="w-3 h-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(walkthrough.id)}
+                            data-testid={`delete-walkthrough-${walkthrough.id}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>

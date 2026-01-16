@@ -144,6 +144,7 @@ class Step(BaseModel):
 class WalkthroughCreate(BaseModel):
     title: str
     description: Optional[str] = None
+    icon_url: Optional[str] = None
     category_ids: List[str] = []
     privacy: Privacy = Privacy.PUBLIC
     password: Optional[str] = None
@@ -157,6 +158,7 @@ class Walkthrough(BaseModel):
     workspace_id: str
     title: str
     description: Optional[str] = None
+    icon_url: Optional[str] = None
     category_ids: List[str] = []
     privacy: Privacy = Privacy.PUBLIC
     password: Optional[str] = None
@@ -402,6 +404,7 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
         workspace_id=workspace_id,
         title=walkthrough_data.title,
         description=walkthrough_data.description,
+        icon_url=walkthrough_data.icon_url,
         category_ids=walkthrough_data.category_ids,
         privacy=walkthrough_data.privacy,
         password=None,

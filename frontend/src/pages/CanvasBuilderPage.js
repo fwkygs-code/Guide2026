@@ -117,6 +117,7 @@ const CanvasBuilderPage = () => {
     const data = {
       title: walkthrough.title,
       description: walkthrough.description,
+      icon_url: walkthrough.icon_url,
       privacy: walkthrough.privacy,
       password: walkthrough.privacy === 'password' ? walkthrough.password : undefined,
       category_ids: walkthrough.category_ids,
@@ -239,6 +240,7 @@ const CanvasBuilderPage = () => {
         const data = {
           title: next.title,
           description: next.description,
+          icon_url: next.icon_url,
           privacy: next.privacy,
           category_ids: next.category_ids,
           navigation_type: next.navigation_type,

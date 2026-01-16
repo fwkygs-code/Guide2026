@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, FolderOpen, Search, Lock } from 'lucide-react';
+import { BookOpen, FolderOpen, Search, Lock, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,10 @@ import axios from 'axios';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL || // backwards compatibility
+  process.env.REACT_APP_BACKEND_URL ||
   'http://127.0.0.1:8000';
 
-// Render can provide a bare hostname; ensure we always have a valid absolute URL
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 const PortalPage = () => {
@@ -41,16 +39,58 @@ const PortalPage = () => {
     }
   };
 
+  // Organize categories into parent/children structure
+  const categoryTree = useMemo(() => {
+    if (!portal?.categories) return [];
+    const parents = portal.categories.filter(c => !c.parent_id);
+    return parents.map(parent => ({
+      ...parent,
+      children: portal.categories.filter(c => c.parent_id === parent.id)
+    }));
+  }, [portal?.categories]);
+
+  // Get all category IDs (including children) when a parent is selected
+  const getCategoryIds = (categoryId) => {
+    if (!categoryId) return null;
+    const category = portal.categories.find(c => c.id === categoryId);
+    if (!category) return [categoryId];
+    const children = portal.categories.filter(c => c.parent_id === categoryId).map(c => c.id);
+    return [categoryId, ...children];
+  };
+
   const filteredWalkthroughs = portal?.walkthroughs?.filter(wt => {
     const matchesSearch = wt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          wt.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || wt.category_ids?.includes(selectedCategory);
-    return matchesSearch && matchesCategory;
+    if (!selectedCategory) return matchesSearch;
+    const categoryIds = getCategoryIds(selectedCategory);
+    return matchesSearch && categoryIds && wt.category_ids?.some(id => categoryIds.includes(id));
   }) || [];
+
+  // Group walkthroughs by category
+  const walkthroughsByCategory = useMemo(() => {
+    const grouped = {};
+    categoryTree.forEach(cat => {
+      const catIds = [cat.id, ...cat.children.map(c => c.id)];
+      const items = filteredWalkthroughs.filter(wt => 
+        wt.category_ids?.some(id => catIds.includes(id))
+      );
+      if (items.length > 0) {
+        grouped[cat.id] = { category: cat, walkthroughs: items };
+      }
+    });
+    // Uncategorized
+    const uncategorized = filteredWalkthroughs.filter(wt => 
+      !wt.category_ids || wt.category_ids.length === 0
+    );
+    if (uncategorized.length > 0) {
+      grouped['_uncategorized'] = { category: null, walkthroughs: uncategorized };
+    }
+    return grouped;
+  }, [categoryTree, filteredWalkthroughs]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -58,7 +98,7 @@ const PortalPage = () => {
 
   if (!portal) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
           <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <h1 className="text-2xl font-heading font-bold text-slate-900 mb-2">Portal Not Found</h1>
@@ -69,19 +109,24 @@ const PortalPage = () => {
   }
 
   const workspace = portal.workspace;
+  const showByCategory = selectedCategory === null && categoryTree.length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       {/* Header */}
-      <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
+      <header className="glass border-b border-slate-200/50 sticky top-0 z-50 backdrop-blur-xl bg-white/80">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
           <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-              style={{ backgroundColor: workspace.brand_color }}
-            >
-              {workspace.name.charAt(0).toUpperCase()}
-            </div>
+            {workspace.logo ? (
+              <img src={workspace.logo} alt={workspace.name} className="w-10 h-10 rounded-lg object-cover" />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                style={{ backgroundColor: workspace.brand_color }}
+              >
+                {workspace.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <h1 className="text-xl font-heading font-bold text-slate-900 truncate">{workspace.name}</h1>
               <p className="text-sm text-slate-600">Knowledge Base</p>
@@ -99,7 +144,7 @@ const PortalPage = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 px-6">
+      <section className="py-16 px-6 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -115,7 +160,7 @@ const PortalPage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for guides..."
-                className="pl-12 h-14 text-lg rounded-xl"
+                className="pl-12 h-14 text-lg rounded-xl shadow-sm border-slate-200"
                 data-testid="portal-search-input"
               />
             </div>
@@ -123,28 +168,31 @@ const PortalPage = () => {
         </div>
       </section>
 
-      {/* Categories */}
-      {portal.categories?.length > 0 && (
-        <section className="py-8 px-6">
+      {/* Categories Filter */}
+      {categoryTree.length > 0 && (
+        <section className="py-6 px-6 border-b border-slate-200/50 bg-white/50">
           <div className="max-w-7xl mx-auto">
             <div className="flex gap-3 flex-wrap justify-center">
               <Badge
                 variant={selectedCategory === null ? 'default' : 'outline'}
-                className="cursor-pointer px-4 py-2"
+                className="cursor-pointer px-4 py-2 text-sm font-medium transition-all hover:scale-105"
                 onClick={() => setSelectedCategory(null)}
                 data-testid="category-all"
               >
                 All
               </Badge>
-              {portal.categories.map((category) => (
+              {categoryTree.map((category) => (
                 <Badge
                   key={category.id}
                   variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  className="cursor-pointer px-4 py-2"
+                  className="cursor-pointer px-4 py-2 text-sm font-medium transition-all hover:scale-105"
                   onClick={() => setSelectedCategory(category.id)}
                   data-testid={`category-${category.id}`}
                 >
                   {category.name}
+                  {category.children.length > 0 && (
+                    <span className="ml-1.5 text-xs opacity-70">({category.children.length})</span>
+                  )}
                 </Badge>
               ))}
             </div>
@@ -152,63 +200,168 @@ const PortalPage = () => {
         </section>
       )}
 
-      {/* Walkthroughs Grid */}
-      <section className="py-8 px-6 pb-20">
+      {/* Walkthroughs - Organized by Category */}
+      <section className="py-12 px-6 pb-20">
         <div className="max-w-7xl mx-auto">
-          {filteredWalkthroughs.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredWalkthroughs.map((walkthrough, index) => (
-                <motion.div
-                  key={walkthrough.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link to={`/portal/${slug}/${walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
-                    <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <BookOpen className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-heading font-semibold text-slate-900 mb-1">
-                            {walkthrough.title}
-                          </h3>
-                          <p className="text-sm text-slate-600 line-clamp-2">
-                            {walkthrough.description || 'No description'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {walkthrough.steps?.length || 0} steps
-                        </Badge>
-                        {walkthrough.privacy === 'password' && (
-                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                            <Lock className="w-3 h-3" />
-                            Locked
-                          </Badge>
+          {showByCategory ? (
+            // Show organized by categories
+            Object.keys(walkthroughsByCategory).length > 0 ? (
+              <div className="space-y-12">
+                {Object.entries(walkthroughsByCategory).map(([key, { category, walkthroughs }], sectionIndex) => (
+                  <motion.div
+                    key={key}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: sectionIndex * 0.1 }}
+                  >
+                    {category && (
+                      <div className="flex items-center gap-3 mb-6">
+                        <FolderOpen className="w-6 h-6 text-primary" />
+                        <h2 className="text-2xl font-heading font-bold text-slate-900">{category.name}</h2>
+                        {category.description && (
+                          <p className="text-sm text-slate-600">{category.description}</p>
                         )}
                       </div>
+                    )}
+                    {category?.children.length > 0 && (
+                      <div className="mb-4 flex gap-2 flex-wrap">
+                        {category.children.map(subCat => (
+                          <Badge key={subCat.id} variant="secondary" className="text-xs">
+                            {subCat.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {walkthroughs.map((walkthrough, index) => (
+                        <motion.div
+                          key={walkthrough.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
+                        >
+                          <Link to={`/portal/${slug}/${walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
+                            <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-slate-200/50 hover:border-primary/30 group">
+                              <div className="flex items-start gap-4 mb-4">
+                                {walkthrough.icon_url ? (
+                                  <img
+                                    src={walkthrough.icon_url}
+                                    alt={walkthrough.title}
+                                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-slate-200 group-hover:scale-105 transition-transform"
+                                  />
+                                ) : (
+                                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                                    <BookOpen className="w-8 h-8 text-primary" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="text-lg font-heading font-semibold text-slate-900 mb-2 group-hover:text-primary transition-colors">
+                                    {walkthrough.title}
+                                  </h3>
+                                  <p className="text-sm text-slate-600 line-clamp-2">
+                                    {walkthrough.description || 'No description'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {walkthrough.steps?.length || 0} steps
+                                  </Badge>
+                                  {walkthrough.privacy === 'password' && (
+                                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                      <Lock className="w-3 h-3" />
+                                      Locked
+                                    </Badge>
+                                  )}
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                              </div>
+                            </div>
+                          </Link>
+                        </motion.div>
+                      ))}
                     </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
+                  No walkthroughs found
+                </h3>
+                <p className="text-slate-600">Try adjusting your search or filters</p>
+              </div>
+            )
           ) : (
-            <div className="text-center py-16">
-              <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
-                No walkthroughs found
-              </h3>
-              <p className="text-slate-600">Try adjusting your search or filters</p>
-            </div>
+            // Show flat list when category is selected
+            filteredWalkthroughs.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredWalkthroughs.map((walkthrough, index) => (
+                  <motion.div
+                    key={walkthrough.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Link to={`/portal/${slug}/${walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
+                      <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-slate-200/50 hover:border-primary/30 group">
+                        <div className="flex items-start gap-4 mb-4">
+                          {walkthrough.icon_url ? (
+                            <img
+                              src={walkthrough.icon_url}
+                              alt={walkthrough.title}
+                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-slate-200 group-hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                              <BookOpen className="w-8 h-8 text-primary" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-heading font-semibold text-slate-900 mb-2 group-hover:text-primary transition-colors">
+                              {walkthrough.title}
+                            </h3>
+                            <p className="text-sm text-slate-600 line-clamp-2">
+                              {walkthrough.description || 'No description'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {walkthrough.steps?.length || 0} steps
+                            </Badge>
+                            {walkthrough.privacy === 'password' && (
+                              <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                <Lock className="w-3 h-3" />
+                                Locked
+                              </Badge>
+                            )}
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
+                  No walkthroughs found
+                </h3>
+                <p className="text-slate-600">Try adjusting your search or filters</p>
+              </div>
+            )
           )}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-8 px-6">
+      <footer className="bg-slate-900 text-slate-300 py-8 px-6 mt-20">
         <div className="max-w-7xl mx-auto text-center">
           <p className="text-sm">Powered by InterGuide</p>
         </div>

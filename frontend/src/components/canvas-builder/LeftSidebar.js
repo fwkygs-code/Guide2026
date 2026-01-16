@@ -1,13 +1,33 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, FileText, Trash2 } from 'lucide-react';
+import { GripVertical, Plus, FileText, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '../../lib/api';
+import { toast } from 'sonner';
+
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick, currentStepIndex, onDeleteStep }) => {
+  const handleIconUpload = async (file) => {
+    try {
+      const response = await api.uploadFile(file);
+      const fullUrl = `${API_BASE.replace(/\/$/, '')}${response.data.url}`;
+      onUpdate({ ...walkthrough, icon_url: fullUrl });
+      toast.success('Icon uploaded!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Upload failed');
+    }
+  };
+
   return (
     <div className="w-80 border-r border-slate-200 bg-white flex flex-col">
       {/* Walkthrough Info */}
@@ -30,6 +50,57 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
         />
 
         <div className="mt-4 space-y-3">
+          <div>
+            <label className="text-xs text-slate-500 mb-1.5 block">Icon/Photo</label>
+            <div className="space-y-2">
+              {walkthrough.icon_url ? (
+                <div className="flex items-center gap-2">
+                  <img src={walkthrough.icon_url} alt="Icon" className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onUpdate({ ...walkthrough, icon_url: null })}
+                    className="h-8"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : null}
+              <div className="flex gap-2">
+                <label className="flex-1">
+                  <Input
+                    type="url"
+                    value={walkthrough.icon_url || ''}
+                    onChange={(e) => onUpdate({ ...walkthrough, icon_url: e.target.value })}
+                    placeholder="Icon/Photo URL"
+                    className="h-9"
+                    data-testid="icon-url-input"
+                  />
+                </label>
+                <label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleIconUpload(file);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                  <Button type="button" variant="outline" size="sm" className="h-9" asChild>
+                    <span>
+                      <Upload className="w-4 h-4" />
+                    </span>
+                  </Button>
+                </label>
+              </div>
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              Enter a URL or upload an image
+            </div>
+          </div>
           <div>
             <label className="text-xs text-slate-500 mb-1.5 block">Privacy</label>
             <Select
