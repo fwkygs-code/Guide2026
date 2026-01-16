@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 
 const rawBase =
@@ -66,18 +67,20 @@ const WalkthroughBuilderPage = () => {
     try {
       const response = await api.getWalkthrough(workspaceId, walkthroughId);
       const wt = response.data;
-      setTitle(wt.title);
-      setDescription(wt.description || '');
-      setPrivacy(wt.privacy);
+      // Normalize image URLs
+      const normalized = normalizeImageUrlsInObject(wt);
+      setTitle(normalized.title);
+      setDescription(normalized.description || '');
+      setPrivacy(normalized.privacy);
       setPassword('');
-      setStatus(wt.status);
+      setStatus(normalized.status);
       // Ensure all steps have blocks array initialized
-      const stepsWithBlocks = (wt.steps || []).map(step => ({
+      const stepsWithBlocks = (normalized.steps || []).map(step => ({
         ...step,
         blocks: step.blocks || []
       }));
       setSteps(stepsWithBlocks);
-      setSelectedCategories(wt.category_ids || []);
+      setSelectedCategories(normalized.category_ids || []);
     } catch (error) {
       toast.error('Failed to load walkthrough');
       navigate(`/workspace/${workspaceId}/walkthroughs`);

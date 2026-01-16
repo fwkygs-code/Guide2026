@@ -18,10 +18,12 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick, currentStepIndex, onDeleteStep }) => {
   // Organize categories into tree structure
   const categoryTree = useMemo(() => {
-    const parents = categories.filter(c => !c.parent_id);
+    // Filter out any null/undefined categories and ensure parent_id is properly handled
+    const validCategories = (categories || []).filter(c => c && c.id);
+    const parents = validCategories.filter(c => !c.parent_id || c.parent_id === null || c.parent_id === '');
     return parents.map(parent => ({
       ...parent,
-      children: categories.filter(c => c.parent_id === parent.id)
+      children: validCategories.filter(c => c.parent_id === parent.id)
     }));
   }, [categories]);
 

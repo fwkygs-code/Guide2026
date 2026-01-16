@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '../../lib/api';
+import { normalizeImageUrl } from '../../lib/utils';
 import { toast } from 'sonner';
 
 const rawBase =
@@ -111,7 +112,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
           <div>
             {block.data.url ? (
               <div>
-                <img src={block.data.url} alt={block.data.alt} className="w-full rounded-lg mb-2" />
+                <img src={normalizeImageUrl(block.data.url)} alt={block.data.alt} className="w-full rounded-lg mb-2" />
                 <Input
                   value={block.data.caption || ''}
                   onChange={(e) => onUpdate({ ...block, data: { ...block.data, caption: e.target.value } })}
@@ -304,12 +305,26 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
     }
   };
 
+  const settings = block.settings || {};
+  const blockStyle = {
+    padding: `${settings.padding || 16}px`,
+    marginTop: `${settings.marginTop || settings.margin || 0}px`,
+    marginBottom: `${settings.marginBottom || settings.margin || 0}px`,
+    marginLeft: `${settings.marginLeft || settings.margin || 0}px`,
+    marginRight: `${settings.marginRight || settings.margin || 0}px`,
+    borderWidth: `${settings.borderWidth || 0}px`,
+    borderColor: settings.borderColor || '#e2e8f0',
+    borderStyle: settings.borderWidth > 0 ? 'solid' : 'none',
+    borderRadius: `${settings.borderRadius || 8}px`,
+    backgroundColor: settings.backgroundColor || 'transparent'
+  };
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, ...blockStyle }}
       data-block-id={block.id}
-      className={`group relative rounded-lg transition-all ${
+      className={`group relative transition-all ${
         isSelected ? 'ring-2 ring-primary' : 'hover:ring-1 hover:ring-slate-300'
       }`}
       onClick={() => onSelect(block.id)}
@@ -344,7 +359,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       </div>
 
       {/* Block Content */}
-      <div className="p-4">
+      <div>
         {renderBlock()}
       </div>
     </div>

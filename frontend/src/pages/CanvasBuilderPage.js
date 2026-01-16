@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import LeftSidebar from '../components/canvas-builder/LeftSidebar';
 import LiveCanvas from '../components/canvas-builder/LiveCanvas';
@@ -102,7 +103,9 @@ const CanvasBuilderPage = () => {
 
       if (isEditing) {
         const wtResponse = await api.getWalkthrough(workspaceId, walkthroughId);
-        setWalkthrough(wtResponse.data);
+        // Normalize image URLs in walkthrough data
+        const normalized = normalizeImageUrlsInObject(wtResponse.data);
+        setWalkthrough(normalized);
       }
     } catch (error) {
       toast.error('Failed to load data');
@@ -686,6 +689,14 @@ const CanvasBuilderPage = () => {
               onDeleteStep={() => {
                 if (walkthrough.steps[currentStepIndex]) {
                   deleteStep(walkthrough.steps[currentStepIndex].id);
+                }
+              }}
+              onUpdateBlock={(updatedBlock) => {
+                if (walkthrough.steps[currentStepIndex]) {
+                  const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                    b.id === updatedBlock.id ? updatedBlock : b
+                  );
+                  updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
                 }
               }}
             />

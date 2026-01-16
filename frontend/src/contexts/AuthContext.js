@@ -22,26 +22,49 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUser();
+      // Only fetch user if we don't already have it (e.g., on page refresh)
+      if (!user) {
+        fetchUser();
+      } else {
+        setLoading(false);
+      }
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get(`${API}/auth/me`);
+      // Use Promise.race with timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+      const response = await Promise.race([
+        axios.get(`${API}/auth/me`),
+        timeoutPromise
+      ]);
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      logout();
+      // Only logout on actual auth errors, not timeouts
+      if (error.response?.status === 401) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (email, password) => {
-    const response = await axios.post(`${API}/auth/login`, { email, password });
+    // Set timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Login request timeout')), 15000)
+    );
+    const response = await Promise.race([
+      axios.post(`${API}/auth/login`, { email, password }),
+      timeoutPromise
+    ]);
     const data = response.data || {};
     const token = data.token || data.access_token || data.jwt;
     const user = data.user;
@@ -52,11 +75,20 @@ export const AuthProvider = ({ children }) => {
     setToken(token);
     setUser(user);
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    // Don't fetch user again - we already have it from login response
+    setLoading(false);
     return user;
   };
 
   const signup = async (email, password, name) => {
-    const response = await axios.post(`${API}/auth/signup`, { email, password, name });
+    // Set timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Signup request timeout')), 15000)
+    );
+    const response = await Promise.race([
+      axios.post(`${API}/auth/signup`, { email, password, name }),
+      timeoutPromise
+    ]);
     const data = response.data || {};
     const token = data.token || data.access_token || data.jwt;
     const user = data.user;
@@ -67,6 +99,8 @@ export const AuthProvider = ({ children }) => {
     setToken(token);
     setUser(user);
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    // Don't fetch user again - we already have it from signup response
+    setLoading(false);
     return user;
   };
 

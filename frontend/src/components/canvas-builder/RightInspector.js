@@ -16,7 +16,7 @@ const rawBase =
 // Render can provide a bare hostname; ensure we always have a valid absolute URL
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
-const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep }) => {
+const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, onUpdateBlock }) => {
   const [mediaUrl, setMediaUrl] = useState('');
   const [newProblem, setNewProblem] = useState({ title: '', explanation: '' });
 
@@ -288,6 +288,206 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep }
             <Button size="sm" onClick={addProblem} className="w-full">
               <Plus className="w-4 h-4 mr-2" />
               Add Problem
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Block controls
+  if (selectedElement && selectedElement.type === 'block') {
+    const block = selectedElement.block;
+    const settings = block.settings || {};
+    const updateBlock = selectedElement.onUpdateBlock || onUpdateBlock;
+    
+    if (!updateBlock) return null;
+    
+    return (
+      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <h3 className="text-sm font-semibold text-slate-900 mb-1">Block Settings</h3>
+          <p className="text-xs text-slate-500">Adjust spacing and borders</p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Padding */}
+          <div>
+            <Label className="text-xs text-slate-500 mb-2">Padding</Label>
+            <Input
+              type="number"
+              value={settings.padding || 16}
+              onChange={(e) => {
+                const updatedBlock = {
+                  ...block,
+                  settings: { ...settings, padding: parseInt(e.target.value) || 0 }
+                };
+                updateBlock(updatedBlock);
+              }}
+              min="0"
+              max="100"
+              className="h-9"
+            />
+            <p className="text-xs text-slate-400 mt-1">Internal spacing (px)</p>
+          </div>
+
+          {/* Margin */}
+          <div className="space-y-3">
+            <Label className="text-xs text-slate-500">Margin</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-slate-400 mb-1">Top</Label>
+                <Input
+                  type="number"
+                  value={settings.marginTop || settings.margin || 0}
+                  onChange={(e) => {
+                    const updatedBlock = {
+                      ...block,
+                      settings: { ...settings, marginTop: parseInt(e.target.value) || 0 }
+                    };
+                    updateBlock(updatedBlock);
+                  }}
+                  min="0"
+                  max="200"
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-400 mb-1">Bottom</Label>
+                <Input
+                  type="number"
+                  value={settings.marginBottom || settings.margin || 0}
+                  onChange={(e) => {
+                    const updatedBlock = {
+                      ...block,
+                      settings: { ...settings, marginBottom: parseInt(e.target.value) || 0 }
+                    };
+                    selectedElement.onUpdateBlock(updatedBlock);
+                  }}
+                  min="0"
+                  max="200"
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-400 mb-1">Left</Label>
+                <Input
+                  type="number"
+                  value={settings.marginLeft || settings.margin || 0}
+                  onChange={(e) => {
+                    const updatedBlock = {
+                      ...block,
+                      settings: { ...settings, marginLeft: parseInt(e.target.value) || 0 }
+                    };
+                    selectedElement.onUpdateBlock(updatedBlock);
+                  }}
+                  min="0"
+                  max="200"
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-400 mb-1">Right</Label>
+                <Input
+                  type="number"
+                  value={settings.marginRight || settings.margin || 0}
+                  onChange={(e) => {
+                    const updatedBlock = {
+                      ...block,
+                      settings: { ...settings, marginRight: parseInt(e.target.value) || 0 }
+                    };
+                    selectedElement.onUpdateBlock(updatedBlock);
+                  }}
+                  min="0"
+                  max="200"
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Border */}
+          <div className="space-y-3">
+            <Label className="text-xs text-slate-500">Border</Label>
+            <div>
+              <Label className="text-xs text-slate-400 mb-1">Width</Label>
+              <Input
+                type="number"
+                value={settings.borderWidth || 0}
+                  onChange={(e) => {
+                    const updatedBlock = {
+                      ...block,
+                      settings: { ...settings, borderWidth: parseInt(e.target.value) || 0 }
+                    };
+                    updateBlock(updatedBlock);
+                  }}
+                min="0"
+                max="10"
+                className="h-9"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-slate-400 mb-1">Color</Label>
+              <Input
+                type="color"
+                value={settings.borderColor || '#e2e8f0'}
+                  onChange={(e) => {
+                    const updatedBlock = {
+                      ...block,
+                      settings: { ...settings, borderColor: e.target.value }
+                    };
+                    updateBlock(updatedBlock);
+                  }}
+                className="h-9"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-slate-400 mb-1">Radius</Label>
+              <Input
+                type="number"
+                value={settings.borderRadius || 8}
+                  onChange={(e) => {
+                    const updatedBlock = {
+                      ...block,
+                      settings: { ...settings, borderRadius: parseInt(e.target.value) || 0 }
+                    };
+                    updateBlock(updatedBlock);
+                  }}
+                min="0"
+                max="50"
+                className="h-9"
+              />
+            </div>
+          </div>
+
+          {/* Background */}
+          <div>
+            <Label className="text-xs text-slate-500 mb-2">Background Color</Label>
+            <Input
+              type="color"
+              value={settings.backgroundColor || '#ffffff'}
+              onChange={(e) => {
+                const updatedBlock = {
+                  ...block,
+                  settings: { ...settings, backgroundColor: e.target.value }
+                };
+                updateBlock(updatedBlock);
+              }}
+              className="h-9"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const updatedBlock = {
+                  ...block,
+                  settings: { ...settings, backgroundColor: 'transparent' }
+                };
+                updateBlock(updatedBlock);
+              }}
+              className="mt-2 w-full"
+            >
+              Clear Background
             </Button>
           </div>
         </div>

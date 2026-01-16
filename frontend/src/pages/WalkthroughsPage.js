@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 
 const WalkthroughsPage = () => {
@@ -28,9 +29,10 @@ const WalkthroughsPage = () => {
         api.getWorkspace(workspaceId),
         api.getCategories(workspaceId)
       ]);
-      setWalkthroughs(wtResponse.data);
-      setWorkspace(wsResponse.data);
-      setCategories(catResponse.data);
+      // Normalize image URLs
+      setWalkthroughs(normalizeImageUrlsInObject(wtResponse.data));
+      setWorkspace(normalizeImageUrlsInObject(wsResponse.data));
+      setCategories(normalizeImageUrlsInObject(catResponse.data));
       // Expand all categories by default
       const allCategoryIds = new Set(catResponse.data.map(c => c.id));
       setExpandedCategories(allCategoryIds);

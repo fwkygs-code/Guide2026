@@ -166,7 +166,10 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
                     key={block.id}
                     block={block}
                     isSelected={selectedBlockId === block.id}
-                    onSelect={setSelectedBlockId}
+                    onSelect={(id) => {
+                      setSelectedBlockId(id);
+                      onSelectElement({ type: 'block', block, onUpdateBlock: updateBlock });
+                    }}
                     onUpdate={updateBlock}
                     onDelete={deleteBlock}
                     onDuplicate={duplicateBlock}

@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 
 const rawBase =
@@ -25,7 +26,7 @@ const CategoriesPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDesc, setNewCategoryDesc] = useState('');
-  const [newCategoryParent, setNewCategoryParent] = useState('');
+  const [newCategoryParent, setNewCategoryParent] = useState(undefined);
   const [newCategoryIcon, setNewCategoryIcon] = useState('');
   const [creatingForParent, setCreatingForParent] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -41,7 +42,7 @@ const CategoriesPage = () => {
   const fetchCategories = async () => {
     try {
       const response = await api.getCategories(workspaceId);
-      setCategories(response.data);
+      setCategories(normalizeImageUrlsInObject(response.data));
     } catch (error) {
       toast.error('Failed to load categories');
     } finally {
@@ -51,14 +52,19 @@ const CategoriesPage = () => {
 
   // Organize categories into tree structure
   const categoryTree = useMemo(() => {
-    const parents = categories.filter(c => !c.parent_id);
+    // Filter out any null/undefined categories and ensure parent_id is properly handled
+    const validCategories = categories.filter(c => c && c.id);
+    const parents = validCategories.filter(c => !c.parent_id || c.parent_id === null || c.parent_id === '');
     return parents.map(parent => ({
       ...parent,
-      children: categories.filter(c => c.parent_id === parent.id)
+      children: validCategories.filter(c => c.parent_id === parent.id)
     }));
   }, [categories]);
 
-  const parentCategories = categories.filter(c => !c.parent_id);
+  const parentCategories = useMemo(() => {
+    const validCategories = categories.filter(c => c && c.id);
+    return validCategories.filter(c => !c.parent_id || c.parent_id === null || c.parent_id === '');
+  }, [categories]);
 
   const handleIconUpload = async (file, isEdit = false) => {
     try {
@@ -78,24 +84,30 @@ const CategoriesPage = () => {
 
   const handleCreateCategory = async (e) => {
     e.preventDefault();
+    if (!newCategoryName.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
     try {
-      const parentId = creatingForParent || newCategoryParent || null;
+      const parentId = creatingForParent || (newCategoryParent && newCategoryParent !== 'none' ? newCategoryParent : null);
       const response = await api.createCategory(workspaceId, {
-        name: newCategoryName,
-        description: newCategoryDesc,
+        name: newCategoryName.trim(),
+        description: newCategoryDesc.trim() || null,
         parent_id: parentId,
         icon_url: newCategoryIcon || null
       });
-      setCategories([...categories, response.data]);
+      // Refresh categories to ensure tree structure is correct
+      await fetchCategories();
       setDialogOpen(false);
       setNewCategoryName('');
       setNewCategoryDesc('');
-      setNewCategoryParent('');
+      setNewCategoryParent(undefined);
       setNewCategoryIcon('');
       setCreatingForParent(null);
       toast.success(parentId ? 'Sub-category created!' : 'Category created!');
     } catch (error) {
-      toast.error('Failed to create category');
+      console.error('Create category error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to create category');
     }
   };
 
@@ -110,13 +122,18 @@ const CategoriesPage = () => {
   const handleUpdateCategory = async (e) => {
     e.preventDefault();
     if (!editingCategory) return;
+    if (!editCategoryName.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
     try {
       const response = await api.updateCategory(workspaceId, editingCategory.id, {
-        name: editCategoryName,
-        description: editCategoryDesc,
+        name: editCategoryName.trim(),
+        description: editCategoryDesc.trim() || null,
         icon_url: editCategoryIcon || null
       });
-      setCategories(categories.map(c => c.id === editingCategory.id ? response.data : c));
+      // Refresh categories to ensure consistency
+      await fetchCategories();
       setEditDialogOpen(false);
       setEditingCategory(null);
       setEditCategoryName('');
@@ -124,7 +141,8 @@ const CategoriesPage = () => {
       setEditCategoryIcon('');
       toast.success('Category updated!');
     } catch (error) {
-      toast.error('Failed to update category');
+      console.error('Update category error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to update category');
     }
   };
 
@@ -137,19 +155,22 @@ const CategoriesPage = () => {
     if (window.confirm(message)) {
       try {
         await api.deleteCategory(workspaceId, categoryId);
-        setCategories(categories.filter(c => c.id !== categoryId && c.parent_id !== categoryId));
+        // Refresh categories to ensure consistency
+        await fetchCategories();
         toast.success('Category deleted. Walkthroughs are now uncategorized.');
       } catch (error) {
-        toast.error('Failed to delete category');
+        console.error('Delete category error:', error);
+        toast.error(error.response?.data?.detail || 'Failed to delete category');
       }
     }
   };
 
   const openCreateSubCategory = (parentId, parentName) => {
     setCreatingForParent(parentId);
-    setNewCategoryParent(parentId);
+    setNewCategoryParent(undefined); // Clear parent selection since we're creating for a specific parent
     setNewCategoryName('');
     setNewCategoryDesc('');
+    setNewCategoryIcon('');
     setDialogOpen(true);
   };
 
@@ -175,7 +196,10 @@ const CategoriesPage = () => {
             setDialogOpen(open);
             if (!open) {
               setCreatingForParent(null);
-              setNewCategoryParent('');
+              setNewCategoryParent(undefined);
+              setNewCategoryName('');
+              setNewCategoryDesc('');
+              setNewCategoryIcon('');
             }
           }}>
             <DialogTrigger asChild>
@@ -266,12 +290,15 @@ const CategoriesPage = () => {
                 {!creatingForParent && (
                   <div>
                     <Label htmlFor="category-parent">Parent Category (Optional)</Label>
-                    <Select value={newCategoryParent} onValueChange={setNewCategoryParent}>
+                    <Select 
+                      value={newCategoryParent || 'none'} 
+                      onValueChange={(value) => setNewCategoryParent(value === 'none' ? undefined : value)}
+                    >
                       <SelectTrigger className="mt-1.5" data-testid="category-parent-select">
                         <SelectValue placeholder="None (Top-level category)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None (Top-level category)</SelectItem>
+                        <SelectItem value="none">None (Top-level category)</SelectItem>
                         {parentCategories.map(cat => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name}
@@ -280,7 +307,7 @@ const CategoriesPage = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-slate-500 mt-1.5">
-                      Select a parent to create a sub-category, or leave empty for a top-level category
+                      Select a parent to create a sub-category, or leave as "None" for a top-level category
                     </p>
                   </div>
                 )}
@@ -296,7 +323,7 @@ const CategoriesPage = () => {
                       size="sm"
                       onClick={() => {
                         setCreatingForParent(null);
-                        setNewCategoryParent('');
+                        setNewCategoryParent(undefined);
                       }}
                       className="mt-2 text-xs"
                     >
@@ -312,9 +339,10 @@ const CategoriesPage = () => {
                       onClick={() => {
                         setDialogOpen(false);
                         setCreatingForParent(null);
-                        setNewCategoryParent('');
+                        setNewCategoryParent(undefined);
                         setNewCategoryName('');
                         setNewCategoryDesc('');
+                        setNewCategoryIcon('');
                       }}
                       className="flex-1"
                     >

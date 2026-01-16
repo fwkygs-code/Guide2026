@@ -70,7 +70,15 @@ export const createBlock = (type, data = {}) => {
     settings: {
       alignment: 'left',
       padding: 16,
-      margin: 0
+      margin: 0,
+      marginTop: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      marginRight: 0,
+      borderWidth: 0,
+      borderColor: '#e2e8f0',
+      borderRadius: 8,
+      backgroundColor: 'transparent'
     }
   };
 };
