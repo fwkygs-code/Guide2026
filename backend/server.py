@@ -117,6 +117,7 @@ class WorkspaceCreate(BaseModel):
     portal_palette: Optional[Dict[str, str]] = None  # e.g., {"primary": "#3b82f6", "secondary": "#8b5cf6", "accent": "#10b981"}
     portal_links: Optional[List[Dict[str, str]]] = None  # e.g., [{"label": "Website", "url": "https://example.com"}, {"label": "Support", "url": "https://support.example.com"}]
     portal_phone: Optional[str] = None
+    portal_working_days: Optional[str] = None
     portal_working_hours: Optional[str] = None
     portal_whatsapp: Optional[str] = None
 
@@ -1449,6 +1450,8 @@ async def get_portal(slug: str):
         workspace["portal_links"] = None
     if "portal_phone" not in workspace:
         workspace["portal_phone"] = None
+    if "portal_working_days" not in workspace:
+        workspace["portal_working_days"] = None
     if "portal_working_hours" not in workspace:
         workspace["portal_working_hours"] = None
     if "portal_whatsapp" not in workspace:

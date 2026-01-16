@@ -412,57 +412,120 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             </div>
           </div>
 
-          {/* Border */}
-          <div className="space-y-3">
-            <Label className="text-xs text-slate-500">Border</Label>
-            <div>
-              <Label className="text-xs text-slate-400 mb-1">Width</Label>
-              <Input
-                type="number"
-                value={settings.borderWidth || 0}
-                  onChange={(e) => {
-                    const updatedBlock = {
-                      ...block,
-                      settings: { ...settings, borderWidth: parseInt(e.target.value) || 0 }
-                    };
-                    updateBlock(updatedBlock);
-                  }}
-                min="0"
-                max="10"
-                className="h-9"
-              />
+          {/* Border - Enhanced Controls */}
+          <div className="space-y-4 p-4 bg-slate-50/50 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-slate-700">Border Settings</Label>
+              <div className="text-xs text-slate-500">
+                {settings.borderWidth || 0}px
+              </div>
             </div>
-            <div>
-              <Label className="text-xs text-slate-400 mb-1">Color</Label>
-              <Input
-                type="color"
-                value={settings.borderColor || '#e2e8f0'}
-                  onChange={(e) => {
-                    const updatedBlock = {
-                      ...block,
-                      settings: { ...settings, borderColor: e.target.value }
-                    };
-                    updateBlock(updatedBlock);
-                  }}
-                className="h-9"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-slate-400 mb-1">Radius</Label>
-              <Input
-                type="number"
-                value={settings.borderRadius || 8}
-                  onChange={(e) => {
-                    const updatedBlock = {
-                      ...block,
-                      settings: { ...settings, borderRadius: parseInt(e.target.value) || 0 }
-                    };
-                    updateBlock(updatedBlock);
-                  }}
-                min="0"
-                max="50"
-                className="h-9"
-              />
+            
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs text-slate-600">Width</Label>
+                  <span className="text-xs text-slate-400">{settings.borderWidth || 0}px</span>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="range"
+                    min="0"
+                    max="20"
+                    value={settings.borderWidth || 0}
+                    onChange={(e) => {
+                      const updatedBlock = {
+                        ...block,
+                        settings: { ...settings, borderWidth: parseInt(e.target.value) || 0 }
+                      };
+                      updateBlock(updatedBlock);
+                    }}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={settings.borderWidth || 0}
+                    onChange={(e) => {
+                      const updatedBlock = {
+                        ...block,
+                        settings: { ...settings, borderWidth: parseInt(e.target.value) || 0 }
+                      };
+                      updateBlock(updatedBlock);
+                    }}
+                    min="0"
+                    max="20"
+                    className="w-16 h-9 text-center"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs text-slate-600 mb-2 block">Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={settings.borderColor || '#e2e8f0'}
+                    onChange={(e) => {
+                      const updatedBlock = {
+                        ...block,
+                        settings: { ...settings, borderColor: e.target.value }
+                      };
+                      updateBlock(updatedBlock);
+                    }}
+                    className="h-10 w-20 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={settings.borderColor || '#e2e8f0'}
+                    onChange={(e) => {
+                      const updatedBlock = {
+                        ...block,
+                        settings: { ...settings, borderColor: e.target.value }
+                      };
+                      updateBlock(updatedBlock);
+                    }}
+                    placeholder="#e2e8f0"
+                    className="flex-1 h-10 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs text-slate-600">Radius</Label>
+                  <span className="text-xs text-slate-400">{settings.borderRadius || 8}px</span>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={settings.borderRadius || 8}
+                    onChange={(e) => {
+                      const updatedBlock = {
+                        ...block,
+                        settings: { ...settings, borderRadius: parseInt(e.target.value) || 0 }
+                      };
+                      updateBlock(updatedBlock);
+                    }}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={settings.borderRadius || 8}
+                    onChange={(e) => {
+                      const updatedBlock = {
+                        ...block,
+                        settings: { ...settings, borderRadius: parseInt(e.target.value) || 0 }
+                      };
+                      updateBlock(updatedBlock);
+                    }}
+                    min="0"
+                    max="50"
+                    className="w-16 h-9 text-center"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

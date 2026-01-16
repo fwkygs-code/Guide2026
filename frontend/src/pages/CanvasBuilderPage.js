@@ -1080,7 +1080,7 @@ const CanvasBuilderPage = () => {
         />
 
         {/* Main Editor Area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1088,52 +1088,129 @@ const CanvasBuilderPage = () => {
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
-            {/* Left Sidebar */}
-            <LeftSidebar
-              walkthrough={walkthrough}
-              categories={categories}
-              onUpdate={setWalkthrough}
-              onAddStep={addStep}
-              onStepClick={setCurrentStepIndex}
-              onDeleteStep={deleteStep}
-              currentStepIndex={currentStepIndex}
-            />
+            {/* Left Sidebar - Hidden on mobile, shown on desktop */}
+            <div className="hidden md:block">
+              <LeftSidebar
+                walkthrough={walkthrough}
+                categories={categories}
+                onUpdate={setWalkthrough}
+                onAddStep={addStep}
+                onStepClick={setCurrentStepIndex}
+                onDeleteStep={deleteStep}
+                currentStepIndex={currentStepIndex}
+              />
+            </div>
+
+            {/* Mobile Sidebar Toggle Button */}
+            <button
+              className="md:hidden fixed top-4 left-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg"
+              onClick={() => {
+                const sidebar = document.getElementById('mobile-left-sidebar');
+                sidebar?.classList.toggle('hidden');
+              }}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Mobile Left Sidebar */}
+            <div id="mobile-left-sidebar" className="md:hidden fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-slate-200 shadow-xl transform transition-transform">
+              <LeftSidebar
+                walkthrough={walkthrough}
+                categories={categories}
+                onUpdate={setWalkthrough}
+                onAddStep={addStep}
+                onStepClick={(index) => {
+                  setCurrentStepIndex(index);
+                  document.getElementById('mobile-left-sidebar')?.classList.add('hidden');
+                }}
+                onDeleteStep={deleteStep}
+                currentStepIndex={currentStepIndex}
+              />
+            </div>
 
             {/* Live Canvas */}
-            <LiveCanvas
-              walkthrough={walkthrough}
-              currentStepIndex={currentStepIndex}
-              selectedElement={selectedElement}
-              onSelectElement={setSelectedElement}
-              onUpdateStep={updateStep}
-            />
+            <div className="flex-1 overflow-auto md:ml-0">
+              <LiveCanvas
+                walkthrough={walkthrough}
+                currentStepIndex={currentStepIndex}
+                selectedElement={selectedElement}
+                onSelectElement={setSelectedElement}
+                onUpdateStep={updateStep}
+              />
+            </div>
 
-            {/* Right Inspector */}
-            <RightInspector
-              selectedElement={selectedElement}
-              currentStep={walkthrough.steps[currentStepIndex]}
-              onUpdate={(updates) => {
-                if (walkthrough.steps[currentStepIndex]) {
-                  updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                }
-              }}
-              onDeleteStep={() => {
-                if (walkthrough.steps[currentStepIndex]) {
-                  deleteStep(walkthrough.steps[currentStepIndex].id);
-                }
-              }}
-              onUpdateBlock={(updatedBlock) => {
-                if (walkthrough.steps[currentStepIndex]) {
-                  const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
-                    b.id === updatedBlock.id ? updatedBlock : b
-                  );
-                  updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
-                }
-              }}
-            />
-            </SortableContext>
+            {/* Right Inspector - Hidden on mobile, shown on desktop */}
+            <div className="hidden md:block">
+              <RightInspector
+                selectedElement={selectedElement}
+                currentStep={walkthrough.steps[currentStepIndex]}
+                onUpdate={(updates) => {
+                  if (walkthrough.steps[currentStepIndex]) {
+                    updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                  }
+                }}
+                onDeleteStep={() => {
+                  if (walkthrough.steps[currentStepIndex]) {
+                    deleteStep(walkthrough.steps[currentStepIndex].id);
+                  }
+                }}
+                onUpdateBlock={(updatedBlock) => {
+                  if (walkthrough.steps[currentStepIndex]) {
+                    const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                      b.id === updatedBlock.id ? updatedBlock : b
+                    );
+                    updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
+                  }
+                }}
+              />
+            </div>
 
-            <DragOverlay>
+            {/* Mobile Right Inspector Toggle */}
+            {selectedElement && (
+              <button
+                className="md:hidden fixed top-4 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg"
+                onClick={() => {
+                  const inspector = document.getElementById('mobile-right-inspector');
+                  inspector?.classList.toggle('hidden');
+                }}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+            )}
+
+            {/* Mobile Right Inspector */}
+            {selectedElement && (
+              <div id="mobile-right-inspector" className="md:hidden fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-slate-200 shadow-xl transform transition-transform overflow-y-auto">
+                <RightInspector
+                  selectedElement={selectedElement}
+                  currentStep={walkthrough.steps[currentStepIndex]}
+                  onUpdate={(updates) => {
+                    if (walkthrough.steps[currentStepIndex]) {
+                      updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                    }
+                  }}
+                  onDeleteStep={() => {
+                    if (walkthrough.steps[currentStepIndex]) {
+                      deleteStep(walkthrough.steps[currentStepIndex].id);
+                    }
+                  }}
+                  onUpdateBlock={(updatedBlock) => {
+                    if (walkthrough.steps[currentStepIndex]) {
+                      const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                        b.id === updatedBlock.id ? updatedBlock : b
+                      );
+                      updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </SortableContext>
+          <DragOverlay>
               {activeStepId ? (
                 <div className="px-4 py-3 rounded-xl bg-primary text-white shadow-lg max-w-[240px]">
                   <div className="text-xs font-medium mb-1">Move step</div>

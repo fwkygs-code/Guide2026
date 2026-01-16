@@ -190,25 +190,35 @@ const PortalPage = ({ isEmbedded = false }) => {
           </div>
 
           {/* Bottom Row: Contact Information */}
-          {(workspace.portal_phone || workspace.portal_working_hours || workspace.portal_whatsapp) && (
-            <div className="flex items-center gap-6 flex-wrap text-sm text-slate-600 border-t border-slate-200/50 pt-3">
+          {(workspace.portal_phone || workspace.portal_working_days || workspace.portal_working_hours || workspace.portal_whatsapp) && (
+            <div className="flex items-center gap-4 md:gap-6 flex-wrap text-sm text-slate-600 border-t border-slate-200/50 pt-3">
               {workspace.portal_phone && (
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" style={{ color: primaryColor }} />
+                  <Phone className="w-4 h-4 flex-shrink-0" style={{ color: primaryColor }} />
                   <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-slate-900 transition-colors">
                     {workspace.portal_phone}
                   </a>
                 </div>
               )}
-              {workspace.portal_working_hours && (
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" style={{ color: primaryColor }} />
-                  <span>{workspace.portal_working_hours}</span>
+              {(workspace.portal_working_days || workspace.portal_working_hours) && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Clock className="w-4 h-4 flex-shrink-0" style={{ color: primaryColor }} />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {workspace.portal_working_days && (
+                      <span className="font-medium">{workspace.portal_working_days}</span>
+                    )}
+                    {workspace.portal_working_days && workspace.portal_working_hours && (
+                      <span className="text-slate-400">•</span>
+                    )}
+                    {workspace.portal_working_hours && (
+                      <span>{workspace.portal_working_hours}</span>
+                    )}
+                  </div>
                 </div>
               )}
               {workspace.portal_whatsapp && (
                 <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" style={{ color: primaryColor }} />
+                  <MessageCircle className="w-4 h-4 flex-shrink-0" style={{ color: primaryColor }} />
                   <a 
                     href={workspace.portal_whatsapp} 
                     target="_blank" 
