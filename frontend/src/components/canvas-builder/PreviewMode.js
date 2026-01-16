@@ -17,6 +17,52 @@ const PreviewMode = ({ walkthrough, onExit }) => {
   // Helper to check if URL is from Cloudinary
   const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
   
+  // Add optimization transformations to Cloudinary URLs
+  const optimizeCloudinaryUrl = (url, isVideo = false) => {
+    if (!isCloudinary(url)) return url;
+    
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      
+      const hasVersion = /\/v\d+\//.test(path);
+      const hasTransformations = path.match(/\/[a-z_]+:/);
+      
+      if (hasTransformations) {
+        return url;
+      }
+      
+      if (isVideo) {
+        const transformations = 'q_auto:good,f_auto,vc_auto,br_1m';
+        if (path.includes('/video/upload/')) {
+          if (hasVersion) {
+            const newPath = path.replace(/(\/video\/upload\/)(v\d+\/)/, `$1${transformations}/$2`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          } else {
+            const newPath = path.replace('/video/upload/', `/video/upload/${transformations}/`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          }
+        }
+      } else {
+        const transformations = 'q_auto:good,f_auto';
+        if (path.includes('/image/upload/')) {
+          if (hasVersion) {
+            const newPath = path.replace(/(\/image\/upload\/)(v\d+\/)/, `$1${transformations}/$2`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          } else {
+            const newPath = path.replace('/image/upload/', `/image/upload/${transformations}/`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          }
+        }
+      }
+      
+      return url;
+    } catch (e) {
+      console.error('Error optimizing URL:', e);
+      return url;
+    }
+  };
+  
   // Convert Cloudinary GIF URL to video format for better mobile playback
   const getGifVideoUrl = (gifUrl) => {
     if (!isCloudinary(gifUrl) || !isGif(gifUrl)) return null;
@@ -25,18 +71,17 @@ const PreviewMode = ({ walkthrough, onExit }) => {
       const urlObj = new URL(gifUrl);
       let path = urlObj.pathname;
       
-      // If already in video format (new uploads), return as-is
       if (path.includes('/video/upload/')) {
-        return gifUrl;
+        return optimizeCloudinaryUrl(gifUrl, true);
       }
       
-      // Convert image/upload to video/upload for GIFs
       if (path.includes('/image/upload/')) {
         const match = path.match(/\/image\/upload\/(.+)$/);
         if (match) {
           const afterUpload = match[1];
           const cleanPath = afterUpload.split('?')[0].replace(/\.gif$/, '');
-          const videoPath = `/video/upload/${cleanPath}.mp4`;
+          const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
+          const videoPath = `/video/upload/${transformations}/${cleanPath}.mp4`;
           return `${urlObj.protocol}//${urlObj.host}${videoPath}`;
         }
       }
@@ -152,11 +197,15 @@ const PreviewMode = ({ walkthrough, onExit }) => {
                     }
                     
                     // Regular image for non-GIFs or non-Cloudinary GIFs
+                    const optimizedImageUrl = isCloudinary(step.media_url) 
+                      ? optimizeCloudinaryUrl(step.media_url, false)
+                      : step.media_url;
+                    
                     return (
                       <img 
                         data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
                         key={`preview-img-${currentStep}-${step.media_url}`}
-                        src={step.media_url} 
+                        src={optimizedImageUrl} 
                         alt={step.title} 
                         className="w-full rounded-lg"
                         loading="eager"
@@ -172,7 +221,11 @@ const PreviewMode = ({ walkthrough, onExit }) => {
                     );
                   })()}
                   {step.media_type === 'video' && (
-                    <video src={step.media_url} controls className="w-full rounded-lg" />
+                    <video 
+                      src={isCloudinary(step.media_url) ? optimizeCloudinaryUrl(step.media_url, true) : step.media_url} 
+                      controls 
+                      className="w-full rounded-lg" 
+                    />
                   )}
                   {step.media_type === 'youtube' && (
                     <div className="aspect-video">

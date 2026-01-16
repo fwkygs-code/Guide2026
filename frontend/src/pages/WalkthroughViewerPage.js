@@ -53,6 +53,64 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   // Helper to check if URL is from Cloudinary
   const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
   
+  // Add optimization transformations to Cloudinary URLs
+  const optimizeCloudinaryUrl = (url, isVideo = false) => {
+    if (!isCloudinary(url)) return url;
+    
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      
+      // Check if transformations already exist (look for version number or transformation params)
+      // Cloudinary URLs with transformations look like: /image/upload/v1234567890/... or /image/upload/q_auto/...
+      const hasVersion = /\/v\d+\//.test(path);
+      const hasTransformations = path.match(/\/[a-z_]+:/);
+      
+      if (hasTransformations) {
+        // Already has transformations, return as-is
+        return url;
+      }
+      
+      if (isVideo) {
+        // Video optimizations: quality, format, bitrate
+        const transformations = 'q_auto:good,f_auto,vc_auto,br_1m';
+        if (path.includes('/video/upload/')) {
+          // Insert transformations after /video/upload/ but before version if exists
+          // Cloudinary format: /video/upload/[transformations]/v123/folder/file
+          if (hasVersion) {
+            // Add transformations before version
+            const newPath = path.replace(/(\/video\/upload\/)(v\d+\/)/, `$1${transformations}/$2`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          } else {
+            // No version, add transformations directly
+            const newPath = path.replace('/video/upload/', `/video/upload/${transformations}/`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          }
+        }
+      } else {
+        // Image optimizations: quality, format
+        const transformations = 'q_auto:good,f_auto';
+        if (path.includes('/image/upload/')) {
+          // Cloudinary format: /image/upload/[transformations]/v123/folder/file
+          if (hasVersion) {
+            // Add transformations before version
+            const newPath = path.replace(/(\/image\/upload\/)(v\d+\/)/, `$1${transformations}/$2`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          } else {
+            // No version, add transformations directly
+            const newPath = path.replace('/image/upload/', `/image/upload/${transformations}/`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          }
+        }
+      }
+      
+      return url;
+    } catch (e) {
+      console.error('Error optimizing URL:', e);
+      return url;
+    }
+  };
+  
   // Convert Cloudinary GIF URL to video format for better mobile playback
   const getGifVideoUrl = (gifUrl) => {
     if (!isCloudinary(gifUrl) || !isGif(gifUrl)) return null;
@@ -61,9 +119,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       const urlObj = new URL(gifUrl);
       let path = urlObj.pathname;
       
-      // If already in video format (new uploads), return as-is
+      // If already in video format (new uploads), optimize and return
       if (path.includes('/video/upload/')) {
-        return gifUrl;
+        return optimizeCloudinaryUrl(gifUrl, true);
       }
       
       // Convert image/upload to video/upload for GIFs
@@ -74,8 +132,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           const afterUpload = match[1];
           // Remove .gif extension and any query params from path
           const cleanPath = afterUpload.split('?')[0].replace(/\.gif$/, '');
-          // Construct video URL - Cloudinary will serve as MP4
-          const videoPath = `/video/upload/${cleanPath}.mp4`;
+          // Construct optimized video URL - Cloudinary will serve as MP4
+          const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
+          const videoPath = `/video/upload/${transformations}/${cleanPath}.mp4`;
           return `${urlObj.protocol}//${urlObj.host}${videoPath}`;
         }
       }
@@ -425,10 +484,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     }
                     
                     // Regular image for non-GIFs or non-Cloudinary GIFs
+                    const optimizedImageUrl = isCloudinary(step.media_url) 
+                      ? optimizeCloudinaryUrl(step.media_url, false)
+                      : step.media_url;
+                    
                     return (
                       <img 
                         data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
-                        src={step.media_url} 
+                        src={optimizedImageUrl} 
                         alt={step.title} 
                         className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
                         onClick={() => setImagePreviewUrl(step.media_url)}
@@ -447,7 +510,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   })()}
                   {step.media_type === 'video' && (
                     <video 
-                      src={step.media_url} 
+                      src={isCloudinary(step.media_url) ? optimizeCloudinaryUrl(step.media_url, true) : step.media_url} 
                       controls 
                       className="max-w-full rounded-lg shadow-soft"
                     />
@@ -515,11 +578,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         }
                         
                         // Regular image for non-GIFs or non-Cloudinary GIFs
+                        const optimizedImageUrl = isCloudinary(block.data.url) 
+                          ? optimizeCloudinaryUrl(block.data.url, false)
+                          : block.data.url;
+                        
                         return (
                           <figure>
                             <img
                               data-gif-src={isGif(block.data.url) ? block.data.url : undefined}
-                              src={block.data.url} 
+                              src={optimizedImageUrl} 
                               alt={block.data?.alt || ''} 
                               className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
                               onClick={() => setImagePreviewUrl(block.data.url)}
@@ -554,7 +621,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             </div>
                           ) : (
                             <video 
-                              src={block.data.url} 
+                              src={isCloudinary(block.data.url) ? optimizeCloudinaryUrl(block.data.url, true) : block.data.url} 
                               controls 
                               className="max-w-full rounded-lg shadow-soft"
                             />

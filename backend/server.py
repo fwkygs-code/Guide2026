@@ -1594,14 +1594,44 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
     if USE_CLOUDINARY:
         # Upload to Cloudinary (persistent storage)
         try:
+            # Prepare upload parameters with optimization
+            upload_params = {
+                "public_id": file_id,
+                "resource_type": resource_type,
+                "folder": "guide2026",
+                "overwrite": False,
+                "invalidate": True
+            }
+            
+            # Add optimization parameters based on resource type
+            if resource_type == "image":
+                # Image optimization: auto format, quality, and responsive
+                upload_params.update({
+                    "format": "auto",  # Auto WebP/AVIF when supported
+                    "quality": "auto:good",  # Good quality with auto optimization
+                    "fetch_format": "auto"
+                })
+            elif resource_type == "video":
+                # Video optimization: auto format, quality, and size limits
+                upload_params.update({
+                    "format": "auto",  # Auto MP4/WebM when supported
+                    "quality": "auto:good",  # Good quality with auto optimization
+                    "fetch_format": "auto",
+                    "video_codec": "auto",  # Auto codec selection
+                    "bit_rate": "1m",  # Limit bitrate for smaller files
+                    "max_video_bitrate": 1000000,  # 1Mbps max
+                })
+                # For GIFs uploaded as video, add specific optimizations
+                if file_extension == '.gif':
+                    upload_params.update({
+                        "eager": "f_mp4",  # Generate MP4 version immediately
+                        "eager_async": False
+                    })
+            
             # Upload file to Cloudinary
             upload_result = cloudinary.uploader.upload(
                 file_content,
-                public_id=file_id,
-                resource_type=resource_type,
-                folder="guide2026",  # Organize files in a folder
-                overwrite=False,
-                invalidate=True  # Invalidate CDN cache
+                **upload_params
             )
             
             # Return Cloudinary URL
