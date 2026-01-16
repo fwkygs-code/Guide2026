@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Upload, Link as LinkIcon, Plus, X, ChevronDown, ChevronUp, Settings } from 'lucide-react';
+import { Trash2, Upload, Link as LinkIcon, Plus, X, ChevronDown, ChevronUp, Settings, X as CloseIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,17 +17,33 @@ const rawBase =
 // Render can provide a bare hostname; ensure we always have a valid absolute URL
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
-const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, onUpdateBlock }) => {
+const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, onUpdateBlock, onClose }) => {
   const [mediaUrl, setMediaUrl] = useState('');
   const [newProblem, setNewProblem] = useState({ title: '', explanation: '' });
   const [isBlockSettingsOpen, setIsBlockSettingsOpen] = useState(true);
 
   if (!selectedElement || !currentStep) {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white p-6">
-        <div className="text-center text-slate-400 mt-12">
-          <p className="text-sm">Select an element</p>
-          <p className="text-xs mt-2">Click on any element in the canvas to edit</p>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-slate-700">Inspector</h3>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+              title="Close Inspector"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center text-slate-400">
+            <p className="text-sm">Select an element</p>
+            <p className="text-xs mt-2">Click on any element in the canvas to edit</p>
+          </div>
         </div>
       </div>
     );
@@ -114,11 +130,25 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Step-level controls
   if (selectedElement.type === 'step') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto">
-        <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Step Settings</h3>
-          <p className="text-xs text-slate-500">Configure this step</p>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Step Settings</h3>
+            <p className="text-xs text-slate-500">Configure this step</p>
+          </div>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+              title="Close Inspector"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </Button>
+          )}
         </div>
+        <div className="flex-1 overflow-y-auto">
 
         <div className="p-6 space-y-6">
           {/* Navigation */}
@@ -151,6 +181,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             Delete Step
           </Button>
         </div>
+        </div>
       </div>
     );
   }
@@ -158,11 +189,25 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Media controls
   if (selectedElement.type === 'media') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto">
-        <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Media</h3>
-          <p className="text-xs text-slate-500">Replace or remove media</p>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Media</h3>
+            <p className="text-xs text-slate-500">Replace or remove media</p>
+          </div>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+              title="Close Inspector"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </Button>
+          )}
         </div>
+        <div className="flex-1 overflow-y-auto">
 
         <div className="p-6 space-y-6">
           <div>
@@ -204,6 +249,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             Remove Media
           </Button>
         </div>
+        </div>
       </div>
     );
   }
@@ -211,11 +257,25 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Content controls
   if (selectedElement.type === 'content') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto">
-        <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Content</h3>
-          <p className="text-xs text-slate-500">Text formatting options</p>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Content</h3>
+            <p className="text-xs text-slate-500">Text formatting options</p>
+          </div>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+              title="Close Inspector"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </Button>
+          )}
         </div>
+        <div className="flex-1 overflow-y-auto">
 
         <div className="p-6 space-y-4">
           <p className="text-sm text-slate-600">
@@ -240,6 +300,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             />
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -247,11 +308,25 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Problem controls
   if (selectedElement.type === 'problem') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto">
-        <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Common Problems</h3>
-          <p className="text-xs text-slate-500">Help users troubleshoot</p>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Common Problems</h3>
+            <p className="text-xs text-slate-500">Help users troubleshoot</p>
+          </div>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+              title="Close Inspector"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </Button>
+          )}
         </div>
+        <div className="flex-1 overflow-y-auto">
 
         <div className="p-6 space-y-6">
           {/* Existing Problems */}
@@ -299,6 +374,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             </Button>
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -312,12 +388,30 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
     if (!updateBlock) return null;
     
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto flex flex-col">
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Settings className="w-4 h-4 text-slate-500" />
+            <span className="text-sm font-medium text-slate-700">Block Settings</span>
+          </div>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+              title="Close Inspector"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex-1 overflow-y-auto">
         <Collapsible open={isBlockSettingsOpen} onOpenChange={setIsBlockSettingsOpen}>
           <CollapsibleTrigger className="w-full p-4 border-b border-slate-200 hover:bg-slate-50/50 transition-colors flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Settings className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-medium text-slate-700">Block Settings</span>
+              <span className="text-sm font-medium text-slate-700">Settings</span>
             </div>
             {isBlockSettingsOpen ? (
               <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -572,6 +666,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             </div>
           </CollapsibleContent>
         </Collapsible>
+        </div>
       </div>
     );
   }

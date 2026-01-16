@@ -35,6 +35,14 @@ const CanvasBuilderPage = () => {
   });
 
   const [selectedElement, setSelectedElement] = useState(null);
+  const [showRightInspector, setShowRightInspector] = useState(true);
+  
+  // Auto-show inspector when element is selected
+  useEffect(() => {
+    if (selectedElement) {
+      setShowRightInspector(true);
+    }
+  }, [selectedElement]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -1142,49 +1150,8 @@ const CanvasBuilderPage = () => {
             </div>
 
             {/* Right Inspector - Hidden on mobile, shown on desktop */}
-            <div className="hidden md:block">
-              <RightInspector
-                selectedElement={selectedElement}
-                currentStep={walkthrough.steps[currentStepIndex]}
-                onUpdate={(updates) => {
-                  if (walkthrough.steps[currentStepIndex]) {
-                    updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                  }
-                }}
-                onDeleteStep={() => {
-                  if (walkthrough.steps[currentStepIndex]) {
-                    deleteStep(walkthrough.steps[currentStepIndex].id);
-                  }
-                }}
-                onUpdateBlock={(updatedBlock) => {
-                  if (walkthrough.steps[currentStepIndex]) {
-                    const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
-                      b.id === updatedBlock.id ? updatedBlock : b
-                    );
-                    updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
-                  }
-                }}
-              />
-            </div>
-
-            {/* Mobile Right Inspector Toggle */}
-            {selectedElement && (
-              <button
-                className="md:hidden fixed top-4 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg"
-                onClick={() => {
-                  const inspector = document.getElementById('mobile-right-inspector');
-                  inspector?.classList.toggle('hidden');
-                }}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </button>
-            )}
-
-            {/* Mobile Right Inspector */}
-            {selectedElement && (
-              <div id="mobile-right-inspector" className="md:hidden fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-slate-200 shadow-xl transform transition-transform overflow-y-auto">
+            {showRightInspector && (
+              <div className="hidden md:block">
                 <RightInspector
                   selectedElement={selectedElement}
                   currentStep={walkthrough.steps[currentStepIndex]}
@@ -1205,6 +1172,67 @@ const CanvasBuilderPage = () => {
                       );
                       updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
                     }
+                  }}
+                  onClose={() => setShowRightInspector(false)}
+                />
+              </div>
+            )}
+            
+            {/* Right Inspector Toggle Button - Desktop */}
+            {!showRightInspector && (
+              <button
+                className="hidden md:flex fixed top-20 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors"
+                onClick={() => setShowRightInspector(true)}
+                title="Show Inspector"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+            )}
+
+            {/* Mobile Right Inspector Toggle */}
+            {selectedElement && (
+              <button
+                className="md:hidden fixed top-4 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg"
+                onClick={() => {
+                  const inspector = document.getElementById('mobile-right-inspector');
+                  inspector?.classList.toggle('hidden');
+                }}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+            )}
+
+            {/* Mobile Right Inspector */}
+            {selectedElement && (
+              <div id="mobile-right-inspector" className="md:hidden fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-slate-200 shadow-xl transform transition-transform overflow-hidden flex flex-col">
+                <RightInspector
+                  selectedElement={selectedElement}
+                  currentStep={walkthrough.steps[currentStepIndex]}
+                  onUpdate={(updates) => {
+                    if (walkthrough.steps[currentStepIndex]) {
+                      updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                    }
+                  }}
+                  onDeleteStep={() => {
+                    if (walkthrough.steps[currentStepIndex]) {
+                      deleteStep(walkthrough.steps[currentStepIndex].id);
+                    }
+                  }}
+                  onUpdateBlock={(updatedBlock) => {
+                    if (walkthrough.steps[currentStepIndex]) {
+                      const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                        b.id === updatedBlock.id ? updatedBlock : b
+                      );
+                      updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
+                    }
+                  }}
+                  onClose={() => {
+                    setSelectedElement(null);
+                    document.getElementById('mobile-right-inspector')?.classList.add('hidden');
                   }}
                 />
               </div>
