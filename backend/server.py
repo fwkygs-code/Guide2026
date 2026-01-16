@@ -543,6 +543,18 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     
+    # CRITICAL: Ensure icon_url exists
+    if "icon_url" not in walkthrough:
+        walkthrough["icon_url"] = None
+    
+    # CRITICAL: Ensure all steps have blocks array initialized
+    if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
+        for step in walkthrough["steps"]:
+            if "blocks" not in step or step["blocks"] is None:
+                step["blocks"] = []
+            if not isinstance(step.get("blocks"), list):
+                step["blocks"] = []
+    
     return Walkthrough(**walkthrough)
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
@@ -682,6 +694,182 @@ async def list_walkthrough_versions(workspace_id: str, walkthrough_id: str, curr
     ).sort("created_at", -1).to_list(1000)
     return versions
 
+@api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/diagnose")
+async def diagnose_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    """Diagnostic endpoint to check if blocks data exists in database or versions"""
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get current walkthrough from database (raw, no processing)
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+    
+    # Check for blocks in current walkthrough
+    current_blocks_found = []
+    if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
+        for idx, step in enumerate(walkthrough["steps"]):
+            blocks = step.get("blocks", [])
+            if blocks and isinstance(blocks, list) and len(blocks) > 0:
+                image_blocks = [b for b in blocks if b.get("type") == "image" and b.get("data", {}).get("url")]
+                if image_blocks:
+                    current_blocks_found.append({
+                        "step_index": idx,
+                        "step_id": step.get("id"),
+                        "step_title": step.get("title"),
+                        "image_count": len(image_blocks),
+                        "image_urls": [b.get("data", {}).get("url") for b in image_blocks]
+                    })
+    
+    # Check version snapshots for blocks
+    versions = await db.walkthrough_versions.find(
+        {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    version_blocks_found = []
+    for version in versions:
+        snapshot = version.get("snapshot", {})
+        if "steps" in snapshot and isinstance(snapshot["steps"], list):
+            version_images = []
+            for idx, step in enumerate(snapshot["steps"]):
+                blocks = step.get("blocks", [])
+                if blocks and isinstance(blocks, list) and len(blocks) > 0:
+                    image_blocks = [b for b in blocks if b.get("type") == "image" and b.get("data", {}).get("url")]
+                    if image_blocks:
+                        version_images.append({
+                            "step_index": idx,
+                            "step_id": step.get("id"),
+                            "step_title": step.get("title"),
+                            "image_count": len(image_blocks),
+                            "image_urls": [b.get("data", {}).get("url") for b in image_blocks]
+                        })
+            if version_images:
+                version_blocks_found.append({
+                    "version": version.get("version"),
+                    "created_at": version.get("created_at"),
+                    "images": version_images
+                })
+    
+    return {
+        "walkthrough_id": walkthrough_id,
+        "current_version": walkthrough.get("version", 1),
+        "current_blocks_status": {
+            "has_blocks": len(current_blocks_found) > 0,
+            "steps_with_images": current_blocks_found,
+            "total_image_blocks": sum(s["image_count"] for s in current_blocks_found)
+        },
+        "version_snapshots_status": {
+            "total_versions": len(versions),
+            "versions_with_images": len(version_blocks_found),
+            "version_details": version_blocks_found
+        },
+        "can_recover": len(version_blocks_found) > 0
+    }
+
+class RecoverBlocksRequest(BaseModel):
+    version_number: Optional[int] = None
+
+@api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/recover-blocks")
+async def recover_blocks_from_version(workspace_id: str, walkthrough_id: str, body: RecoverBlocksRequest = RecoverBlocksRequest(), current_user: User = Depends(get_current_user)):
+    """Recover image blocks from a version snapshot and merge them into current walkthrough"""
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get current walkthrough
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+    
+    # Extract version number from request body
+    version_number = body.version_number if body else None
+    
+    # Find version to recover from
+    if version_number:
+        version = await db.walkthrough_versions.find_one(
+            {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id, "version": version_number},
+            {"_id": 0}
+        )
+    else:
+        # Use most recent version with images
+        versions = await db.walkthrough_versions.find(
+            {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(100)
+        
+        # Find first version with blocks
+        version = None
+        for v in versions:
+            snapshot = v.get("snapshot", {})
+            if "steps" in snapshot:
+                has_blocks = any(
+                    step.get("blocks") and isinstance(step.get("blocks"), list) and len(step.get("blocks", [])) > 0
+                    for step in snapshot["steps"]
+                )
+                if has_blocks:
+                    version = v
+                    break
+        
+        if not version:
+            raise HTTPException(status_code=404, detail="No version with blocks found")
+    
+    snapshot = version.get("snapshot", {})
+    if not snapshot or "steps" not in snapshot:
+        raise HTTPException(status_code=404, detail="Version snapshot has no steps")
+    
+    # Create step map for matching
+    current_steps = {step.get("id"): step for step in walkthrough.get("steps", [])}
+    snapshot_steps = {step.get("id"): step for step in snapshot.get("steps", [])}
+    
+    # Merge blocks from snapshot into current steps
+    recovered_count = 0
+    updated_steps = []
+    
+    for step in walkthrough.get("steps", []):
+        step_id = step.get("id")
+        current_blocks = step.get("blocks", []) or []
+        snapshot_step = snapshot_steps.get(step_id)
+        
+        if snapshot_step:
+            snapshot_blocks = snapshot_step.get("blocks", []) or []
+            # If current step has no blocks but snapshot has blocks, use snapshot blocks
+            if (not current_blocks or len(current_blocks) == 0) and snapshot_blocks:
+                step["blocks"] = snapshot_blocks
+                recovered_count += len([b for b in snapshot_blocks if b.get("type") == "image"])
+            # If current step has some blocks, merge unique image blocks from snapshot
+            elif current_blocks and snapshot_blocks:
+                current_image_urls = {b.get("data", {}).get("url") for b in current_blocks if b.get("type") == "image"}
+                new_blocks = [b for b in snapshot_blocks if b.get("type") == "image" and b.get("data", {}).get("url") not in current_image_urls]
+                if new_blocks:
+                    step["blocks"] = current_blocks + new_blocks
+                    recovered_count += len(new_blocks)
+        
+        updated_steps.append(step)
+    
+    # Update walkthrough in database
+    await db.walkthroughs.update_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"$set": {
+            "steps": updated_steps,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": f"Recovered {recovered_count} image blocks from version {version.get('version')}",
+        "recovered_count": recovered_count,
+        "version_used": version.get("version"),
+        "steps_updated": len([s for s in updated_steps if s.get("blocks")])
+    }
+
 @api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/rollback/{version}")
 async def rollback_walkthrough(workspace_id: str, walkthrough_id: str, version: int, current_user: User = Depends(get_current_user)):
     member = await get_workspace_member(workspace_id, current_user.id)
@@ -700,6 +888,19 @@ async def rollback_walkthrough(workspace_id: str, walkthrough_id: str, version: 
     snapshot.pop("password_hash", None)
     snapshot.pop("password", None)
     snapshot["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # CRITICAL: Ensure icon_url is preserved from snapshot or existing walkthrough
+    existing = await db.walkthroughs.find_one({"id": walkthrough_id}, {"_id": 0})
+    if existing and "icon_url" in existing and snapshot.get("icon_url") is None:
+        snapshot["icon_url"] = existing.get("icon_url")
+    
+    # CRITICAL: Ensure all steps have blocks array initialized in snapshot
+    if "steps" in snapshot and isinstance(snapshot["steps"], list):
+        for step in snapshot["steps"]:
+            if "blocks" not in step or step["blocks"] is None:
+                step["blocks"] = []
+            if not isinstance(step.get("blocks"), list):
+                step["blocks"] = []
     
     # CRITICAL: Ensure all steps have blocks array initialized during rollback
     if "steps" in snapshot and isinstance(snapshot["steps"], list):
@@ -804,6 +1005,16 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         raise HTTPException(status_code=404, detail="Step not found")
     
     # CRITICAL: Preserve blocks - ensure blocks array is always present
+    # If blocks is explicitly provided (even if empty array), use it
+    # If blocks is None, preserve existing blocks
+    existing_blocks = steps[step_index].get('blocks', []) or []
+    if step_data.blocks is not None:
+        # Blocks were explicitly provided - use them (even if empty array)
+        new_blocks = step_data.blocks if isinstance(step_data.blocks, list) else []
+    else:
+        # Blocks were not provided - preserve existing blocks
+        new_blocks = existing_blocks
+    
     updated_step = {
         'title': step_data.title,
         'content': step_data.content,
@@ -811,11 +1022,11 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         'media_type': step_data.media_type,
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
-        'blocks': step_data.blocks if step_data.blocks is not None else (steps[step_index].get('blocks', []) or [])
+        'blocks': new_blocks  # Always ensure it's a list
     }
-    # Preserve existing blocks if new blocks is None or empty and existing has blocks
-    if not updated_step['blocks'] and steps[step_index].get('blocks'):
-        updated_step['blocks'] = steps[step_index].get('blocks', [])
+    # Ensure blocks is always a list, never None
+    if not isinstance(updated_step['blocks'], list):
+        updated_step['blocks'] = []
     
     steps[step_index].update(updated_step)
     

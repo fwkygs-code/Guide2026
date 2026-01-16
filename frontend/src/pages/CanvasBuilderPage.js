@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -49,6 +49,9 @@ const CanvasBuilderPage = () => {
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
   const [isPublishing, setIsPublishing] = useState(false);
   const [activeStepId, setActiveStepId] = useState(null);
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [diagnosisData, setDiagnosisData] = useState(null);
+  const [recovering, setRecovering] = useState(false);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -212,6 +215,22 @@ const CanvasBuilderPage = () => {
         if (persistedIds.length === nextSteps.length) {
           await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
         }
+        
+        // CRITICAL: After saving, refetch to ensure we have the latest data with all blocks preserved
+        // This ensures data consistency and prevents loss of blocks
+        const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
+        const normalized = normalizeImageUrlsInObject(refreshed.data);
+        if (normalized.steps) {
+          normalized.steps = normalized.steps.map(step => ({
+            ...step,
+            blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
+          }));
+        }
+        // Preserve icon_url
+        if (refreshed.data.icon_url) {
+          normalized.icon_url = normalizeImageUrl(refreshed.data.icon_url);
+        }
+        setWalkthrough(normalized);
 
         if (showToast) toast.success('Saved!');
         setLastSaved(new Date());
@@ -259,6 +278,47 @@ const CanvasBuilderPage = () => {
       toast.error('Failed to load versions');
     } finally {
       setVersionsLoading(false);
+    }
+  };
+
+  const diagnoseWalkthrough = async () => {
+    if (!isEditing) return;
+    setShowRecoveryDialog(true);
+    try {
+      const res = await api.diagnoseWalkthrough(workspaceId, walkthroughId);
+      setDiagnosisData(res.data);
+    } catch (e) {
+      toast.error('Failed to diagnose walkthrough');
+      console.error('Diagnosis error:', e);
+    }
+  };
+
+  const recoverBlocks = async (versionNumber = null) => {
+    if (!isEditing) return;
+    setRecovering(true);
+    try {
+      const res = await api.recoverBlocks(workspaceId, walkthroughId, versionNumber);
+      toast.success(res.data.message || `Recovered ${res.data.recovered_count} image blocks!`);
+      
+      // Refetch walkthrough to get recovered data
+      const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
+      const normalized = normalizeImageUrlsInObject(refreshed.data);
+      if (normalized.steps) {
+        normalized.steps = normalized.steps.map(step => ({
+          ...step,
+          blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
+        }));
+      }
+      if (refreshed.data.icon_url) {
+        normalized.icon_url = normalizeImageUrl(refreshed.data.icon_url);
+      }
+      setWalkthrough(normalized);
+      setShowRecoveryDialog(false);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to recover blocks');
+      console.error('Recovery error:', e);
+    } finally {
+      setRecovering(false);
     }
   };
 
@@ -310,6 +370,9 @@ const CanvasBuilderPage = () => {
 
           // CRITICAL: Ensure all steps have blocks array and preserve all data
           for (const step of next.steps || []) {
+            // CRITICAL: Ensure blocks array exists and is properly structured
+            const stepBlocks = Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : []);
+            
             if (step.id && !step.isNew) {
               await api.updateStep(workspaceId, walkthroughId, step.id, {
                 title: step.title || '',
@@ -318,7 +381,7 @@ const CanvasBuilderPage = () => {
                 media_type: step.media_type || null,
                 navigation_type: step.navigation_type || 'next_prev',
                 common_problems: step.common_problems || [],
-                blocks: step.blocks || []  // Always send blocks array, even if empty
+                blocks: stepBlocks  // Always send blocks array, even if empty
               });
             } else if (step.isNew) {
               await api.addStep(workspaceId, walkthroughId, {
@@ -329,10 +392,21 @@ const CanvasBuilderPage = () => {
                 navigation_type: step.navigation_type || 'next_prev',
                 order: step.order || 0,
                 common_problems: step.common_problems || [],
-                blocks: step.blocks || []  // Always send blocks array
+                blocks: stepBlocks  // Always send blocks array
               });
             }
           }
+          
+          // CRITICAL: After publishing, refetch to ensure we have the latest data with all blocks preserved
+          const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
+          const normalized = normalizeImageUrlsInObject(refreshed.data);
+          if (normalized.steps) {
+            normalized.steps = normalized.steps.map(step => ({
+              ...step,
+              blocks: step.blocks || []
+            }));
+          }
+          setWalkthrough(normalized);
         } else {
           const response = await api.createWalkthrough(workspaceId, data);
           const newId = response.data.id;
@@ -652,16 +726,29 @@ const CanvasBuilderPage = () => {
             </Button>
 
             {isEditing && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openVersions}
-                disabled={isSaving || isPublishing}
-                data-testid="versions-button"
-              >
-                <History className="w-4 h-4 mr-2" />
-                Versions
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={diagnoseWalkthrough}
+                  disabled={isSaving || isPublishing}
+                  data-testid="recover-images-button"
+                  className="border-warning/30 bg-warning/10 text-warning-600 hover:bg-warning/20"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Recover Images
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openVersions}
+                  disabled={isSaving || isPublishing}
+                  data-testid="versions-button"
+                >
+                  <History className="w-4 h-4 mr-2" />
+                  Versions
+                </Button>
+              </>
             )}
             <Button
               variant="outline"
@@ -812,6 +899,128 @@ const CanvasBuilderPage = () => {
             <div className="py-8 text-center text-slate-500">
               No versions yet. A version is created each time you publish.
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Recovery Dialog */}
+      <Dialog open={showRecoveryDialog} onOpenChange={setShowRecoveryDialog}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-warning-600" />
+              Image Recovery
+            </DialogTitle>
+          </DialogHeader>
+          {diagnosisData ? (
+            <div className="space-y-4 mt-4">
+              {/* Current Status */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                <h3 className="font-semibold text-slate-900 mb-2">Current Status</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600">Current Version:</span>
+                    <span className="font-medium">{diagnosisData.current_version}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600">Has Images:</span>
+                    <span className={`font-medium ${diagnosisData.current_blocks_status.has_blocks ? 'text-success' : 'text-destructive'}`}>
+                      {diagnosisData.current_blocks_status.has_blocks ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600">Total Image Blocks:</span>
+                    <span className="font-medium">{diagnosisData.current_blocks_status.total_image_blocks}</span>
+                  </div>
+                  {diagnosisData.current_blocks_status.steps_with_images.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-200">
+                      <p className="text-xs text-slate-500 mb-1">Steps with images:</p>
+                      {diagnosisData.current_blocks_status.steps_with_images.map((step, idx) => (
+                        <div key={idx} className="text-xs text-slate-600 ml-2">
+                          • {step.step_title}: {step.image_count} image(s)
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Version Snapshots */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                <h3 className="font-semibold text-slate-900 mb-2">Version Snapshots</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600">Total Versions:</span>
+                    <span className="font-medium">{diagnosisData.version_snapshots_status.total_versions}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600">Versions with Images:</span>
+                    <span className="font-medium">{diagnosisData.version_snapshots_status.versions_with_images}</span>
+                  </div>
+                </div>
+                {diagnosisData.version_snapshots_status.version_details.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {diagnosisData.version_snapshots_status.version_details.map((version, idx) => (
+                      <div key={idx} className="p-3 bg-white rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-slate-900">Version {version.version}</span>
+                          <span className="text-xs text-slate-500">{new Date(version.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="text-xs text-slate-600 space-y-1">
+                          {version.images.map((img, imgIdx) => (
+                            <div key={imgIdx} className="ml-2">
+                              • {img.step_title}: {img.image_count} image(s)
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recovery Action */}
+              {diagnosisData.can_recover && (
+                <div className="p-4 rounded-xl border border-warning/30 bg-warning/10">
+                  <h3 className="font-semibold text-warning-600 mb-2">Recovery Available</h3>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Images were found in version snapshots. You can recover them by merging blocks from a previous version into your current walkthrough.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => recoverBlocks()}
+                      disabled={recovering}
+                      className="bg-warning/20 text-warning-600 hover:bg-warning/30 border-warning/30"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${recovering ? 'animate-spin' : ''}`} />
+                      {recovering ? 'Recovering...' : 'Recover from Latest Version'}
+                    </Button>
+                    {diagnosisData.version_snapshots_status.version_details.length > 1 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const latestVersion = diagnosisData.version_snapshots_status.version_details[0]?.version;
+                          if (latestVersion) recoverBlocks(latestVersion);
+                        }}
+                        disabled={recovering}
+                      >
+                        Recover from Version {diagnosisData.version_snapshots_status.version_details[0]?.version}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!diagnosisData.can_recover && (
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                  <p className="text-sm text-slate-600">
+                    No recoverable images found in version snapshots. Images may have been lost before versioning was implemented, or they were never saved.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-slate-500">Analyzing walkthrough...</div>
           )}
         </DialogContent>
       </Dialog>

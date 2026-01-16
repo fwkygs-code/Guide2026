@@ -33,6 +33,11 @@ export const api = {
   updateWalkthrough: (workspaceId, id, data) => axios.put(`${API}/workspaces/${workspaceId}/walkthroughs/${id}`, data),
   getWalkthroughVersions: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/versions`),
   rollbackWalkthrough: (workspaceId, id, version) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/rollback/${version}`),
+  diagnoseWalkthrough: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/diagnose`),
+  recoverBlocks: (workspaceId, id, versionNumber = null) => {
+    const body = versionNumber !== null ? { version_number: versionNumber } : {};
+    return axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/recover-blocks`, body);
+  },
   archiveWalkthrough: (workspaceId, id) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/archive`),
   restoreWalkthrough: (workspaceId, id) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/restore`),
   permanentlyDeleteWalkthrough: (workspaceId, id) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/permanent`),
