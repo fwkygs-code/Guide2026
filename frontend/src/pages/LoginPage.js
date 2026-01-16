@@ -26,7 +26,12 @@ const LoginPage = () => {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Login failed');
+      // Show user-friendly error messages
+      const errorMessage = error.response?.data?.detail || 
+                          error.message || 
+                          'Login failed. Please check your credentials and try again.';
+      toast.error(errorMessage);
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
