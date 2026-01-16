@@ -185,18 +185,19 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           // Handle version numbers: /v1234567890/folder/file.gif
           if (cleanPath.match(/^v\d+\//)) {
             // Has version, keep it and replace .gif with .mp4
-            cleanPath = cleanPath.replace(/\.gif$/, '.mp4');
+            cleanPath = cleanPath.replace(/\.gif$/i, '.mp4'); // Case-insensitive
             const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
             const videoPath = `/video/upload/${transformations}/${cleanPath}`;
-            const result = `${urlObj.protocol}//${urlObj.host}${videoPath}`;
+            const result = `${urlObj.protocol}//${urlObj.host}${videoPath}${urlObj.search}`;
             console.log('[GIF Debug] getGifVideoUrl: Converted (with version):', result);
             return result;
           } else {
             // No version, just replace .gif with .mp4
-            cleanPath = cleanPath.replace(/\.gif$/, '');
+            // Remove .gif extension (case-insensitive)
+            cleanPath = cleanPath.replace(/\.gif$/i, '');
             const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
             const videoPath = `/video/upload/${transformations}/${cleanPath}.mp4`;
-            const result = `${urlObj.protocol}//${urlObj.host}${videoPath}`;
+            const result = `${urlObj.protocol}//${urlObj.host}${videoPath}${urlObj.search}`;
             console.log('[GIF Debug] getGifVideoUrl: Converted (no version):', result);
             return result;
           }
@@ -526,7 +527,12 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {step?.media_url && (
                 <div className="mb-6">
                   {step.media_type === 'image' && (() => {
-                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    // Enhanced mobile detection - check multiple methods
+                    const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
+                    const isMobileUA = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+                    const isMobileScreen = window.innerWidth <= 768 || (window.screen && window.screen.width <= 768);
+                    const isMobile = isMobileUA || isMobileScreen;
+                    
                     const isVideoUrl = isCloudinaryVideo(step.media_url);
                     // Check if it's a GIF (pass media_type to help detect re-uploaded GIFs)
                     const isGifFile = isGif(step.media_url, step.media_type);
@@ -534,25 +540,39 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     console.log('[GIF Debug] Legacy Media Render:', {
                       url: step.media_url,
                       mediaType: step.media_type,
+                      isMobileUA,
+                      isMobileScreen,
                       isMobile,
                       isVideoUrl,
-                      isGifFile
+                      isGifFile,
+                      userAgent: userAgent.substring(0, 50)
                     });
                     
                     // Render as video if:
                     // 1. It's a Cloudinary video URL with media_type='image' (re-uploaded GIFs) - ALWAYS render as video on ALL devices
                     // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
                     const shouldRenderAsVideo = (isVideoUrl && step.media_type === 'image') || (isGifFile && isMobile);
-                    const gifVideoUrl = shouldRenderAsVideo 
-                      ? (isVideoUrl 
-                          ? step.media_url  // Re-uploaded GIF: use video URL directly
-                          : getGifVideoUrl(step.media_url, step.media_type) || step.media_url)  // Old GIF: convert URL
-                      : null;
+                    let gifVideoUrl = null;
+                    if (shouldRenderAsVideo) {
+                      if (isVideoUrl && step.media_type === 'image') {
+                        gifVideoUrl = step.media_url; // Re-uploaded GIF: use video URL directly
+                      } else if (isGifFile) {
+                        // Old GIF: try to convert URL
+                        gifVideoUrl = getGifVideoUrl(step.media_url, step.media_type);
+                        if (!gifVideoUrl) {
+                          console.warn('[GIF Debug] Legacy: URL conversion failed, but will still try to render as video on mobile');
+                          // On mobile, even if conversion fails, try the original URL as video
+                          // (some browsers might handle it, or we'll get an error and fallback)
+                          gifVideoUrl = step.media_url;
+                        }
+                      }
+                    }
                     
                     console.log('[GIF Debug] Legacy Media Decision:', {
                       shouldRenderAsVideo,
                       gifVideoUrl,
-                      finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null
+                      finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null,
+                      reason: isVideoUrl ? 'video-url' : (isGifFile && isMobile ? 'gif-mobile' : 'not-video')
                     });
                     
                     if (gifVideoUrl && shouldRenderAsVideo) {
@@ -656,33 +676,52 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         />
                       )}
                       {block.type === 'image' && block.data?.url && (() => {
-                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        // Enhanced mobile detection - check multiple methods
+                        const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
+                        const isMobileUA = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+                        const isMobileScreen = window.innerWidth <= 768 || (window.screen && window.screen.width <= 768);
+                        const isMobile = isMobileUA || isMobileScreen;
+                        
                         const isGifFile = isGif(block.data.url, 'image'); // Assume image type for blocks
                         const isVideoUrl = isCloudinaryVideo(block.data.url);
                         
                         console.log('[GIF Debug] Block Image Render:', {
                           blockId: block.id,
                           url: block.data.url,
+                          isMobileUA,
+                          isMobileScreen,
                           isMobile,
                           isVideoUrl,
-                          isGifFile
+                          isGifFile,
+                          userAgent: userAgent.substring(0, 50)
                         });
                         
                         // Render as video if:
                         // 1. It's a Cloudinary video URL in an image block (re-uploaded GIFs) - ALWAYS render as video on ALL devices
                         // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
                         const shouldRenderAsVideo = isVideoUrl || (isGifFile && isMobile);
-                        const gifVideoUrl = shouldRenderAsVideo 
-                          ? (isVideoUrl 
-                              ? block.data.url  // Re-uploaded GIF: use video URL directly
-                              : getGifVideoUrl(block.data.url, 'image') || block.data.url)  // Old GIF: convert URL
-                          : null;
+                        let gifVideoUrl = null;
+                        if (shouldRenderAsVideo) {
+                          if (isVideoUrl) {
+                            gifVideoUrl = block.data.url; // Re-uploaded GIF: use video URL directly
+                          } else if (isGifFile) {
+                            // Old GIF: try to convert URL
+                            gifVideoUrl = getGifVideoUrl(block.data.url, 'image');
+                            if (!gifVideoUrl) {
+                              console.warn('[GIF Debug] Block: URL conversion failed, but will still try to render as video on mobile');
+                              // On mobile, even if conversion fails, try the original URL as video
+                              // (some browsers might handle it, or we'll get an error and fallback)
+                              gifVideoUrl = block.data.url;
+                            }
+                          }
+                        }
                         
                         console.log('[GIF Debug] Block Image Decision:', {
                           blockId: block.id,
                           shouldRenderAsVideo,
                           gifVideoUrl,
-                          finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null
+                          finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null,
+                          reason: isVideoUrl ? 'video-url' : (isGifFile && isMobile ? 'gif-mobile' : 'not-video')
                         });
                         
                         if (gifVideoUrl && shouldRenderAsVideo) {
