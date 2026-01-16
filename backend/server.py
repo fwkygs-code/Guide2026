@@ -520,13 +520,24 @@ async def get_walkthroughs(workspace_id: str, current_user: User = Depends(get_c
         # Ensure icon_url exists
         if "icon_url" not in w:
             w["icon_url"] = None
-        # Ensure all steps have blocks array
+        # Ensure all steps have blocks array with proper structure
         if "steps" in w and isinstance(w["steps"], list):
             for step in w["steps"]:
                 if "blocks" not in step or step["blocks"] is None:
                     step["blocks"] = []
                 if not isinstance(step.get("blocks"), list):
                     step["blocks"] = []
+                # CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+                for block in step["blocks"]:
+                    if isinstance(block, dict):
+                        if "data" not in block:
+                            block["data"] = {}
+                        if "settings" not in block:
+                            block["settings"] = {}
+                        if "type" not in block:
+                            block["type"] = "text"
+                        if "id" not in block:
+                            block["id"] = str(uuid.uuid4())
     
     return [Walkthrough(**w) for w in walkthroughs]
 
@@ -547,13 +558,24 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
     if "icon_url" not in walkthrough:
         walkthrough["icon_url"] = None
     
-    # CRITICAL: Ensure all steps have blocks array initialized
+    # CRITICAL: Ensure all steps have blocks array initialized with proper structure
     if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
         for step in walkthrough["steps"]:
             if "blocks" not in step or step["blocks"] is None:
                 step["blocks"] = []
             if not isinstance(step.get("blocks"), list):
                 step["blocks"] = []
+            # CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+            for block in step["blocks"]:
+                if isinstance(block, dict):
+                    if "data" not in block:
+                        block["data"] = {}
+                    if "settings" not in block:
+                        block["settings"] = {}
+                    if "type" not in block:
+                        block["type"] = "text"
+                    if "id" not in block:
+                        block["id"] = str(uuid.uuid4())
     
     return Walkthrough(**walkthrough)
 
@@ -832,6 +854,7 @@ async def recover_blocks_from_version(workspace_id: str, walkthrough_id: str, bo
     # Merge blocks from snapshot into current steps
     recovered_count = 0
     updated_steps = []
+    import copy
     
     for step in walkthrough.get("steps", []):
         step_id = step.get("id")
@@ -842,15 +865,27 @@ async def recover_blocks_from_version(workspace_id: str, walkthrough_id: str, bo
             snapshot_blocks = snapshot_step.get("blocks", []) or []
             # If current step has no blocks but snapshot has blocks, use snapshot blocks
             if (not current_blocks or len(current_blocks) == 0) and snapshot_blocks:
-                step["blocks"] = snapshot_blocks
-                recovered_count += len([b for b in snapshot_blocks if b.get("type") == "image"])
-            # If current step has some blocks, merge unique image blocks from snapshot
+                step["blocks"] = copy.deepcopy(snapshot_blocks)
+                recovered_count += len([b for b in snapshot_blocks if b.get("type") == "image" and b.get("data", {}).get("url")])
+            # If current step has some blocks, merge/restore image blocks from snapshot
             elif current_blocks and snapshot_blocks:
-                current_image_urls = {b.get("data", {}).get("url") for b in current_blocks if b.get("type") == "image"}
-                new_blocks = [b for b in snapshot_blocks if b.get("type") == "image" and b.get("data", {}).get("url") not in current_image_urls]
-                if new_blocks:
-                    step["blocks"] = current_blocks + new_blocks
-                    recovered_count += len(new_blocks)
+                # Create a map of current blocks by ID
+                current_block_map = {b.get("id"): b for b in current_blocks if b.get("id")}
+                # For each snapshot block, restore data if current block is missing URL
+                for snapshot_block in snapshot_blocks:
+                    if snapshot_block.get("type") == "image" and snapshot_block.get("data", {}).get("url"):
+                        block_id = snapshot_block.get("id")
+                        if block_id in current_block_map:
+                            # Block exists but might be missing URL - restore it
+                            current_block = current_block_map[block_id]
+                            if not current_block.get("data", {}).get("url"):
+                                current_block["data"] = copy.deepcopy(snapshot_block.get("data", {}))
+                                recovered_count += 1
+                        else:
+                            # New block from snapshot - add it
+                            current_blocks.append(copy.deepcopy(snapshot_block))
+                            recovered_count += 1
+                step["blocks"] = current_blocks
         
         updated_steps.append(step)
     
@@ -965,6 +1000,24 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
     if not isinstance(blocks, list):
         blocks = []
     
+    # CRITICAL: Ensure each block has proper structure with data and settings
+    import copy
+    validated_blocks = copy.deepcopy(blocks)
+    for block in validated_blocks:
+        if isinstance(block, dict):
+            # Ensure block has 'data' field
+            if 'data' not in block:
+                block['data'] = {}
+            # Ensure block has 'settings' field
+            if 'settings' not in block:
+                block['settings'] = {}
+            # Ensure block has 'type' field
+            if 'type' not in block:
+                block['type'] = 'text'
+            # Ensure block has 'id' field
+            if 'id' not in block:
+                block['id'] = f"block-{uuid.uuid4()}"
+    
     step = Step(
         title=step_data.title,
         content=step_data.content,
@@ -972,7 +1025,7 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         media_type=step_data.media_type,
         navigation_type=step_data.navigation_type,
         common_problems=step_data.common_problems,
-        blocks=blocks,  # Always a list
+        blocks=validated_blocks,  # Always a list with proper structure
         order=insert_at
     )
 
@@ -1008,12 +1061,35 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     # If blocks is explicitly provided (even if empty array), use it
     # If blocks is None, preserve existing blocks
     existing_blocks = steps[step_index].get('blocks', []) or []
+    import copy
+    
     if step_data.blocks is not None:
         # Blocks were explicitly provided - use them (even if empty array)
-        new_blocks = step_data.blocks if isinstance(step_data.blocks, list) else []
+        # CRITICAL: Deep copy blocks to preserve all nested data (data.url, settings, etc.)
+        new_blocks = copy.deepcopy(step_data.blocks) if isinstance(step_data.blocks, list) else []
+        # Ensure each block has proper structure
+        for block in new_blocks:
+            if isinstance(block, dict):
+                # Ensure block has 'data' field - CRITICAL: preserve existing data if block exists
+                if 'data' not in block:
+                    block['data'] = {}
+                # If block exists in existing blocks, merge data to preserve URLs
+                existing_block = next((b for b in existing_blocks if isinstance(b, dict) and b.get('id') == block.get('id')), None)
+                if existing_block and isinstance(existing_block, dict) and existing_block.get('data'):
+                    # Merge existing data to preserve URLs that might not be in new block
+                    block['data'] = {**existing_block.get('data', {}), **block.get('data', {})}
+                # Ensure block has 'settings' field
+                if 'settings' not in block:
+                    block['settings'] = existing_block.get('settings', {}) if existing_block else {}
+                # Ensure block has 'type' field
+                if 'type' not in block:
+                    block['type'] = existing_block.get('type', 'text') if existing_block else 'text'
+                # Ensure block has 'id' field
+                if 'id' not in block:
+                    block['id'] = f"block-{uuid.uuid4()}"
     else:
-        # Blocks were not provided - preserve existing blocks
-        new_blocks = existing_blocks
+        # Blocks were not provided - preserve existing blocks (deep copy to avoid reference issues)
+        new_blocks = copy.deepcopy(existing_blocks)
     
     updated_step = {
         'title': step_data.title,
@@ -1022,7 +1098,7 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         'media_type': step_data.media_type,
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
-        'blocks': new_blocks  # Always ensure it's a list
+        'blocks': new_blocks  # Always ensure it's a list with proper structure
     }
     # Ensure blocks is always a list, never None
     if not isinstance(updated_step['blocks'], list):
@@ -1071,20 +1147,42 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
     # Only allow reordering of existing step ids
     ordered = [step_map[sid] for sid in body.step_ids if sid in step_map]
     
-    # CRITICAL: Ensure all steps have blocks array before reordering
+    # CRITICAL: Ensure all steps have blocks array before reordering with proper structure
     for step in ordered:
         if "blocks" not in step or step["blocks"] is None:
             step["blocks"] = []
         if not isinstance(step.get("blocks"), list):
             step["blocks"] = []
+        # Ensure each block has proper structure
+        for block in step["blocks"]:
+            if isinstance(block, dict):
+                if "data" not in block:
+                    block["data"] = {}
+                if "settings" not in block:
+                    block["settings"] = {}
+                if "type" not in block:
+                    block["type"] = "text"
+                if "id" not in block:
+                    block["id"] = str(uuid.uuid4())
     
     if len(ordered) != len(steps):
         # If mismatch, keep any missing steps at the end (stable)
         missing = [s for s in steps if s.get("id") not in set(body.step_ids)]
-        # CRITICAL: Ensure missing steps also have blocks array
+        # CRITICAL: Ensure missing steps also have blocks array with proper structure
         for step in missing:
             if "blocks" not in step or step["blocks"] is None:
                 step["blocks"] = []
+            # Ensure each block has proper structure
+            for block in step["blocks"]:
+                if isinstance(block, dict):
+                    if "data" not in block:
+                        block["data"] = {}
+                    if "settings" not in block:
+                        block["settings"] = {}
+                    if "type" not in block:
+                        block["type"] = "text"
+                    if "id" not in block:
+                        block["id"] = str(uuid.uuid4())
         ordered.extend(missing)
         ordered.extend(missing)
 

@@ -125,7 +125,7 @@ const CanvasBuilderPage = () => {
         const wtResponse = await api.getWalkthrough(workspaceId, walkthroughId);
         // Normalize image URLs in walkthrough data
         const normalized = normalizeImageUrlsInObject(wtResponse.data);
-        // CRITICAL: Ensure all steps have blocks array initialized
+        // CRITICAL: Ensure all steps have blocks array initialized with proper structure
         if (normalized.steps) {
           normalized.steps = normalized.steps.map(step => {
             const stepWithBlocks = {
@@ -136,6 +136,19 @@ const CanvasBuilderPage = () => {
             if (!Array.isArray(stepWithBlocks.blocks)) {
               stepWithBlocks.blocks = [];
             }
+            // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+            stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
+              if (!block || typeof block !== 'object') {
+                return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+              }
+              // Ensure block has all required fields
+              return {
+                id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: block.type || 'text',
+                data: block.data || {},
+                settings: block.settings || {}
+              };
+            });
             return stepWithBlocks;
           });
         }
@@ -174,14 +187,26 @@ const CanvasBuilderPage = () => {
       if (isEditing) {
         await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
-        // Update steps - CRITICAL: Always preserve blocks array
+        // Update steps - CRITICAL: Always preserve blocks array with complete structure
         const nextSteps = [...(walkthrough.steps || [])];
         for (let i = 0; i < nextSteps.length; i++) {
           const step = nextSteps[i];
-          // Ensure blocks array exists
+          // Ensure blocks array exists and has proper structure
           if (!step.blocks) {
             step.blocks = [];
           }
+          // CRITICAL: Ensure each block has complete structure (data, settings, type, id)
+          step.blocks = (step.blocks || []).map(block => {
+            if (!block || typeof block !== 'object') {
+              return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+            }
+            return {
+              id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: block.type || 'text',
+              data: block.data || {},
+              settings: block.settings || {}
+            };
+          });
           if (step.id && !step.isNew) {
             await api.updateStep(workspaceId, walkthroughId, step.id, {
               title: step.title || '',
@@ -190,7 +215,7 @@ const CanvasBuilderPage = () => {
               media_type: step.media_type || null,
               navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
-              blocks: step.blocks || []  // Always send blocks array, even if empty
+              blocks: step.blocks  // Send blocks with complete structure
             });
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
@@ -201,7 +226,7 @@ const CanvasBuilderPage = () => {
               navigation_type: step.navigation_type || 'next_prev',
               order: step.order || i,
               common_problems: step.common_problems || [],
-              blocks: step.blocks || []  // Always send blocks array
+              blocks: step.blocks  // Send blocks with complete structure (already validated above)
             });
             // IMPORTANT: mark as persisted so future saves don't re-add duplicates
             nextSteps[i] = { ...step, id: res.data.id, isNew: false };
@@ -221,10 +246,25 @@ const CanvasBuilderPage = () => {
         const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
         const normalized = normalizeImageUrlsInObject(refreshed.data);
         if (normalized.steps) {
-          normalized.steps = normalized.steps.map(step => ({
-            ...step,
-            blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
-          }));
+          normalized.steps = normalized.steps.map(step => {
+            const stepWithBlocks = {
+              ...step,
+              blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
+            };
+            // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+            stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
+              if (!block || typeof block !== 'object') {
+                return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+              }
+              return {
+                id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: block.type || 'text',
+                data: block.data || {},
+                settings: block.settings || {}
+              };
+            });
+            return stepWithBlocks;
+          });
         }
         // Preserve icon_url
         if (refreshed.data.icon_url) {
@@ -240,6 +280,18 @@ const CanvasBuilderPage = () => {
         const newId = response.data.id;
 
         for (const step of walkthrough.steps || []) {
+          // CRITICAL: Ensure blocks have complete structure
+          const stepBlocks = (step.blocks || []).map(block => {
+            if (!block || typeof block !== 'object') {
+              return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+            }
+            return {
+              id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: block.type || 'text',
+              data: block.data || {},
+              settings: block.settings || {}
+            };
+          });
           await api.addStep(workspaceId, newId, {
             title: step.title || '',
             content: step.content || '',
@@ -248,7 +300,7 @@ const CanvasBuilderPage = () => {
             navigation_type: step.navigation_type || 'next_prev',
             order: step.order || 0,
             common_problems: step.common_problems || [],
-            blocks: step.blocks || []  // Always send blocks array
+            blocks: stepBlocks  // Send blocks with complete structure
           });
         }
 
@@ -304,10 +356,25 @@ const CanvasBuilderPage = () => {
       const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
       const normalized = normalizeImageUrlsInObject(refreshed.data);
       if (normalized.steps) {
-        normalized.steps = normalized.steps.map(step => ({
-          ...step,
-          blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
-        }));
+        normalized.steps = normalized.steps.map(step => {
+          const stepWithBlocks = {
+            ...step,
+            blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
+          };
+          // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+          stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
+            if (!block || typeof block !== 'object') {
+              return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+            }
+            return {
+              id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: block.type || 'text',
+              data: block.data || {},
+              settings: block.settings || {}
+            };
+          });
+          return stepWithBlocks;
+        });
       }
       if (refreshed.data.icon_url) {
         normalized.icon_url = normalizeImageUrl(refreshed.data.icon_url);
@@ -327,14 +394,29 @@ const CanvasBuilderPage = () => {
     if (!ok) return;
     try {
       const res = await api.rollbackWalkthrough(workspaceId, walkthroughId, versionNumber);
-      // CRITICAL: Normalize image URLs and ensure blocks arrays exist
+      // CRITICAL: Normalize image URLs and ensure blocks arrays exist with proper structure
       const normalized = normalizeImageUrlsInObject(res.data);
       // Ensure all steps have blocks array initialized
       if (normalized.steps) {
-        normalized.steps = normalized.steps.map(step => ({
-          ...step,
-          blocks: step.blocks || []
-        }));
+        normalized.steps = normalized.steps.map(step => {
+          const stepWithBlocks = {
+            ...step,
+            blocks: step.blocks || []
+          };
+          // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+          stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
+            if (!block || typeof block !== 'object') {
+              return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+            }
+            return {
+              id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: block.type || 'text',
+              data: block.data || {},
+              settings: block.settings || {}
+            };
+          });
+          return stepWithBlocks;
+        });
       }
       setWalkthrough(normalized);
       toast.success(`Rolled back to version ${versionNumber}`);
@@ -368,10 +450,22 @@ const CanvasBuilderPage = () => {
         if (isEditing) {
           await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
-          // CRITICAL: Ensure all steps have blocks array and preserve all data
+          // CRITICAL: Ensure all steps have blocks array and preserve all data with complete structure
           for (const step of next.steps || []) {
             // CRITICAL: Ensure blocks array exists and is properly structured
-            const stepBlocks = Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : []);
+            let stepBlocks = Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : []);
+            // CRITICAL: Ensure each block has complete structure (data, settings, type, id)
+            stepBlocks = stepBlocks.map(block => {
+              if (!block || typeof block !== 'object') {
+                return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+              }
+              return {
+                id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: block.type || 'text',
+                data: block.data || {},
+                settings: block.settings || {}
+              };
+            });
             
             if (step.id && !step.isNew) {
               await api.updateStep(workspaceId, walkthroughId, step.id, {
@@ -381,7 +475,7 @@ const CanvasBuilderPage = () => {
                 media_type: step.media_type || null,
                 navigation_type: step.navigation_type || 'next_prev',
                 common_problems: step.common_problems || [],
-                blocks: stepBlocks  // Always send blocks array, even if empty
+                blocks: stepBlocks  // Send blocks with complete structure
               });
             } else if (step.isNew) {
               await api.addStep(workspaceId, walkthroughId, {
@@ -392,7 +486,7 @@ const CanvasBuilderPage = () => {
                 navigation_type: step.navigation_type || 'next_prev',
                 order: step.order || 0,
                 common_problems: step.common_problems || [],
-                blocks: stepBlocks  // Always send blocks array
+                blocks: stepBlocks  // Send blocks with complete structure
               });
             }
           }
@@ -401,10 +495,25 @@ const CanvasBuilderPage = () => {
           const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
           const normalized = normalizeImageUrlsInObject(refreshed.data);
           if (normalized.steps) {
-            normalized.steps = normalized.steps.map(step => ({
-              ...step,
-              blocks: step.blocks || []
-            }));
+            normalized.steps = normalized.steps.map(step => {
+              const stepWithBlocks = {
+                ...step,
+                blocks: step.blocks || []
+              };
+              // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+              stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
+                if (!block || typeof block !== 'object') {
+                  return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+                }
+                return {
+                  id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  type: block.type || 'text',
+                  data: block.data || {},
+                  settings: block.settings || {}
+                };
+              });
+              return stepWithBlocks;
+            });
           }
           setWalkthrough(normalized);
         } else {
@@ -412,6 +521,18 @@ const CanvasBuilderPage = () => {
           const newId = response.data.id;
 
           for (const step of next.steps || []) {
+            // CRITICAL: Ensure blocks have complete structure
+            const stepBlocks = (step.blocks || []).map(block => {
+              if (!block || typeof block !== 'object') {
+                return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+              }
+              return {
+                id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: block.type || 'text',
+                data: block.data || {},
+                settings: block.settings || {}
+              };
+            });
             await api.addStep(workspaceId, newId, {
               title: step.title || '',
               content: step.content || '',
@@ -420,7 +541,7 @@ const CanvasBuilderPage = () => {
               navigation_type: step.navigation_type || 'next_prev',
               order: step.order || 0,
               common_problems: step.common_problems || [],
-              blocks: step.blocks || []  // Always send blocks array
+              blocks: stepBlocks  // Send blocks with complete structure
             });
           }
 
@@ -518,9 +639,23 @@ const CanvasBuilderPage = () => {
       steps: prev.steps.map((s) => {
         if (s.id === stepId) {
           const updated = { ...s, ...updates };
-          // CRITICAL: Ensure blocks array always exists
+          // CRITICAL: Ensure blocks array always exists with proper structure
           if (!updated.blocks) {
             updated.blocks = s.blocks || [];
+          }
+          // CRITICAL: Ensure each block has complete structure (data, settings, type, id)
+          if (updated.blocks && Array.isArray(updated.blocks)) {
+            updated.blocks = updated.blocks.map(block => {
+              if (!block || typeof block !== 'object') {
+                return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
+              }
+              return {
+                id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: block.type || 'text',
+                data: block.data || {},
+                settings: block.settings || {}
+              };
+            });
           }
           return updated;
         }
