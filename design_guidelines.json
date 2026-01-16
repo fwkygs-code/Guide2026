@@ -64,8 +64,10 @@
         "foreground": "#ffffff"
       },
       "warning": {
-        "DEFAULT": "#f59e0b",
-        "foreground": "#ffffff"
+        "DEFAULT": "#5AC8FA",
+        "foreground": "#ffffff",
+        "name": "Transparent Blue 3D",
+        "description": "Glassmorphism blue with 3D depth effect using shadows and gradients"
       },
       "destructive": {
         "DEFAULT": "#ef4444",

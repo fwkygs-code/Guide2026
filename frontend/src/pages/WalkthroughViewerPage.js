@@ -21,8 +21,11 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
-const WalkthroughViewerPage = () => {
+const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const { slug, walkthroughId } = useParams();
+  
+  // Detect if we're in an iframe
+  const inIframe = isEmbedded || window.self !== window.top;
   const navigate = useNavigate();
   const [walkthrough, setWalkthrough] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +67,23 @@ const WalkthroughViewerPage = () => {
       trackEvent('step_view', walkthrough.steps[currentStep]?.id);
     }
   }, [currentStep]);
+
+  // Send height to parent if in iframe (for auto-height)
+  useEffect(() => {
+    if (inIframe) {
+      const sendHeight = () => {
+        const height = document.documentElement.scrollHeight;
+        window.parent.postMessage({
+          type: 'interguide-height',
+          slug: slug,
+          height: height
+        }, '*');
+      };
+      sendHeight();
+      window.addEventListener('resize', sendHeight);
+      return () => window.removeEventListener('resize', sendHeight);
+    }
+  }, [inIframe, slug, walkthrough, currentStep]);
 
   const fetchWalkthrough = async () => {
     try {
@@ -214,8 +234,9 @@ const WalkthroughViewerPage = () => {
   const step = walkthrough.steps[currentStep];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
+    <div className={`min-h-screen bg-white ${inIframe ? 'iframe-mode' : ''}`}>
+      {/* Header - Hide in iframe mode */}
+      {!inIframe && (
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-2">
@@ -260,6 +281,7 @@ const WalkthroughViewerPage = () => {
           </div>
         </div>
       </header>
+      )}
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-12">
@@ -401,9 +423,9 @@ const WalkthroughViewerPage = () => {
                         <div style={{ height: block.data?.height || 32 }} />
                       )}
                       {block.type === 'problem' && (
-                        <div className="border-l-4 border-orange-400 bg-orange-50/50 backdrop-blur-sm p-4 rounded-xl">
-                          <h4 className="font-semibold text-gray-900 mb-1">{block.data?.title}</h4>
-                          <p className="text-gray-700">{block.data?.explanation}</p>
+                        <div className="border-l-4 border-warning/40 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none">
+                          <h4 className="font-semibold text-gray-900 mb-1 relative z-10">{block.data?.title}</h4>
+                          <p className="text-gray-700 relative z-10">{block.data?.explanation}</p>
                         </div>
                       )}
                     </div>

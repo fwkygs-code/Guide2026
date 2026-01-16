@@ -42,7 +42,15 @@ module.exports = {
           foreground: '#ffffff'
         },
         warning: {
-          DEFAULT: '#f59e0b',
+          DEFAULT: '#5AC8FA', // Transparent Blue - 3D effect
+          50: '#E3F5FF',
+          100: '#B3E5FF',
+          200: '#80D5FF',
+          300: '#5AC8FA',
+          400: '#3AB8F5',
+          500: '#0EA5E9',
+          600: '#0C8FD4',
+          700: '#0A7ABF',
           foreground: '#ffffff'
         },
         destructive: {

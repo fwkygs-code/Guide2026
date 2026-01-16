@@ -16,13 +16,16 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
-const PortalPage = () => {
+const PortalPage = ({ isEmbedded = false }) => {
   const { slug } = useParams();
   const [portal, setPortal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const isLoggedIn = !!localStorage.getItem('token');
+  
+  // Detect if we're in an iframe
+  const inIframe = isEmbedded || window.self !== window.top;
 
   useEffect(() => {
     fetchPortal();
@@ -112,8 +115,9 @@ const PortalPage = () => {
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
 
   return (
-      <div className="min-h-screen bg-white">
-      {/* Header */}
+      <div className={`min-h-screen bg-white ${inIframe ? 'iframe-mode' : ''}`}>
+      {/* Header - Hide in iframe mode */}
+      {!inIframe && (
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50 backdrop-blur-xl bg-white/80">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
           <div className="flex items-center gap-3 min-w-0">
@@ -142,9 +146,10 @@ const PortalPage = () => {
           )}
         </div>
       </header>
+      )}
 
-      {/* Hero Section */}
-      <section className="py-16 px-6 bg-white">
+      {/* Hero Section - Compact in iframe */}
+      <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 bg-white`}>
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -360,12 +365,14 @@ const PortalPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer - Hide in iframe mode */}
+      {!inIframe && (
       <footer className="bg-slate-900 text-slate-300 py-8 px-6 mt-20">
         <div className="max-w-7xl mx-auto text-center">
           <p className="text-sm">Powered by InterGuide</p>
         </div>
       </footer>
+      )}
     </div>
   );
 };

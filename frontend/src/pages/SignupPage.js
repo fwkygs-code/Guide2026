@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useTextSize } from '../contexts/TextSizeContext';
 import { BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ const SignupPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
+  const { getSizeClass } = useTextSize();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -41,10 +43,10 @@ const SignupPage = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <BookOpen className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-heading font-bold">InterGuide</span>
+            <span className={`${getSizeClass('2xl')} font-heading font-bold`}>InterGuide</span>
           </Link>
-          <h1 className="text-3xl font-heading font-bold text-slate-900 mb-2">Get Started</h1>
-          <p className="text-slate-600">Create your account</p>
+          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-slate-900 mb-2`}>Get Started</h1>
+          <p className={`${getSizeClass('base')} text-slate-600`}>Create your account</p>
         </div>
 
         <div className="glass rounded-2xl p-8">

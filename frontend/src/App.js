@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { TextSizeProvider } from './contexts/TextSizeContext';
 import { Toaster } from '@/components/ui/sonner';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -31,14 +32,17 @@ const PrivateRoute = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <TextSizeProvider>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/portal/:slug" element={<PortalPage />} />
           <Route path="/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage />} />
+          <Route path="/embed/portal/:slug" element={<PortalPage isEmbedded={true} />} />
+          <Route path="/embed/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage isEmbedded={true} />} />
           
           <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/walkthroughs" element={<PrivateRoute><WalkthroughsPage /></PrivateRoute>} />
@@ -49,9 +53,10 @@ function App() {
           <Route path="/workspace/:workspaceId/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         </Routes>
-      </BrowserRouter>
-      <Toaster position="top-right" />
-    </AuthProvider>
+        </BrowserRouter>
+        <Toaster position="top-right" />
+      </AuthProvider>
+    </TextSizeProvider>
   );
 }
 

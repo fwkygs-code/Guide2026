@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive } from 'lucide-react';
+import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 const WalkthroughsPage = () => {
   const { workspaceId } = useParams();
@@ -244,6 +248,10 @@ const WalkthroughsPage = () => {
                             <Edit className="w-3 h-3 mr-1" />
                             Edit
                           </Button>
+                          <WalkthroughShareButton 
+                            walkthrough={walkthrough} 
+                            workspaceSlug={workspace?.slug}
+                          />
                           <Button
                             variant="ghost"
                             size="sm"
@@ -275,6 +283,102 @@ const WalkthroughsPage = () => {
         )}
       </div>
     </DashboardLayout>
+  );
+};
+
+// Share Button Component for Walkthroughs
+const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const walkthroughUrl = `${window.location.origin}/portal/${workspaceSlug}/${walkthrough.id}`;
+  const embedUrl = `${window.location.origin}/embed/portal/${workspaceSlug}/${walkthrough.id}`;
+  const iframeCode = `<iframe src="${embedUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+
+  const copyToClipboard = (text, message = 'Copied!') => {
+    navigator.clipboard.writeText(text);
+    toast.success(message);
+  };
+
+  if (walkthrough.status !== 'published') {
+    return null; // Only show share for published walkthroughs
+  }
+
+  return (
+    <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          data-testid={`share-walkthrough-${walkthrough.id}`}
+        >
+          <Share2 className="w-3 h-3" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Share & Embed Walkthrough</DialogTitle>
+        </DialogHeader>
+        <Tabs defaultValue="share" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="share">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share Link
+            </TabsTrigger>
+            <TabsTrigger value="embed">
+              <Code className="w-4 h-4 mr-2" />
+              Embed Code
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="share" className="space-y-4 mt-4">
+            <div>
+              <Label>Walkthrough Link</Label>
+              <p className="text-xs text-gray-500 mb-1.5">Share this link to give others access</p>
+              <div className="flex gap-2 mt-1.5">
+                <Input
+                  value={walkthroughUrl}
+                  readOnly
+                  className="flex-1 font-mono text-xs"
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => copyToClipboard(walkthroughUrl, 'Link copied!')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="embed" className="space-y-4 mt-4">
+            <div>
+              <Label>iFrame Embed Code</Label>
+              <p className="text-xs text-gray-500 mb-1.5">Copy and paste this code into your website</p>
+              <div className="flex gap-2 mt-1.5">
+                <Textarea
+                  value={iframeCode}
+                  readOnly
+                  className="flex-1 font-mono text-xs min-h-[100px]"
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => copyToClipboard(iframeCode, 'Embed code copied!')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="mt-3 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl border border-gray-200/50">
+                <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                <iframe 
+                  src={embedUrl}
+                  className="w-full h-96 border border-gray-200 rounded-lg"
+                  title="Walkthrough Preview"
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 };
 

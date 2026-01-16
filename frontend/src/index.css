@@ -250,3 +250,89 @@ code {
 [contenteditable] em {
   font-style: italic;
 }
+
+/* Embed/Iframe Mode Styles */
+.iframe-mode {
+  padding: 0;
+}
+
+.iframe-mode header,
+.iframe-mode footer {
+  display: none;
+}
+
+.iframe-mode .glass {
+  border: none;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* Text Size Variables */
+[data-text-size="small"] {
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.125rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+}
+
+[data-text-size="medium"] {
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+}
+
+[data-text-size="large"] {
+  --text-base: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.25rem;
+}
+
+[data-text-size="xl"] {
+  --text-base: 1.25rem;
+  --text-lg: 1.5rem;
+  --text-xl: 1.875rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 3rem;
+}
+
+/* 3D Blue Warning Effect */
+.warning-3d {
+  background: linear-gradient(135deg, rgba(90, 200, 250, 0.2) 0%, rgba(14, 165, 233, 0.15) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(90, 200, 250, 0.3);
+  box-shadow: 
+    0 4px 12px rgba(90, 200, 250, 0.25),
+    0 2px 4px rgba(90, 200, 250, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.warning-3d::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.warning-3d::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(90, 200, 250, 0.2);
+  pointer-events: none;
+  z-index: 1;
+}

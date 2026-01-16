@@ -900,9 +900,18 @@ async def get_portal(slug: str):
         {"_id": 0}
     ).to_list(1000)
     
+    # CRITICAL: Ensure all walkthroughs have proper structure for embedding
+    for w in walkthroughs:
+        if "steps" in w and isinstance(w["steps"], list):
+            for step in w["steps"]:
+                if "blocks" not in step or step["blocks"] is None:
+                    step["blocks"] = []
+                if not isinstance(step.get("blocks"), list):
+                    step["blocks"] = []
+    
     return {
         "workspace": workspace,
-        "categories": categories,
+        "categories": [Category(**c) for c in categories],
         "walkthroughs": [sanitize_public_walkthrough(w) for w in walkthroughs]
     }
 
@@ -927,6 +936,14 @@ async def get_public_walkthrough(slug: str, walkthrough_id: str):
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     if walkthrough.get("privacy") == "password":
         raise HTTPException(status_code=401, detail="Password required")
+
+    # CRITICAL: Ensure all steps have blocks array for embedding
+    if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
+        for step in walkthrough["steps"]:
+            if "blocks" not in step or step["blocks"] is None:
+                step["blocks"] = []
+            if not isinstance(step.get("blocks"), list):
+                step["blocks"] = []
 
     return sanitize_public_walkthrough(walkthrough)
 
@@ -1045,6 +1062,7 @@ app.add_middleware(
     allow_origins=["*"] if allow_all_origins else cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 logging.basicConfig(
