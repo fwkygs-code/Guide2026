@@ -1,9 +1,10 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File, UploadFile, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -1606,10 +1607,7 @@ async def health_check_api():
         "cloudinary_configured": USE_CLOUDINARY
     }
 
-# Include router
-app.include_router(api_router)
-
-# CORS
+# CORS - MUST be added BEFORE router to handle preflight requests
 # IMPORTANT: If allow_credentials=True, you cannot use allow_origins=["*"].
 # Render deployments often start with CORS_ORIGINS="*"; in that case we disable credentials.
 raw_cors_origins = os.environ.get("CORS_ORIGINS", "*")
@@ -1625,11 +1623,115 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# Include router AFTER CORS middleware
+app.include_router(api_router)
+
+# Add middleware to handle OPTIONS requests and ensure CORS headers on all responses
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    """Ensure CORS headers are always present, even on errors"""
+    # Handle preflight OPTIONS requests
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin")
+        if allow_all_origins:
+            allowed_origin = "*"
+        elif origin and origin in cors_origins:
+            allowed_origin = origin
+        else:
+            allowed_origin = cors_origins[0] if cors_origins else "*"
+        
+        return JSONResponse(
+            content={},
+            headers={
+                "Access-Control-Allow-Origin": allowed_origin,
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false",
+                "Access-Control-Max-Age": "3600"
+            }
+        )
+    
+    # Process request
+    try:
+        response = await call_next(request)
+        # Add CORS headers to successful responses (CORS middleware should handle this, but ensure it)
+        origin = request.headers.get("origin")
+        if allow_all_origins:
+            allowed_origin = "*"
+        elif origin and origin in cors_origins:
+            allowed_origin = origin
+        else:
+            allowed_origin = cors_origins[0] if cors_origins else "*"
+        
+        # Only add if not already present (CORS middleware should have added them)
+        if "Access-Control-Allow-Origin" not in response.headers:
+            response.headers["Access-Control-Allow-Origin"] = allowed_origin
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            if not allow_all_origins:
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+        
+        return response
+    except Exception as e:
+        # Ensure CORS headers on error responses
+        origin = request.headers.get("origin")
+        if allow_all_origins:
+            allowed_origin = "*"
+        elif origin and origin in cors_origins:
+            allowed_origin = origin
+        else:
+            allowed_origin = cors_origins[0] if cors_origins else "*"
+        
+        logger.error(f"Request error: {e}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+            headers={
+                "Access-Control-Allow-Origin": allowed_origin,
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
+            }
+        )
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Exception handler to ensure CORS headers are always sent, even on errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Ensure CORS headers are sent even when exceptions occur"""
+    import traceback
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    
+    # Get CORS origins from environment
+    raw_cors_origins = os.environ.get("CORS_ORIGINS", "*")
+    cors_origins = [o.strip() for o in raw_cors_origins.split(",") if o.strip()]
+    allow_all_origins = "*" in cors_origins
+    origin = request.headers.get("origin")
+    
+    # Determine allowed origin
+    if allow_all_origins:
+        allowed_origin = "*"
+    elif origin and origin in cors_origins:
+        allowed_origin = origin
+    else:
+        allowed_origin = cors_origins[0] if cors_origins else "*"
+    
+    # Return error response with CORS headers
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers={
+            "Access-Control-Allow-Origin": allowed_origin,
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
+        }
+    )
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

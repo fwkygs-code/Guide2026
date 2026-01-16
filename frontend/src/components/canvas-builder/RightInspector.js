@@ -471,7 +471,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             <Label className="text-xs text-slate-500 mb-2">Background Color</Label>
             <Input
               type="color"
-              value={settings.backgroundColor || '#ffffff'}
+              value={settings.backgroundColor && settings.backgroundColor !== 'transparent' && settings.backgroundColor !== '' ? settings.backgroundColor : '#ffffff'}
               onChange={(e) => {
                 const updatedBlock = {
                   ...block,
@@ -487,7 +487,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
               onClick={() => {
                 const updatedBlock = {
                   ...block,
-                  settings: { ...settings, backgroundColor: 'transparent' }
+                  settings: { ...settings, backgroundColor: '' }
                 };
                 updateBlock(updatedBlock);
               }}

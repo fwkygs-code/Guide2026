@@ -343,7 +343,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
     borderColor: settings.borderColor || '#e2e8f0',
     borderStyle: settings.borderWidth > 0 ? 'solid' : 'none',
     borderRadius: `${settings.borderRadius || 8}px`,
-    backgroundColor: settings.backgroundColor || 'transparent'
+    backgroundColor: settings.backgroundColor && settings.backgroundColor !== 'transparent' ? settings.backgroundColor : 'transparent'
   };
 
   return (

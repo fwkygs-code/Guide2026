@@ -78,7 +78,7 @@ export const createBlock = (type, data = {}) => {
       borderWidth: 0,
       borderColor: '#e2e8f0',
       borderRadius: 8,
-      backgroundColor: 'transparent'
+      backgroundColor: ''
     }
   };
 };
