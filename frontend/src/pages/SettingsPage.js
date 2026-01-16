@@ -179,22 +179,6 @@ const SettingsPage = () => {
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={handleSave} disabled={saving} data-testid="save-settings-button">
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setLogoUrl(workspace?.logo || '');
-                    setPortalBackgroundUrl(workspace?.portal_background_url || '');
-                    setPortalPalette(workspace?.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
-                  }}
-                >
-                  Reset
-                </Button>
-              </div>
             </div>
           </div>
 
@@ -453,6 +437,28 @@ const SettingsPage = () => {
                 </div>
               </TabsContent>
             </Tabs>
+          </div>
+
+          {/* Save Button at Bottom */}
+          <div className="glass rounded-xl p-6 border-t-2 border-primary/20">
+            <div className="flex gap-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setLogoUrl(workspace?.logo || '');
+                  setPortalBackgroundUrl(workspace?.portal_background_url || '');
+                  setPortalPalette(workspace?.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
+                  setBrandColor(workspace?.brand_color || '#4f46e5');
+                  setName(workspace?.name || '');
+                }}
+              >
+                Reset
+              </Button>
+              <Button onClick={handleSave} disabled={saving} data-testid="save-settings-button">
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
           </div>
         </div>
       </div>

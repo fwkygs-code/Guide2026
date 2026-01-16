@@ -169,20 +169,28 @@ const PortalPage = ({ isEmbedded = false }) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            className="relative"
           >
-            <h1 className="text-4xl lg:text-5xl font-heading font-bold text-slate-900 mb-4">
-              How can we help you?
-            </h1>
-            <p className="text-lg text-slate-600 mb-8">Search our knowledge base or browse categories</p>
-            <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for guides..."
-                className="pl-12 h-14 text-lg rounded-xl shadow-sm border-slate-200"
-                data-testid="portal-search-input"
-              />
+            {/* 3D Glass Bubble Container */}
+            <div className="glass rounded-3xl p-8 md:p-12 backdrop-blur-xl bg-white/80 border border-white/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300"
+                 style={{
+                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
+                   boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
+                 }}>
+              <h1 className="text-4xl lg:text-5xl font-heading font-bold text-slate-900 mb-4 drop-shadow-sm">
+                How can we help you?
+              </h1>
+              <p className="text-lg text-slate-700 mb-8 font-medium">Search our knowledge base or browse categories</p>
+              <div className="relative max-w-2xl mx-auto">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5 z-10" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search for guides..."
+                  className="pl-12 h-14 text-lg rounded-xl shadow-lg border-slate-200/50 bg-white/90 backdrop-blur-sm"
+                  data-testid="portal-search-input"
+                />
+              </div>
             </div>
           </motion.div>
         </div>
@@ -190,9 +198,15 @@ const PortalPage = ({ isEmbedded = false }) => {
 
       {/* Categories Filter */}
       {categoryTree.length > 0 && (
-        <section className="py-6 px-6 border-b border-slate-200/50 bg-white/50">
+        <section className="py-6 px-6 relative">
           <div className="max-w-7xl mx-auto">
-            <div className="flex gap-3 flex-wrap justify-center">
+            {/* 3D Glass Bubble for Categories */}
+            <div className="glass rounded-2xl p-4 md:p-6 backdrop-blur-xl bg-white/80 border border-white/50 shadow-xl"
+                 style={{
+                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 100%)',
+                   boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
+                 }}>
+              <div className="flex gap-3 flex-wrap justify-center">
               <Badge
                 variant={selectedCategory === null ? 'default' : 'outline'}
                 className="cursor-pointer px-4 py-2 text-sm font-medium transition-all hover:scale-105"
@@ -217,6 +231,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                   )}
                 </Badge>
               ))}
+              </div>
             </div>
           </div>
         </section>
@@ -237,12 +252,18 @@ const PortalPage = ({ isEmbedded = false }) => {
                     transition={{ delay: sectionIndex * 0.1 }}
                   >
                     {category && (
-                      <div className="flex items-center gap-3 mb-6">
-                        <FolderOpen className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-heading font-bold text-slate-900">{category.name}</h2>
-                        {category.description && (
-                          <p className="text-sm text-slate-600">{category.description}</p>
-                        )}
+                      <div className="glass rounded-2xl p-4 mb-6 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg inline-block"
+                           style={{
+                             background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 100%)',
+                             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
+                           }}>
+                        <div className="flex items-center gap-3">
+                          <FolderOpen className="w-6 h-6" style={{ color: primaryColor }} />
+                          <h2 className="text-2xl font-heading font-bold text-slate-900">{category.name}</h2>
+                          {category.description && (
+                            <p className="text-sm text-slate-700 font-medium">{category.description}</p>
+                          )}
+                        </div>
                       </div>
                     )}
                     {category?.children.length > 0 && (
