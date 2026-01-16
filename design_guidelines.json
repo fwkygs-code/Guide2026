@@ -34,25 +34,25 @@
   "colors": {
     "palette": {
       "primary": {
-        "name": "Electric Indigo",
-        "50": "#eef2ff",
-        "100": "#e0e7ff",
-        "500": "#6366f1",
-        "600": "#4f46e5",
-        "700": "#4338ca",
-        "900": "#312e81",
-        "DEFAULT": "#4f46e5",
+        "name": "Apple Blue",
+        "50": "#E3F2FD",
+        "100": "#BBDEFB",
+        "500": "#007AFF",
+        "600": "#0051D5",
+        "700": "#003D9E",
+        "900": "#001F4F",
+        "DEFAULT": "#007AFF",
         "foreground": "#ffffff"
       },
       "secondary": {
-        "name": "Slate",
-        "50": "#f8fafc",
-        "100": "#f1f5f9",
-        "200": "#e2e8f0",
-        "800": "#1e293b",
-        "900": "#0f172a",
-        "DEFAULT": "#f1f5f9",
-        "foreground": "#0f172a"
+        "name": "Apple Light Gray",
+        "50": "#FAFAFA",
+        "100": "#F5F5F7",
+        "200": "#E5E5E7",
+        "800": "#3A3A3C",
+        "900": "#1D1D1F",
+        "DEFAULT": "#F5F5F7",
+        "foreground": "#1D1D1F"
       },
       "accent": {
         "name": "Vivid Sky",
@@ -73,20 +73,20 @@
       }
     },
     "backgrounds": {
-      "page": "bg-slate-50 dark:bg-slate-950",
-      "card": "bg-white dark:bg-slate-900",
-      "sidebar": "bg-slate-50/80 backdrop-blur-xl border-r border-slate-200 dark:bg-slate-900/80 dark:border-slate-800"
+      "page": "bg-white dark:bg-black",
+      "card": "bg-white/80 backdrop-blur-xl dark:bg-gray-900/80",
+      "sidebar": "bg-white/80 backdrop-blur-xl border-r border-gray-200/50 dark:bg-gray-900/80 dark:border-gray-800/50"
     }
   },
   "components": {
     "buttons": {
-      "radius": "rounded-full",
+      "radius": "rounded-2xl",
       "shadow": "shadow-sm hover:shadow-md",
-      "transition": "transition-all duration-200 ease-out active:scale-95",
+      "transition": "transition-all duration-200 ease-out active:scale-[0.98]",
       "variants": {
-        "primary": "bg-primary text-primary-foreground hover:bg-primary/90",
-        "secondary": "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 hover:border-slate-300",
-        "ghost": "hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+        "primary": "bg-primary/90 backdrop-blur-xl border border-primary/20 text-white hover:bg-primary",
+        "secondary": "bg-white/80 backdrop-blur-xl text-gray-900 border border-gray-200/50 hover:bg-white/90",
+        "ghost": "hover:bg-gray-100/50 text-gray-600 hover:text-gray-900"
       }
     },
     "cards": {

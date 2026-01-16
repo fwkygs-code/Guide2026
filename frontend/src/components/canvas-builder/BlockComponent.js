@@ -131,7 +131,12 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
                 <p className="text-sm text-slate-500 mt-2">or</p>
                 <Input
                   placeholder="Paste image URL"
-                  onBlur={(e) => e.target.value && onUpdate({ ...block, data: { ...block.data, url: e.target.value } })}
+                  onBlur={(e) => {
+                    if (e.target.value) {
+                      const normalizedUrl = normalizeImageUrl(e.target.value);
+                      onUpdate({ ...block, data: { ...block.data, url: normalizedUrl } });
+                    }
+                  }}
                   className="mt-2"
                 />
               </div>
@@ -284,7 +289,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
 
       case BLOCK_TYPES.PROBLEM:
         return (
-          <div className="border-l-4 border-amber-500 bg-amber-50 p-4 rounded">
+          <div className="border-l-4 border-orange-400 bg-orange-50/50 backdrop-blur-sm p-4 rounded-xl">
             <Input
               value={block.data.title}
               onChange={(e) => onUpdate({ ...block, data: { ...block.data, title: e.target.value } })}
@@ -334,7 +339,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
         <button
           {...attributes}
           {...listeners}
-          className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded hover:bg-slate-50 cursor-grab active:cursor-grabbing"
+          className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white cursor-grab active:cursor-grabbing"
         >
           <GripVertical className="w-4 h-4 text-slate-400" />
         </button>
@@ -343,7 +348,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
             e.stopPropagation();
             onDuplicate(block);
           }}
-          className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded hover:bg-slate-50"
+          className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white"
         >
           <Copy className="w-4 h-4 text-slate-400" />
         </button>

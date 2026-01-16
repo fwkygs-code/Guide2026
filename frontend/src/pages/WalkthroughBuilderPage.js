@@ -77,10 +77,17 @@ const WalkthroughBuilderPage = () => {
       // Ensure all steps have blocks array initialized
       const stepsWithBlocks = (normalized.steps || []).map(step => ({
         ...step,
-        blocks: step.blocks || []
+        blocks: step.blocks || [],
+        // Ensure blocks array is properly structured
+        ...(step.blocks && Array.isArray(step.blocks) ? {} : { blocks: [] })
       }));
       setSteps(stepsWithBlocks);
       setSelectedCategories(normalized.category_ids || []);
+      
+      // CRITICAL: Ensure icon_url is preserved
+      if (normalized.icon_url) {
+        // Icon URL is already normalized in normalizeImageUrlsInObject
+      }
     } catch (error) {
       toast.error('Failed to load walkthrough');
       navigate(`/workspace/${workspaceId}/walkthroughs`);
@@ -470,7 +477,7 @@ const WalkthroughBuilderPage = () => {
 
                     {/* Rich Text Editor */}
                     <div className="space-y-2">
-                      <div className="flex gap-1 border border-slate-200 rounded-lg p-2 bg-slate-50">
+                      <div className="flex gap-1 border border-gray-200/50 rounded-xl p-2 bg-gray-50/50 backdrop-blur-sm">
                         <Button
                           type="button"
                           variant="ghost"
@@ -581,7 +588,7 @@ const WalkthroughBuilderPage = () => {
                       </div>
                       
                       {step.media_url && (
-                        <div className="mt-3 p-3 bg-slate-50 rounded-lg">
+                        <div className="mt-3 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl">
                           <div className="text-xs text-slate-500 mb-2">תצוגה מקדימה:</div>
                           <div className="text-xs text-slate-400 mb-2 font-mono break-all">URL: {step.media_url}</div>
                           <div className="text-xs text-slate-400 mb-2">Type: {step.media_type || 'לא מוגדר'}</div>

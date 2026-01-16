@@ -98,10 +98,10 @@ const PreviewMode = ({ walkthrough, onExit }) => {
                   {step.common_problems.map((problem, index) => (
                     <div
                       key={index}
-                      className="p-4 bg-amber-50 border border-amber-200 rounded-lg"
+                      className="p-4 bg-orange-50/50 backdrop-blur-sm border border-orange-200/50 rounded-xl"
                     >
-                      <h4 className="font-medium text-amber-900 mb-1">{problem.title}</h4>
-                      <p className="text-sm text-amber-700">{problem.explanation}</p>
+                      <h4 className="font-medium text-gray-900 mb-1">{problem.title}</h4>
+                      <p className="text-sm text-gray-700">{problem.explanation}</p>
                     </div>
                   ))}
                 </div>

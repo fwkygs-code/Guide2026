@@ -121,7 +121,7 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
 
   if (!currentStep) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50">
+      <div className="flex-1 flex items-center justify-center bg-gray-50/30">
         <div className="text-center">
           <p className="text-slate-400 mb-4">אין שלב נבחר</p>
           <p className="text-sm text-slate-500">הוסף שלב להתחלה</p>
@@ -133,7 +133,7 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
   const blocks = currentStep.blocks || [];
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="flex-1 flex flex-col bg-gray-50/30 overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Canvas Container */}
       <div className="flex-1 overflow-y-auto p-12">
         <motion.div

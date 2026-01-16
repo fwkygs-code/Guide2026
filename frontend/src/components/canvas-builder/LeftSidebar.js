@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '../../lib/api';
+import { normalizeImageUrl } from '../../lib/utils';
 import { toast } from 'sonner';
 
 const rawBase =
@@ -31,7 +32,13 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
     try {
       const response = await api.uploadFile(file);
       const fullUrl = `${API_BASE.replace(/\/$/, '')}${response.data.url}`;
-      onUpdate({ ...walkthrough, icon_url: fullUrl });
+      // CRITICAL: Always preserve all other walkthrough data when updating icon
+      onUpdate({ 
+        ...walkthrough, 
+        icon_url: fullUrl,
+        // Ensure steps and blocks are preserved
+        steps: walkthrough.steps || []
+      });
       toast.success('Icon uploaded!');
     } catch (error) {
       console.error('Upload error:', error);
@@ -77,12 +84,28 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
             <div className="space-y-2">
               {walkthrough.icon_url ? (
                 <div className="flex items-center gap-2">
-                  <img src={walkthrough.icon_url} alt="Icon" className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                  <img 
+                    src={normalizeImageUrl(walkthrough.icon_url)} 
+                    alt="Icon" 
+                    className="w-16 h-16 rounded-lg object-cover border border-gray-200/50"
+                    onError={(e) => {
+                      console.error('Failed to load icon:', walkthrough.icon_url);
+                      // Don't remove icon_url on error, just hide the broken image
+                      e.target.style.display = 'none';
+                    }}
+                  />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onUpdate({ ...walkthrough, icon_url: null })}
+                    onClick={() => {
+                      // CRITICAL: Preserve all other data when removing icon
+                      onUpdate({ 
+                        ...walkthrough, 
+                        icon_url: null,
+                        steps: walkthrough.steps || []
+                      });
+                    }}
                     className="h-8"
                   >
                     Remove
@@ -279,7 +302,7 @@ const StepItem = ({ step, index, isActive, onClick, onDelete }) => {
       className={`group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
         isActive
           ? 'bg-primary/10 border-2 border-primary'
-          : 'bg-slate-50 hover:bg-slate-100 border-2 border-transparent'
+          : 'bg-gray-50/50 backdrop-blur-sm hover:bg-gray-100/80 border-2 border-transparent'
       }`}
       data-testid={`step-item-${index}`}
     >

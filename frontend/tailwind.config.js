@@ -15,23 +15,23 @@ module.exports = {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#4f46e5',
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          900: '#312e81',
+          DEFAULT: '#007AFF', // Apple Blue
+          50: '#E3F2FD',
+          100: '#BBDEFB',
+          500: '#007AFF',
+          600: '#0051D5',
+          700: '#003D9E',
+          900: '#001F4F',
           foreground: '#ffffff'
         },
         secondary: {
-          DEFAULT: '#f1f5f9',
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          800: '#1e293b',
-          900: '#0f172a',
-          foreground: '#0f172a'
+          DEFAULT: '#F5F5F7', // Apple Light Gray
+          50: '#FAFAFA',
+          100: '#F5F5F7',
+          200: '#E5E5E7',
+          800: '#3A3A3C',
+          900: '#1D1D1F',
+          foreground: '#1D1D1F'
         },
         accent: {
           DEFAULT: '#0ea5e9',
@@ -46,7 +46,7 @@ module.exports = {
           foreground: '#ffffff'
         },
         destructive: {
-          DEFAULT: '#ef4444',
+          DEFAULT: '#FF3B30', // Apple Red
           foreground: '#ffffff'
         },
         muted: {
@@ -63,11 +63,12 @@ module.exports = {
         }
       },
       borderRadius: {
-        lg: '0.75rem',
-        md: '0.5rem',
-        sm: '0.25rem',
-        xl: '1rem',
+        lg: '1rem',
+        md: '0.75rem',
+        sm: '0.5rem',
+        xl: '1.25rem',
         '2xl': '1.5rem',
+        '3xl': '2rem',
         full: '9999px'
       },
       boxShadow: {

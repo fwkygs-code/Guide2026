@@ -6,9 +6,11 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #FFFFFF;
+  color: #1D1D1F;
 }
 
 code {
@@ -17,48 +19,49 @@ code {
 
 @layer base {
   :root {
-    --background: 248 250 252;
-    --foreground: 15 23 42;
+    /* Apple-inspired neutral palette */
+    --background: 255 255 255;
+    --foreground: 29 29 31;
     --card: 255 255 255;
-    --card-foreground: 15 23 42;
+    --card-foreground: 29 29 31;
     --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
-    --primary: 79 70 229;
+    --popover-foreground: 29 29 31;
+    --primary: 0 122 255; /* Apple Blue */
     --primary-foreground: 255 255 255;
-    --secondary: 241 245 249;
-    --secondary-foreground: 15 23 42;
-    --muted: 241 245 249;
-    --muted-foreground: 100 116 139;
-    --accent: 14 165 233;
+    --secondary: 245 245 247; /* Apple Light Gray */
+    --secondary-foreground: 29 29 31;
+    --muted: 245 245 247;
+    --muted-foreground: 110 110 115;
+    --accent: 0 122 255;
     --accent-foreground: 255 255 255;
-    --destructive: 239 68 68;
+    --destructive: 255 59 48; /* Apple Red */
     --destructive-foreground: 255 255 255;
-    --border: 226 232 240;
-    --input: 226 232 240;
-    --ring: 79 70 229;
-    --radius: 0.75rem;
+    --border: 210 210 215; /* Apple Border Gray */
+    --input: 210 210 215;
+    --ring: 0 122 255;
+    --radius: 1rem; /* More rounded like Apple */
   }
 
   .dark {
-    --background: 15 23 42;
-    --foreground: 248 250 252;
-    --card: 30 41 59;
-    --card-foreground: 248 250 252;
-    --popover: 30 41 59;
-    --popover-foreground: 248 250 252;
-    --primary: 79 70 229;
+    --background: 0 0 0;
+    --foreground: 255 255 255;
+    --card: 28 28 30;
+    --card-foreground: 255 255 255;
+    --popover: 28 28 30;
+    --popover-foreground: 255 255 255;
+    --primary: 10 132 255; /* Apple Blue (darker) */
     --primary-foreground: 255 255 255;
-    --secondary: 30 41 59;
-    --secondary-foreground: 248 250 252;
-    --muted: 30 41 59;
-    --muted-foreground: 148 163 184;
-    --accent: 14 165 233;
+    --secondary: 44 44 46;
+    --secondary-foreground: 255 255 255;
+    --muted: 44 44 46;
+    --muted-foreground: 142 142 147;
+    --accent: 10 132 255;
     --accent-foreground: 255 255 255;
-    --destructive: 239 68 68;
+    --destructive: 255 69 58;
     --destructive-foreground: 255 255 255;
-    --border: 51 65 85;
-    --input: 51 65 85;
-    --ring: 79 70 229;
+    --border: 58 58 60;
+    --input: 58 58 60;
+    --ring: 10 132 255;
   }
 }
 
@@ -75,11 +78,19 @@ code {
 }
 
 @layer utilities {
+  /* Apple-style glassmorphism */
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-slate-200/60;
+    @apply bg-white/80 backdrop-blur-xl border border-gray-200/50;
   }
   .glass-dark {
-    @apply bg-slate-900/70 backdrop-blur-md border border-slate-800;
+    @apply bg-black/80 backdrop-blur-xl border border-gray-800/50;
+  }
+  /* Apple bubble button */
+  .bubble-button {
+    @apply bg-white/80 backdrop-blur-xl border border-gray-200/50 rounded-2xl shadow-sm hover:shadow-md hover:bg-white/90 transition-all duration-200 active:scale-[0.98];
+  }
+  .bubble-button-primary {
+    @apply bg-primary/90 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-sm hover:shadow-md hover:bg-primary transition-all duration-200 active:scale-[0.98] text-white;
   }
 }
 

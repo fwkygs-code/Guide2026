@@ -431,7 +431,7 @@ const CategoriesPage = () => {
                           {category.children.map((subCat) => (
                             <div
                               key={subCat.id}
-                              className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 group"
+                              className="flex items-center gap-2 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl border border-gray-200/50 group"
                             >
                               {subCat.icon_url ? (
                                 <img

@@ -232,6 +232,15 @@ def sanitize_public_walkthrough(w: dict) -> dict:
     # Never expose archived walkthroughs in public
     w.pop("archived", None)
     w.pop("archived_at", None)
+    # CRITICAL: Ensure icon_url and blocks in steps are preserved (they're safe for public)
+    # icon_url is already in the dict if it exists, no need to remove it
+    # Ensure all steps have blocks array initialized
+    if "steps" in w and isinstance(w["steps"], list):
+        for step in w["steps"]:
+            if "blocks" not in step:
+                step["blocks"] = []
+            elif step["blocks"] is None:
+                step["blocks"] = []
     return w
 
 def create_token(user_id: str) -> str:
@@ -469,11 +478,14 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
             raise HTTPException(status_code=400, detail="Password is required for password-protected walkthroughs")
         password_hash = hash_password(walkthrough_data.password)
 
+    # CRITICAL: Preserve icon_url even if None
+    icon_url = walkthrough_data.icon_url if walkthrough_data.icon_url is not None else None
+    
     walkthrough = Walkthrough(
         workspace_id=workspace_id,
         title=walkthrough_data.title,
         description=walkthrough_data.description,
-        icon_url=walkthrough_data.icon_url,
+        icon_url=icon_url,  # Explicitly set, even if None
         category_ids=walkthrough_data.category_ids,
         privacy=walkthrough_data.privacy,
         password=None,
@@ -502,6 +514,20 @@ async def get_walkthroughs(workspace_id: str, current_user: User = Depends(get_c
         {"workspace_id": workspace_id, "archived": {"$ne": True}},
         {"_id": 0}
     ).to_list(1000)
+    
+    # CRITICAL: Ensure all walkthroughs have proper data structure
+    for w in walkthroughs:
+        # Ensure icon_url exists
+        if "icon_url" not in w:
+            w["icon_url"] = None
+        # Ensure all steps have blocks array
+        if "steps" in w and isinstance(w["steps"], list):
+            for step in w["steps"]:
+                if "blocks" not in step or step["blocks"] is None:
+                    step["blocks"] = []
+                if not isinstance(step.get("blocks"), list):
+                    step["blocks"] = []
+    
     return [Walkthrough(**w) for w in walkthroughs]
 
 @api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
@@ -530,6 +556,15 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
     update_data = walkthrough_data.model_dump(exclude_none=True)
+    
+    # CRITICAL: Preserve icon_url if it's not being updated (don't overwrite with None)
+    if "icon_url" not in update_data or update_data.get("icon_url") is None:
+        # Only preserve existing icon_url if it's not being explicitly set
+        if existing.get("icon_url"):
+            update_data["icon_url"] = existing.get("icon_url")
+        elif "icon_url" in update_data and update_data["icon_url"] is None:
+            # Explicitly set to None only if it was None before
+            pass  # Allow None if that's what was sent
 
     # Password handling: store hash only, never store plaintext.
     if update_data.get("privacy") == Privacy.PASSWORD or walkthrough_data.privacy == Privacy.PASSWORD:
@@ -559,10 +594,11 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
                 # snapshot should include private fields needed for rollback, but never password hash
                 "privacy": existing.get("privacy"),
                 "status": existing.get("status"),
+                "icon_url": existing.get("icon_url"),  # CRITICAL: Preserve icon_url in snapshot
                 "category_ids": existing.get("category_ids", []),
                 "navigation_type": existing.get("navigation_type"),
                 "navigation_placement": existing.get("navigation_placement"),
-                "steps": existing.get("steps", []),
+                "steps": existing.get("steps", []),  # Steps include blocks, so blocks are preserved
                 "version": existing.get("version", 1),
             }
         }
@@ -659,11 +695,27 @@ async def rollback_walkthrough(workspace_id: str, walkthrough_id: str, version: 
     if not v or not v.get("snapshot"):
         raise HTTPException(status_code=404, detail="Version not found")
 
-    snapshot = v["snapshot"]
+    snapshot = v["snapshot"].copy()  # Make a copy to avoid modifying the original
     # Never restore password hash from snapshots (password-protected walkthroughs must be reset explicitly)
     snapshot.pop("password_hash", None)
     snapshot.pop("password", None)
     snapshot["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # CRITICAL: Ensure all steps have blocks array initialized during rollback
+    if "steps" in snapshot and isinstance(snapshot["steps"], list):
+        for step in snapshot["steps"]:
+            if "blocks" not in step or step["blocks"] is None:
+                step["blocks"] = []
+            # Ensure blocks in steps are properly structured
+            if not isinstance(step.get("blocks"), list):
+                step["blocks"] = []
+    
+    # CRITICAL: Preserve icon_url if it exists in snapshot
+    if "icon_url" not in snapshot:
+        # Try to get from existing walkthrough if not in snapshot
+        existing = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id}, {"_id": 0})
+        if existing and existing.get("icon_url"):
+            snapshot["icon_url"] = existing.get("icon_url")
 
     await db.walkthroughs.update_one(
         {"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}},
@@ -707,6 +759,11 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         insert_at = len(steps)
     insert_at = max(0, min(insert_at, len(steps)))
 
+    # CRITICAL: Ensure blocks is always a list, never None
+    blocks = step_data.blocks if step_data.blocks is not None else []
+    if not isinstance(blocks, list):
+        blocks = []
+    
     step = Step(
         title=step_data.title,
         content=step_data.content,
@@ -714,7 +771,7 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         media_type=step_data.media_type,
         navigation_type=step_data.navigation_type,
         common_problems=step_data.common_problems,
-        blocks=step_data.blocks,
+        blocks=blocks,  # Always a list
         order=insert_at
     )
 
@@ -746,15 +803,21 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     if step_index is None:
         raise HTTPException(status_code=404, detail="Step not found")
     
-    steps[step_index].update({
+    # CRITICAL: Preserve blocks - ensure blocks array is always present
+    updated_step = {
         'title': step_data.title,
         'content': step_data.content,
         'media_url': step_data.media_url,
         'media_type': step_data.media_type,
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
-        'blocks': step_data.blocks
-    })
+        'blocks': step_data.blocks if step_data.blocks is not None else (steps[step_index].get('blocks', []) or [])
+    }
+    # Preserve existing blocks if new blocks is None or empty and existing has blocks
+    if not updated_step['blocks'] and steps[step_index].get('blocks'):
+        updated_step['blocks'] = steps[step_index].get('blocks', [])
+    
+    steps[step_index].update(updated_step)
     
     await db.walkthroughs.update_one(
         {"id": walkthrough_id},
@@ -796,9 +859,22 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
     step_map = {s["id"]: s for s in steps if "id" in s}
     # Only allow reordering of existing step ids
     ordered = [step_map[sid] for sid in body.step_ids if sid in step_map]
+    
+    # CRITICAL: Ensure all steps have blocks array before reordering
+    for step in ordered:
+        if "blocks" not in step or step["blocks"] is None:
+            step["blocks"] = []
+        if not isinstance(step.get("blocks"), list):
+            step["blocks"] = []
+    
     if len(ordered) != len(steps):
         # If mismatch, keep any missing steps at the end (stable)
         missing = [s for s in steps if s.get("id") not in set(body.step_ids)]
+        # CRITICAL: Ensure missing steps also have blocks array
+        for step in missing:
+            if "blocks" not in step or step["blocks"] is None:
+                step["blocks"] = []
+        ordered.extend(missing)
         ordered.extend(missing)
 
     # Update order fields

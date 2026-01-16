@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { normalizeImageUrlsInObject } from '../lib/utils';
+import { normalizeImageUrlsInObject, normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import LeftSidebar from '../components/canvas-builder/LeftSidebar';
 import LiveCanvas from '../components/canvas-builder/LiveCanvas';
@@ -70,7 +70,17 @@ const CanvasBuilderPage = () => {
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (!parsed?.data) return;
-      setWalkthrough((prev) => ({ ...prev, ...parsed.data }));
+      // CRITICAL: Ensure blocks arrays are restored from draft
+      const draftData = { ...parsed.data };
+      if (draftData.steps) {
+        draftData.steps = draftData.steps.map(step => ({
+          ...step,
+          blocks: step.blocks || []
+        }));
+      }
+      // Normalize image URLs in draft
+      const normalized = normalizeImageUrlsInObject(draftData);
+      setWalkthrough((prev) => ({ ...prev, ...normalized }));
     } catch {
       // ignore
     }
@@ -85,6 +95,13 @@ const CanvasBuilderPage = () => {
     try {
       // Never persist portal passwords into localStorage drafts
       const { password, ...draftWalkthrough } = walkthrough;
+      // CRITICAL: Ensure blocks arrays are preserved in draft
+      if (draftWalkthrough.steps) {
+        draftWalkthrough.steps = draftWalkthrough.steps.map(step => ({
+          ...step,
+          blocks: step.blocks || []
+        }));
+      }
       localStorage.setItem(draftKey, JSON.stringify({ updatedAt: Date.now(), data: draftWalkthrough }));
     } catch {
       // ignore
@@ -105,6 +122,26 @@ const CanvasBuilderPage = () => {
         const wtResponse = await api.getWalkthrough(workspaceId, walkthroughId);
         // Normalize image URLs in walkthrough data
         const normalized = normalizeImageUrlsInObject(wtResponse.data);
+        // CRITICAL: Ensure all steps have blocks array initialized
+        if (normalized.steps) {
+          normalized.steps = normalized.steps.map(step => {
+            const stepWithBlocks = {
+              ...step,
+              blocks: step.blocks || []
+            };
+            // Ensure blocks array is properly structured
+            if (!Array.isArray(stepWithBlocks.blocks)) {
+              stepWithBlocks.blocks = [];
+            }
+            return stepWithBlocks;
+          });
+        }
+        // CRITICAL: Ensure icon_url is preserved and normalized
+        if (wtResponse.data.icon_url) {
+          normalized.icon_url = normalizeImageUrl(wtResponse.data.icon_url);
+        } else {
+          normalized.icon_url = normalized.icon_url || null;
+        }
         setWalkthrough(normalized);
       }
     } catch (error) {
@@ -117,46 +154,51 @@ const CanvasBuilderPage = () => {
   const saveWalkthrough = async (showToast = true) => {
     if (isSaving || isPublishing) return;
     setIsSaving(true);
+    // CRITICAL: Always include icon_url explicitly, even if null, to preserve existing value
     const data = {
-      title: walkthrough.title,
-      description: walkthrough.description,
-      icon_url: walkthrough.icon_url,
-      privacy: walkthrough.privacy,
+      title: walkthrough.title || '',
+      description: walkthrough.description || '',
+      icon_url: walkthrough.icon_url || null,  // Explicitly include, backend will preserve if None
+      privacy: walkthrough.privacy || 'public',
       password: walkthrough.privacy === 'password' ? walkthrough.password : undefined,
-      category_ids: walkthrough.category_ids,
-      navigation_type: walkthrough.navigation_type,
-      navigation_placement: walkthrough.navigation_placement,
-      status: walkthrough.status
+      category_ids: walkthrough.category_ids || [],
+      navigation_type: walkthrough.navigation_type || 'next_prev',
+      navigation_placement: walkthrough.navigation_placement || 'bottom',
+      status: walkthrough.status || 'draft'
     };
 
     try {
       if (isEditing) {
         await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
-        // Update steps
+        // Update steps - CRITICAL: Always preserve blocks array
         const nextSteps = [...(walkthrough.steps || [])];
         for (let i = 0; i < nextSteps.length; i++) {
           const step = nextSteps[i];
+          // Ensure blocks array exists
+          if (!step.blocks) {
+            step.blocks = [];
+          }
           if (step.id && !step.isNew) {
             await api.updateStep(workspaceId, walkthroughId, step.id, {
-              title: step.title,
-              content: step.content,
-              media_url: step.media_url,
-              media_type: step.media_type,
+              title: step.title || '',
+              content: step.content || '',
+              media_url: step.media_url || null,
+              media_type: step.media_type || null,
               navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
-              blocks: step.blocks || []
+              blocks: step.blocks || []  // Always send blocks array, even if empty
             });
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
-              title: step.title,
-              content: step.content,
-              media_url: step.media_url,
-              media_type: step.media_type,
+              title: step.title || '',
+              content: step.content || '',
+              media_url: step.media_url || null,
+              media_type: step.media_type || null,
               navigation_type: step.navigation_type || 'next_prev',
-              order: step.order,
+              order: step.order || i,
               common_problems: step.common_problems || [],
-              blocks: step.blocks || []
+              blocks: step.blocks || []  // Always send blocks array
             });
             // IMPORTANT: mark as persisted so future saves don't re-add duplicates
             nextSteps[i] = { ...step, id: res.data.id, isNew: false };
@@ -178,15 +220,16 @@ const CanvasBuilderPage = () => {
         const response = await api.createWalkthrough(workspaceId, data);
         const newId = response.data.id;
 
-        for (const step of walkthrough.steps) {
+        for (const step of walkthrough.steps || []) {
           await api.addStep(workspaceId, newId, {
-            title: step.title,
-            content: step.content,
-            media_url: step.media_url,
-            media_type: step.media_type,
+            title: step.title || '',
+            content: step.content || '',
+            media_url: step.media_url || null,
+            media_type: step.media_type || null,
             navigation_type: step.navigation_type || 'next_prev',
+            order: step.order || 0,
             common_problems: step.common_problems || [],
-            blocks: step.blocks || []
+            blocks: step.blocks || []  // Always send blocks array
           });
         }
 
@@ -224,10 +267,20 @@ const CanvasBuilderPage = () => {
     if (!ok) return;
     try {
       const res = await api.rollbackWalkthrough(workspaceId, walkthroughId, versionNumber);
-      setWalkthrough(res.data);
+      // CRITICAL: Normalize image URLs and ensure blocks arrays exist
+      const normalized = normalizeImageUrlsInObject(res.data);
+      // Ensure all steps have blocks array initialized
+      if (normalized.steps) {
+        normalized.steps = normalized.steps.map(step => ({
+          ...step,
+          blocks: step.blocks || []
+        }));
+      }
+      setWalkthrough(normalized);
       toast.success(`Rolled back to version ${versionNumber}`);
       setShowVersions(false);
     } catch (e) {
+      console.error('Rollback error:', e);
       toast.error(e.response?.data?.detail || 'Rollback failed');
     }
   };
@@ -240,12 +293,13 @@ const CanvasBuilderPage = () => {
       const next = { ...walkthrough, status: 'published' };
       setWalkthrough(next);
       await (async () => {
+        // CRITICAL: Always include icon_url, even if null, to preserve existing value
         const data = {
           title: next.title,
-          description: next.description,
-          icon_url: next.icon_url,
+          description: next.description || '',
+          icon_url: next.icon_url || null,  // Explicitly include, backend will preserve if None
           privacy: next.privacy,
-          category_ids: next.category_ids,
+          category_ids: next.category_ids || [],
           navigation_type: next.navigation_type,
           navigation_placement: next.navigation_placement,
           status: next.status,
@@ -254,24 +308,28 @@ const CanvasBuilderPage = () => {
         if (isEditing) {
           await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
-          for (const step of next.steps) {
+          // CRITICAL: Ensure all steps have blocks array and preserve all data
+          for (const step of next.steps || []) {
             if (step.id && !step.isNew) {
               await api.updateStep(workspaceId, walkthroughId, step.id, {
-                title: step.title,
-                content: step.content,
-                media_url: step.media_url,
-                media_type: step.media_type,
+                title: step.title || '',
+                content: step.content || '',
+                media_url: step.media_url || null,
+                media_type: step.media_type || null,
+                navigation_type: step.navigation_type || 'next_prev',
                 common_problems: step.common_problems || [],
-                blocks: step.blocks || []
+                blocks: step.blocks || []  // Always send blocks array, even if empty
               });
             } else if (step.isNew) {
               await api.addStep(workspaceId, walkthroughId, {
-                title: step.title,
-                content: step.content,
-                media_url: step.media_url,
-                media_type: step.media_type,
+                title: step.title || '',
+                content: step.content || '',
+                media_url: step.media_url || null,
+                media_type: step.media_type || null,
+                navigation_type: step.navigation_type || 'next_prev',
+                order: step.order || 0,
                 common_problems: step.common_problems || [],
-                blocks: step.blocks || []
+                blocks: step.blocks || []  // Always send blocks array
               });
             }
           }
@@ -279,14 +337,16 @@ const CanvasBuilderPage = () => {
           const response = await api.createWalkthrough(workspaceId, data);
           const newId = response.data.id;
 
-          for (const step of next.steps) {
+          for (const step of next.steps || []) {
             await api.addStep(workspaceId, newId, {
-              title: step.title,
-              content: step.content,
-              media_url: step.media_url,
-              media_type: step.media_type,
+              title: step.title || '',
+              content: step.content || '',
+              media_url: step.media_url || null,
+              media_type: step.media_type || null,
+              navigation_type: step.navigation_type || 'next_prev',
+              order: step.order || 0,
               common_problems: step.common_problems || [],
-              blocks: step.blocks || []
+              blocks: step.blocks || []  // Always send blocks array
             });
           }
 
@@ -295,6 +355,7 @@ const CanvasBuilderPage = () => {
       })();
       toast.success('Published successfully!');
     } catch (error) {
+      console.error('Publish error:', error);
       toast.error('Failed to publish');
     } finally {
       setIsPublishing(false);
@@ -341,6 +402,7 @@ const CanvasBuilderPage = () => {
       media_type: null,
       navigation_type: 'next_prev',
       common_problems: [],
+      blocks: [],  // CRITICAL: Always initialize blocks array
       order: clamped,
       isNew: true
     };
@@ -364,6 +426,7 @@ const CanvasBuilderPage = () => {
       media_type: null,
       navigation_type: 'next_prev',
       common_problems: [],
+      blocks: [],  // CRITICAL: Always initialize blocks array
       order: walkthrough.steps.length,
       isNew: true
     };
@@ -378,9 +441,17 @@ const CanvasBuilderPage = () => {
   const updateStep = (stepId, updates) => {
     setWalkthrough((prev) => ({
       ...prev,
-      steps: prev.steps.map((s) =>
-        s.id === stepId ? { ...s, ...updates } : s
-      )
+      steps: prev.steps.map((s) => {
+        if (s.id === stepId) {
+          const updated = { ...s, ...updates };
+          // CRITICAL: Ensure blocks array always exists
+          if (!updated.blocks) {
+            updated.blocks = s.blocks || [];
+          }
+          return updated;
+        }
+        return s;
+      })
     }));
   };
 
@@ -490,7 +561,7 @@ const CanvasBuilderPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="h-screen flex flex-col bg-slate-50">
+      <div className="h-screen flex flex-col bg-white">
         {(isSaving || isPublishing) && (
           <div
             className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center"

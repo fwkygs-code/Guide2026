@@ -18,7 +18,7 @@ const DashboardLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white">
       {/* Top Navigation */}
       <nav className="glass border-b border-slate-200/50 sticky top-0 z-50">
         <div className="px-6 py-3 flex items-center justify-between gap-4">

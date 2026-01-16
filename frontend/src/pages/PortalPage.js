@@ -112,7 +112,7 @@ const PortalPage = () => {
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50 backdrop-blur-xl bg-white/80">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
@@ -144,7 +144,7 @@ const PortalPage = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-white to-slate-50">
+      <section className="py-16 px-6 bg-white">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -250,7 +250,7 @@ const PortalPage = () => {
                                     className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-slate-200 group-hover:scale-105 transition-transform"
                                   />
                                 ) : (
-                                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                                  <div className="w-16 h-16 rounded-2xl bg-primary/10 backdrop-blur-sm border border-primary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                                     <BookOpen className="w-8 h-8 text-primary" />
                                   </div>
                                 )}

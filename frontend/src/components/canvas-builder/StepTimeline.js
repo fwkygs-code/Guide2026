@@ -29,7 +29,7 @@ const StepTimeline = ({
               className={`group relative z-50 flex flex-col items-center justify-center p-4 rounded-xl transition-all min-w-[180px] ${
                 currentStepIndex === index
                   ? 'bg-primary text-white shadow-lg scale-105'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  : 'bg-gray-100/80 backdrop-blur-sm text-gray-700 hover:bg-gray-200/80'
               }`}
               data-testid={`timeline-step-${index}`}
             >

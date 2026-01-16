@@ -214,7 +214,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             Edit text directly in the canvas. Use keyboard shortcuts:
           </p>
           <div className="space-y-2 text-xs text-slate-500">
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded">Ctrl+B</kbd> Bold</div>
+            <div><kbd className="px-2 py-1 bg-gray-100/80 backdrop-blur-sm rounded-lg">Ctrl+B</kbd> Bold</div>
             <div><kbd className="px-2 py-1 bg-slate-100 rounded">Ctrl+I</kbd> Italic</div>
             <div><kbd className="px-2 py-1 bg-slate-100 rounded">Ctrl+U</kbd> Underline</div>
           </div>

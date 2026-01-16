@@ -193,7 +193,7 @@ const WalkthroughViewerPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -201,7 +201,7 @@ const WalkthroughViewerPage = () => {
 
   if (!walkthrough) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <h1 className="text-2xl font-heading font-bold text-slate-900 mb-2">Walkthrough Not Found</h1>
           <p className="text-slate-600">The walkthrough you're looking for doesn't exist.</p>
@@ -214,7 +214,7 @@ const WalkthroughViewerPage = () => {
   const step = walkthrough.steps[currentStep];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 py-4">
@@ -330,7 +330,7 @@ const WalkthroughViewerPage = () => {
                           <img 
                             src={block.data.url} 
                             alt={block.data?.alt || ''} 
-                            className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
+                            className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
                             onClick={() => setImagePreviewUrl(block.data.url)}
                           />
                           {block.data?.caption && (
@@ -401,9 +401,9 @@ const WalkthroughViewerPage = () => {
                         <div style={{ height: block.data?.height || 32 }} />
                       )}
                       {block.type === 'problem' && (
-                        <div className="border-l-4 border-amber-500 bg-amber-50 p-4 rounded">
-                          <h4 className="font-semibold text-amber-900 mb-1">{block.data?.title}</h4>
-                          <p className="text-amber-800">{block.data?.explanation}</p>
+                        <div className="border-l-4 border-orange-400 bg-orange-50/50 backdrop-blur-sm p-4 rounded-xl">
+                          <h4 className="font-semibold text-gray-900 mb-1">{block.data?.title}</h4>
+                          <p className="text-gray-700">{block.data?.explanation}</p>
                         </div>
                       )}
                     </div>

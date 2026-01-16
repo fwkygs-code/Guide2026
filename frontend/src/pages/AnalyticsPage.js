@@ -186,15 +186,15 @@ const AnalyticsPage = () => {
                       </div>
                       {totalFeedback > 0 && (
                         <div className="mt-3 grid grid-cols-3 gap-3">
-                          <div className="bg-slate-50 rounded-lg px-3 py-2">
+                          <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
                             <div className="text-sm font-medium text-slate-700">😊 Happy</div>
                             <div className="text-xs text-slate-600">{happyCount} ({pct(happyCount)}%)</div>
                           </div>
-                          <div className="bg-slate-50 rounded-lg px-3 py-2">
+                          <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
                             <div className="text-sm font-medium text-slate-700">😐 Neutral</div>
                             <div className="text-xs text-slate-600">{neutralCount} ({pct(neutralCount)}%)</div>
                           </div>
-                          <div className="bg-slate-50 rounded-lg px-3 py-2">
+                          <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
                             <div className="text-sm font-medium text-slate-700">☹️ Sad</div>
                             <div className="text-xs text-slate-600">{unhappyCount} ({pct(unhappyCount)}%)</div>
                           </div>
@@ -203,7 +203,7 @@ const AnalyticsPage = () => {
                       {feedback.length > 0 ? (
                         <div className="mt-3 space-y-2">
                           {feedback.slice(0, 3).map((f) => (
-                            <div key={f.id} className="text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2">
+                            <div key={f.id} className="text-sm text-gray-700 bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
                               <span className="font-medium">{f.rating}</span>
                               {f.comment ? <span className="text-slate-600"> — {f.comment}</span> : null}
                             </div>
