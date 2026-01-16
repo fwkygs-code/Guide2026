@@ -40,7 +40,10 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
 
   const handleMediaUpload = async (file) => {
     try {
+      console.log('[BlockComponent] Starting upload for block:', block.id, 'Type:', block.type);
       const response = await api.uploadFile(file);
+      console.log('[BlockComponent] Upload response:', response.data);
+      
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       // If URL is already absolute (starts with http:// or https://), use it directly
       // Otherwise, prepend API_BASE for local storage fallback
@@ -49,25 +52,37 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
         ? uploadedUrl
         : `${API_BASE.replace(/\/$/, '')}${uploadedUrl}`;
       
+      console.log('[BlockComponent] Full URL:', fullUrl);
+      
+      // CRITICAL: Preserve ALL existing block data and settings when updating URL
+      const updatedBlock = {
+        ...block,
+        data: {
+          ...(block.data || {}), // Preserve all existing data fields
+          url: fullUrl // Update URL
+        },
+        settings: block.settings || {} // Preserve settings
+      };
+      
       if (block.type === BLOCK_TYPES.IMAGE) {
-        onUpdate({ ...block, data: { ...block.data, url: fullUrl } });
+        console.log('[BlockComponent] Updating image block with URL:', fullUrl);
+        onUpdate(updatedBlock);
       } else if (block.type === BLOCK_TYPES.VIDEO) {
-        onUpdate({ ...block, data: { ...block.data, url: fullUrl, type: 'url' } });
+        updatedBlock.data.type = 'url';
+        console.log('[BlockComponent] Updating video block with URL:', fullUrl);
+        onUpdate(updatedBlock);
       } else if (block.type === BLOCK_TYPES.FILE) {
-        onUpdate({ 
-          ...block, 
-          data: { 
-            ...block.data, 
-            url: fullUrl, 
-            name: file.name,
-            size: file.size,
-            type: file.type
-          } 
-        });
+        updatedBlock.data.name = file.name;
+        updatedBlock.data.size = file.size;
+        updatedBlock.data.type = file.type;
+        console.log('[BlockComponent] Updating file block with URL:', fullUrl);
+        onUpdate(updatedBlock);
       }
+      
+      console.log('[BlockComponent] Block updated successfully:', updatedBlock);
       toast.success('File uploaded!');
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[BlockComponent] Upload error:', error);
       toast.error('Upload failed');
     }
   };

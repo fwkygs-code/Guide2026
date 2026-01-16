@@ -738,6 +738,89 @@ async def list_walkthrough_versions(workspace_id: str, walkthrough_id: str, curr
     ).sort("created_at", -1).to_list(1000)
     return versions
 
+@api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/diagnose-blocks")
+async def diagnose_blocks(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    """Diagnostic endpoint to check block data integrity"""
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+    
+    issues = []
+    block_stats = {
+        "total_blocks": 0,
+        "image_blocks": 0,
+        "image_blocks_with_url": 0,
+        "image_blocks_without_url": 0,
+        "blocks_by_step": []
+    }
+    
+    for step in walkthrough.get("steps", []):
+        step_id = step.get("id")
+        blocks = step.get("blocks", []) or []
+        step_stats = {
+            "step_id": step_id,
+            "step_title": step.get("title", "Untitled"),
+            "total_blocks": len(blocks),
+            "image_blocks": 0,
+            "image_blocks_with_url": 0,
+            "image_blocks_without_url": 0,
+            "blocks_detail": []
+        }
+        
+        for block in blocks:
+            block_stats["total_blocks"] += 1
+            block_id = block.get("id", "unknown")
+            block_type = block.get("type", "unknown")
+            
+            if block_type == "image":
+                block_stats["image_blocks"] += 1
+                step_stats["image_blocks"] += 1
+                
+                block_data = block.get("data", {})
+                block_url = block_data.get("url") if block_data else None
+                
+                block_detail = {
+                    "block_id": block_id,
+                    "has_data": bool(block_data),
+                    "has_url": bool(block_url),
+                    "url": block_url if block_url else None,
+                    "url_length": len(block_url) if block_url else 0
+                }
+                
+                if block_url:
+                    block_stats["image_blocks_with_url"] += 1
+                    step_stats["image_blocks_with_url"] += 1
+                else:
+                    block_stats["image_blocks_without_url"] += 1
+                    step_stats["image_blocks_without_url"] += 1
+                    issues.append({
+                        "type": "missing_url",
+                        "step_id": step_id,
+                        "step_title": step.get("title", "Untitled"),
+                        "block_id": block_id,
+                        "block_data": block_data
+                    })
+                
+                step_stats["blocks_detail"].append(block_detail)
+        
+        if step_stats["total_blocks"] > 0:
+            block_stats["blocks_by_step"].append(step_stats)
+    
+    return {
+        "walkthrough_id": walkthrough_id,
+        "walkthrough_title": walkthrough.get("title", "Untitled"),
+        "summary": block_stats,
+        "issues": issues,
+        "has_issues": len(issues) > 0
+    }
+
 @api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/diagnose")
 async def diagnose_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
     """Diagnostic endpoint to check if blocks data exists in database or versions"""
@@ -1103,34 +1186,82 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     # If blocks is None, preserve existing blocks
     existing_blocks = steps[step_index].get('blocks', []) or []
     import copy
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"[update_step] Step {step_id}: Existing blocks count: {len(existing_blocks)}")
     
     if step_data.blocks is not None:
         # Blocks were explicitly provided - use them (even if empty array)
         # CRITICAL: Deep copy blocks to preserve all nested data (data.url, settings, etc.)
         new_blocks = copy.deepcopy(step_data.blocks) if isinstance(step_data.blocks, list) else []
+        logger.info(f"[update_step] Step {step_id}: New blocks provided, count: {len(new_blocks)}")
+        
         # Ensure each block has proper structure
         for block in new_blocks:
             if isinstance(block, dict):
+                block_id = block.get('id', 'unknown')
+                block_type = block.get('type', 'unknown')
+                
                 # Ensure block has 'data' field - CRITICAL: preserve existing data if block exists
                 if 'data' not in block:
                     block['data'] = {}
+                
                 # If block exists in existing blocks, merge data to preserve URLs
                 existing_block = next((b for b in existing_blocks if isinstance(b, dict) and b.get('id') == block.get('id')), None)
-                if existing_block and isinstance(existing_block, dict) and existing_block.get('data'):
-                    # Merge existing data to preserve URLs that might not be in new block
-                    block['data'] = {**existing_block.get('data', {}), **block.get('data', {})}
-                # Ensure block has 'settings' field
-                if 'settings' not in block:
-                    block['settings'] = existing_block.get('settings', {}) if existing_block else {}
-                # Ensure block has 'type' field
-                if 'type' not in block:
-                    block['type'] = existing_block.get('type', 'text') if existing_block else 'text'
+                
+                if existing_block and isinstance(existing_block, dict):
+                    existing_data = existing_block.get('data', {})
+                    existing_url = existing_data.get('url') if existing_data else None
+                    new_url = block.get('data', {}).get('url')
+                    
+                    # CRITICAL: If new block has URL, use it. Otherwise, preserve existing URL
+                    if new_url:
+                        logger.info(f"[update_step] Block {block_id} ({block_type}): New URL provided: {new_url}")
+                        block['data'] = {**existing_data, **block.get('data', {})}
+                    elif existing_url:
+                        logger.info(f"[update_step] Block {block_id} ({block_type}): Preserving existing URL: {existing_url}")
+                        block['data'] = {**existing_data, **block.get('data', {})}
+                        block['data']['url'] = existing_url  # Explicitly preserve URL
+                    else:
+                        block['data'] = {**existing_data, **block.get('data', {})}
+                    
+                    # Ensure block has 'settings' field
+                    if 'settings' not in block:
+                        block['settings'] = existing_block.get('settings', {})
+                    # Ensure block has 'type' field
+                    if 'type' not in block:
+                        block['type'] = existing_block.get('type', 'text')
+                else:
+                    # New block - ensure it has all required fields
+                    if 'settings' not in block:
+                        block['settings'] = {}
+                    if 'type' not in block:
+                        block['type'] = 'text'
+                    
+                    # Log new image blocks
+                    if block.get('type') == 'image' and block.get('data', {}).get('url'):
+                        logger.info(f"[update_step] New image block {block_id} with URL: {block['data']['url']}")
+                    elif block.get('type') == 'image':
+                        logger.warning(f"[update_step] New image block {block_id} has NO URL!")
+                
                 # Ensure block has 'id' field
                 if 'id' not in block:
                     block['id'] = f"block-{uuid.uuid4()}"
     else:
         # Blocks were not provided - preserve existing blocks (deep copy to avoid reference issues)
         new_blocks = copy.deepcopy(existing_blocks)
+        logger.info(f"[update_step] Step {step_id}: No blocks provided, preserving {len(new_blocks)} existing blocks")
+    
+    # Log final block state before saving
+    image_blocks_with_urls = [b for b in new_blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')]
+    image_blocks_without_urls = [b for b in new_blocks if isinstance(b, dict) and b.get('type') == 'image' and not b.get('data', {}).get('url')]
+    logger.info(f"[update_step] Step {step_id}: Final state - {len(image_blocks_with_urls)} image blocks with URLs, {len(image_blocks_without_urls)} without URLs")
+    
+    if image_blocks_without_urls:
+        logger.warning(f"[update_step] Step {step_id}: WARNING - {len(image_blocks_without_urls)} image blocks missing URLs!")
+        for block in image_blocks_without_urls:
+            logger.warning(f"[update_step] Block {block.get('id')} missing URL: {block}")
     
     updated_step = {
         'title': step_data.title,
@@ -1152,6 +1283,7 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         {"$set": {"steps": steps, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
+    logger.info(f"[update_step] Step {step_id}: Successfully saved to database")
     return steps[step_index]
 
 @api_router.delete("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps/{step_id}")

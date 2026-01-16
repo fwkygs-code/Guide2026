@@ -199,15 +199,31 @@ const CanvasBuilderPage = () => {
           // IMPORTANT: Preserve ALL block data including URLs by using spread operator
           step.blocks = (step.blocks || []).map(block => {
             if (!block || typeof block !== 'object') {
+              console.warn('[CanvasBuilder] Invalid block in save, creating default:', block);
               return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
             }
+            
+            // CRITICAL: Deep copy data to preserve all nested properties
+            const blockData = block.data ? { ...block.data } : {};
+            const blockSettings = block.settings ? { ...block.settings } : {};
+            
+            // Log image blocks to track URL preservation during save
+            if (block.type === 'image' && blockData.url) {
+              console.log('[CanvasBuilder] Saving image block with URL:', block.id, blockData.url);
+            } else if (block.type === 'image' && !blockData.url) {
+              console.warn('[CanvasBuilder] WARNING: Image block missing URL:', block.id, block);
+            }
+            
             return {
               id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               type: block.type || 'text',
-              data: block.data ? { ...block.data } : {},  // Preserve all data including url
-              settings: block.settings ? { ...block.settings } : {}
+              data: blockData,  // Preserve all data including url
+              settings: blockSettings
             };
           });
+          
+          console.log('[CanvasBuilder] Saving step with blocks:', step.id, step.blocks);
+          
           if (step.id && !step.isNew) {
             await api.updateStep(workspaceId, walkthroughId, step.id, {
               title: step.title || '',
@@ -255,15 +271,37 @@ const CanvasBuilderPage = () => {
             // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
             stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
               if (!block || typeof block !== 'object') {
+                console.warn('[CanvasBuilder] Invalid block loaded, creating default:', block);
                 return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
               }
+              
+              // CRITICAL: Deep copy data to preserve all nested properties
+              const blockData = block.data || {};
+              const blockSettings = block.settings || {};
+              
+              // Log image blocks to track URL loading
+              if (block.type === 'image') {
+                if (blockData.url) {
+                  console.log('[CanvasBuilder] Loaded image block with URL:', block.id, blockData.url);
+                } else {
+                  console.warn('[CanvasBuilder] WARNING: Loaded image block WITHOUT URL:', block.id, block);
+                }
+              }
+              
               return {
                 id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 type: block.type || 'text',
-                data: block.data || {},
-                settings: block.settings || {}
+                data: blockData,  // Preserve all data including url
+                settings: blockSettings
               };
             });
+            
+            // Log step block summary
+            const imageBlocks = stepWithBlocks.blocks.filter(b => b.type === 'image');
+            if (imageBlocks.length > 0) {
+              const withUrls = imageBlocks.filter(b => b.data && b.data.url);
+              console.log(`[CanvasBuilder] Step ${step.id}: ${imageBlocks.length} image blocks, ${withUrls.length} with URLs`);
+            }
             return stepWithBlocks;
           });
         }
@@ -715,35 +753,53 @@ const CanvasBuilderPage = () => {
   };
 
   const updateStep = (stepId, updates) => {
-    setWalkthrough((prev) => ({
-      ...prev,
-      steps: prev.steps.map((s) => {
+    console.log('[CanvasBuilder] updateStep called for step:', stepId, 'Updates:', updates);
+    
+    setWalkthrough((prev) => {
+      const updatedSteps = prev.steps.map((s) => {
         if (s.id === stepId) {
           const updated = { ...s, ...updates };
+          
           // CRITICAL: Ensure blocks array always exists with proper structure
           if (!updated.blocks) {
             updated.blocks = s.blocks || [];
           }
+          
           // CRITICAL: Ensure each block has complete structure (data, settings, type, id)
           // IMPORTANT: Preserve ALL block data including URLs
           if (updated.blocks && Array.isArray(updated.blocks)) {
             updated.blocks = updated.blocks.map(block => {
               if (!block || typeof block !== 'object') {
+                console.warn('[CanvasBuilder] Invalid block found, creating default:', block);
                 return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
               }
+              
+              // CRITICAL: Deep copy data to preserve all nested properties including url
+              const blockData = block.data ? { ...block.data } : {};
+              const blockSettings = block.settings ? { ...block.settings } : {};
+              
+              // Log image blocks to track URL preservation
+              if (block.type === 'image' && blockData.url) {
+                console.log('[CanvasBuilder] Preserving image block URL:', block.id, blockData.url);
+              }
+              
               return {
                 id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 type: block.type || 'text',
-                data: block.data ? { ...block.data } : {},  // Preserve all data including url
-                settings: block.settings ? { ...block.settings } : {}
+                data: blockData,  // Preserve all data including url
+                settings: blockSettings
               };
             });
           }
+          
+          console.log('[CanvasBuilder] Updated step blocks:', updated.blocks);
           return updated;
         }
         return s;
-      })
-    }));
+      });
+      
+      return { ...prev, steps: updatedSteps };
+    });
   };
 
   const deleteStep = async (stepId) => {
