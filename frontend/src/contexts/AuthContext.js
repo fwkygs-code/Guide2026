@@ -48,7 +48,10 @@ export const AuthProvider = ({ children }) => {
       const response = await Promise.race([
         axios.get(`${API}/auth/me`, {
           timeout: 20000, // Also set axios timeout
-          validateStatus: (status) => status < 500 // Don't throw on 401/403
+          validateStatus: (status) => status < 500, // Don't throw on 401/403
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         }),
         timeoutPromise
       ]);
@@ -61,40 +64,106 @@ export const AuthProvider = ({ children }) => {
       }
       // For timeouts or network errors, just clear loading state
       // Don't logout - user might still have valid token, just slow connection
+      // This prevents the "Failed to fetch user" error from blocking the app
     } finally {
       setLoading(false);
     }
   };
 
+  // Check if backend is available before attempting login
+  const checkBackendHealth = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/health`, {
+        timeout: 5000 // Quick health check
+      });
+      return response.data?.status === 'healthy';
+    } catch (error) {
+      console.warn('Backend health check failed:', error);
+      return false;
+    }
+  };
+
   const login = async (email, password) => {
     try {
-      // Set timeout to prevent hanging - increased to 30 seconds for slow connections
+      // Check backend health (non-blocking - just for info)
+      // Don't fail login if health check fails - the login request itself will wake the server
+      checkBackendHealth().then(isHealthy => {
+        if (!isHealthy) {
+          console.warn('Backend health check failed - server may be sleeping (Render free tier)');
+        }
+      }).catch(() => {
+        // Ignore health check errors
+      });
+      
+      // Set timeout to prevent hanging - increased to 45 seconds for Render free tier wake-up
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Login request timeout')), 30000)
+        setTimeout(() => reject(new Error('Login request timeout')), 45000)
       );
-      const response = await Promise.race([
-        axios.post(`${API}/auth/login`, { email, password }, {
-          timeout: 30000 // Also set axios timeout
-        }),
-        timeoutPromise
-      ]);
-      const data = response.data || {};
-      const token = data.token || data.access_token || data.jwt;
-      const user = data.user;
-      if (!token) {
-        throw new Error('Login succeeded but no token was returned (check API base URL/env vars).');
+      
+      // Log API endpoint for debugging
+      console.log('Attempting login to:', `${API}/auth/login`);
+      
+      // Retry logic for sleeping servers (Render free tier)
+      let lastError = null;
+      const maxRetries = 2;
+      
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await Promise.race([
+            axios.post(`${API}/auth/login`, { email, password }, {
+              timeout: 45000, // Also set axios timeout - longer for wake-up
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }),
+            timeoutPromise
+          ]);
+          
+          // Success - break out of retry loop
+          const data = response.data || {};
+          const token = data.token || data.access_token || data.jwt;
+          const user = data.user;
+          if (!token) {
+            throw new Error('Login succeeded but no token was returned (check API base URL/env vars).');
+          }
+          localStorage.setItem('token', token);
+          setToken(token);
+          setUser(user); // Set user immediately from login response
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          // Don't fetch user again - we already have it from login response
+          setLoading(false);
+          return user;
+        } catch (error) {
+          lastError = error;
+          // If it's a timeout and we have retries left, wait and retry
+          if ((error.message === 'Login request timeout' || error.code === 'ECONNABORTED') && attempt < maxRetries) {
+            console.log(`Login attempt ${attempt + 1} timed out, retrying in 5 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retry
+            continue;
+          }
+          // Otherwise, break and throw the error
+          break;
+        }
       }
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user); // Set user immediately from login response
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Don't fetch user again - we already have it from login response
-      setLoading(false);
-      return user;
+      
+      // If we get here, all retries failed - throw the last error
+      throw lastError;
     } catch (error) {
+      console.error('Login error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+        apiUrl: `${API}/auth/login`,
+        apiBase: API_BASE
+      });
+      
       // Re-throw with better error message
-      if (error.message === 'Login request timeout') {
-        throw new Error('Login request timed out. Please check your internet connection and try again.');
+      if (error.message === 'Login request timeout' || error.code === 'ECONNABORTED') {
+        throw new Error(`Backend server is not responding. The server at ${API_BASE} may be sleeping or unavailable. Please try again in a moment.`);
+      }
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        throw new Error(`Cannot connect to backend server at ${API_BASE}. Please check your internet connection and verify the server is running.`);
       }
       throw error;
     }

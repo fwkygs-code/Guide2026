@@ -1454,6 +1454,16 @@ async def get_media(filename: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
 
+# Health check endpoint (no auth required)
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring and load balancers"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "cloudinary_configured": USE_CLOUDINARY
+    }
+
 # Include router
 app.include_router(api_router)
 
