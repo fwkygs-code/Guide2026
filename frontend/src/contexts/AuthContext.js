@@ -23,7 +23,10 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Only fetch user if we don't already have it (e.g., on page refresh)
-      if (!user) {
+      // Skip fetch on public portal pages to prevent timeout
+      const isPublicPage = window.location.pathname.includes('/portal/') || 
+                          window.location.pathname.includes('/embed/');
+      if (!user && !isPublicPage) {
         fetchUser();
       } else {
         setLoading(false);

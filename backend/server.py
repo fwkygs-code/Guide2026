@@ -16,6 +16,9 @@ import bcrypt
 import jwt
 from enum import Enum
 import shutil
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -39,9 +42,28 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
-# Mount uploads directory under /api/uploads
-UPLOAD_DIR = ROOT_DIR / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Cloudinary Configuration (for persistent file storage)
+# Falls back to local storage if Cloudinary is not configured
+CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
+CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
+CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
+
+USE_CLOUDINARY = all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
+
+if USE_CLOUDINARY:
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+        secure=True  # Use HTTPS
+    )
+    logging.info("Cloudinary configured for persistent file storage")
+else:
+    logging.warning("Cloudinary not configured - using local storage (files will be lost on redeployment)")
+
+# Mount uploads directory under /api/uploads (fallback for local storage)
+UPLOAD_DIR = Path(os.environ.get('UPLOAD_DIR', str(ROOT_DIR / "uploads")))
+UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
 # Enums
 class UserRole(str, Enum):
@@ -1358,17 +1380,75 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
 async def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     file_extension = Path(file.filename).suffix.lower()
     file_id = str(uuid.uuid4())
+    
+    # Read file content
+    file_content = await file.read()
+    file_size = len(file_content)
+    
+    # Determine resource type based on file extension
+    resource_type = "auto"  # Cloudinary auto-detects
+    if file_extension in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']:
+        resource_type = "image"
+    elif file_extension in ['.mp4', '.webm', '.mov', '.avi', '.mkv']:
+        resource_type = "video"
+    elif file_extension in ['.pdf', '.doc', '.docx', '.txt']:
+        resource_type = "raw"
+    
+    if USE_CLOUDINARY:
+        # Upload to Cloudinary (persistent storage)
+        try:
+            # Upload file to Cloudinary
+            upload_result = cloudinary.uploader.upload(
+                file_content,
+                public_id=file_id,
+                resource_type=resource_type,
+                folder="guide2026",  # Organize files in a folder
+                overwrite=False,
+                invalidate=True  # Invalidate CDN cache
+            )
+            
+            # Return Cloudinary URL
+            secure_url = upload_result.get('secure_url') or upload_result.get('url')
+            return {
+                "url": secure_url,
+                "public_id": upload_result.get('public_id'),
+                "format": upload_result.get('format'),
+                "width": upload_result.get('width'),
+                "height": upload_result.get('height'),
+                "bytes": upload_result.get('bytes')
+            }
+        except Exception as e:
+            logging.error(f"Cloudinary upload failed: {str(e)}")
+            # Fallback to local storage if Cloudinary fails
+            logging.warning("Falling back to local storage")
+    
+    # Fallback: Local storage (for development or if Cloudinary fails)
     file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
-    
     with file_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(file_content)
     
-    # Return relative URL
+    # Return relative URL for local storage
     return {"url": f"/api/media/{file_id}{file_extension}"}
 
-# Media serving route
+# Media serving route (fallback for local storage)
+# Note: If using Cloudinary, files are served directly from Cloudinary CDN
+# This route is only used for local storage fallback
 @api_router.get("/media/{filename}")
 async def get_media(filename: str):
+    if USE_CLOUDINARY:
+        # If Cloudinary is configured, try to serve from Cloudinary
+        # This is a fallback - normally Cloudinary URLs are used directly
+        try:
+            public_id = filename.rsplit('.', 1)[0]  # Remove extension
+            resource = cloudinary.api.resource(public_id)
+            # Redirect to Cloudinary URL
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=resource.get('secure_url') or resource.get('url'))
+        except Exception:
+            # If not found in Cloudinary, try local storage
+            pass
+    
+    # Local storage fallback
     file_path = UPLOAD_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")

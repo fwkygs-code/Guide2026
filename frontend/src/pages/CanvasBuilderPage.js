@@ -196,6 +196,7 @@ const CanvasBuilderPage = () => {
             step.blocks = [];
           }
           // CRITICAL: Ensure each block has complete structure (data, settings, type, id)
+          // IMPORTANT: Preserve ALL block data including URLs by using spread operator
           step.blocks = (step.blocks || []).map(block => {
             if (!block || typeof block !== 'object') {
               return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
@@ -203,8 +204,8 @@ const CanvasBuilderPage = () => {
             return {
               id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               type: block.type || 'text',
-              data: block.data || {},
-              settings: block.settings || {}
+              data: block.data ? { ...block.data } : {},  // Preserve all data including url
+              settings: block.settings ? { ...block.settings } : {}
             };
           });
           if (step.id && !step.isNew) {
@@ -317,6 +318,78 @@ const CanvasBuilderPage = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getVersionChanges = (prevVersion, currentVersion) => {
+    if (!prevVersion || !currentVersion) return null;
+    const prevSnapshot = prevVersion.snapshot || {};
+    const currentSnapshot = currentVersion.snapshot || {};
+    
+    let stepsChanged = 0;
+    let blocksChanged = 0;
+    let imagesChanged = 0;
+    let titleChanged = false;
+    
+    // Check title
+    if (prevSnapshot.title !== currentSnapshot.title) {
+      titleChanged = true;
+    }
+    
+    // Check steps
+    const prevSteps = prevSnapshot.steps || [];
+    const currentSteps = currentSnapshot.steps || [];
+    
+    if (prevSteps.length !== currentSteps.length) {
+      stepsChanged = Math.abs(prevSteps.length - currentSteps.length);
+    }
+    
+    // Compare step blocks
+    const stepMap = new Map();
+    currentSteps.forEach(step => {
+      if (step.id) stepMap.set(step.id, step);
+    });
+    
+    prevSteps.forEach(prevStep => {
+      const currentStep = stepMap.get(prevStep.id);
+      if (currentStep) {
+        const prevBlocks = prevStep.blocks || [];
+        const currentBlocks = currentStep.blocks || [];
+        
+        if (prevBlocks.length !== currentBlocks.length) {
+          blocksChanged += Math.abs(prevBlocks.length - currentBlocks.length);
+        }
+        
+        // Check for image changes
+        const prevImages = prevBlocks.filter(b => b.type === 'image' && b.data?.url);
+        const currentImages = currentBlocks.filter(b => b.type === 'image' && b.data?.url);
+        const prevImageUrls = new Set(prevImages.map(b => b.data.url));
+        const currentImageUrls = new Set(currentImages.map(b => b.data.url));
+        
+        if (prevImageUrls.size !== currentImageUrls.size || 
+            [...prevImageUrls].some(url => !currentImageUrls.has(url)) ||
+            [...currentImageUrls].some(url => !prevImageUrls.has(url))) {
+          imagesChanged += Math.abs(prevImages.length - currentImages.length);
+        }
+      } else {
+        stepsChanged++;
+      }
+    });
+    
+    // Check for new steps
+    currentSteps.forEach(step => {
+      if (!prevSteps.find(s => s.id === step.id)) {
+        stepsChanged++;
+        blocksChanged += (step.blocks || []).length;
+        imagesChanged += (step.blocks || []).filter(b => b.type === 'image' && b.data?.url).length;
+      }
+    });
+    
+    return {
+      stepsChanged,
+      blocksChanged,
+      imagesChanged,
+      titleChanged
+    };
   };
 
   const openVersions = async () => {
@@ -451,19 +524,22 @@ const CanvasBuilderPage = () => {
           await api.updateWalkthrough(workspaceId, walkthroughId, data);
 
           // CRITICAL: Ensure all steps have blocks array and preserve all data with complete structure
-          for (const step of next.steps || []) {
-            // CRITICAL: Ensure blocks array exists and is properly structured
+          // IMPORTANT: Use walkthrough state directly, not next, to ensure we have the latest block data
+          const currentSteps = walkthrough.steps || [];
+          for (const step of currentSteps) {
+            // CRITICAL: Get blocks from current state, ensure they're properly structured
             let stepBlocks = Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : []);
-            // CRITICAL: Ensure each block has complete structure (data, settings, type, id)
+            // CRITICAL: Deep copy blocks to preserve ALL nested data including URLs
             stepBlocks = stepBlocks.map(block => {
               if (!block || typeof block !== 'object') {
                 return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
               }
+              // CRITICAL: Preserve ALL block data including data.url, data.caption, etc.
               return {
                 id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 type: block.type || 'text',
-                data: block.data || {},
-                settings: block.settings || {}
+                data: block.data ? { ...block.data } : {},  // Preserve all data fields including url
+                settings: block.settings ? { ...block.settings } : {}
               };
             });
             
@@ -475,7 +551,7 @@ const CanvasBuilderPage = () => {
                 media_type: step.media_type || null,
                 navigation_type: step.navigation_type || 'next_prev',
                 common_problems: step.common_problems || [],
-                blocks: stepBlocks  // Send blocks with complete structure
+                blocks: stepBlocks  // Send blocks with complete structure including URLs
               });
             } else if (step.isNew) {
               await api.addStep(workspaceId, walkthroughId, {
@@ -486,7 +562,7 @@ const CanvasBuilderPage = () => {
                 navigation_type: step.navigation_type || 'next_prev',
                 order: step.order || 0,
                 common_problems: step.common_problems || [],
-                blocks: stepBlocks  // Send blocks with complete structure
+                blocks: stepBlocks  // Send blocks with complete structure including URLs
               });
             }
           }
@@ -505,15 +581,20 @@ const CanvasBuilderPage = () => {
                 if (!block || typeof block !== 'object') {
                   return { id: `block-${Date.now()}`, type: 'text', data: {}, settings: {} };
                 }
+                // CRITICAL: Preserve all block data including URLs
                 return {
                   id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                   type: block.type || 'text',
-                  data: block.data || {},
-                  settings: block.settings || {}
+                  data: block.data ? { ...block.data } : {},  // Preserve all data including url
+                  settings: block.settings ? { ...block.settings } : {}
                 };
               });
               return stepWithBlocks;
             });
+          }
+          // CRITICAL: Preserve icon_url from refreshed data
+          if (refreshed.data.icon_url) {
+            normalized.icon_url = normalizeImageUrl(refreshed.data.icon_url);
           }
           setWalkthrough(normalized);
         } else {
@@ -644,6 +725,7 @@ const CanvasBuilderPage = () => {
             updated.blocks = s.blocks || [];
           }
           // CRITICAL: Ensure each block has complete structure (data, settings, type, id)
+          // IMPORTANT: Preserve ALL block data including URLs
           if (updated.blocks && Array.isArray(updated.blocks)) {
             updated.blocks = updated.blocks.map(block => {
               if (!block || typeof block !== 'object') {
@@ -652,8 +734,8 @@ const CanvasBuilderPage = () => {
               return {
                 id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 type: block.type || 'text',
-                data: block.data || {},
-                settings: block.settings || {}
+                data: block.data ? { ...block.data } : {},  // Preserve all data including url
+                settings: block.settings ? { ...block.settings } : {}
               };
             });
           }
@@ -1017,18 +1099,38 @@ const CanvasBuilderPage = () => {
           {versionsLoading ? (
             <div className="py-8 text-center text-slate-500">Loading…</div>
           ) : versions.length > 0 ? (
-            <div className="space-y-3">
-              {versions.map((v) => (
-                <div key={v.id} className="flex items-center justify-between border border-slate-200 rounded-lg p-3">
-                  <div className="min-w-0">
-                    <div className="font-medium text-slate-900">Version {v.version}</div>
-                    <div className="text-xs text-slate-500 truncate">{v.created_at}</div>
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+              {versions.map((v, idx) => {
+                const prevVersion = idx < versions.length - 1 ? versions[idx + 1] : null;
+                const changes = prevVersion ? getVersionChanges(prevVersion, v) : null;
+                return (
+                  <div key={v.id} className="flex items-start justify-between border border-slate-200 rounded-lg p-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-slate-900">Version {v.version}</div>
+                      <div className="text-xs text-slate-500 truncate">{new Date(v.created_at).toLocaleString()}</div>
+                      {changes && (
+                        <div className="mt-2 text-xs text-slate-600 space-y-1">
+                          {changes.stepsChanged > 0 && (
+                            <div>• {changes.stepsChanged} step(s) changed</div>
+                          )}
+                          {changes.blocksChanged > 0 && (
+                            <div>• {changes.blocksChanged} block(s) changed</div>
+                          )}
+                          {changes.imagesChanged > 0 && (
+                            <div>• {changes.imagesChanged} image(s) changed</div>
+                          )}
+                          {changes.titleChanged && (
+                            <div>• Title changed</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => rollbackToVersion(v.version)} className="ml-3">
+                      Rollback
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => rollbackToVersion(v.version)}>
-                    Rollback
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="py-8 text-center text-slate-500">
