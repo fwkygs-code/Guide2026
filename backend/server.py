@@ -1580,8 +1580,11 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
     file_size = len(file_content)
     
     # Determine resource type based on file extension
+    # Upload GIFs as video for better mobile playback support
     resource_type = "auto"  # Cloudinary auto-detects
-    if file_extension in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']:
+    if file_extension == '.gif':
+        resource_type = "video"  # Upload GIFs as video for mobile compatibility
+    elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
         resource_type = "image"
     elif file_extension in ['.mp4', '.webm', '.mov', '.avi', '.mkv']:
         resource_type = "video"

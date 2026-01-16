@@ -14,6 +14,40 @@ const PreviewMode = ({ walkthrough, onExit }) => {
   // Helper to check if URL is a GIF
   const isGif = (url) => url && (url.toLowerCase().endsWith('.gif') || url.toLowerCase().includes('.gif?'));
   
+  // Helper to check if URL is from Cloudinary
+  const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
+  
+  // Convert Cloudinary GIF URL to video format for better mobile playback
+  const getGifVideoUrl = (gifUrl) => {
+    if (!isCloudinary(gifUrl) || !isGif(gifUrl)) return null;
+    
+    try {
+      const urlObj = new URL(gifUrl);
+      let path = urlObj.pathname;
+      
+      // If already in video format (new uploads), return as-is
+      if (path.includes('/video/upload/')) {
+        return gifUrl;
+      }
+      
+      // Convert image/upload to video/upload for GIFs
+      if (path.includes('/image/upload/')) {
+        const match = path.match(/\/image\/upload\/(.+)$/);
+        if (match) {
+          const afterUpload = match[1];
+          const cleanPath = afterUpload.split('?')[0].replace(/\.gif$/, '');
+          const videoPath = `/video/upload/${cleanPath}.mp4`;
+          return `${urlObj.protocol}//${urlObj.host}${videoPath}`;
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      console.error('Error converting GIF URL:', e);
+      return null;
+    }
+  };
+  
   // Force GIF reload when step changes (for mobile playback)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -94,24 +128,49 @@ const PreviewMode = ({ walkthrough, onExit }) => {
 
               {step?.media_url && (
                 <div className="mb-8 rounded-lg overflow-hidden">
-                  {step.media_type === 'image' && (
-                    <img 
-                      data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
-                      key={`preview-img-${currentStep}-${step.media_url}`}
-                      src={step.media_url} 
-                      alt={step.title} 
-                      className="w-full rounded-lg"
-                      loading="eager"
-                      decoding="async"
-                      style={isGif(step.media_url) ? {
-                        imageRendering: 'auto',
-                        WebkitBackfaceVisibility: 'visible',
-                        backfaceVisibility: 'visible',
-                        transform: 'translateZ(0)',
-                        willChange: 'auto'
-                      } : {}}
-                    />
-                  )}
+                  {step.media_type === 'image' && (() => {
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    const gifVideoUrl = isGif(step.media_url) && isMobile ? getGifVideoUrl(step.media_url) : null;
+                    
+                    // On mobile, render Cloudinary GIFs as video for better playback
+                    if (gifVideoUrl) {
+                      return (
+                        <video
+                          key={`preview-video-${currentStep}-${step.media_url}`}
+                          src={gifVideoUrl}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full rounded-lg"
+                          onError={(e) => {
+                            console.log('Video failed, falling back to image');
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      );
+                    }
+                    
+                    // Regular image for non-GIFs or non-Cloudinary GIFs
+                    return (
+                      <img 
+                        data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
+                        key={`preview-img-${currentStep}-${step.media_url}`}
+                        src={step.media_url} 
+                        alt={step.title} 
+                        className="w-full rounded-lg"
+                        loading="eager"
+                        decoding="async"
+                        style={isGif(step.media_url) ? {
+                          imageRendering: 'auto',
+                          WebkitBackfaceVisibility: 'visible',
+                          backfaceVisibility: 'visible',
+                          transform: 'translateZ(0)',
+                          willChange: 'auto'
+                        } : {}}
+                      />
+                    );
+                  })()}
                   {step.media_type === 'video' && (
                     <video src={step.media_url} controls className="w-full rounded-lg" />
                   )}

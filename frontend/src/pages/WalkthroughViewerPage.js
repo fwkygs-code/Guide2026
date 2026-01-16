@@ -50,6 +50,43 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   // Helper to check if URL is a GIF
   const isGif = (url) => url && (url.toLowerCase().endsWith('.gif') || url.toLowerCase().includes('.gif?'));
   
+  // Helper to check if URL is from Cloudinary
+  const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
+  
+  // Convert Cloudinary GIF URL to video format for better mobile playback
+  const getGifVideoUrl = (gifUrl) => {
+    if (!isCloudinary(gifUrl) || !isGif(gifUrl)) return null;
+    
+    try {
+      const urlObj = new URL(gifUrl);
+      let path = urlObj.pathname;
+      
+      // If already in video format (new uploads), return as-is
+      if (path.includes('/video/upload/')) {
+        return gifUrl;
+      }
+      
+      // Convert image/upload to video/upload for GIFs
+      if (path.includes('/image/upload/')) {
+        // Extract everything after /image/upload/
+        const match = path.match(/\/image\/upload\/(.+)$/);
+        if (match) {
+          const afterUpload = match[1];
+          // Remove .gif extension and any query params from path
+          const cleanPath = afterUpload.split('?')[0].replace(/\.gif$/, '');
+          // Construct video URL - Cloudinary will serve as MP4
+          const videoPath = `/video/upload/${cleanPath}.mp4`;
+          return `${urlObj.protocol}//${urlObj.host}${videoPath}`;
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      console.error('Error converting GIF URL:', e);
+      return null;
+    }
+  };
+  
   // Force GIF reload when step changes (for mobile playback)
   useEffect(() => {
     if (!walkthrough) return;
@@ -362,25 +399,52 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {/* Media Display (Legacy) */}
               {step?.media_url && (
                 <div className="mb-6">
-                  {step.media_type === 'image' && (
-                    <img 
-                      data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
-                      src={step.media_url} 
-                      alt={step.title} 
-                      className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
-                      onClick={() => setImagePreviewUrl(step.media_url)}
-                      loading="eager"
-                      decoding="async"
-                      key={`legacy-${currentStep}-${step.media_url}`}
-                      style={isGif(step.media_url) ? {
-                        imageRendering: 'auto',
-                        WebkitBackfaceVisibility: 'visible',
-                        backfaceVisibility: 'visible',
-                        transform: 'translateZ(0)',
-                        willChange: 'auto'
-                      } : {}}
-                    />
-                  )}
+                  {step.media_type === 'image' && (() => {
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    const gifVideoUrl = isGif(step.media_url) && isMobile ? getGifVideoUrl(step.media_url) : null;
+                    
+                    // On mobile, render Cloudinary GIFs as video for better playback
+                    if (gifVideoUrl) {
+                      return (
+                        <video
+                          key={`legacy-video-${currentStep}-${step.media_url}`}
+                          src={gifVideoUrl}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
+                          onClick={() => setImagePreviewUrl(step.media_url)}
+                          onError={(e) => {
+                            // Fallback to img if video fails
+                            console.log('Video failed, falling back to image');
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      );
+                    }
+                    
+                    // Regular image for non-GIFs or non-Cloudinary GIFs
+                    return (
+                      <img 
+                        data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
+                        src={step.media_url} 
+                        alt={step.title} 
+                        className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
+                        onClick={() => setImagePreviewUrl(step.media_url)}
+                        loading="eager"
+                        decoding="async"
+                        key={`legacy-${currentStep}-${step.media_url}`}
+                        style={isGif(step.media_url) ? {
+                          imageRendering: 'auto',
+                          WebkitBackfaceVisibility: 'visible',
+                          backfaceVisibility: 'visible',
+                          transform: 'translateZ(0)',
+                          willChange: 'auto'
+                        } : {}}
+                      />
+                    );
+                  })()}
                   {step.media_type === 'video' && (
                     <video 
                       src={step.media_url} 
@@ -419,32 +483,65 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           dangerouslySetInnerHTML={{ __html: block.data?.content }}
                         />
                       )}
-                      {block.type === 'image' && block.data?.url && (
-                        <figure>
-                          <img
-                            data-gif-src={isGif(block.data.url) ? block.data.url : undefined}
-                            src={block.data.url} 
-                            alt={block.data?.alt || ''} 
-                            className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
-                            onClick={() => setImagePreviewUrl(block.data.url)}
-                            loading="eager"
-                            decoding="async"
-                            key={`block-${block.id || idx}-${block.data.url}-${currentStep}`}
-                            style={isGif(block.data.url) ? {
-                              imageRendering: 'auto',
-                              WebkitBackfaceVisibility: 'visible',
-                              backfaceVisibility: 'visible',
-                              transform: 'translateZ(0)',
-                              willChange: 'auto'
-                            } : {}}
-                          />
-                          {block.data?.caption && (
-                            <figcaption className="text-sm text-slate-500 mt-2 text-center">
-                              {block.data.caption}
-                            </figcaption>
-                          )}
-                        </figure>
-                      )}
+                      {block.type === 'image' && block.data?.url && (() => {
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        const gifVideoUrl = isGif(block.data.url) && isMobile ? getGifVideoUrl(block.data.url) : null;
+                        
+                        // On mobile, render Cloudinary GIFs as video for better playback
+                        if (gifVideoUrl) {
+                          return (
+                            <figure>
+                              <video
+                                key={`block-video-${block.id || idx}-${block.data.url}-${currentStep}`}
+                                src={gifVideoUrl}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
+                                onClick={() => setImagePreviewUrl(block.data.url)}
+                                onError={(e) => {
+                                  console.log('Video failed, falling back to image');
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                              {block.data?.caption && (
+                                <figcaption className="text-sm text-slate-500 mt-2 text-center">
+                                  {block.data.caption}
+                                </figcaption>
+                              )}
+                            </figure>
+                          );
+                        }
+                        
+                        // Regular image for non-GIFs or non-Cloudinary GIFs
+                        return (
+                          <figure>
+                            <img
+                              data-gif-src={isGif(block.data.url) ? block.data.url : undefined}
+                              src={block.data.url} 
+                              alt={block.data?.alt || ''} 
+                              className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
+                              onClick={() => setImagePreviewUrl(block.data.url)}
+                              loading="eager"
+                              decoding="async"
+                              key={`block-${block.id || idx}-${block.data.url}-${currentStep}`}
+                              style={isGif(block.data.url) ? {
+                                imageRendering: 'auto',
+                                WebkitBackfaceVisibility: 'visible',
+                                backfaceVisibility: 'visible',
+                                transform: 'translateZ(0)',
+                                willChange: 'auto'
+                              } : {}}
+                            />
+                            {block.data?.caption && (
+                              <figcaption className="text-sm text-slate-500 mt-2 text-center">
+                                {block.data.caption}
+                              </figcaption>
+                            )}
+                          </figure>
+                        );
+                      })()}
                       {block.type === 'video' && block.data?.url && (
                         <div>
                           {block.data.type === 'youtube' ? (
