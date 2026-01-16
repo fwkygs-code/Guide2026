@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2 } from 'lucide-react';
+import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,9 @@ const SettingsPage = () => {
   const [portalBackgroundUrl, setPortalBackgroundUrl] = useState('');
   const [portalPalette, setPortalPalette] = useState({ primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
   const [portalLinks, setPortalLinks] = useState([]);
+  const [portalPhone, setPortalPhone] = useState('');
+  const [portalWorkingHours, setPortalWorkingHours] = useState('');
+  const [portalWhatsapp, setPortalWhatsapp] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -39,6 +42,9 @@ const SettingsPage = () => {
       setPortalBackgroundUrl(response.data.portal_background_url || '');
       setPortalPalette(response.data.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
       setPortalLinks(response.data.portal_links || []);
+      setPortalPhone(response.data.portal_phone || '');
+      setPortalWorkingHours(response.data.portal_working_hours || '');
+      setPortalWhatsapp(response.data.portal_whatsapp || '');
     } catch (error) {
       toast.error('Failed to load workspace');
     } finally {
@@ -85,7 +91,10 @@ const SettingsPage = () => {
         logo: logoUrl || null,
         portal_background_url: portalBackgroundUrl || null,
         portal_palette: portalPalette,
-        portal_links: portalLinks.length > 0 ? portalLinks : null
+        portal_links: portalLinks.length > 0 ? portalLinks : null,
+        portal_phone: portalPhone || null,
+        portal_working_hours: portalWorkingHours || null,
+        portal_whatsapp: portalWhatsapp || null
       });
       toast.success('Settings saved!');
       fetchWorkspace();
@@ -273,6 +282,58 @@ const SettingsPage = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Portal Contact Information */}
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
+              <Phone className="w-5 h-5" />
+              Portal Contact Information
+            </h2>
+            <p className="text-xs text-slate-500 mb-4">Add contact information that will appear at the top of your portal</p>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="portal-phone" className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Phone Number
+                </Label>
+                <Input
+                  id="portal-phone"
+                  value={portalPhone}
+                  onChange={(e) => setPortalPhone(e.target.value)}
+                  placeholder="e.g., +1 (555) 123-4567"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="portal-working-hours" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Working Hours
+                </Label>
+                <Input
+                  id="portal-working-hours"
+                  value={portalWorkingHours}
+                  onChange={(e) => setPortalWorkingHours(e.target.value)}
+                  placeholder="e.g., Mon-Fri: 9AM-5PM EST"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="portal-whatsapp" className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp Link
+                </Label>
+                <Input
+                  id="portal-whatsapp"
+                  value={portalWhatsapp}
+                  onChange={(e) => setPortalWhatsapp(e.target.value)}
+                  placeholder="e.g., https://wa.me/1234567890"
+                  type="url"
+                  className="mt-1.5"
+                />
+                <p className="text-xs text-slate-400 mt-1">Format: https://wa.me/[country code][phone number]</p>
               </div>
             </div>
           </div>
@@ -515,6 +576,9 @@ const SettingsPage = () => {
                   setPortalBackgroundUrl(workspace?.portal_background_url || '');
                   setPortalPalette(workspace?.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
                   setPortalLinks(workspace?.portal_links || []);
+                  setPortalPhone(workspace?.portal_phone || '');
+                  setPortalWorkingHours(workspace?.portal_working_hours || '');
+                  setPortalWhatsapp(workspace?.portal_whatsapp || '');
                   setBrandColor(workspace?.brand_color || '#4f46e5');
                   setName(workspace?.name || '');
                 }}

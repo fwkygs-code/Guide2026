@@ -116,6 +116,9 @@ class WorkspaceCreate(BaseModel):
     portal_background_url: Optional[str] = None
     portal_palette: Optional[Dict[str, str]] = None  # e.g., {"primary": "#3b82f6", "secondary": "#8b5cf6", "accent": "#10b981"}
     portal_links: Optional[List[Dict[str, str]]] = None  # e.g., [{"label": "Website", "url": "https://example.com"}, {"label": "Support", "url": "https://support.example.com"}]
+    portal_phone: Optional[str] = None
+    portal_working_hours: Optional[str] = None
+    portal_whatsapp: Optional[str] = None
 
 class Workspace(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -127,6 +130,9 @@ class Workspace(BaseModel):
     portal_background_url: Optional[str] = None
     portal_palette: Optional[Dict[str, str]] = None
     portal_links: Optional[List[Dict[str, str]]] = None
+    portal_phone: Optional[str] = None
+    portal_working_hours: Optional[str] = None
+    portal_whatsapp: Optional[str] = None
     owner_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -1441,6 +1447,12 @@ async def get_portal(slug: str):
         workspace["portal_palette"] = None
     if "portal_links" not in workspace:
         workspace["portal_links"] = None
+    if "portal_phone" not in workspace:
+        workspace["portal_phone"] = None
+    if "portal_working_hours" not in workspace:
+        workspace["portal_working_hours"] = None
+    if "portal_whatsapp" not in workspace:
+        workspace["portal_whatsapp"] = None
     
     categories = await db.categories.find({"workspace_id": workspace['id']}, {"_id": 0}).to_list(1000)
     walkthroughs = await db.walkthroughs.find(

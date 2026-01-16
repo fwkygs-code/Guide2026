@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, FolderOpen, Search, Lock, ChevronRight } from 'lucide-react';
+import { BookOpen, FolderOpen, Search, Lock, ChevronRight, Phone, Clock, MessageCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -134,57 +134,93 @@ const PortalPage = ({ isEmbedded = false }) => {
       {/* Header - Hide in iframe mode */}
       {!inIframe && (
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-3 min-w-0">
-            {workspace.logo ? (
-              <img src={normalizeImageUrl(workspace.logo)} alt={workspace.name} className="w-10 h-10 rounded-lg object-cover" />
-            ) : (
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {workspace.name.charAt(0).toUpperCase()}
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          {/* Top Row: Logo, Name, and Action Buttons */}
+          <div className="flex items-center justify-between gap-6 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {workspace.logo ? (
+                <img src={normalizeImageUrl(workspace.logo)} alt={workspace.name} className="w-10 h-10 rounded-lg object-cover" />
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {workspace.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="text-xl font-heading font-bold text-slate-900 truncate">{workspace.name}</h1>
+                <p className="text-sm text-slate-600">Knowledge Base</p>
               </div>
-            )}
-            <div className="min-w-0">
-              <h1 className="text-xl font-heading font-bold text-slate-900 truncate">{workspace.name}</h1>
-              <p className="text-sm text-slate-600">Knowledge Base</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Portal External Links */}
+              {workspace.portal_links && workspace.portal_links.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {workspace.portal_links.map((link, index) => (
+                    link.label && link.url && (
+                      <a
+                        key={index}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105"
+                        style={{
+                          backgroundColor: primaryColor,
+                          color: 'white',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        {link.label}
+                      </a>
+                    )
+                  ))}
+                </div>
+              )}
+
+              {isLoggedIn && (
+                <Link to="/dashboard" data-testid="back-to-dashboard-link">
+                  <Button variant="outline" size="sm">
+                    Admin Dashboard
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Portal External Links */}
-            {workspace.portal_links && workspace.portal_links.length > 0 && (
-              <div className="flex items-center gap-2">
-                {workspace.portal_links.map((link, index) => (
-                  link.label && link.url && (
-                    <a
-                      key={index}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105"
-                      style={{
-                        backgroundColor: primaryColor,
-                        color: 'white',
-                        textDecoration: 'none'
-                      }}
-                    >
-                      {link.label}
-                    </a>
-                  )
-                ))}
-              </div>
-            )}
-
-            {isLoggedIn && (
-              <Link to="/dashboard" data-testid="back-to-dashboard-link">
-                <Button variant="outline" size="sm">
-                  Admin Dashboard
-                </Button>
-              </Link>
-            )}
-          </div>
+          {/* Bottom Row: Contact Information */}
+          {(workspace.portal_phone || workspace.portal_working_hours || workspace.portal_whatsapp) && (
+            <div className="flex items-center gap-6 flex-wrap text-sm text-slate-600 border-t border-slate-200/50 pt-3">
+              {workspace.portal_phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" style={{ color: primaryColor }} />
+                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-slate-900 transition-colors">
+                    {workspace.portal_phone}
+                  </a>
+                </div>
+              )}
+              {workspace.portal_working_hours && (
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" style={{ color: primaryColor }} />
+                  <span>{workspace.portal_working_hours}</span>
+                </div>
+              )}
+              {workspace.portal_whatsapp && (
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" style={{ color: primaryColor }} />
+                  <a 
+                    href={workspace.portal_whatsapp} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-slate-900 transition-colors"
+                  >
+                    WhatsApp
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
       )}
