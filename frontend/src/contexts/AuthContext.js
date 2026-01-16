@@ -73,9 +73,22 @@ export const AuthProvider = ({ children }) => {
   // Check if backend is available before attempting login
   const checkBackendHealth = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/health`, {
-        timeout: 5000 // Quick health check
-      });
+      // Try /health first, then /api/health as fallback
+      let response;
+      try {
+        response = await axios.get(`${API_BASE}/health`, {
+          timeout: 5000 // Quick health check
+        });
+      } catch (err) {
+        // If /health fails with 404, try /api/health
+        if (err.response?.status === 404) {
+          response = await axios.get(`${API_BASE}/api/health`, {
+            timeout: 5000
+          });
+        } else {
+          throw err;
+        }
+      }
       return response.data?.status === 'healthy';
     } catch (error) {
       console.warn('Backend health check failed:', error);

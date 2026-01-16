@@ -29,9 +29,22 @@ const SignupPage = () => {
         const rawBase = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
         const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
         
-        const response = await axios.get(`${API_BASE}/health`, {
-          timeout: 5000
-        });
+        // Try /health first, then /api/health as fallback
+        let response;
+        try {
+          response = await axios.get(`${API_BASE}/health`, {
+            timeout: 5000
+          });
+        } catch (err) {
+          // If /health fails with 404, try /api/health
+          if (err.response?.status === 404) {
+            response = await axios.get(`${API_BASE}/api/health`, {
+              timeout: 5000
+            });
+          } else {
+            throw err;
+          }
+        }
         
         if (response.data?.status === 'healthy') {
           setBackendStatus('ready');
@@ -39,8 +52,9 @@ const SignupPage = () => {
           setBackendStatus('error');
         }
       } catch (error) {
-        // Server might be sleeping (Render free tier)
-        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        // Server might be sleeping (Render free tier) or health endpoint not deployed yet
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || 
+            error.response?.status === 404 || error.response?.status === 503) {
           setBackendStatus('sleeping');
         } else {
           setBackendStatus('error');
