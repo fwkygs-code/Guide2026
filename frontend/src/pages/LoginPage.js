@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,61 +16,158 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking'); // 'checking', 'ready', 'sleeping', 'error'
+  const statusRef = useRef('checking');
   const { login } = useAuth();
   const { getSizeClass } = useTextSize();
   const navigate = useNavigate();
 
-  // Check backend status on mount
+  // Check backend status on mount (only once)
   useEffect(() => {
+    let isMounted = true;
+    let currentController = null;
+    let intervalId = null;
+
     const checkBackend = async () => {
+      if (!isMounted) return;
+      
+      // Cancel any existing request
+      if (currentController) {
+        currentController.abort();
+      }
+      
+      statusRef.current = 'checking';
       setBackendStatus('checking');
+      
       try {
         const rawBase = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
         const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
         
+        console.log('[Health Check] Checking:', `${API_BASE}/health`);
+        
+        // Create abort controller for request cancellation
+        currentController = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.log('[Health Check] Timeout after 5s, aborting...');
+          currentController.abort();
+        }, 5000);
+        
         // Try /health first, then /api/health as fallback
         let response;
+        let healthUrl = `${API_BASE}/health`;
+        
         try {
-          response = await axios.get(`${API_BASE}/health`, {
-            timeout: 5000
+          response = await axios.get(healthUrl, {
+            timeout: 5000,
+            signal: currentController.signal,
+            validateStatus: (status) => status < 500 // Don't throw on 4xx
           });
+          console.log('[Health Check] Response from /health:', response.status, response.data);
         } catch (err) {
+          clearTimeout(timeoutId);
+          
+          if (currentController.signal.aborted || err.name === 'AbortError' || err.code === 'ECONNABORTED') {
+            console.log('[Health Check] Request aborted/timed out');
+            throw new Error('Request timeout');
+          }
+          
           // If /health fails with 404, try /api/health
           if (err.response?.status === 404) {
-            response = await axios.get(`${API_BASE}/api/health`, {
-              timeout: 5000
-            });
+            console.log('[Health Check] /health returned 404, trying /api/health');
+            healthUrl = `${API_BASE}/api/health`;
+            currentController = new AbortController();
+            const timeoutId2 = setTimeout(() => {
+              console.log('[Health Check] Timeout on /api/health, aborting...');
+              currentController.abort();
+            }, 5000);
+            
+            try {
+              response = await axios.get(healthUrl, {
+                timeout: 5000,
+                signal: currentController.signal,
+                validateStatus: (status) => status < 500
+              });
+              console.log('[Health Check] Response from /api/health:', response.status, response.data);
+            } catch (err2) {
+              clearTimeout(timeoutId2);
+              if (currentController.signal.aborted || err2.name === 'AbortError' || err2.code === 'ECONNABORTED') {
+                throw new Error('Request timeout');
+              }
+              throw err2;
+            } finally {
+              clearTimeout(timeoutId2);
+            }
           } else {
+            console.log('[Health Check] Error:', err.message, err.response?.status);
             throw err;
           }
+        } finally {
+          clearTimeout(timeoutId);
         }
         
-        if (response.data?.status === 'healthy') {
-          setBackendStatus('ready');
+        if (!isMounted) return;
+        
+        // Check if we got a valid response
+        if (response && response.data) {
+          if (response.data.status === 'healthy') {
+            console.log('[Health Check] Server is ready!');
+            statusRef.current = 'ready';
+            setBackendStatus('ready');
+          } else {
+            console.log('[Health Check] Unexpected status:', response.data);
+            statusRef.current = 'error';
+            setBackendStatus('error');
+          }
         } else {
+          console.log('[Health Check] No response data');
+          statusRef.current = 'error';
           setBackendStatus('error');
         }
       } catch (error) {
+        if (!isMounted) return;
+        
+        console.log('[Health Check] Catch block - Error type:', error.name, 'Message:', error.message, 'Code:', error.code);
+        
         // Server might be sleeping (Render free tier) or health endpoint not deployed yet
-        if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || 
-            error.response?.status === 404 || error.response?.status === 503) {
+        if (error.code === 'ECONNABORTED' || 
+            error.message.includes('timeout') || 
+            error.message === 'Request timeout' || 
+            error.name === 'AbortError' ||
+            error.name === 'CanceledError' ||
+            error.code === 'ERR_CANCELED' ||
+            error.response?.status === 404 || 
+            error.response?.status === 503 ||
+            !error.response) { // Network error (no response)
+          console.log('[Health Check] Server appears to be sleeping/unavailable');
+          statusRef.current = 'sleeping';
           setBackendStatus('sleeping');
         } else {
+          console.log('[Health Check] Other error, setting to error state');
+          statusRef.current = 'error';
           setBackendStatus('error');
         }
+      } finally {
+        currentController = null;
       }
     };
 
+    // Initial check
     checkBackend();
-    // Re-check every 10 seconds if server is sleeping
-    const interval = setInterval(() => {
-      if (backendStatus === 'sleeping' || backendStatus === 'error') {
+    
+    // Re-check every 15 seconds if server is sleeping or error
+    intervalId = setInterval(() => {
+      if (isMounted && (statusRef.current === 'sleeping' || statusRef.current === 'error')) {
         checkBackend();
       }
-    }, 10000);
+    }, 15000);
 
-    return () => clearInterval(interval);
-  }, [backendStatus]);
+    return () => {
+      isMounted = false;
+      if (currentController) {
+        currentController.abort();
+      }
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   const handleSubmit = async (e) => {
     e.preventDefault();
