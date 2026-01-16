@@ -140,75 +140,76 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
             </div>
 
             <div className="space-y-3">
-          <div>
-            <label className="text-xs text-slate-500 mb-1.5 block">Icon/Photo</label>
-            <div className="space-y-2">
-              {walkthrough.icon_url ? (
-                <div className="flex items-center gap-2">
-                  <img 
-                    src={normalizeImageUrl(walkthrough.icon_url)} 
-                    alt="Icon" 
-                    className="w-16 h-16 rounded-lg object-cover border border-gray-200/50"
-                    onError={(e) => {
-                      console.error('Failed to load icon:', walkthrough.icon_url);
-                      // Don't remove icon_url on error, just hide the broken image
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      // CRITICAL: Preserve all other data when removing icon
-                      onUpdate({ 
-                        ...walkthrough, 
-                        icon_url: null,
-                        steps: walkthrough.steps || []
-                      });
-                    }}
-                    className="h-8"
-                  >
-                    Remove
-                  </Button>
+              <div>
+                <label className="text-xs text-slate-500 mb-1.5 block">Icon/Photo</label>
+                <div className="space-y-2">
+                  {walkthrough.icon_url ? (
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src={normalizeImageUrl(walkthrough.icon_url)} 
+                        alt="Icon" 
+                        className="w-16 h-16 rounded-lg object-cover border border-gray-200/50"
+                        onError={(e) => {
+                          console.error('Failed to load icon:', walkthrough.icon_url);
+                          // Don't remove icon_url on error, just hide the broken image
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          // CRITICAL: Preserve all other data when removing icon
+                          onUpdate({ 
+                            ...walkthrough, 
+                            icon_url: null,
+                            steps: walkthrough.steps || []
+                          });
+                        }}
+                        className="h-8"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <label className="flex-1">
+                      <Input
+                        type="url"
+                        value={walkthrough.icon_url || ''}
+                        onChange={(e) => onUpdate({ ...walkthrough, icon_url: e.target.value })}
+                        placeholder="Icon/Photo URL"
+                        className="h-9"
+                        data-testid="icon-url-input"
+                      />
+                    </label>
+                    <label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleIconUpload(file);
+                          e.target.value = '';
+                        }}
+                        className="hidden"
+                      />
+                      <Button type="button" variant="outline" size="sm" className="h-9" asChild>
+                        <span>
+                          <Upload className="w-4 h-4" />
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
                 </div>
-              ) : null}
-              <div className="flex gap-2">
-                <label className="flex-1">
-                  <Input
-                    type="url"
-                    value={walkthrough.icon_url || ''}
-                    onChange={(e) => onUpdate({ ...walkthrough, icon_url: e.target.value })}
-                    placeholder="Icon/Photo URL"
-                    className="h-9"
-                    data-testid="icon-url-input"
-                  />
-                </label>
-                <label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleIconUpload(file);
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                  />
-                  <Button type="button" variant="outline" size="sm" className="h-9" asChild>
-                    <span>
-                      <Upload className="w-4 h-4" />
-                    </span>
-                  </Button>
-                </label>
+                <div className="text-xs text-slate-400 mt-1">
+                  Enter a URL or upload an image
+                </div>
               </div>
             </div>
-            <div className="text-xs text-slate-400 mt-1">
-              Enter a URL or upload an image
-            </div>
-          </div>
 
-          <div>
+            <div>
             <label className="text-xs text-slate-500 mb-1.5 block">Categories</label>
             <div className="space-y-2">
               {categoryTree.length > 0 ? (
@@ -297,7 +298,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
               {walkthrough.status}
             </Badge>
           </div>
-          </div>
+            </div>
         </CollapsibleContent>
       </Collapsible>
 
