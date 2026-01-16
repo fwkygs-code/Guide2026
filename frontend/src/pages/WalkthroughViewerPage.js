@@ -46,6 +46,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [portalPassword, setPortalPassword] = useState('');
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  
+  // Helper to check if URL is a GIF
+  const isGif = (url) => url && url.toLowerCase().endsWith('.gif');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -303,10 +306,17 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                 <div className="mb-6">
                   {step.media_type === 'image' && (
                     <img 
+                      key={`legacy-img-${currentStep}-${step.media_url}`}
                       src={step.media_url} 
                       alt={step.title} 
                       className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
                       onClick={() => setImagePreviewUrl(step.media_url)}
+                      loading="eager"
+                      decoding="async"
+                      style={isGif(step.media_url) ? {
+                        willChange: 'auto',
+                        backfaceVisibility: 'visible'
+                      } : {}}
                     />
                   )}
                   {step.media_type === 'video' && (
@@ -350,10 +360,17 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       {block.type === 'image' && block.data?.url && (
                         <figure>
                           <img 
+                            key={`block-img-${block.id || idx}-${block.data.url}`}
                             src={block.data.url} 
                             alt={block.data?.alt || ''} 
                             className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
                             onClick={() => setImagePreviewUrl(block.data.url)}
+                            loading="eager"
+                            decoding="async"
+                            style={isGif(block.data.url) ? {
+                              willChange: 'auto',
+                              backfaceVisibility: 'visible'
+                            } : {}}
                           />
                           {block.data?.caption && (
                             <figcaption className="text-sm text-slate-500 mt-2 text-center">
@@ -692,9 +709,16 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           {imagePreviewUrl && (
             <div className="w-full">
               <img
+                key={imagePreviewUrl}
                 src={imagePreviewUrl}
                 alt="Preview"
                 className="w-full max-h-[80vh] object-contain rounded-lg bg-slate-50"
+                loading="eager"
+                decoding="async"
+                style={isGif(imagePreviewUrl) ? {
+                  willChange: 'auto',
+                  backfaceVisibility: 'visible'
+                } : {}}
               />
               <div className="mt-3 flex justify-end">
                 <Button variant="outline" onClick={() => setImagePreviewUrl(null)}>

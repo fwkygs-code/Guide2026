@@ -10,6 +10,9 @@ const PreviewMode = ({ walkthrough, onExit }) => {
 
   const step = walkthrough.steps[currentStep];
   const progress = ((currentStep + 1) / walkthrough.steps.length) * 100;
+  
+  // Helper to check if URL is a GIF
+  const isGif = (url) => url && url.toLowerCase().endsWith('.gif');
 
   const handleNext = () => {
     if (currentStep < walkthrough.steps.length - 1) {
@@ -70,7 +73,18 @@ const PreviewMode = ({ walkthrough, onExit }) => {
               {step?.media_url && (
                 <div className="mb-8 rounded-lg overflow-hidden">
                   {step.media_type === 'image' && (
-                    <img src={step.media_url} alt={step.title} className="w-full rounded-lg" />
+                    <img 
+                      key={`preview-img-${currentStep}-${step.media_url}`}
+                      src={step.media_url} 
+                      alt={step.title} 
+                      className="w-full rounded-lg"
+                      loading="eager"
+                      decoding="async"
+                      style={isGif(step.media_url) ? {
+                        willChange: 'auto',
+                        backfaceVisibility: 'visible'
+                      } : {}}
+                    />
                   )}
                   {step.media_type === 'video' && (
                     <video src={step.media_url} controls className="w-full rounded-lg" />
