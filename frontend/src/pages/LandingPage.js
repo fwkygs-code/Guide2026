@@ -85,22 +85,6 @@ const LandingPage = () => {
               </Button>
             </div>
           </motion.div>
-
-          {/* Hero Image */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="mt-16"
-          >
-            <div className="rounded-2xl overflow-hidden shadow-soft-lg border border-slate-200">
-              <img 
-                src="https://images.pexels.com/photos/8534460/pexels-photo-8534460.jpeg" 
-                alt="Dashboard Preview"
-                className="w-full"
-              />
-            </div>
-          </motion.div>
         </div>
       </section>
 

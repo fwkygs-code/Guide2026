@@ -143,7 +143,6 @@
   "assets": {
     "icons": "lucide-react",
     "images": {
-      "landing_hero": "https://images.pexels.com/photos/8534460/pexels-photo-8534460.jpeg",
       "feature_collaboration": "https://images.pexels.com/photos/380768/pexels-photo-380768.jpeg",
       "placeholder_logo": "https://via.placeholder.com/40"
     }
