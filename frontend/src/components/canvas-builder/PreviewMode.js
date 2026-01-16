@@ -11,11 +11,37 @@ const PreviewMode = ({ walkthrough, onExit }) => {
   const step = walkthrough.steps[currentStep];
   const progress = ((currentStep + 1) / walkthrough.steps.length) * 100;
   
-  // Helper to check if URL is a GIF
-  const isGif = (url) => url && (url.toLowerCase().endsWith('.gif') || url.toLowerCase().includes('.gif?'));
+  // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
+  const isGif = (url, mediaType = null) => {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase();
+    // Check for .gif extension
+    if (lowerUrl.endsWith('.gif') || lowerUrl.includes('.gif?')) return true;
+    // If it's a Cloudinary video URL with media_type='image', it's likely a GIF uploaded as video
+    if (isCloudinary(url) && url.includes('/video/upload/') && mediaType === 'image') {
+      return true;
+    }
+    // Check if URL contains 'gif' in the path
+    if (isCloudinary(url) && url.includes('/video/upload/')) {
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.pathname.toLowerCase().includes('gif')) {
+          return true;
+        }
+      } catch (e) {
+        // Invalid URL, skip
+      }
+    }
+    return false;
+  };
   
   // Helper to check if URL is from Cloudinary
   const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
+  
+  // Check if URL is a Cloudinary video (could be from GIF upload)
+  const isCloudinaryVideo = (url) => {
+    return isCloudinary(url) && url.includes('/video/upload/');
+  };
   
   // Add optimization transformations to Cloudinary URLs
   const optimizeCloudinaryUrl = (url, isVideo = false) => {
@@ -64,8 +90,8 @@ const PreviewMode = ({ walkthrough, onExit }) => {
   };
   
   // Convert Cloudinary GIF URL to video format for better mobile playback
-  const getGifVideoUrl = (gifUrl) => {
-    if (!isCloudinary(gifUrl) || !isGif(gifUrl)) return null;
+  const getGifVideoUrl = (gifUrl, mediaType = null) => {
+    if (!isCloudinary(gifUrl) || !isGif(gifUrl, mediaType)) return null;
     
     try {
       const urlObj = new URL(gifUrl);
@@ -175,14 +201,23 @@ const PreviewMode = ({ walkthrough, onExit }) => {
                 <div className="mb-8 rounded-lg overflow-hidden">
                   {step.media_type === 'image' && (() => {
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    const gifVideoUrl = isGif(step.media_url) && isMobile ? getGifVideoUrl(step.media_url) : null;
+                    const isVideoUrl = isCloudinaryVideo(step.media_url);
+                    const isGifFile = isGif(step.media_url, step.media_type);
                     
-                    // On mobile, render Cloudinary GIFs as video for better playback
-                    if (gifVideoUrl) {
+                    // Render as video if:
+                    // 1. It's a Cloudinary video URL with media_type='image' (re-uploaded GIFs) - ALWAYS render as video
+                    // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
+                    const shouldRenderAsVideo = (isVideoUrl && step.media_type === 'image') || (isGifFile && isMobile);
+                    const gifVideoUrl = shouldRenderAsVideo 
+                      ? (isVideoUrl ? step.media_url : getGifVideoUrl(step.media_url, step.media_type) || step.media_url)
+                      : null;
+                    
+                    if (gifVideoUrl && shouldRenderAsVideo) {
+                      const optimizedVideoUrl = optimizeCloudinaryUrl(gifVideoUrl, true);
                       return (
                         <video
                           key={`preview-video-${currentStep}-${step.media_url}`}
-                          src={gifVideoUrl}
+                          src={optimizedVideoUrl}
                           autoPlay
                           loop
                           muted
@@ -190,27 +225,30 @@ const PreviewMode = ({ walkthrough, onExit }) => {
                           className="w-full rounded-lg"
                           onError={(e) => {
                             console.log('Video failed, falling back to image');
-                            e.target.style.display = 'none';
+                            const img = document.createElement('img');
+                            img.src = step.media_url;
+                            img.className = e.target.className;
+                            e.target.parentNode.replaceChild(img, e.target);
                           }}
                         />
                       );
                     }
                     
-                    // Regular image for non-GIFs or non-Cloudinary GIFs
+                    // Regular image for non-GIFs or desktop non-video GIFs
                     const optimizedImageUrl = isCloudinary(step.media_url) 
                       ? optimizeCloudinaryUrl(step.media_url, false)
                       : step.media_url;
                     
                     return (
                       <img 
-                        data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
+                        data-gif-src={isGifFile ? step.media_url : undefined}
                         key={`preview-img-${currentStep}-${step.media_url}`}
                         src={optimizedImageUrl} 
                         alt={step.title} 
                         className="w-full rounded-lg"
                         loading="eager"
                         decoding="async"
-                        style={isGif(step.media_url) ? {
+                        style={isGifFile ? {
                           imageRendering: 'auto',
                           WebkitBackfaceVisibility: 'visible',
                           backfaceVisibility: 'visible',

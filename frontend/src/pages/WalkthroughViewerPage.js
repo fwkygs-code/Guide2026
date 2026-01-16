@@ -47,11 +47,47 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [portalPassword, setPortalPassword] = useState('');
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   
-  // Helper to check if URL is a GIF
-  const isGif = (url) => url && (url.toLowerCase().endsWith('.gif') || url.toLowerCase().includes('.gif?'));
+  // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
+  const isGif = (url, mediaType = null) => {
+    if (!url) {
+      console.log('[GIF Debug] isGif: No URL provided');
+      return false;
+    }
+    const lowerUrl = url.toLowerCase();
+    // Check for .gif extension
+    if (lowerUrl.endsWith('.gif') || lowerUrl.includes('.gif?')) {
+      console.log('[GIF Debug] isGif: Detected GIF by extension:', url);
+      return true;
+    }
+    // If it's a Cloudinary video URL with media_type='image', it's definitely a GIF uploaded as video
+    // This is the key detection for re-uploaded GIFs
+    if (isCloudinary(url) && url.includes('/video/upload/') && mediaType === 'image') {
+      console.log('[GIF Debug] isGif: Detected GIF - Cloudinary video URL with media_type=image (re-uploaded GIF):', url);
+      return true;
+    }
+    // Check if URL contains 'gif' in the path (original filename preserved in some cases)
+    if (isCloudinary(url) && url.includes('/video/upload/')) {
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.pathname.toLowerCase().includes('gif')) {
+          console.log('[GIF Debug] isGif: Detected GIF - URL path contains "gif":', url);
+          return true;
+        }
+      } catch (e) {
+        console.error('[GIF Debug] isGif: Error parsing URL:', e, url);
+      }
+    }
+    console.log('[GIF Debug] isGif: Not a GIF:', url, 'mediaType:', mediaType);
+    return false;
+  };
   
   // Helper to check if URL is from Cloudinary
   const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
+  
+  // Check if URL is a Cloudinary video (could be from GIF upload)
+  const isCloudinaryVideo = (url) => {
+    return isCloudinary(url) && url.includes('/video/upload/');
+  };
   
   // Add optimization transformations to Cloudinary URLs
   const optimizeCloudinaryUrl = (url, isVideo = false) => {
@@ -112,36 +148,67 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   };
   
   // Convert Cloudinary GIF URL to video format for better mobile playback
-  const getGifVideoUrl = (gifUrl) => {
-    if (!isCloudinary(gifUrl) || !isGif(gifUrl)) return null;
+  const getGifVideoUrl = (gifUrl, mediaType = null) => {
+    console.log('[GIF Debug] getGifVideoUrl called:', { gifUrl, mediaType, isCloudinary: isCloudinary(gifUrl), isGif: isGif(gifUrl, mediaType) });
+    
+    if (!isCloudinary(gifUrl)) {
+      console.log('[GIF Debug] getGifVideoUrl: Not a Cloudinary URL, returning null');
+      return null;
+    }
+    
+    if (!isGif(gifUrl, mediaType)) {
+      console.log('[GIF Debug] getGifVideoUrl: Not detected as GIF, returning null');
+      return null;
+    }
     
     try {
       const urlObj = new URL(gifUrl);
       let path = urlObj.pathname;
+      console.log('[GIF Debug] getGifVideoUrl: Parsed path:', path);
       
       // If already in video format (new uploads), optimize and return
       if (path.includes('/video/upload/')) {
-        return optimizeCloudinaryUrl(gifUrl, true);
+        const optimized = optimizeCloudinaryUrl(gifUrl, true);
+        console.log('[GIF Debug] getGifVideoUrl: Already video format, optimized:', optimized);
+        return optimized;
       }
       
-      // Convert image/upload to video/upload for GIFs
+      // Convert image/upload to video/upload for old GIFs
       if (path.includes('/image/upload/')) {
         // Extract everything after /image/upload/
         const match = path.match(/\/image\/upload\/(.+)$/);
         if (match) {
           const afterUpload = match[1];
-          // Remove .gif extension and any query params from path
-          const cleanPath = afterUpload.split('?')[0].replace(/\.gif$/, '');
-          // Construct optimized video URL - Cloudinary will serve as MP4
-          const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
-          const videoPath = `/video/upload/${transformations}/${cleanPath}.mp4`;
-          return `${urlObj.protocol}//${urlObj.host}${videoPath}`;
+          let cleanPath = afterUpload.split('?')[0];
+          console.log('[GIF Debug] getGifVideoUrl: Extracted path after /image/upload/:', cleanPath);
+          
+          // Handle version numbers: /v1234567890/folder/file.gif
+          if (cleanPath.match(/^v\d+\//)) {
+            // Has version, keep it and replace .gif with .mp4
+            cleanPath = cleanPath.replace(/\.gif$/, '.mp4');
+            const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
+            const videoPath = `/video/upload/${transformations}/${cleanPath}`;
+            const result = `${urlObj.protocol}//${urlObj.host}${videoPath}`;
+            console.log('[GIF Debug] getGifVideoUrl: Converted (with version):', result);
+            return result;
+          } else {
+            // No version, just replace .gif with .mp4
+            cleanPath = cleanPath.replace(/\.gif$/, '');
+            const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
+            const videoPath = `/video/upload/${transformations}/${cleanPath}.mp4`;
+            const result = `${urlObj.protocol}//${urlObj.host}${videoPath}`;
+            console.log('[GIF Debug] getGifVideoUrl: Converted (no version):', result);
+            return result;
+          }
+        } else {
+          console.warn('[GIF Debug] getGifVideoUrl: Could not match /image/upload/ pattern');
         }
       }
       
+      console.log('[GIF Debug] getGifVideoUrl: No conversion possible, returning null');
       return null;
     } catch (e) {
-      console.error('Error converting GIF URL:', e);
+      console.error('[GIF Debug] getGifVideoUrl: Error converting GIF URL:', e, gifUrl);
       return null;
     }
   };
@@ -460,37 +527,79 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                 <div className="mb-6">
                   {step.media_type === 'image' && (() => {
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    const gifVideoUrl = isGif(step.media_url) && isMobile ? getGifVideoUrl(step.media_url) : null;
+                    const isVideoUrl = isCloudinaryVideo(step.media_url);
+                    // Check if it's a GIF (pass media_type to help detect re-uploaded GIFs)
+                    const isGifFile = isGif(step.media_url, step.media_type);
                     
-                    // On mobile, render Cloudinary GIFs as video for better playback
-                    if (gifVideoUrl) {
+                    console.log('[GIF Debug] Legacy Media Render:', {
+                      url: step.media_url,
+                      mediaType: step.media_type,
+                      isMobile,
+                      isVideoUrl,
+                      isGifFile
+                    });
+                    
+                    // Render as video if:
+                    // 1. It's a Cloudinary video URL with media_type='image' (re-uploaded GIFs) - ALWAYS render as video on ALL devices
+                    // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
+                    const shouldRenderAsVideo = (isVideoUrl && step.media_type === 'image') || (isGifFile && isMobile);
+                    const gifVideoUrl = shouldRenderAsVideo 
+                      ? (isVideoUrl 
+                          ? step.media_url  // Re-uploaded GIF: use video URL directly
+                          : getGifVideoUrl(step.media_url, step.media_type) || step.media_url)  // Old GIF: convert URL
+                      : null;
+                    
+                    console.log('[GIF Debug] Legacy Media Decision:', {
+                      shouldRenderAsVideo,
+                      gifVideoUrl,
+                      finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null
+                    });
+                    
+                    if (gifVideoUrl && shouldRenderAsVideo) {
+                      const optimizedVideoUrl = optimizeCloudinaryUrl(gifVideoUrl, true);
+                      console.log('[GIF Debug] Rendering as VIDEO:', {
+                        original: step.media_url,
+                        videoUrl: gifVideoUrl,
+                        optimized: optimizedVideoUrl
+                      });
                       return (
                         <video
                           key={`legacy-video-${currentStep}-${step.media_url}`}
-                          src={gifVideoUrl}
+                          src={optimizedVideoUrl}
                           autoPlay
                           loop
                           muted
                           playsInline
                           className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
                           onClick={() => setImagePreviewUrl(step.media_url)}
+                          onLoadStart={() => console.log('[GIF Debug] Video load started:', optimizedVideoUrl)}
+                          onLoadedData={() => console.log('[GIF Debug] Video loaded successfully:', optimizedVideoUrl)}
                           onError={(e) => {
-                            // Fallback to img if video fails
-                            console.log('Video failed, falling back to image');
-                            e.target.style.display = 'none';
+                            console.error('[GIF Debug] Video failed to load:', {
+                              error: e,
+                              src: optimizedVideoUrl,
+                              original: step.media_url,
+                              videoElement: e.target
+                            });
+                            // Fallback: try to show as image
+                            const img = document.createElement('img');
+                            img.src = step.media_url;
+                            img.className = e.target.className;
+                            img.onclick = () => setImagePreviewUrl(step.media_url);
+                            e.target.parentNode.replaceChild(img, e.target);
                           }}
                         />
                       );
                     }
                     
-                    // Regular image for non-GIFs or non-Cloudinary GIFs
+                    // Regular image for non-GIFs or desktop non-video GIFs
                     const optimizedImageUrl = isCloudinary(step.media_url) 
                       ? optimizeCloudinaryUrl(step.media_url, false)
                       : step.media_url;
                     
                     return (
                       <img 
-                        data-gif-src={isGif(step.media_url) ? step.media_url : undefined}
+                        data-gif-src={isGifFile ? step.media_url : undefined}
                         src={optimizedImageUrl} 
                         alt={step.title} 
                         className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
@@ -498,7 +607,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         loading="eager"
                         decoding="async"
                         key={`legacy-${currentStep}-${step.media_url}`}
-                        style={isGif(step.media_url) ? {
+                        style={isGifFile ? {
                           imageRendering: 'auto',
                           WebkitBackfaceVisibility: 'visible',
                           backfaceVisibility: 'visible',
@@ -548,24 +657,68 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       )}
                       {block.type === 'image' && block.data?.url && (() => {
                         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                        const gifVideoUrl = isGif(block.data.url) && isMobile ? getGifVideoUrl(block.data.url) : null;
+                        const isGifFile = isGif(block.data.url, 'image'); // Assume image type for blocks
+                        const isVideoUrl = isCloudinaryVideo(block.data.url);
                         
-                        // On mobile, render Cloudinary GIFs as video for better playback
-                        if (gifVideoUrl) {
+                        console.log('[GIF Debug] Block Image Render:', {
+                          blockId: block.id,
+                          url: block.data.url,
+                          isMobile,
+                          isVideoUrl,
+                          isGifFile
+                        });
+                        
+                        // Render as video if:
+                        // 1. It's a Cloudinary video URL in an image block (re-uploaded GIFs) - ALWAYS render as video on ALL devices
+                        // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
+                        const shouldRenderAsVideo = isVideoUrl || (isGifFile && isMobile);
+                        const gifVideoUrl = shouldRenderAsVideo 
+                          ? (isVideoUrl 
+                              ? block.data.url  // Re-uploaded GIF: use video URL directly
+                              : getGifVideoUrl(block.data.url, 'image') || block.data.url)  // Old GIF: convert URL
+                          : null;
+                        
+                        console.log('[GIF Debug] Block Image Decision:', {
+                          blockId: block.id,
+                          shouldRenderAsVideo,
+                          gifVideoUrl,
+                          finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null
+                        });
+                        
+                        if (gifVideoUrl && shouldRenderAsVideo) {
+                          const optimizedVideoUrl = optimizeCloudinaryUrl(gifVideoUrl, true);
+                          console.log('[GIF Debug] Block rendering as VIDEO:', {
+                            blockId: block.id,
+                            original: block.data.url,
+                            videoUrl: gifVideoUrl,
+                            optimized: optimizedVideoUrl
+                          });
                           return (
                             <figure>
                               <video
                                 key={`block-video-${block.id || idx}-${block.data.url}-${currentStep}`}
-                                src={gifVideoUrl}
+                                src={optimizedVideoUrl}
                                 autoPlay
                                 loop
                                 muted
                                 playsInline
                                 className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
                                 onClick={() => setImagePreviewUrl(block.data.url)}
+                                onLoadStart={() => console.log('[GIF Debug] Block video load started:', optimizedVideoUrl)}
+                                onLoadedData={() => console.log('[GIF Debug] Block video loaded successfully:', optimizedVideoUrl)}
                                 onError={(e) => {
-                                  console.log('Video failed, falling back to image');
-                                  e.target.style.display = 'none';
+                                  console.error('[GIF Debug] Block video failed to load:', {
+                                    blockId: block.id,
+                                    error: e,
+                                    src: optimizedVideoUrl,
+                                    original: block.data.url,
+                                    videoElement: e.target
+                                  });
+                                  const img = document.createElement('img');
+                                  img.src = block.data.url;
+                                  img.className = e.target.className;
+                                  img.onclick = () => setImagePreviewUrl(block.data.url);
+                                  e.target.parentNode.replaceChild(img, e.target);
                                 }}
                               />
                               {block.data?.caption && (
@@ -577,7 +730,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           );
                         }
                         
-                        // Regular image for non-GIFs or non-Cloudinary GIFs
+                        // Regular image for non-GIFs or desktop non-video GIFs
                         const optimizedImageUrl = isCloudinary(block.data.url) 
                           ? optimizeCloudinaryUrl(block.data.url, false)
                           : block.data.url;
@@ -585,7 +738,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         return (
                           <figure>
                             <img
-                              data-gif-src={isGif(block.data.url) ? block.data.url : undefined}
+                              data-gif-src={isGifFile ? block.data.url : undefined}
                               src={optimizedImageUrl} 
                               alt={block.data?.alt || ''} 
                               className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
@@ -593,7 +746,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               loading="eager"
                               decoding="async"
                               key={`block-${block.id || idx}-${block.data.url}-${currentStep}`}
-                              style={isGif(block.data.url) ? {
+                              style={isGifFile ? {
                                 imageRendering: 'auto',
                                 WebkitBackfaceVisibility: 'visible',
                                 backfaceVisibility: 'visible',
