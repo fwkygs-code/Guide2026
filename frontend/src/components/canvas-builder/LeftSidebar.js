@@ -1,11 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, FileText, Trash2, Upload, FolderOpen } from 'lucide-react';
+import { GripVertical, Plus, FileText, Trash2, Upload, FolderOpen, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { api } from '../../lib/api';
 import { normalizeImageUrl } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -17,6 +18,41 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick, currentStepIndex, onDeleteStep }) => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // On mobile, when settings open, hide canvas
+  React.useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      const canvas = document.querySelector('[data-canvas-container]');
+      if (canvas) {
+        if (isMobile && isSettingsOpen) {
+          canvas.style.display = 'none';
+        } else {
+          canvas.style.display = '';
+        }
+      }
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isSettingsOpen]);
+  
+  // Update canvas visibility when settings state changes
+  React.useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    const canvas = document.querySelector('[data-canvas-container]');
+    if (canvas) {
+      if (isMobile && isSettingsOpen) {
+        canvas.style.display = 'none';
+      } else {
+        canvas.style.display = '';
+      }
+    }
+  }, [isSettingsOpen]);
+  
   // Organize categories into tree structure
   const categoryTree = useMemo(() => {
     // Filter out any null/undefined categories and ensure parent_id is properly handled
@@ -65,26 +101,45 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
 
   return (
     <div className="w-80 border-r border-slate-200 bg-white flex flex-col">
-      {/* Walkthrough Info */}
-      <div className="p-6 border-b border-slate-200">
-        <Input
-          value={walkthrough.title}
-          onChange={(e) => onUpdate({ ...walkthrough, title: e.target.value })}
-          className="text-lg font-heading font-semibold mb-3 border-0 px-0 focus-visible:ring-0"
-          placeholder="Walkthrough title"
-          data-testid="walkthrough-title"
-        />
-        
-        <textarea
-          value={walkthrough.description || ''}
-          onChange={(e) => onUpdate({ ...walkthrough, description: e.target.value })}
-          className="w-full text-sm text-slate-600 resize-none border-0 px-0 focus:outline-none"
-          placeholder="Add description..."
-          rows={2}
-          data-testid="walkthrough-description"
-        />
+      {/* Walkthrough Settings - Collapsible */}
+      <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <CollapsibleTrigger className="w-full p-4 border-b border-slate-200 hover:bg-slate-50/50 transition-colors flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Settings className="w-4 h-4 text-slate-500" />
+            <span className="text-sm font-medium text-slate-700">Walkthrough Settings</span>
+          </div>
+          {isSettingsOpen ? (
+            <ChevronUp className="w-4 h-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          )}
+        </CollapsibleTrigger>
+        <CollapsibleContent className="border-b border-slate-200">
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="text-xs text-slate-500 mb-1.5 block">Title</label>
+              <Input
+                value={walkthrough.title}
+                onChange={(e) => onUpdate({ ...walkthrough, title: e.target.value })}
+                className="text-base font-heading font-semibold border-slate-200"
+                placeholder="Walkthrough title"
+                data-testid="walkthrough-title"
+              />
+            </div>
+            
+            <div>
+              <label className="text-xs text-slate-500 mb-1.5 block">Description</label>
+              <textarea
+                value={walkthrough.description || ''}
+                onChange={(e) => onUpdate({ ...walkthrough, description: e.target.value })}
+                className="w-full text-sm text-slate-600 resize-none border border-slate-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="Add description..."
+                rows={2}
+                data-testid="walkthrough-description"
+              />
+            </div>
 
-        <div className="mt-4 space-y-3">
+            <div className="space-y-3">
           <div>
             <label className="text-xs text-slate-500 mb-1.5 block">Icon/Photo</label>
             <div className="space-y-2">
@@ -242,8 +297,9 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
               {walkthrough.status}
             </Badge>
           </div>
-        </div>
-      </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Steps List */}
       <div className="flex-1 overflow-y-auto">

@@ -1131,7 +1131,7 @@ const CanvasBuilderPage = () => {
             </div>
 
             {/* Live Canvas */}
-            <div className="flex-1 overflow-auto md:ml-0">
+            <div className="flex-1 overflow-auto md:ml-0" data-canvas-container>
               <LiveCanvas
                 walkthrough={walkthrough}
                 currentStepIndex={currentStepIndex}

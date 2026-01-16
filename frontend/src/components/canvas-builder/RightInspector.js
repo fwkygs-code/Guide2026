@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Trash2, Upload, Link as LinkIcon, Plus, X } from 'lucide-react';
+import { Trash2, Upload, Link as LinkIcon, Plus, X, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 
@@ -19,6 +20,7 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, onUpdateBlock }) => {
   const [mediaUrl, setMediaUrl] = useState('');
   const [newProblem, setNewProblem] = useState({ title: '', explanation: '' });
+  const [isBlockSettingsOpen, setIsBlockSettingsOpen] = useState(true);
 
   if (!selectedElement || !currentStep) {
     return (
@@ -310,13 +312,21 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
     if (!updateBlock) return null;
     
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto">
-        <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Block Settings</h3>
-          <p className="text-xs text-slate-500">Adjust spacing and borders</p>
-        </div>
-
-        <div className="p-6 space-y-6">
+      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto flex flex-col">
+        <Collapsible open={isBlockSettingsOpen} onOpenChange={setIsBlockSettingsOpen}>
+          <CollapsibleTrigger className="w-full p-4 border-b border-slate-200 hover:bg-slate-50/50 transition-colors flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-700">Block Settings</span>
+            </div>
+            {isBlockSettingsOpen ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="p-6 space-y-6">
           {/* Padding */}
           <div>
             <Label className="text-xs text-slate-500 mb-2">Padding</Label>
@@ -559,7 +569,9 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
               Clear Background
             </Button>
           </div>
-        </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     );
   }
