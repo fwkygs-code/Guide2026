@@ -115,6 +115,7 @@ class WorkspaceCreate(BaseModel):
     brand_color: str = "#4f46e5"
     portal_background_url: Optional[str] = None
     portal_palette: Optional[Dict[str, str]] = None  # e.g., {"primary": "#3b82f6", "secondary": "#8b5cf6", "accent": "#10b981"}
+    portal_links: Optional[List[Dict[str, str]]] = None  # e.g., [{"label": "Website", "url": "https://example.com"}, {"label": "Support", "url": "https://support.example.com"}]
 
 class Workspace(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -125,6 +126,7 @@ class Workspace(BaseModel):
     brand_color: str = "#4f46e5"
     portal_background_url: Optional[str] = None
     portal_palette: Optional[Dict[str, str]] = None
+    portal_links: Optional[List[Dict[str, str]]] = None
     owner_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -1437,6 +1439,8 @@ async def get_portal(slug: str):
         workspace["portal_background_url"] = None
     if "portal_palette" not in workspace:
         workspace["portal_palette"] = None
+    if "portal_links" not in workspace:
+        workspace["portal_links"] = None
     
     categories = await db.categories.find({"workspace_id": workspace['id']}, {"_id": 0}).to_list(1000)
     walkthroughs = await db.walkthroughs.find(

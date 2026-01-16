@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload } from 'lucide-react';
+import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ const SettingsPage = () => {
   const [logoUrl, setLogoUrl] = useState('');
   const [portalBackgroundUrl, setPortalBackgroundUrl] = useState('');
   const [portalPalette, setPortalPalette] = useState({ primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
+  const [portalLinks, setPortalLinks] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ const SettingsPage = () => {
       setLogoUrl(response.data.logo || '');
       setPortalBackgroundUrl(response.data.portal_background_url || '');
       setPortalPalette(response.data.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
+      setPortalLinks(response.data.portal_links || []);
     } catch (error) {
       toast.error('Failed to load workspace');
     } finally {
@@ -82,7 +84,8 @@ const SettingsPage = () => {
         brand_color: brandColor,
         logo: logoUrl || null,
         portal_background_url: portalBackgroundUrl || null,
-        portal_palette: portalPalette
+        portal_palette: portalPalette,
+        portal_links: portalLinks.length > 0 ? portalLinks : null
       });
       toast.success('Settings saved!');
       fetchWorkspace();
@@ -274,6 +277,69 @@ const SettingsPage = () => {
             </div>
           </div>
 
+          {/* Portal Links */}
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
+              <ExternalLink className="w-5 h-5" />
+              Portal External Links
+            </h2>
+            <p className="text-xs text-slate-500 mb-4">Add buttons with external links that will appear at the top of your portal (e.g., link to your website, support page, etc.)</p>
+            <div className="space-y-3">
+              {portalLinks.map((link, index) => (
+                <div key={index} className="flex gap-2 items-start p-3 bg-slate-50/50 rounded-lg border border-slate-200/50">
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      placeholder="Button Label (e.g., Visit Website)"
+                      value={link.label || ''}
+                      onChange={(e) => {
+                        const newLinks = [...portalLinks];
+                        newLinks[index] = { ...newLinks[index], label: e.target.value };
+                        setPortalLinks(newLinks);
+                      }}
+                      className="text-sm"
+                    />
+                    <Input
+                      placeholder="URL (e.g., https://example.com)"
+                      value={link.url || ''}
+                      onChange={(e) => {
+                        const newLinks = [...portalLinks];
+                        newLinks[index] = { ...newLinks[index], url: e.target.value };
+                        setPortalLinks(newLinks);
+                      }}
+                      type="url"
+                      className="text-sm"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newLinks = portalLinks.filter((_, i) => i !== index);
+                      setPortalLinks(newLinks);
+                    }}
+                    className="text-destructive hover:text-destructive mt-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              {portalLinks.length < 2 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPortalLinks([...portalLinks, { label: '', url: '' }])}
+                  className="w-full"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Link
+                </Button>
+              )}
+              {portalLinks.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4">No links added yet. Click "Add Link" to get started.</p>
+              )}
+            </div>
+          </div>
+
           {/* Text Size Settings */}
           <div className="glass rounded-xl p-6">
             <h2 className="text-xl font-heading font-semibold mb-4">Text Size</h2>
@@ -448,6 +514,7 @@ const SettingsPage = () => {
                   setLogoUrl(workspace?.logo || '');
                   setPortalBackgroundUrl(workspace?.portal_background_url || '');
                   setPortalPalette(workspace?.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
+                  setPortalLinks(workspace?.portal_links || []);
                   setBrandColor(workspace?.brand_color || '#4f46e5');
                   setName(workspace?.name || '');
                 }}

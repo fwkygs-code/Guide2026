@@ -152,13 +152,39 @@ const PortalPage = ({ isEmbedded = false }) => {
             </div>
           </div>
 
-          {isLoggedIn && (
-            <Link to="/dashboard" data-testid="back-to-dashboard-link">
-              <Button variant="outline" size="sm">
-                Admin Dashboard
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            {/* Portal External Links */}
+            {workspace.portal_links && workspace.portal_links.length > 0 && (
+              <div className="flex items-center gap-2">
+                {workspace.portal_links.map((link, index) => (
+                  link.label && link.url && (
+                    <a
+                      key={index}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105"
+                      style={{
+                        backgroundColor: primaryColor,
+                        color: 'white',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      {link.label}
+                    </a>
+                  )
+                ))}
+              </div>
+            )}
+
+            {isLoggedIn && (
+              <Link to="/dashboard" data-testid="back-to-dashboard-link">
+                <Button variant="outline" size="sm">
+                  Admin Dashboard
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
       )}
