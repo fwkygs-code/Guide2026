@@ -71,7 +71,12 @@ const WalkthroughBuilderPage = () => {
       setPrivacy(wt.privacy);
       setPassword('');
       setStatus(wt.status);
-      setSteps(wt.steps || []);
+      // Ensure all steps have blocks array initialized
+      const stepsWithBlocks = (wt.steps || []).map(step => ({
+        ...step,
+        blocks: step.blocks || []
+      }));
+      setSteps(stepsWithBlocks);
       setSelectedCategories(wt.category_ids || []);
     } catch (error) {
       toast.error('Failed to load walkthrough');
@@ -116,7 +121,8 @@ const WalkthroughBuilderPage = () => {
               media_url: step.media_url,
               media_type: step.media_type,
               navigation_type: step.navigation_type || 'next_prev',
-              common_problems: step.common_problems || []
+              common_problems: step.common_problems || [],
+              blocks: step.blocks || []
             });
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
@@ -126,7 +132,8 @@ const WalkthroughBuilderPage = () => {
               media_type: step.media_type,
               navigation_type: step.navigation_type || 'next_prev',
               order: step.order,
-              common_problems: step.common_problems || []
+              common_problems: step.common_problems || [],
+              blocks: step.blocks || []
             });
             nextSteps[i] = { ...step, id: res.data.id, isNew: false };
           }
@@ -151,7 +158,8 @@ const WalkthroughBuilderPage = () => {
             media_url: step.media_url,
             media_type: step.media_type,
             navigation_type: step.navigation_type || 'next_prev',
-            common_problems: step.common_problems || []
+            common_problems: step.common_problems || [],
+            blocks: step.blocks || []
           });
         }
         
@@ -189,6 +197,7 @@ const WalkthroughBuilderPage = () => {
         media_type: null,
         navigation_type: 'next_prev',
         common_problems: [],
+        blocks: [],
         order: steps.length,
         isNew: true
       }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight } from 'lucide-react';
+import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -119,11 +119,19 @@ const WalkthroughsPage = () => {
           <div className="flex gap-3">
             <Button
               variant="secondary"
-              onClick={() => navigate(`/portal/${workspace?.slug}`)}
+              onClick={() => window.open(`/portal/${workspace?.slug}`, '_blank')}
               data-testid="view-portal-button"
             >
               <Eye className="w-4 h-4 mr-2" />
               View Portal
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/workspace/${workspaceId}/archive`)}
+              data-testid="view-archive-button"
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              Archive
             </Button>
             <Button
               onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/new`)}

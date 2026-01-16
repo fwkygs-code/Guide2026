@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, FileText, Trash2, Upload } from 'lucide-react';
+import { GripVertical, Plus, FileText, Trash2, Upload, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,15 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick, currentStepIndex, onDeleteStep }) => {
+  // Organize categories into tree structure
+  const categoryTree = useMemo(() => {
+    const parents = categories.filter(c => !c.parent_id);
+    return parents.map(parent => ({
+      ...parent,
+      children: categories.filter(c => c.parent_id === parent.id)
+    }));
+  }, [categories]);
+
   const handleIconUpload = async (file) => {
     try {
       const response = await api.uploadFile(file);
@@ -25,6 +34,17 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Upload failed');
+    }
+  };
+
+  const handleCategoryChange = (categoryId) => {
+    const currentIds = walkthrough.category_ids || [];
+    if (currentIds.includes(categoryId)) {
+      // Remove category
+      onUpdate({ ...walkthrough, category_ids: currentIds.filter(id => id !== categoryId) });
+    } else {
+      // Add category
+      onUpdate({ ...walkthrough, category_ids: [...currentIds, categoryId] });
     }
   };
 
@@ -101,6 +121,56 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
               Enter a URL or upload an image
             </div>
           </div>
+
+          <div>
+            <label className="text-xs text-slate-500 mb-1.5 block">Categories</label>
+            <div className="space-y-2">
+              {categoryTree.length > 0 ? (
+                categoryTree.map((parentCat) => (
+                  <div key={parentCat.id} className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={(walkthrough.category_ids || []).includes(parentCat.id)}
+                        onChange={() => handleCategoryChange(parentCat.id)}
+                        className="rounded border-slate-300 text-primary focus:ring-primary"
+                        data-testid={`category-checkbox-${parentCat.id}`}
+                      />
+                      <label className="text-sm text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                        <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                        {parentCat.name}
+                      </label>
+                    </div>
+                    {parentCat.children.length > 0 && (
+                      <div className="ml-6 space-y-1">
+                        {parentCat.children.map((subCat) => (
+                          <div key={subCat.id} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={(walkthrough.category_ids || []).includes(subCat.id)}
+                              onChange={() => handleCategoryChange(subCat.id)}
+                              className="rounded border-slate-300 text-primary focus:ring-primary"
+                              data-testid={`subcategory-checkbox-${subCat.id}`}
+                            />
+                            <label className="text-xs text-slate-600 flex items-center gap-1.5 cursor-pointer">
+                              <span className="text-slate-400">└</span>
+                              {subCat.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400">No categories available. Create categories in the Categories page.</p>
+              )}
+            </div>
+            <div className="text-xs text-slate-400 mt-1.5">
+              Select one or more categories for this walkthrough
+            </div>
+          </div>
+
           <div>
             <label className="text-xs text-slate-500 mb-1.5 block">Privacy</label>
             <Select

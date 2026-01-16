@@ -113,6 +113,13 @@ class CategoryCreate(BaseModel):
     name: str
     description: Optional[str] = None
     parent_id: Optional[str] = None
+    icon_url: Optional[str] = None
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    parent_id: Optional[str] = None
+    icon_url: Optional[str] = None
 
 class Category(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -121,6 +128,7 @@ class Category(BaseModel):
     name: str
     description: Optional[str] = None
     parent_id: Optional[str] = None
+    icon_url: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CommonProblem(BaseModel):
@@ -368,7 +376,8 @@ async def create_category(workspace_id: str, category_data: CategoryCreate, curr
         workspace_id=workspace_id,
         name=category_data.name,
         description=category_data.description,
-        parent_id=category_data.parent_id
+        parent_id=category_data.parent_id,
+        icon_url=category_data.icon_url
     )
     
     category_dict = category.model_dump()
@@ -385,6 +394,66 @@ async def get_categories(workspace_id: str, current_user: User = Depends(get_cur
     
     categories = await db.categories.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(1000)
     return [Category(**c) for c in categories]
+
+@api_router.put("/workspaces/{workspace_id}/categories/{category_id}", response_model=Category)
+async def update_category(workspace_id: str, category_id: str, category_data: CategoryUpdate, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    category = await db.categories.find_one({"id": category_id, "workspace_id": workspace_id}, {"_id": 0})
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    # Build update dict with only provided fields
+    update_dict = {}
+    if category_data.name is not None:
+        update_dict["name"] = category_data.name
+    if category_data.description is not None:
+        update_dict["description"] = category_data.description
+    if category_data.parent_id is not None:
+        update_dict["parent_id"] = category_data.parent_id
+    if category_data.icon_url is not None:
+        update_dict["icon_url"] = category_data.icon_url
+    
+    if update_dict:
+        await db.categories.update_one(
+            {"id": category_id, "workspace_id": workspace_id},
+            {"$set": update_dict}
+        )
+        category.update(update_dict)
+    
+    return Category(**category)
+
+@api_router.delete("/workspaces/{workspace_id}/categories/{category_id}")
+async def delete_category(workspace_id: str, category_id: str, current_user: User = Depends(get_current_user)):
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    category = await db.categories.find_one({"id": category_id, "workspace_id": workspace_id}, {"_id": 0})
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    # Get all child categories
+    child_categories = await db.categories.find({"parent_id": category_id, "workspace_id": workspace_id}, {"_id": 0}).to_list(1000)
+    child_category_ids = [c["id"] for c in child_categories]
+    all_category_ids = [category_id] + child_category_ids
+    
+    # Remove category_ids from walkthroughs (make them uncategorized)
+    await db.walkthroughs.update_many(
+        {"workspace_id": workspace_id, "category_ids": {"$in": all_category_ids}},
+        {"$pull": {"category_ids": {"$in": all_category_ids}}}
+    )
+    
+    # Delete child categories first
+    if child_category_ids:
+        await db.categories.delete_many({"id": {"$in": child_category_ids}, "workspace_id": workspace_id})
+    
+    # Delete the category itself
+    await db.categories.delete_one({"id": category_id, "workspace_id": workspace_id})
+    
+    return {"message": "Category deleted. Walkthroughs are now uncategorized."}
 
 # Walkthrough Routes
 @api_router.post("/workspaces/{workspace_id}/walkthroughs", response_model=Walkthrough)

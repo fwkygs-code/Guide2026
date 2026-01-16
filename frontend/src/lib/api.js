@@ -22,6 +22,8 @@ export const api = {
   // Categories
   createCategory: (workspaceId, data) => axios.post(`${API}/workspaces/${workspaceId}/categories`, data),
   getCategories: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/categories`),
+  updateCategory: (workspaceId, categoryId, data) => axios.put(`${API}/workspaces/${workspaceId}/categories/${categoryId}`, data),
+  deleteCategory: (workspaceId, categoryId) => axios.delete(`${API}/workspaces/${workspaceId}/categories/${categoryId}`),
 
   // Walkthroughs
   createWalkthrough: (workspaceId, data) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs`, data),
