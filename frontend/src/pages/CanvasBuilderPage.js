@@ -135,11 +135,15 @@ const CanvasBuilderPage = () => {
         // Normalize image URLs in walkthrough data
         const normalized = normalizeImageUrlsInObject(wtResponse.data);
         // CRITICAL: Ensure all steps have blocks array initialized with proper structure
+        // CRITICAL: Preserve media_url and media_type from loaded steps
         if (normalized.steps) {
           normalized.steps = normalized.steps.map(step => {
             const stepWithBlocks = {
               ...step,
-              blocks: step.blocks || []
+              blocks: step.blocks || [],
+              // CRITICAL: Explicitly preserve media_url and media_type (even if null)
+              media_url: step.media_url !== undefined ? step.media_url : null,
+              media_type: step.media_type !== undefined ? step.media_type : null
             };
             // Ensure blocks array is properly structured
             if (!Array.isArray(stepWithBlocks.blocks)) {
@@ -158,6 +162,7 @@ const CanvasBuilderPage = () => {
                 settings: block.settings || {}
               };
             });
+            console.log('[CanvasBuilder] Loaded step:', stepWithBlocks.id, 'media_url:', stepWithBlocks.media_url, 'media_type:', stepWithBlocks.media_type);
             return stepWithBlocks;
           });
         }
@@ -234,15 +239,28 @@ const CanvasBuilderPage = () => {
           console.log('[CanvasBuilder] Saving step with blocks:', step.id, step.blocks);
           
           if (step.id && !step.isNew) {
-            await api.updateStep(workspaceId, walkthroughId, step.id, {
+            // CRITICAL: Preserve media_url and media_type - only send if they exist
+            // Don't send null/undefined as it will overwrite existing values
+            const updateData = {
               title: step.title || '',
               content: step.content || '',
-              media_url: step.media_url || null,
-              media_type: step.media_type || null,
               navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
               blocks: step.blocks  // Send blocks with complete structure
-            });
+            };
+            
+            // Only include media_url/media_type if they are explicitly set (not undefined)
+            // This preserves existing media when not being updated
+            if (step.media_url !== undefined) {
+              updateData.media_url = step.media_url || null;
+            }
+            if (step.media_type !== undefined) {
+              updateData.media_type = step.media_type || null;
+            }
+            
+            console.log('[CanvasBuilder] Saving step:', step.id, 'media_url:', updateData.media_url, 'media_type:', updateData.media_type);
+            
+            await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
               title: step.title || '',
@@ -275,7 +293,10 @@ const CanvasBuilderPage = () => {
           normalized.steps = normalized.steps.map(step => {
             const stepWithBlocks = {
               ...step,
-              blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
+              blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : []),
+              // CRITICAL: Explicitly preserve media_url and media_type (even if null)
+              media_url: step.media_url !== undefined ? step.media_url : null,
+              media_type: step.media_type !== undefined ? step.media_type : null
             };
             // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
             stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
@@ -311,6 +332,7 @@ const CanvasBuilderPage = () => {
               const withUrls = imageBlocks.filter(b => b.data && b.data.url);
               console.log(`[CanvasBuilder] Step ${step.id}: ${imageBlocks.length} image blocks, ${withUrls.length} with URLs`);
             }
+            console.log('[CanvasBuilder] Loaded step after save:', stepWithBlocks.id, 'media_url:', stepWithBlocks.media_url, 'media_type:', stepWithBlocks.media_type);
             return stepWithBlocks;
           });
         }
@@ -591,15 +613,24 @@ const CanvasBuilderPage = () => {
             });
             
             if (step.id && !step.isNew) {
-              await api.updateStep(workspaceId, walkthroughId, step.id, {
+              // CRITICAL: Preserve media_url and media_type - only send if they exist
+              const updateData = {
                 title: step.title || '',
                 content: step.content || '',
-                media_url: step.media_url || null,
-                media_type: step.media_type || null,
                 navigation_type: step.navigation_type || 'next_prev',
                 common_problems: step.common_problems || [],
                 blocks: stepBlocks  // Send blocks with complete structure including URLs
-              });
+              };
+              
+              // Only include media_url/media_type if they are explicitly set (not undefined)
+              if (step.media_url !== undefined) {
+                updateData.media_url = step.media_url || null;
+              }
+              if (step.media_type !== undefined) {
+                updateData.media_type = step.media_type || null;
+              }
+              
+              await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
             } else if (step.isNew) {
               await api.addStep(workspaceId, walkthroughId, {
                 title: step.title || '',

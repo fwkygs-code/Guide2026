@@ -1326,11 +1326,23 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         for block in image_blocks_without_urls:
             logger.warning(f"[update_step] Block {block.get('id')} missing URL: {block}")
     
+    # CRITICAL: Preserve existing media_url and media_type if not explicitly provided
+    existing_step = steps[step_index]
+    existing_media_url = existing_step.get('media_url')
+    existing_media_type = existing_step.get('media_type')
+    
+    # Only update media_url/media_type if explicitly provided (not None)
+    # If None is passed, preserve existing values
+    final_media_url = step_data.media_url if step_data.media_url is not None else existing_media_url
+    final_media_type = step_data.media_type if step_data.media_type is not None else existing_media_type
+    
+    logger.info(f"[update_step] Step {step_id}: Media URL - existing: {existing_media_url}, provided: {step_data.media_url}, final: {final_media_url}")
+    
     updated_step = {
         'title': step_data.title,
         'content': step_data.content,
-        'media_url': step_data.media_url,
-        'media_type': step_data.media_type,
+        'media_url': final_media_url,
+        'media_type': final_media_type,
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
         'blocks': new_blocks  # Always ensure it's a list with proper structure
@@ -1631,21 +1643,17 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
                     "fetch_format": "auto"
                 })
             elif resource_type == "video":
-                # Video optimization: auto format, quality, and size limits
+                # Video optimization: lighter settings for faster loading
+                # Let Cloudinary optimize automatically without strict bitrate limits
                 upload_params.update({
                     "format": "auto",  # Auto MP4/WebM when supported
                     "quality": "auto:good",  # Good quality with auto optimization
                     "fetch_format": "auto",
-                    "video_codec": "auto",  # Auto codec selection
-                    "bit_rate": "1m",  # Limit bitrate for smaller files
-                    "max_video_bitrate": 1000000,  # 1Mbps max
+                    "video_codec": "auto"  # Auto codec selection
+                    # Removed bitrate limits for faster delivery - Cloudinary will optimize automatically
                 })
-                # For GIFs uploaded as video, add specific optimizations
-                if file_extension == '.gif':
-                    upload_params.update({
-                        "eager": "f_mp4",  # Generate MP4 version immediately
-                        "eager_async": False
-                    })
+                # Don't force eager conversion for GIFs - let Cloudinary serve optimized format on-demand
+                # This reduces initial upload time and allows Cloudinary to cache optimized versions
             
             # Upload file to Cloudinary
             upload_result = cloudinary.uploader.upload(
