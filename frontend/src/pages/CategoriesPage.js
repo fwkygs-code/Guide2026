@@ -69,7 +69,13 @@ const CategoriesPage = () => {
   const handleIconUpload = async (file, isEdit = false) => {
     try {
       const response = await api.uploadFile(file);
-      const fullUrl = `${API_BASE.replace(/\/$/, '')}${response.data.url}`;
+      // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
+      // If URL is already absolute (starts with http:// or https://), use it directly
+      // Otherwise, prepend API_BASE for local storage fallback
+      const uploadedUrl = response.data.url;
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : `${API_BASE.replace(/\/$/, '')}${uploadedUrl}`;
       if (isEdit) {
         setEditCategoryIcon(fullUrl);
       } else {

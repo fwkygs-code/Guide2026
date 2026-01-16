@@ -15,6 +15,19 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 export function normalizeImageUrl(url) {
   if (!url) return null;
   
+  // CRITICAL: Fix double URLs (API_BASE + Cloudinary URL)
+  // If URL contains API_BASE followed by http:// or https://, extract the second URL
+  if (typeof url === 'string') {
+    const apiBasePattern = new RegExp(`^${API_BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(https?://)`, 'i');
+    if (apiBasePattern.test(url)) {
+      // Extract the URL after API_BASE
+      const match = url.match(/https?:\/\/[^\s]+/i);
+      if (match) {
+        url = match[0];
+      }
+    }
+  }
+  
   // If already absolute URL, return as is
   if (/^https?:\/\//i.test(url)) {
     return url;

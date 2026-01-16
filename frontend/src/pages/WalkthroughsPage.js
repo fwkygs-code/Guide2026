@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { normalizeImageUrlsInObject } from '../lib/utils';
+import { normalizeImageUrlsInObject, normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -210,9 +210,13 @@ const WalkthroughsPage = () => {
                         <div className="flex items-start gap-3 mb-4">
                           {walkthrough.icon_url ? (
                             <img
-                              src={walkthrough.icon_url}
+                              src={normalizeImageUrl(walkthrough.icon_url)}
                               alt={walkthrough.title}
                               className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200"
+                              onError={(e) => {
+                                console.error('Failed to load icon:', walkthrough.icon_url);
+                                e.target.style.display = 'none';
+                              }}
                             />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">

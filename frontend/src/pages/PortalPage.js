@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { normalizeImageUrl } from '../lib/utils';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -250,9 +251,13 @@ const PortalPage = ({ isEmbedded = false }) => {
                               <div className="flex items-start gap-4 mb-4">
                                 {walkthrough.icon_url ? (
                                   <img
-                                    src={walkthrough.icon_url}
+                                    src={normalizeImageUrl(walkthrough.icon_url)}
                                     alt={walkthrough.title}
                                     className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-slate-200 group-hover:scale-105 transition-transform"
+                                    onError={(e) => {
+                                      console.error('Failed to load icon:', walkthrough.icon_url);
+                                      e.target.style.display = 'none';
+                                    }}
                                   />
                                 ) : (
                                   <div className="w-16 h-16 rounded-2xl bg-primary/10 backdrop-blur-sm border border-primary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">

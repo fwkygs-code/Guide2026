@@ -41,7 +41,13 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
   const handleMediaUpload = async (file) => {
     try {
       const response = await api.uploadFile(file);
-      const fullUrl = `${API_BASE.replace(/\/$/, '')}${response.data.url}`;
+      // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
+      // If URL is already absolute (starts with http:// or https://), use it directly
+      // Otherwise, prepend API_BASE for local storage fallback
+      const uploadedUrl = response.data.url;
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : `${API_BASE.replace(/\/$/, '')}${uploadedUrl}`;
       
       if (block.type === BLOCK_TYPES.IMAGE) {
         onUpdate({ ...block, data: { ...block.data, url: fullUrl } });
@@ -61,6 +67,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       }
       toast.success('File uploaded!');
     } catch (error) {
+      console.error('Upload error:', error);
       toast.error('Upload failed');
     }
   };
