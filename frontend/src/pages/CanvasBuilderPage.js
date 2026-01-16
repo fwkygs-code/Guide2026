@@ -36,6 +36,7 @@ const CanvasBuilderPage = () => {
 
   const [selectedElement, setSelectedElement] = useState(null);
   const [showRightInspector, setShowRightInspector] = useState(true);
+  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
   
   // Auto-show inspector when element is selected
   useEffect(() => {
@@ -1097,17 +1098,42 @@ const CanvasBuilderPage = () => {
           >
             <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
             {/* Left Sidebar - Hidden on mobile, shown on desktop */}
-            <div className="hidden md:block">
-              <LeftSidebar
-                walkthrough={walkthrough}
-                categories={categories}
-                onUpdate={setWalkthrough}
-                onAddStep={addStep}
-                onStepClick={setCurrentStepIndex}
-                onDeleteStep={deleteStep}
-                currentStepIndex={currentStepIndex}
-              />
-            </div>
+            {showLeftSidebar && (
+              <div className="hidden md:block">
+                <LeftSidebar
+                  walkthrough={walkthrough}
+                  categories={categories}
+                  onUpdate={setWalkthrough}
+                  onAddStep={addStep}
+                  onStepClick={setCurrentStepIndex}
+                  onDeleteStep={deleteStep}
+                  currentStepIndex={currentStepIndex}
+                />
+              </div>
+            )}
+            
+            {/* Left Sidebar Toggle Buttons - Desktop */}
+            {!showLeftSidebar ? (
+              <button
+                className="hidden md:flex fixed top-20 left-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
+                onClick={() => setShowLeftSidebar(true)}
+                title="Show Sidebar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                className="hidden md:flex fixed top-20 left-[340px] z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
+                onClick={() => setShowLeftSidebar(false)}
+                title="Hide Sidebar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
 
             {/* Mobile Sidebar Toggle Button */}
             <button
@@ -1178,15 +1204,28 @@ const CanvasBuilderPage = () => {
               </div>
             )}
             
-            {/* Right Inspector Toggle Button - Desktop */}
-            {!showRightInspector && (
+            {/* Right Inspector Toggle Buttons - Desktop */}
+            {!showRightInspector ? (
               <button
-                className="hidden md:flex fixed top-20 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors"
+                className="hidden md:flex fixed top-20 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
                 onClick={() => setShowRightInspector(true)}
                 title="Show Inspector"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                className="hidden md:flex fixed top-20 right-[340px] z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
+                onClick={() => {
+                  setShowRightInspector(false);
+                  setSelectedElement(null);
+                }}
+                title="Hide Inspector"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             )}

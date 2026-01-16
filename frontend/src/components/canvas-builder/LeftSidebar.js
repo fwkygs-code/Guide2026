@@ -100,7 +100,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
   };
 
   return (
-    <div className="w-80 border-r border-slate-200 bg-white flex flex-col overflow-hidden">
+    <div className="w-80 border-r border-slate-200 bg-white flex flex-col h-full overflow-hidden">
       {/* Walkthrough Settings - Collapsible */}
       <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <CollapsibleTrigger className="w-full p-4 border-b border-slate-200 hover:bg-slate-50/50 transition-colors flex items-center justify-between flex-shrink-0">
@@ -114,7 +114,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
             <ChevronDown className="w-4 h-4 text-slate-400" />
           )}
         </CollapsibleTrigger>
-        <CollapsibleContent className="border-b border-slate-200 overflow-y-auto max-h-[60vh]">
+        <CollapsibleContent className="border-b border-slate-200 overflow-y-auto" style={{ maxHeight: 'calc(40vh - 60px)' }}>
           <div className="p-6 space-y-4">
             <div>
               <label className="text-xs text-slate-500 mb-1.5 block">Title</label>
@@ -303,7 +303,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
       </Collapsible>
 
       {/* Steps List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-slate-700">Steps</h3>
