@@ -32,6 +32,7 @@ export const api = {
   getWalkthrough: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}`),
   updateWalkthrough: (workspaceId, id, data) => axios.put(`${API}/workspaces/${workspaceId}/walkthroughs/${id}`, data),
   getWalkthroughVersions: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/versions`),
+  deleteWalkthroughVersion: (workspaceId, id, version) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/versions/${version}`),
   rollbackWalkthrough: (workspaceId, id, version) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/rollback/${version}`),
   diagnoseWalkthrough: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/diagnose`),
   diagnoseBlocks: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/diagnose-blocks`),

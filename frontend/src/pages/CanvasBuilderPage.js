@@ -1181,9 +1181,33 @@ const CanvasBuilderPage = () => {
                         </div>
                       )}
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => rollbackToVersion(v.version)} className="ml-3">
-                      Rollback
-                    </Button>
+                    <div className="flex gap-2 ml-3">
+                      <Button size="sm" variant="outline" onClick={() => rollbackToVersion(v.version)}>
+                        Rollback
+                      </Button>
+                      {versions.length > 1 && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={async () => {
+                            if (window.confirm(`Delete version ${v.version}? This cannot be undone.`)) {
+                              try {
+                                await api.deleteWalkthroughVersion(workspaceId, walkthroughId, v.version);
+                                toast.success('Version deleted');
+                                // Refresh versions list
+                                const response = await api.getWalkthroughVersions(workspaceId, walkthroughId);
+                                setVersions(response.data);
+                              } catch (error) {
+                                toast.error(error.response?.data?.detail || 'Failed to delete version');
+                              }
+                            }
+                          }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

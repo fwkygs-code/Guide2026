@@ -115,19 +115,33 @@ const PortalPage = ({ isEmbedded = false }) => {
   const workspace = portal.workspace;
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
 
+  // Get portal styling from workspace
+  const portalPalette = workspace.portal_palette || {};
+  const primaryColor = portalPalette.primary || workspace.brand_color || '#4f46e5';
+  const secondaryColor = portalPalette.secondary || '#8b5cf6';
+  const accentColor = portalPalette.accent || '#10b981';
+  const backgroundStyle = workspace.portal_background_url 
+    ? { backgroundImage: `url(${normalizeImageUrl(workspace.portal_background_url)})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
+    : {};
+
   return (
-      <div className={`min-h-screen bg-white ${inIframe ? 'iframe-mode' : ''}`}>
+      <div className={`min-h-screen ${inIframe ? 'iframe-mode' : ''}`} style={backgroundStyle}>
+      {/* Overlay for background image readability */}
+      {workspace.portal_background_url && (
+        <div className="fixed inset-0 bg-white/90 backdrop-blur-sm -z-10" />
+      )}
+      
       {/* Header - Hide in iframe mode */}
       {!inIframe && (
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50 backdrop-blur-xl bg-white/80">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
           <div className="flex items-center gap-3 min-w-0">
             {workspace.logo ? (
-              <img src={workspace.logo} alt={workspace.name} className="w-10 h-10 rounded-lg object-cover" />
+              <img src={normalizeImageUrl(workspace.logo)} alt={workspace.name} className="w-10 h-10 rounded-lg object-cover" />
             ) : (
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
-                style={{ backgroundColor: workspace.brand_color }}
+                style={{ backgroundColor: primaryColor }}
               >
                 {workspace.name.charAt(0).toUpperCase()}
               </div>
@@ -150,7 +164,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       )}
 
       {/* Hero Section - Compact in iframe */}
-      <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 bg-white`}>
+      <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 relative`} style={{ backgroundColor: workspace.portal_background_url ? 'transparent' : 'white' }}>
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -184,6 +198,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                 className="cursor-pointer px-4 py-2 text-sm font-medium transition-all hover:scale-105"
                 onClick={() => setSelectedCategory(null)}
                 data-testid="category-all"
+                style={selectedCategory === null ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
               >
                 All
               </Badge>
@@ -194,6 +209,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                   className="cursor-pointer px-4 py-2 text-sm font-medium transition-all hover:scale-105"
                   onClick={() => setSelectedCategory(category.id)}
                   data-testid={`category-${category.id}`}
+                  style={selectedCategory === category.id ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                 >
                   {category.name}
                   {category.children.length > 0 && (
@@ -260,12 +276,23 @@ const PortalPage = ({ isEmbedded = false }) => {
                                     }}
                                   />
                                 ) : (
-                                  <div className="w-16 h-16 rounded-2xl bg-primary/10 backdrop-blur-sm border border-primary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                                    <BookOpen className="w-8 h-8 text-primary" />
+                                  <div 
+                                    className="w-16 h-16 rounded-2xl backdrop-blur-sm border flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
+                                    style={{ 
+                                      backgroundColor: `${primaryColor}15`, 
+                                      borderColor: `${primaryColor}30` 
+                                    }}
+                                  >
+                                    <BookOpen className="w-8 h-8" style={{ color: primaryColor }} />
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="text-lg font-heading font-semibold text-slate-900 mb-2 group-hover:text-primary transition-colors">
+                                  <h3 
+                                    className="text-lg font-heading font-semibold text-slate-900 mb-2 transition-colors"
+                                    style={{ '--hover-color': primaryColor }}
+                                    onMouseEnter={(e) => e.target.style.color = primaryColor}
+                                    onMouseLeave={(e) => e.target.style.color = ''}
+                                  >
                                     {walkthrough.title}
                                   </h3>
                                   <p className="text-sm text-slate-600 line-clamp-2">

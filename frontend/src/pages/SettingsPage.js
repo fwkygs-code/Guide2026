@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Save, Copy, ExternalLink, Share2, Code, Globe, Type } from 'lucide-react';
+import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,9 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [brandColor, setBrandColor] = useState('#4f46e5');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [portalBackgroundUrl, setPortalBackgroundUrl] = useState('');
+  const [portalPalette, setPortalPalette] = useState({ primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -30,11 +33,44 @@ const SettingsPage = () => {
       const response = await api.getWorkspace(workspaceId);
       setWorkspace(response.data);
       setName(response.data.name);
-      setBrandColor(response.data.brand_color);
+      setBrandColor(response.data.brand_color || '#4f46e5');
+      setLogoUrl(response.data.logo || '');
+      setPortalBackgroundUrl(response.data.portal_background_url || '');
+      setPortalPalette(response.data.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
     } catch (error) {
       toast.error('Failed to load workspace');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogoUpload = async (file) => {
+    try {
+      const response = await api.uploadFile(file);
+      const uploadedUrl = response.data.url;
+      // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : `${(process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')}${uploadedUrl}`;
+      setLogoUrl(fullUrl);
+      toast.success('Logo uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload logo');
+    }
+  };
+
+  const handleBackgroundUpload = async (file) => {
+    try {
+      const response = await api.uploadFile(file);
+      const uploadedUrl = response.data.url;
+      // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : `${(process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')}${uploadedUrl}`;
+      setPortalBackgroundUrl(fullUrl);
+      toast.success('Background uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload background');
     }
   };
 
@@ -43,9 +79,13 @@ const SettingsPage = () => {
     try {
       await api.updateWorkspace(workspaceId, {
         name,
-        brand_color: brandColor
+        brand_color: brandColor,
+        logo: logoUrl || null,
+        portal_background_url: portalBackgroundUrl || null,
+        portal_palette: portalPalette
       });
       toast.success('Settings saved!');
+      fetchWorkspace();
     } catch (error) {
       toast.error('Failed to save settings');
     } finally {
@@ -97,6 +137,30 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="logo">Workspace Logo</Label>
+                <div className="mt-1.5 space-y-2">
+                  {logoUrl && (
+                    <img src={logoUrl} alt="Logo" className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files[0] && handleLogoUpload(e.target.files[0])}
+                    className="text-sm"
+                  />
+                  {logoUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLogoUrl('')}
+                      className="text-destructive"
+                    >
+                      Remove Logo
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div>
                 <Label htmlFor="brand-color">Brand Color</Label>
                 <div className="flex gap-3 mt-1.5">
                   <Input
@@ -115,10 +179,114 @@ const SettingsPage = () => {
                   />
                 </div>
               </div>
-              <Button onClick={handleSave} disabled={saving} data-testid="save-settings-button">
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleSave} disabled={saving} data-testid="save-settings-button">
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setLogoUrl(workspace?.logo || '');
+                    setPortalBackgroundUrl(workspace?.portal_background_url || '');
+                    setPortalPalette(workspace?.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Portal Branding */}
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Portal Branding
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="portal-background">Portal Background Image</Label>
+                <p className="text-xs text-slate-500 mb-1.5">Custom background for your public portal</p>
+                <div className="mt-1.5 space-y-2">
+                  {portalBackgroundUrl && (
+                    <div className="relative">
+                      <img src={portalBackgroundUrl} alt="Background" className="w-full h-32 rounded-lg object-cover border border-slate-200" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPortalBackgroundUrl('')}
+                        className="absolute top-2 right-2 text-destructive bg-white/90 hover:bg-white"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files[0] && handleBackgroundUpload(e.target.files[0])}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Portal Color Palette</Label>
+                <p className="text-xs text-slate-500 mb-1.5">Customize colors for your portal</p>
+                <div className="grid grid-cols-3 gap-3 mt-1.5">
+                  <div>
+                    <Label className="text-xs text-slate-400 mb-1">Primary</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={portalPalette.primary || '#4f46e5'}
+                        onChange={(e) => setPortalPalette({ ...portalPalette, primary: e.target.value })}
+                        className="w-16 h-10"
+                      />
+                      <Input
+                        type="text"
+                        value={portalPalette.primary || '#4f46e5'}
+                        onChange={(e) => setPortalPalette({ ...portalPalette, primary: e.target.value })}
+                        className="flex-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400 mb-1">Secondary</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={portalPalette.secondary || '#8b5cf6'}
+                        onChange={(e) => setPortalPalette({ ...portalPalette, secondary: e.target.value })}
+                        className="w-16 h-10"
+                      />
+                      <Input
+                        type="text"
+                        value={portalPalette.secondary || '#8b5cf6'}
+                        onChange={(e) => setPortalPalette({ ...portalPalette, secondary: e.target.value })}
+                        className="flex-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400 mb-1">Accent</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={portalPalette.accent || '#10b981'}
+                        onChange={(e) => setPortalPalette({ ...portalPalette, accent: e.target.value })}
+                        className="w-16 h-10"
+                      />
+                      <Input
+                        type="text"
+                        value={portalPalette.accent || '#10b981'}
+                        onChange={(e) => setPortalPalette({ ...portalPalette, accent: e.target.value })}
+                        className="flex-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

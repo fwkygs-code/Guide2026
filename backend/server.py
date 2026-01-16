@@ -113,6 +113,8 @@ class WorkspaceCreate(BaseModel):
     name: str
     logo: Optional[str] = None
     brand_color: str = "#4f46e5"
+    portal_background_url: Optional[str] = None
+    portal_palette: Optional[Dict[str, str]] = None  # e.g., {"primary": "#3b82f6", "secondary": "#8b5cf6", "accent": "#10b981"}
 
 class Workspace(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -121,6 +123,8 @@ class Workspace(BaseModel):
     slug: str
     logo: Optional[str] = None
     brand_color: str = "#4f46e5"
+    portal_background_url: Optional[str] = None
+    portal_palette: Optional[Dict[str, str]] = None
     owner_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -664,6 +668,23 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         version_doc["snapshot"].pop("password", None)
         await db.walkthrough_versions.insert_one(version_doc)
         update_data["version"] = next_version
+        
+        # Auto-cleanup: Keep only the last 3 versions
+        all_versions = await db.walkthrough_versions.find(
+            {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id},
+            {"_id": 0, "version": 1, "created_at": 1}
+        ).sort("created_at", -1).to_list(100)
+        
+        if len(all_versions) > 3:
+            # Keep the 3 most recent versions
+            versions_to_keep = [v["version"] for v in all_versions[:3]]
+            # Delete older versions
+            await db.walkthrough_versions.delete_many({
+                "workspace_id": workspace_id,
+                "walkthrough_id": walkthrough_id,
+                "version": {"$nin": versions_to_keep}
+            })
+            logger.info(f"Auto-cleaned up versions for walkthrough {walkthrough_id}: kept {len(versions_to_keep)}, deleted {len(all_versions) - len(versions_to_keep)}")
 
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
@@ -738,6 +759,38 @@ async def list_walkthrough_versions(workspace_id: str, walkthrough_id: str, curr
         {"_id": 0}
     ).sort("created_at", -1).to_list(1000)
     return versions
+
+@api_router.delete("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/versions/{version}")
+async def delete_walkthrough_version(workspace_id: str, walkthrough_id: str, version: int, current_user: User = Depends(get_current_user)):
+    """Delete a specific version"""
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Check if version exists
+    version_doc = await db.walkthrough_versions.find_one(
+        {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id, "version": version},
+        {"_id": 0}
+    )
+    if not version_doc:
+        raise HTTPException(status_code=404, detail="Version not found")
+    
+    # Don't allow deleting if it's the only version
+    version_count = await db.walkthrough_versions.count_documents(
+        {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id}
+    )
+    if version_count <= 1:
+        raise HTTPException(status_code=400, detail="Cannot delete the only remaining version")
+    
+    # Delete the version
+    result = await db.walkthrough_versions.delete_one(
+        {"workspace_id": workspace_id, "walkthrough_id": walkthrough_id, "version": version}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Version not found")
+    
+    return {"message": f"Version {version} deleted successfully"}
 
 @api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/diagnose-blocks")
 async def diagnose_blocks(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
@@ -1376,6 +1429,14 @@ async def get_portal(slug: str):
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
+    
+    # Ensure workspace has portal branding fields initialized
+    if "logo" not in workspace:
+        workspace["logo"] = None
+    if "portal_background_url" not in workspace:
+        workspace["portal_background_url"] = None
+    if "portal_palette" not in workspace:
+        workspace["portal_palette"] = None
     
     categories = await db.categories.find({"workspace_id": workspace['id']}, {"_id": 0}).to_list(1000)
     walkthroughs = await db.walkthroughs.find(
