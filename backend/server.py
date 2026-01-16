@@ -774,7 +774,9 @@ async def diagnose_walkthrough(workspace_id: str, walkthrough_id: str, current_u
                 version_blocks_found.append({
                     "version": version.get("version"),
                     "created_at": version.get("created_at"),
-                    "images": version_images
+                    "images": version_images,
+                    "total_blocks_with_urls": sum(img.get("blocks_with_urls", 0) for img in version_images),
+                    "total_empty_blocks": sum(len(img.get("empty_blocks", [])) for img in version_images)
                 })
     
     return {
@@ -827,21 +829,28 @@ async def recover_blocks_from_version(workspace_id: str, walkthrough_id: str, bo
             {"_id": 0}
         ).sort("created_at", -1).to_list(100)
         
-        # Find first version with blocks
+        # Find first version with image blocks that have URLs
         version = None
         for v in versions:
             snapshot = v.get("snapshot", {})
             if "steps" in snapshot:
-                has_blocks = any(
-                    step.get("blocks") and isinstance(step.get("blocks"), list) and len(step.get("blocks", [])) > 0
-                    for step in snapshot["steps"]
-                )
-                if has_blocks:
-                    version = v
-                    break
+                # Check if any step has image blocks with URLs
+                for step in snapshot.get("steps", []):
+                    blocks = step.get("blocks", []) or []
+                    for block in blocks:
+                        if block.get("type") == "image":
+                            block_url = block.get("data", {}).get("url")
+                            # Check if URL exists and is not empty
+                            if block_url and block_url.strip():
+                                version = v
+                                break
+                    if version:
+                        break
+            if version:
+                break
         
         if not version:
-            raise HTTPException(status_code=404, detail="No version with blocks found")
+            raise HTTPException(status_code=404, detail="No version found with image blocks containing URLs. The snapshots may have been saved with empty image URLs. You may need to re-upload the images.")
     
     snapshot = version.get("snapshot", {})
     if not snapshot or "steps" not in snapshot:
@@ -873,18 +882,28 @@ async def recover_blocks_from_version(workspace_id: str, walkthrough_id: str, bo
                 current_block_map = {b.get("id"): b for b in current_blocks if b.get("id")}
                 # For each snapshot block, restore data if current block is missing URL
                 for snapshot_block in snapshot_blocks:
-                    if snapshot_block.get("type") == "image" and snapshot_block.get("data", {}).get("url"):
+                    if snapshot_block.get("type") == "image":
                         block_id = snapshot_block.get("id")
+                        snapshot_url = snapshot_block.get("data", {}).get("url")
+                        
                         if block_id in current_block_map:
-                            # Block exists but might be missing URL - restore it
+                            # Block exists - restore URL if missing
                             current_block = current_block_map[block_id]
-                            if not current_block.get("data", {}).get("url"):
+                            current_url = current_block.get("data", {}).get("url")
+                            
+                            # If snapshot has URL and current doesn't, restore it
+                            if snapshot_url and not current_url:
+                                current_block["data"] = copy.deepcopy(snapshot_block.get("data", {}))
+                                recovered_count += 1
+                            # If both have URLs but current is empty string, restore from snapshot
+                            elif snapshot_url and current_url == "":
                                 current_block["data"] = copy.deepcopy(snapshot_block.get("data", {}))
                                 recovered_count += 1
                         else:
-                            # New block from snapshot - add it
-                            current_blocks.append(copy.deepcopy(snapshot_block))
-                            recovered_count += 1
+                            # New block from snapshot - add it if it has a URL
+                            if snapshot_url:
+                                current_blocks.append(copy.deepcopy(snapshot_block))
+                                recovered_count += 1
                 step["blocks"] = current_blocks
         
         updated_steps.append(step)

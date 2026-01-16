@@ -1046,6 +1046,9 @@ const CanvasBuilderPage = () => {
               <AlertTriangle className="w-5 h-5 text-warning-600" />
               Image Recovery
             </DialogTitle>
+            <p className="text-sm text-slate-600 mt-2">
+              This tool attempts to recover image URLs from version snapshots. If snapshots were saved with empty image URLs, recovery won't be possible and you'll need to re-upload the images.
+            </p>
           </DialogHeader>
           {diagnosisData ? (
             <div className="space-y-4 mt-4">
@@ -1104,9 +1107,19 @@ const CanvasBuilderPage = () => {
                         <div className="text-xs text-slate-600 space-y-1">
                           {version.images.map((img, imgIdx) => (
                             <div key={imgIdx} className="ml-2">
-                              • {img.step_title}: {img.image_count} image(s)
+                              • {img.step_title}: {img.blocks_with_urls || img.image_count || 0} image(s) with URLs
+                              {img.empty_blocks && img.empty_blocks.length > 0 && (
+                                <span className="text-warning-600 ml-1">
+                                  ({img.empty_blocks.length} empty)
+                                </span>
+                              )}
                             </div>
                           ))}
+                          {version.total_empty_blocks > 0 && (
+                            <div className="mt-2 pt-2 border-t border-warning/30 text-warning-600 text-xs">
+                              ⚠️ {version.total_empty_blocks} image block(s) have empty URLs and cannot be recovered
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1147,9 +1160,13 @@ const CanvasBuilderPage = () => {
               )}
 
               {!diagnosisData.can_recover && (
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                  <p className="text-sm text-slate-600">
-                    No recoverable images found in version snapshots. Images may have been lost before versioning was implemented, or they were never saved.
+                <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/10">
+                  <p className="text-sm text-destructive font-medium mb-2">
+                    No recoverable images found in version snapshots.
+                  </p>
+                  <p className="text-xs text-destructive/80">
+                    The version snapshots were saved with empty image URLs. This means the images cannot be automatically recovered. 
+                    You will need to <strong>re-upload the images manually</strong> by clicking on each empty image block and uploading the file again.
                   </p>
                 </div>
               )}
