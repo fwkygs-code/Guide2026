@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import axios from 'axios';
 import { normalizeImageUrl } from '../lib/utils';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -161,6 +162,9 @@ const PortalPage = ({ isEmbedded = false }) => {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+              
               {/* Portal External Links */}
               {workspace.portal_links && workspace.portal_links.length > 0 && (
                 <div className="flex items-center gap-2">
