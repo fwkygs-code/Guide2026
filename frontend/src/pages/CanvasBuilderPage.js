@@ -1073,7 +1073,7 @@ const CanvasBuilderPage = () => {
   return (
     <DashboardLayout>
       <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} workspaceId={workspaceId} />
-      <div className="h-screen flex flex-col bg-white">
+      <div className="h-[calc(100vh-4rem)] flex flex-col bg-white overflow-hidden">
         {(isSaving || isPublishing) && (
           <div
             className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center"
