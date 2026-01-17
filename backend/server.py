@@ -960,6 +960,80 @@ async def update_workspace(workspace_id: str, workspace_data: WorkspaceCreate, c
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
     return Workspace(**workspace)
 
+@api_router.delete("/workspaces/{workspace_id}")
+async def delete_workspace(workspace_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Delete workspace and all associated data (cascade delete).
+    This will permanently delete:
+    - All walkthroughs (and their files)
+    - All categories
+    - All workspace files (logo, background)
+    - All workspace members
+    """
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member or member.role != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only workspace owner can delete workspace")
+    
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    # Get all walkthroughs in workspace for cascade file deletion
+    walkthroughs = await db.walkthroughs.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(10000)
+    
+    # Delete all files associated with walkthroughs
+    total_deleted_files = 0
+    for walkthrough in walkthroughs:
+        file_urls = await extract_file_urls_from_walkthrough(walkthrough)
+        deleted_count = await delete_files_by_urls(file_urls, current_user.id)
+        total_deleted_files += deleted_count
+    
+    # Delete workspace logo and background files
+    workspace_file_urls = []
+    if workspace.get('logo'):
+        workspace_file_urls.append(workspace['logo'])
+    if workspace.get('portal_background_url'):
+        workspace_file_urls.append(workspace['portal_background_url'])
+    
+    if workspace_file_urls:
+        deleted_count = await delete_files_by_urls(workspace_file_urls, current_user.id)
+        total_deleted_files += deleted_count
+    
+    # Delete all walkthroughs (including archived)
+    await db.walkthroughs.delete_many({"workspace_id": workspace_id})
+    
+    # Delete all walkthrough versions
+    await db.walkthrough_versions.delete_many({"workspace_id": workspace_id})
+    
+    # Delete all categories (cascade deletes sub-categories)
+    # First get all categories to handle parent-child relationships
+    all_categories = await db.categories.find({"workspace_id": workspace_id}, {"_id": 0, "id": 1}).to_list(1000)
+    category_ids = [c["id"] for c in all_categories]
+    
+    # Delete category icon files
+    for cat in all_categories:
+        cat_full = await db.categories.find_one({"id": cat["id"]}, {"_id": 0})
+        if cat_full and cat_full.get('icon_url'):
+            await delete_files_by_urls([cat_full['icon_url']], current_user.id)
+    
+    # Delete all categories (including sub-categories)
+    await db.categories.delete_many({"workspace_id": workspace_id})
+    
+    # Delete all workspace members
+    await db.workspace_members.delete_many({"workspace_id": workspace_id})
+    
+    # Finally delete the workspace
+    await db.workspaces.delete_one({"id": workspace_id})
+    
+    logging.info(f"Deleted workspace {workspace_id} and {total_deleted_files} associated files")
+    
+    return {
+        "message": "Workspace deleted successfully",
+        "deleted_files": total_deleted_files,
+        "deleted_walkthroughs": len(walkthroughs),
+        "deleted_categories": len(category_ids)
+    }
+
 # Category Routes
 @api_router.post("/workspaces/{workspace_id}/categories", response_model=Category)
 async def create_category(workspace_id: str, category_data: CategoryCreate, current_user: User = Depends(get_current_user)):

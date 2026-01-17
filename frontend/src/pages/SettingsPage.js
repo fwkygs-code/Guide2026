@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useTextSize } from '../contexts/TextSizeContext';
@@ -17,6 +18,7 @@ import PlanSelectionModal from '../components/PlanSelectionModal';
 
 const SettingsPage = () => {
   const { workspaceId } = useParams();
+  const navigate = useNavigate();
   const { textSize, setTextSize } = useTextSize();
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,8 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const [planSelectionOpen, setPlanSelectionOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchWorkspace();
@@ -84,6 +88,21 @@ const SettingsPage = () => {
       toast.success('Background uploaded!');
     } catch (error) {
       toast.error('Failed to upload background');
+    }
+  };
+
+  const handleDeleteWorkspace = async () => {
+    setDeleting(true);
+    try {
+      await api.deleteWorkspace(workspaceId);
+      toast.success('Workspace deleted successfully');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Failed to delete workspace:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete workspace');
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -432,6 +451,58 @@ const SettingsPage = () => {
               >
                 Change Plan
               </Button>
+            </div>
+          </div>
+
+          {/* Danger Zone - Delete Workspace */}
+          <div className="glass rounded-xl p-6 border-2 border-red-200 bg-red-50/30">
+            <h2 className="text-xl font-heading font-semibold mb-4 text-red-900">Danger Zone</h2>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-red-900">Delete Workspace</Label>
+                <p className="text-sm text-red-700 mt-1.5 mb-3">
+                  This action cannot be undone. This will permanently delete the workspace, all categories, and all walkthroughs under it forever.
+                </p>
+                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      disabled={deleting}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Workspace
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete:
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                          <li>All walkthroughs in this workspace</li>
+                          <li>All categories in this workspace</li>
+                          <li>All files associated with this workspace</li>
+                          <li>The workspace itself</li>
+                        </ul>
+                        <p className="mt-3 font-semibold text-red-600">
+                          All data will be deleted forever.
+                        </p>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteWorkspace}
+                        disabled={deleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleting ? 'Deleting...' : 'Yes, Delete Workspace'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </div>
 

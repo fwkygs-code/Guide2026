@@ -206,24 +206,58 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       </div>
 
       {/* Trial Period / Billing Date Info */}
-      {(trial_period_end || next_billing_date) && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-4">
-            {trial_period_end && new Date(trial_period_end) > new Date() && (
-              <div className="flex items-center gap-2 text-sm text-blue-900">
-                <span className="font-medium">Trial ends in:</span>
-                <span>{formatTimeUntil(trial_period_end)}</span>
-              </div>
-            )}
-            {next_billing_date && (!trial_period_end || new Date(trial_period_end) <= new Date()) && (
-              <div className="flex items-center gap-2 text-sm text-blue-900">
-                <span className="font-medium">Next billing:</span>
-                <span>{formatTimeUntil(next_billing_date)}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {(() => {
+        // Debug logging
+        console.log('[QuotaDisplay] Trial/Billing data:', { trial_period_end, next_billing_date, plan: plan.name });
+        
+        // Always check and show if trial is active or billing is upcoming
+        const now = new Date();
+        const trialActive = trial_period_end && new Date(trial_period_end) > now;
+        const billingUpcoming = next_billing_date && new Date(next_billing_date) > now;
+        
+        // For Pro plan, always show trial/billing info if subscription exists
+        if (plan.name === 'pro' && (trial_period_end || next_billing_date)) {
+          return (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="pt-4">
+                {trialActive && (
+                  <div className="flex items-center gap-2 text-sm text-blue-900">
+                    <span className="font-medium">Trial ends in:</span>
+                    <span>{formatTimeUntil(trial_period_end)}</span>
+                  </div>
+                )}
+                {billingUpcoming && !trialActive && (
+                  <div className="flex items-center gap-2 text-sm text-blue-900">
+                    <span className="font-medium">Next billing:</span>
+                    <span>{formatTimeUntil(next_billing_date)}</span>
+                  </div>
+                )}
+                {!trialActive && !billingUpcoming && trial_period_end && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <span>Trial ended</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        }
+        
+        // For Enterprise or other plans, show billing if available
+        if (billingUpcoming) {
+          return (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-sm text-blue-900">
+                  <span className="font-medium">Next billing:</span>
+                  <span>{formatTimeUntil(next_billing_date)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
+        
+        return null;
+      })()}
 
       {/* Warnings */}
       {showWarnings && (
@@ -298,7 +332,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       )}
 
       {/* Storage Usage */}
-      <Card>
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -324,7 +358,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       </Card>
 
       {/* Workspaces Usage */}
-      <Card>
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -354,7 +388,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       </Card>
 
       {/* Walkthroughs Usage */}
-      <Card>
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -384,7 +418,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       </Card>
 
       {/* Categories Usage */}
-      <Card>
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

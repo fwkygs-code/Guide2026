@@ -18,6 +18,7 @@ export const api = {
   getWorkspaces: () => axios.get(`${API}/workspaces`),
   getWorkspace: (id) => axios.get(`${API}/workspaces/${id}`),
   updateWorkspace: (id, data) => axios.put(`${API}/workspaces/${id}`, data),
+  deleteWorkspace: (id) => axios.delete(`${API}/workspaces/${id}`),
 
   // Categories
   createCategory: (workspaceId, data) => axios.post(`${API}/workspaces/${workspaceId}/categories`, data),
