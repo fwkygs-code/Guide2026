@@ -1,41 +1,44 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const LandingPage = () => {
+  const { t } = useTranslation();
+  
   const features = [
     {
       icon: <BookOpen className="w-6 h-6" />,
-      title: "Interactive Walkthroughs",
-      description: "Create step-by-step guides with rich media and interactive elements"
+      title: t('landing.featureInteractiveTitle'),
+      description: t('landing.featureInteractiveDesc')
     },
     {
       icon: <Zap className="w-6 h-6" />,
-      title: "Easy Builder",
-      description: "Form-based or drag-and-drop builder for creating guides effortlessly"
+      title: t('landing.featureBuilderTitle'),
+      description: t('landing.featureBuilderDesc')
     },
     {
       icon: <Users className="w-6 h-6" />,
-      title: "Multi-Tenant",
-      description: "Each company gets their own branded portal with complete isolation"
+      title: t('landing.featureMultiTenantTitle'),
+      description: t('landing.featureMultiTenantDesc')
     },
     {
       icon: <BarChart3 className="w-6 h-6" />,
-      title: "Analytics Dashboard",
-      description: "Track views, completions, and drop-off rates with detailed insights"
+      title: t('landing.featureAnalyticsTitle'),
+      description: t('landing.featureAnalyticsDesc')
     },
     {
       icon: <Globe className="w-6 h-6" />,
-      title: "Embeddable",
-      description: "Embed walkthroughs anywhere with iframe or JS widget"
+      title: t('landing.featureEmbeddableTitle'),
+      description: t('landing.featureEmbeddableDesc')
     },
     {
       icon: <Lock className="w-6 h-6" />,
-      title: "Privacy Control",
-      description: "Public, private, or password-protected walkthroughs"
+      title: t('landing.featurePrivacyTitle'),
+      description: t('landing.featurePrivacyDesc')
     }
   ];
 
@@ -51,10 +54,10 @@ const LandingPage = () => {
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <Link to="/login">
-              <Button variant="ghost" data-testid="nav-login-button">Login</Button>
+              <Button variant="ghost" data-testid="nav-login-button">{t('common.login')}</Button>
             </Link>
             <Link to="/signup">
-              <Button data-testid="nav-signup-button">Get Started</Button>
+              <Button data-testid="nav-signup-button">{t('portal.getStarted')}</Button>
             </Link>
           </div>
         </div>
@@ -70,20 +73,20 @@ const LandingPage = () => {
             className="text-center max-w-4xl mx-auto"
           >
             <h1 className="text-5xl lg:text-6xl font-heading font-bold text-slate-900 mb-6 tracking-tight">
-              Create Interactive Walkthroughs
-              <span className="text-primary block mt-2">That Users Actually Follow</span>
+              {t('landing.heroTitle')}
+              <span className="text-primary block mt-2">{t('landing.heroSubtitle')}</span>
             </h1>
             <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-              Build beautiful, step-by-step guides with rich media. Track engagement, gather feedback, and help your users succeed.
+              {t('landing.heroDescription')}
             </p>
             <div className="flex gap-4 justify-center">
               <Link to="/signup">
                 <Button size="lg" className="rounded-full px-8" data-testid="hero-get-started-button">
-                  Get Started Free
+                  {t('landing.getStartedFree')}
                 </Button>
               </Link>
               <Button size="lg" variant="secondary" className="rounded-full px-8" data-testid="hero-view-demo-button">
-                View Demo
+                {t('landing.viewDemo')}
               </Button>
             </div>
           </motion.div>
@@ -95,10 +98,10 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-heading font-bold text-slate-900 mb-4">
-              Everything You Need
+              {t('landing.featuresTitle')}
             </h2>
             <p className="text-lg text-slate-600">
-              Powerful features to create, manage, and optimize your walkthroughs
+              {t('landing.featuresSubtitle')}
             </p>
           </div>
 
@@ -137,14 +140,14 @@ const LandingPage = () => {
             className="glass rounded-2xl p-12 text-center"
           >
             <h2 className="text-4xl font-heading font-bold text-slate-900 mb-4">
-              Ready to Get Started?
+              {t('landing.ctaTitle')}
             </h2>
             <p className="text-lg text-slate-600 mb-8">
-              Join companies creating better user experiences with interactive walkthroughs
+              {t('landing.ctaDescription')}
             </p>
             <Link to="/signup">
               <Button size="lg" className="rounded-full px-8" data-testid="cta-get-started-button">
-                Start Building Now
+                {t('landing.startBuildingNow')}
               </Button>
             </Link>
           </motion.div>
@@ -158,7 +161,7 @@ const LandingPage = () => {
             <BookOpen className="w-6 h-6 text-primary" />
             <span className="text-xl font-heading font-bold text-white">InterGuide</span>
           </div>
-          <p>© 2025 InterGuide. All rights reserved.</p>
+          <p>{t('landing.copyright')}</p>
         </div>
       </footer>
     </div>

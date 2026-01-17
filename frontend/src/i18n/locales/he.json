@@ -221,5 +221,30 @@
     "publishing": "מפרסם...",
     "published": "פורסם",
     "untitled": "מדריך ללא שם"
+  },
+  "landing": {
+    "heroTitle": "צור מדריכים אינטראקטיביים",
+    "heroSubtitle": "שמשתמשים באמת עוקבים אחריהם",
+    "heroDescription": "בנה מדריכים יפים שלב אחר שלב עם מדיה עשירה. עקוב אחר מעורבות, אסוף משוב ועזור למשתמשים שלך להצליח.",
+    "getStartedFree": "התחל בחינם",
+    "viewDemo": "צפה בהדגמה",
+    "featuresTitle": "כל מה שאתה צריך",
+    "featuresSubtitle": "תכונות חזקות ליצירה, ניהול ואופטימיזציה של המדריכים שלך",
+    "featureInteractiveTitle": "מדריכים אינטראקטיביים",
+    "featureInteractiveDesc": "צור מדריכים שלב אחר שלב עם מדיה עשירה ואלמנטים אינטראקטיביים",
+    "featureBuilderTitle": "בונה קל",
+    "featureBuilderDesc": "בונה מבוסס טופס או גרירה ושחרור ליצירת מדריכים ללא מאמץ",
+    "featureMultiTenantTitle": "רב-דייר",
+    "featureMultiTenantDesc": "כל חברה מקבלת פורטל מותג משלה עם בידוד מלא",
+    "featureAnalyticsTitle": "לוח בקרה אנליטי",
+    "featureAnalyticsDesc": "עקוב אחר צפיות, השלמות ושיעורי נשירה עם תובנות מפורטות",
+    "featureEmbeddableTitle": "ניתן להטמעה",
+    "featureEmbeddableDesc": "הטמע מדריכים בכל מקום עם iframe או ווידג'ט JS",
+    "featurePrivacyTitle": "בקרת פרטיות",
+    "featurePrivacyDesc": "מדריכים ציבוריים, פרטיים או מוגנים בסיסמה",
+    "ctaTitle": "מוכן להתחיל?",
+    "ctaDescription": "הצטרף לחברות שיוצרות חוויות משתמש טובות יותר עם מדריכים אינטראקטיביים",
+    "startBuildingNow": "התחל לבנות עכשיו",
+    "copyright": "© 2025 InterGuide. כל הזכויות שמורות."
   }
 }

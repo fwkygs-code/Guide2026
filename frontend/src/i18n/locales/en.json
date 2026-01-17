@@ -221,5 +221,30 @@
     "publishing": "Publishing...",
     "published": "Published",
     "untitled": "Untitled Walkthrough"
+  },
+  "landing": {
+    "heroTitle": "Create Interactive Walkthroughs",
+    "heroSubtitle": "That Users Actually Follow",
+    "heroDescription": "Build beautiful, step-by-step guides with rich media. Track engagement, gather feedback, and help your users succeed.",
+    "getStartedFree": "Get Started Free",
+    "viewDemo": "View Demo",
+    "featuresTitle": "Everything You Need",
+    "featuresSubtitle": "Powerful features to create, manage, and optimize your walkthroughs",
+    "featureInteractiveTitle": "Interactive Walkthroughs",
+    "featureInteractiveDesc": "Create step-by-step guides with rich media and interactive elements",
+    "featureBuilderTitle": "Easy Builder",
+    "featureBuilderDesc": "Form-based or drag-and-drop builder for creating guides effortlessly",
+    "featureMultiTenantTitle": "Multi-Tenant",
+    "featureMultiTenantDesc": "Each company gets their own branded portal with complete isolation",
+    "featureAnalyticsTitle": "Analytics Dashboard",
+    "featureAnalyticsDesc": "Track views, completions, and drop-off rates with detailed insights",
+    "featureEmbeddableTitle": "Embeddable",
+    "featureEmbeddableDesc": "Embed walkthroughs anywhere with iframe or JS widget",
+    "featurePrivacyTitle": "Privacy Control",
+    "featurePrivacyDesc": "Public, private, or password-protected walkthroughs",
+    "ctaTitle": "Ready to Get Started?",
+    "ctaDescription": "Join companies creating better user experiences with interactive walkthroughs",
+    "startBuildingNow": "Start Building Now",
+    "copyright": "© 2025 InterGuide. All rights reserved."
   }
 }
