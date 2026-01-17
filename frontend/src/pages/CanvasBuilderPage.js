@@ -1180,8 +1180,8 @@ const CanvasBuilderPage = () => {
         </div>
 
         {/* Timeline */}
-        <div className="relative">
-          {stepTimelineVisible && (
+        {stepTimelineVisible && (
+          <div className="relative">
             <StepTimeline
               steps={walkthrough.steps}
               currentStepIndex={currentStepIndex}
@@ -1191,17 +1191,30 @@ const CanvasBuilderPage = () => {
               selectedIds={selectedStepIds}
               onToggleSelect={toggleStepSelected}
             />
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-2 right-4 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
-            onClick={() => setStepTimelineVisible(!stepTimelineVisible)}
-            title={stepTimelineVisible ? "Hide steps timeline" : "Show steps timeline"}
-          >
-            {stepTimelineVisible ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-4 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+              onClick={() => setStepTimelineVisible(false)}
+              title="Hide steps timeline"
+            >
+              <ChevronUp className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+        {!stepTimelineVisible && (
+          <div className="relative border-b border-slate-200">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-4 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+              onClick={() => setStepTimelineVisible(true)}
+              title="Show steps timeline"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
 
         {/* Main Editor Area */}
         <div className="flex-1 flex overflow-hidden relative">

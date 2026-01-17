@@ -212,7 +212,27 @@
     "selectPlanDescription": "Select a plan to get started. You can change your plan anytime.",
     "changePlanDescription": "Select a new plan. Your current usage will be preserved.",
     "popular": "Popular",
-    "freeTrial": "Start with a free 14-day trial"
+    "freeTrial": "Start with a free 14-day trial",
+    "planFeatures": {
+      "workspace": "{{count}} workspace",
+      "workspaces": "{{count}} workspaces",
+      "unlimitedWorkspaces": "Unlimited workspaces",
+      "category": "{{count}} category",
+      "categories": "{{count}} categories",
+      "unlimitedCategories": "Unlimited categories",
+      "walkthrough": "{{count}} walkthrough",
+      "walkthroughs": "{{count}} walkthroughs",
+      "unlimitedWalkthroughs": "Unlimited walkthroughs",
+      "storage": "{{size}} storage",
+      "maxFileSize": "{{size}} max file size",
+      "extraStorageAvailable": "Extra storage available",
+      "customFileSizeLimits": "Custom file size limits",
+      "basicSupport": "Basic support",
+      "prioritySupport": "Priority support",
+      "advancedFeatures": "Advanced features",
+      "dedicatedAccountManager": "Dedicated account manager",
+      "customIntegrations": "Custom integrations"
+    }
   },
   "builder": {
     "viewPortal": "View Portal",

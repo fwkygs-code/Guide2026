@@ -114,7 +114,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
   return (
     <div className="w-80 border-r border-slate-200 bg-white flex flex-col h-full overflow-hidden">
       {/* Walkthrough Info */}
-      <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '35%' }}>
+      <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '30%' }}>
         <Input
           value={walkthrough.title}
           onChange={(e) => onUpdate({ ...walkthrough, title: e.target.value })}

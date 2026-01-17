@@ -319,7 +319,7 @@ const DashboardPage = () => {
                   data-testid={`workspace-walkthroughs-${workspace.id}`}
                 >
                   <BookOpen className="w-4 h-4 mb-1" />
-                  <span className="text-xs">Guides</span>
+                  <span className="text-xs">{t('workspace.guides')}</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -332,7 +332,7 @@ const DashboardPage = () => {
                   data-testid={`workspace-categories-${workspace.id}`}
                 >
                   <FolderOpen className="w-4 h-4 mb-1" />
-                  <span className="text-xs">Categories</span>
+                  <span className="text-xs">{t('workspace.categories')}</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -345,7 +345,7 @@ const DashboardPage = () => {
                   data-testid={`workspace-settings-${workspace.id}`}
                 >
                   <Settings className="w-4 h-4 mb-1" />
-                  <span className="text-xs">Settings</span>
+                  <span className="text-xs">{t('workspace.settings')}</span>
                 </Button>
               </div>
             </motion.div>

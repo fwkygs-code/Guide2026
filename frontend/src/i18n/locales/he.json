@@ -212,7 +212,27 @@
     "selectPlanDescription": "בחר תוכנית כדי להתחיל. תוכל לשנות את התוכנית שלך בכל עת.",
     "changePlanDescription": "בחר תוכנית חדשה. השימוש הנוכחי שלך יישמר.",
     "popular": "פופולרי",
-    "freeTrial": "התחל עם תקופת ניסיון חינם של 14 ימים"
+    "freeTrial": "התחל עם תקופת ניסיון חינם של 14 ימים",
+    "planFeatures": {
+      "workspace": "{{count}} אזור עבודה",
+      "workspaces": "{{count}} אזורי עבודה",
+      "unlimitedWorkspaces": "אזורי עבודה ללא הגבלה",
+      "category": "{{count}} קטגוריה",
+      "categories": "{{count}} קטגוריות",
+      "unlimitedCategories": "קטגוריות ללא הגבלה",
+      "walkthrough": "{{count}} מדריך",
+      "walkthroughs": "{{count}} מדריכים",
+      "unlimitedWalkthroughs": "מדריכים ללא הגבלה",
+      "storage": "{{size}} אחסון",
+      "maxFileSize": "גודל קובץ מקסימלי {{size}}",
+      "extraStorageAvailable": "אחסון נוסף זמין",
+      "customFileSizeLimits": "מגבלות גודל קובץ מותאמות אישית",
+      "basicSupport": "תמיכה בסיסית",
+      "prioritySupport": "תמיכה בעדיפות",
+      "advancedFeatures": "תכונות מתקדמות",
+      "dedicatedAccountManager": "מנהל חשבון ייעודי",
+      "customIntegrations": "אינטגרציות מותאמות אישית"
+    }
   },
   "builder": {
     "viewPortal": "צפה בפורטל",

@@ -59,7 +59,7 @@ const BuildingTips = () => {
 
       <div className="p-6 space-y-4">
         {tips.map((tip, index) => (
-          <Card key={index} className="border-slate-200 hover:border-primary/50 transition-colors">
+          <Card key={index} className="bg-white border-slate-200 hover:border-primary/50 transition-colors">
             <CardHeader className="pb-3">
               <div className="flex items-start gap-3">
                 <div className="text-primary mt-0.5 flex-shrink-0">

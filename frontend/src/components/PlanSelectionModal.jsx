@@ -20,12 +20,12 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       price: '$0',
       period: 'forever',
       features: [
-        '1 workspace',
-        '3 categories',
-        '10 walkthroughs',
-        '500 MB storage',
-        '10 MB max file size',
-        'Basic support'
+        t('upgrade.planFeatures.workspace', { count: 1 }),
+        t('upgrade.planFeatures.categories', { count: 3 }),
+        t('upgrade.planFeatures.walkthroughs', { count: 10 }),
+        t('upgrade.planFeatures.storage', { size: '500 MB' }),
+        t('upgrade.planFeatures.maxFileSize', { size: '10 MB' }),
+        t('upgrade.planFeatures.basicSupport')
       ],
       popular: false,
       mediaCapacity: {
@@ -44,14 +44,14 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       price: 'Free Trial',
       period: '14 days',
       features: [
-        '3 workspaces',
-        'Unlimited categories',
-        'Unlimited walkthroughs',
-        '25 GB storage',
-        '150 MB max file size',
-        'Extra storage available',
-        'Priority support',
-        'Advanced features'
+        t('upgrade.planFeatures.workspaces', { count: 3 }),
+        t('upgrade.planFeatures.unlimitedCategories'),
+        t('upgrade.planFeatures.unlimitedWalkthroughs'),
+        t('upgrade.planFeatures.storage', { size: '25 GB' }),
+        t('upgrade.planFeatures.maxFileSize', { size: '150 MB' }),
+        t('upgrade.planFeatures.extraStorageAvailable'),
+        t('upgrade.planFeatures.prioritySupport'),
+        t('upgrade.planFeatures.advancedFeatures')
       ],
       popular: true,
       trial: true,
@@ -71,15 +71,15 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       price: 'Custom',
       period: 'pricing',
       features: [
-        'Unlimited workspaces',
-        'Unlimited categories',
-        'Unlimited walkthroughs',
-        '200 GB storage',
-        '500 MB max file size',
-        'Custom file size limits',
-        'Priority support',
-        'Dedicated account manager',
-        'Custom integrations'
+        t('upgrade.planFeatures.unlimitedWorkspaces'),
+        t('upgrade.planFeatures.unlimitedCategories'),
+        t('upgrade.planFeatures.unlimitedWalkthroughs'),
+        t('upgrade.planFeatures.storage', { size: '200 GB' }),
+        t('upgrade.planFeatures.maxFileSize', { size: '500 MB' }),
+        t('upgrade.planFeatures.customFileSizeLimits'),
+        t('upgrade.planFeatures.prioritySupport'),
+        t('upgrade.planFeatures.dedicatedAccountManager'),
+        t('upgrade.planFeatures.customIntegrations')
       ],
       popular: false,
       mediaCapacity: null // Custom - contact for details
