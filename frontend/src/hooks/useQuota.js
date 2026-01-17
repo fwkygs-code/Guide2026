@@ -81,7 +81,16 @@ export const useQuota = (workspaceId = null) => {
     
     // Check storage quota
     // Only block if storage would be exceeded (not if already at limit, since user might have space)
-    const availableStorage = quota.storage_allowed - quota.storage_used;
+    const storageUsed = quota.storage_used || 0;
+    const storageAllowed = quota.storage_allowed || 0;
+    const availableStorage = storageAllowed - storageUsed;
+    
+    // If storage_allowed is 0 or null, allow upload (unlimited plan or data issue)
+    if (storageAllowed === 0 || storageAllowed === null) {
+      console.log('[Quota Check] Unlimited storage or data issue, allowing upload');
+      return { allowed: true };
+    }
+    
     if (availableStorage < fileSize) {
       console.warn('[Quota Check] Blocked:', {
         availableStorage: formatBytes(availableStorage),
