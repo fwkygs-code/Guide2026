@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -223,6 +224,11 @@ const LoginPage = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
       
+      {/* Language Switcher - Fixed top right */}
+      <div className="fixed top-6 right-6 z-50">
+        <LanguageSwitcher />
+      </div>
+
       {/* Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

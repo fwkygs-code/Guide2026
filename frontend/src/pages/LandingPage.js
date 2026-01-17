@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const LandingPage = () => {
   const features = [
@@ -47,7 +48,8 @@ const LandingPage = () => {
             <BookOpen className="w-8 h-8 text-primary" />
             <span className="text-xl font-heading font-bold">InterGuide</span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <Link to="/login">
               <Button variant="ghost" data-testid="nav-login-button">Login</Button>
             </Link>
