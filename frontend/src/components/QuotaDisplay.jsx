@@ -22,7 +22,7 @@ const formatNumber = (num) => {
   return num.toLocaleString();
 };
 
-const QuotaDisplay = ({ workspaceId = null, showWarnings = true }) => {
+const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = null }) => {
   const [quotaData, setQuotaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
