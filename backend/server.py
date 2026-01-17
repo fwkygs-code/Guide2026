@@ -1335,17 +1335,21 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         for block in image_blocks_without_urls:
             logger.warning(f"[update_step] Block {block.get('id')} missing URL: {block}")
     
-    # CRITICAL: Preserve existing media_url and media_type if not explicitly provided
+    # CRITICAL: Preserve existing media_url and media_type if None is provided
+    # Frontend now ALWAYS sends media_url/media_type (either the value or null)
+    # If None is sent, it means "preserve existing" (not "clear it")
     existing_step = steps[step_index]
     existing_media_url = existing_step.get('media_url')
     existing_media_type = existing_step.get('media_type')
     
-    # Only update media_url/media_type if explicitly provided (not None)
-    # If None is passed, preserve existing values
-    final_media_url = step_data.media_url if step_data.media_url is not None else existing_media_url
-    final_media_type = step_data.media_type if step_data.media_type is not None else existing_media_type
+    # If media_url/media_type is None in the request, preserve existing value
+    # If it's a string, use it (explicitly set)
+    # This allows frontend to send None to mean "don't change"
+    final_media_url = step_data.media_url if (step_data.media_url is not None and step_data.media_url != '') else existing_media_url
+    final_media_type = step_data.media_type if (step_data.media_type is not None and step_data.media_type != '') else existing_media_type
     
     logger.info(f"[update_step] Step {step_id}: Media URL - existing: {existing_media_url}, provided: {step_data.media_url}, final: {final_media_url}")
+    logger.info(f"[update_step] Step {step_id}: Media TYPE - existing: {existing_media_type}, provided: {step_data.media_type}, final: {final_media_type}")
     
     updated_step = {
         'title': step_data.title,
@@ -1401,11 +1405,17 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
 
     steps = walkthrough.get("steps", [])
     step_map = {s["id"]: s for s in steps if "id" in s}
+    
+    # CRITICAL: Deep copy steps to avoid mutating the original step_map
+    # This ensures we don't accidentally modify the source data
+    import copy
+    step_map_copy = {sid: copy.deepcopy(step) for sid, step in step_map.items()}
+    
     # Only allow reordering of existing step ids
-    ordered = [step_map[sid] for sid in body.step_ids if sid in step_map]
+    ordered = [step_map_copy[sid] for sid in body.step_ids if sid in step_map_copy]
     
     # CRITICAL: Ensure all steps have blocks array before reordering with proper structure
-    # CRITICAL: Also preserve media_url and media_type fields
+    # CRITICAL: Also preserve media_url and media_type fields - NEVER overwrite existing values
     for step in ordered:
         if "blocks" not in step or step["blocks"] is None:
             step["blocks"] = []
@@ -1423,17 +1433,22 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
                 if "id" not in block:
                     block["id"] = str(uuid.uuid4())
         
-        # CRITICAL: Ensure media_url and media_type are preserved (don't lose them during reorder)
-        # If media_url/media_type are missing, preserve them as None (but don't overwrite existing values)
+        # CRITICAL: Only set media_url/media_type to None if they're completely missing
+        # DO NOT overwrite existing values (even if they're None - preserve the existing None)
+        # This prevents losing media_url during reordering
         if "media_url" not in step:
             step["media_url"] = None
         if "media_type" not in step:
             step["media_type"] = None
+        
+        # Log to track media_url preservation during reorder
+        logger.info(f"[reorder_steps] Step {step.get('id')}: media_url={step.get('media_url')}, media_type={step.get('media_type')}")
     
     if len(ordered) != len(steps):
         # If mismatch, keep any missing steps at the end (stable)
-        missing = [s for s in steps if s.get("id") not in set(body.step_ids)]
+        missing = [copy.deepcopy(s) for s in steps if s.get("id") not in set(body.step_ids)]
         # CRITICAL: Ensure missing steps also have blocks array with proper structure
+        # CRITICAL: Preserve media_url and media_type for missing steps too
         for step in missing:
             if "blocks" not in step or step["blocks"] is None:
                 step["blocks"] = []
@@ -1448,6 +1463,15 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
                         block["type"] = "text"
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
+            
+            # Preserve media_url and media_type for missing steps
+            if "media_url" not in step:
+                step["media_url"] = None
+            if "media_type" not in step:
+                step["media_type"] = None
+            
+            logger.info(f"[reorder_steps] Missing step {step.get('id')}: media_url={step.get('media_url')}, media_type={step.get('media_type')}")
+        
         ordered.extend(missing)
 
     # Update order fields

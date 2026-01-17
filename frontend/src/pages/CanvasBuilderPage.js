@@ -162,7 +162,12 @@ const CanvasBuilderPage = () => {
                 settings: block.settings || {}
               };
             });
-            console.log('[CanvasBuilder] Loaded step:', stepWithBlocks.id, 'media_url:', stepWithBlocks.media_url, 'media_type:', stepWithBlocks.media_type);
+            console.log('[CanvasBuilder] Loaded step:', stepWithBlocks.id, {
+              'media_url': stepWithBlocks.media_url,
+              'media_type': stepWithBlocks.media_type,
+              'blocks_count': stepWithBlocks.blocks?.length || 0,
+              'image_blocks': stepWithBlocks.blocks?.filter(b => b.type === 'image').length || 0
+            });
             return stepWithBlocks;
           });
         }
@@ -239,37 +244,30 @@ const CanvasBuilderPage = () => {
           console.log('[CanvasBuilder] Saving step with blocks:', step.id, step.blocks);
           
           if (step.id && !step.isNew) {
-            // CRITICAL: Preserve media_url and media_type - only send if they exist
-            // Don't send null/undefined as it will overwrite existing values
+            // CRITICAL: ALWAYS send media_url and media_type from current state
+            // This ensures we're explicit about what we want to save
+            // Backend will preserve existing if we send None, but we should send the actual state value
             const updateData = {
               title: step.title || '',
               content: step.content || '',
               navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
-              blocks: step.blocks  // Send blocks with complete structure
+              blocks: step.blocks,  // Send blocks with complete structure
+              // CRITICAL: Always include media_url and media_type from state
+              // If undefined in state, use null (backend will preserve existing if None)
+              // If null in state, send null (user cleared it)
+              // If string in state, send it (explicitly set)
+              media_url: step.media_url !== undefined ? (step.media_url || null) : null,
+              media_type: step.media_type !== undefined ? (step.media_type || null) : null
             };
             
-            // CRITICAL: Only include media_url/media_type if they are explicitly provided
-            // - If value is a non-empty string, send it (explicitly set)
-            // - If value is null, send null (user cleared it)
-            // - If value is undefined or empty string, DON'T send it (preserves existing value in database)
-            if (step.media_url !== undefined) {
-              // Only send if it's a valid string or explicitly null (user cleared it)
-              if (step.media_url === null || (typeof step.media_url === 'string' && step.media_url.length > 0)) {
-                updateData.media_url = step.media_url;
-              }
-              // If empty string, don't include in updateData (preserves existing)
-            }
-            
-            if (step.media_type !== undefined) {
-              // Only send if it's a valid string or explicitly null (user cleared it)
-              if (step.media_type === null || (typeof step.media_type === 'string' && step.media_type.length > 0)) {
-                updateData.media_type = step.media_type;
-              }
-              // If empty string, don't include in updateData (preserves existing)
-            }
-            
-            console.log('[CanvasBuilder] Saving step:', step.id, 'media_url:', updateData.media_url, 'media_type:', updateData.media_type);
+            console.log('[CanvasBuilder] Saving step:', step.id, {
+              'step.media_url (state)': step.media_url,
+              'updateData.media_url (sending)': updateData.media_url,
+              'step.media_type (state)': step.media_type,
+              'updateData.media_type (sending)': updateData.media_type,
+              'hasBlocks': step.blocks?.length || 0
+            });
             
             await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
           } else if (step.isNew) {
@@ -291,13 +289,17 @@ const CanvasBuilderPage = () => {
         setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
         // Persist step ordering (only after all steps have real IDs)
-        // CRITICAL: Wait a moment before reordering to ensure all updateStep calls have completed
+        // CRITICAL: Wait longer before reordering to ensure all updateStep calls have completed
         // This prevents race condition where reorderSteps might read stale data
+        // Increased delay to 500ms to ensure database writes are fully committed
         const persistedIds = nextSteps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
-        if (persistedIds.length === nextSteps.length) {
-          // Small delay to ensure database writes from updateStep calls are complete
-          await new Promise(resolve => setTimeout(resolve, 100));
+        if (persistedIds.length === nextSteps.length && persistedIds.length > 0) {
+          // Longer delay to ensure database writes from updateStep calls are complete
+          // MongoDB needs time to commit writes, especially on first deployment
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log('[CanvasBuilder] Reordering steps after save, step IDs:', persistedIds);
           await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
+          console.log('[CanvasBuilder] Steps reordered successfully');
         }
         
         // CRITICAL: After saving, refetch to ensure we have the latest data with all blocks preserved
@@ -347,7 +349,12 @@ const CanvasBuilderPage = () => {
               const withUrls = imageBlocks.filter(b => b.data && b.data.url);
               console.log(`[CanvasBuilder] Step ${step.id}: ${imageBlocks.length} image blocks, ${withUrls.length} with URLs`);
             }
-            console.log('[CanvasBuilder] Loaded step after save:', stepWithBlocks.id, 'media_url:', stepWithBlocks.media_url, 'media_type:', stepWithBlocks.media_type);
+            console.log('[CanvasBuilder] Loaded step after save:', stepWithBlocks.id, {
+              'media_url': stepWithBlocks.media_url,
+              'media_type': stepWithBlocks.media_type,
+              'blocks_count': stepWithBlocks.blocks?.length || 0,
+              'image_blocks': stepWithBlocks.blocks?.filter(b => b.type === 'image').length || 0
+            });
             return stepWithBlocks;
           });
         }
@@ -628,34 +635,22 @@ const CanvasBuilderPage = () => {
             });
             
             if (step.id && !step.isNew) {
-              // CRITICAL: Preserve media_url and media_type - only send if they exist
+              // CRITICAL: ALWAYS send media_url and media_type from current state
               const updateData = {
                 title: step.title || '',
                 content: step.content || '',
                 navigation_type: step.navigation_type || 'next_prev',
                 common_problems: step.common_problems || [],
-                blocks: stepBlocks  // Send blocks with complete structure including URLs
+                blocks: stepBlocks,  // Send blocks with complete structure including URLs
+                // CRITICAL: Always include media_url and media_type from state
+                media_url: step.media_url !== undefined ? (step.media_url || null) : null,
+                media_type: step.media_type !== undefined ? (step.media_type || null) : null
               };
               
-              // CRITICAL: Only include media_url/media_type if they are explicitly provided
-              // - If value is a non-empty string, send it (explicitly set)
-              // - If value is null, send null (user cleared it)
-              // - If value is undefined or empty string, DON'T send it (preserves existing value in database)
-              if (step.media_url !== undefined) {
-                // Only send if it's a valid string or explicitly null (user cleared it)
-                if (step.media_url === null || (typeof step.media_url === 'string' && step.media_url.length > 0)) {
-                  updateData.media_url = step.media_url;
-                }
-                // If empty string, don't include in updateData (preserves existing)
-              }
-              
-              if (step.media_type !== undefined) {
-                // Only send if it's a valid string or explicitly null (user cleared it)
-                if (step.media_type === null || (typeof step.media_type === 'string' && step.media_type.length > 0)) {
-                  updateData.media_type = step.media_type;
-                }
-                // If empty string, don't include in updateData (preserves existing)
-              }
+              console.log('[CanvasBuilder] Publishing - Saving step:', step.id, {
+                'media_url': updateData.media_url,
+                'media_type': updateData.media_type
+              });
               
               await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
             } else if (step.isNew) {
@@ -826,11 +821,19 @@ const CanvasBuilderPage = () => {
       const updatedSteps = prev.steps.map((s) => {
         if (s.id === stepId) {
           // CRITICAL: Preserve media_url and media_type from existing step if not provided in updates
+          // This prevents losing media_url when updating other fields like blocks, title, etc.
           const preservedMedia = {
-            media_url: updates.media_url !== undefined ? updates.media_url : s.media_url,
-            media_type: updates.media_type !== undefined ? updates.media_type : s.media_type
+            // Only update media_url/media_type if explicitly provided in updates
+            // Otherwise, preserve from existing step (even if it's null/undefined)
+            media_url: updates.media_url !== undefined ? updates.media_url : (s.media_url !== undefined ? s.media_url : null),
+            media_type: updates.media_type !== undefined ? updates.media_type : (s.media_type !== undefined ? s.media_type : null)
           };
           const updated = { ...s, ...updates, ...preservedMedia };
+          
+          // Log media_url preservation for debugging
+          if (updates.media_url === undefined && s.media_url) {
+            console.log('[CanvasBuilder] updateStep: Preserved media_url:', s.media_url, 'for step:', stepId);
+          }
           
           // CRITICAL: Ensure blocks array always exists with proper structure
           if (!updated.blocks) {
