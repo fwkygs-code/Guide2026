@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -48,6 +48,7 @@ const CanvasBuilderPage = () => {
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [selectStepsMode, setSelectStepsMode] = useState(false);
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
+  const [activeStepId, setActiveStepId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [activeStepId, setActiveStepId] = useState(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
@@ -1110,39 +1111,26 @@ const CanvasBuilderPage = () => {
             </Button>
 
             {isEditing && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={diagnoseWalkthrough}
-                  disabled={isSaving || isPublishing}
-                  data-testid="recover-images-button"
-                  className="border-warning/30 bg-warning/10 text-warning-600 hover:bg-warning/20"
-                >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Recover Images
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={openVersions}
-                  disabled={isSaving || isPublishing}
-                  data-testid="versions-button"
-                >
-                  <History className="w-4 h-4 mr-2" />
-                  Versions
-                </Button>
-              </>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openVersions}
+                disabled={isSaving || isPublishing}
+                data-testid="versions-button"
+              >
+                <History className="w-4 h-4 mr-2" />
+                Versions
+              </Button>
             )}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsPreviewMode(true)}
+              onClick={addStep}
               disabled={isSaving || isPublishing}
-              data-testid="preview-button"
+              data-testid="new-step-button"
             >
-              <Play className="w-4 h-4 mr-2" />
-              Test Mode
+              <Plus className="w-4 h-4 mr-2" />
+              New Step
             </Button>
 
             {walkthrough.status === 'published' && workspace && (

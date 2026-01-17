@@ -1,38 +1,50 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, CheckSquare, Square } from 'lucide-react';
+import { X, CheckSquare, Square, GripVertical } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-const StepTimeline = ({
-  steps,
-  currentStepIndex,
-  onStepClick,
-  onDeleteStep,
-  selectMode = false,
-  selectedIds = new Set(),
-  onToggleSelect,
-}) => {
+const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDeleteStep, selectMode, selectedIds, onToggleSelect }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.id });
 
-  if (steps.length === 0) return null;
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   return (
-    <div className="relative z-40 border-b border-slate-200 bg-white px-6 py-2">
-      <div className="flex items-center gap-3 overflow-x-auto overflow-y-visible min-h-[72px]">
-        {steps.map((step, index) => (
-          <React.Fragment key={step.id}>
-            <motion.button
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              onClick={() => {
-                if (selectMode) onToggleSelect?.(step.id);
-                else onStepClick(index);
-              }}
-              className={`group relative z-50 flex flex-col items-center justify-center p-4 rounded-xl transition-all min-w-[180px] ${
-                currentStepIndex === index
-                  ? 'bg-primary text-white shadow-lg scale-105'
-                  : 'bg-gray-100/80 backdrop-blur-sm text-gray-700 hover:bg-gray-200/80'
-              }`}
-              data-testid={`timeline-step-${index}`}
-            >
+    <motion.button
+      ref={setNodeRef}
+      style={style}
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      onClick={() => {
+        if (selectMode) onToggleSelect?.(step.id);
+        else onStepClick(index);
+      }}
+      className={`group relative z-50 flex flex-col items-center justify-center p-4 rounded-xl transition-all min-w-[180px] ${
+        currentStepIndex === index
+          ? 'bg-primary text-white shadow-lg scale-105'
+          : 'bg-gray-100/80 backdrop-blur-sm text-gray-700 hover:bg-gray-200/80'
+      } ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
+      data-testid={`timeline-step-${index}`}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className={`w-4 h-4 ${currentStepIndex === index ? 'text-white' : 'text-slate-400'}`} />
+      </div>
               <div className="text-xs font-medium mb-1">Step {index + 1}</div>
               <div
                 className="text-sm font-semibold max-w-[140px] text-center line-clamp-2"
@@ -58,22 +70,51 @@ const StepTimeline = ({
                 </div>
               )}
 
-              {steps.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm('Delete this step?')) {
-                      onDeleteStep(step.id);
-                    }
-                  }}
-                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 z-50"
-                  data-testid={`timeline-delete-${index}`}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </motion.button>
+      {onDeleteStep && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm('Delete this step?')) {
+              onDeleteStep(step.id);
+            }
+          }}
+          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 z-50"
+          data-testid={`timeline-delete-${index}`}
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
+    </motion.button>
+  );
+};
 
+const StepTimeline = ({
+  steps,
+  currentStepIndex,
+  onStepClick,
+  onDeleteStep,
+  selectMode = false,
+  selectedIds = new Set(),
+  onToggleSelect,
+}) => {
+
+  if (steps.length === 0) return null;
+
+  return (
+    <div className="relative z-40 border-b border-slate-200 bg-white px-6 py-2">
+      <div className="flex items-center gap-3 overflow-x-auto overflow-y-visible min-h-[72px]">
+        {steps.map((step, index) => (
+          <React.Fragment key={step.id}>
+            <SortableStepItem
+              step={step}
+              index={index}
+              currentStepIndex={currentStepIndex}
+              onStepClick={onStepClick}
+              onDeleteStep={onDeleteStep}
+              selectMode={selectMode}
+              selectedIds={selectedIds}
+              onToggleSelect={onToggleSelect}
+            />
             {index < steps.length - 1 && (
               <div className="w-8 h-px bg-slate-300" />
             )}
