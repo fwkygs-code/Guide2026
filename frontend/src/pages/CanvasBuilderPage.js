@@ -19,9 +19,10 @@ import StepTimeline from '../components/canvas-builder/StepTimeline';
 import PreviewMode from '../components/canvas-builder/PreviewMode';
 
 const CanvasBuilderPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { workspaceId, walkthroughId } = useParams();
   const navigate = useNavigate();
+  const isRTL = i18n.language === 'he';
   const isEditing = !!walkthroughId;
   const draftKey = `interguide:draft:${workspaceId}`;
 
@@ -1245,7 +1246,7 @@ const CanvasBuilderPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-4 -right-10 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                    className="absolute top-4 -right-10 rtl:-left-10 rtl:right-auto z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
                     onClick={() => setLeftPanelVisible(false)}
                     title="Hide walkthrough settings"
                   >
@@ -1352,7 +1353,7 @@ const CanvasBuilderPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-4 -left-10 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                    className="absolute top-4 -left-10 rtl:-right-10 rtl:left-auto z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
                     onClick={() => setRightPanelVisible(false)}
                     title="Hide element settings"
                   >
