@@ -1,0 +1,95 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Signup",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "all": "All"
+  },
+  "auth": {
+    "loginTitle": "Login to your account",
+    "signupTitle": "Create your account",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUpHere": "Sign up here",
+    "loginHere": "Login here"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "manageWorkspaces": "Manage your workspaces and walkthroughs",
+    "newWorkspace": "New Workspace",
+    "noWorkspaces": "No workspaces yet",
+    "createFirst": "Create your first workspace to get started"
+  },
+  "workspace": {
+    "guides": "Guides",
+    "categories": "Categories",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "archive": "Archive",
+    "walkthroughs": "Walkthroughs",
+    "create": "Create Workspace",
+    "workspaces": "Workspace"
+  },
+  "portal": {
+    "needHelp": "Need Help?",
+    "chatOpened": "Chat Opened",
+    "selectCategory": "Select a Category for Help",
+    "openChatTab": "Open Chat in New Tab"
+  },
+  "category": {
+    "create": "Create Category",
+    "edit": "Edit Category",
+    "update": "Update Category",
+    "name": "Category Name",
+    "description": "Description",
+    "icon": "Icon/Photo (Optional)",
+    "parentCategory": "Parent Category (Optional)",
+    "notebooklmUrl": "NotebookLM / Gemini Chat Link (Optional)",
+    "notebooklmDescription": "Add a link to a Google NotebookLM or Gemini Chat notebook for this category",
+    "newCategory": "New Category",
+    "createSubcategory": "Create Sub-category",
+    "organizeWalkthroughs": "Organize your walkthroughs into categories and sub-categories",
+    "noCategories": "No categories yet",
+    "createFirst": "Create categories to organize your walkthroughs",
+    "selectParent": "Select a parent to create a sub-category, or leave as \"None\" for a top-level category",
+    "creatingSubcategory": "Creating sub-category under:",
+    "changeToTopLevel": "Change to top-level category"
+  },
+  "walkthrough": {
+    "new": "New Walkthrough",
+    "edit": "Edit Walkthrough",
+    "title": "Title",
+    "description": "Description",
+    "steps": "Steps",
+    "step": "Step"
+  },
+  "quota": {
+    "usage": "Quota Usage",
+    "upgrade": "Upgrade Plan",
+    "storage": "Storage",
+    "workspaces": "Workspaces",
+    "categories": "Categories",
+    "walkthroughs": "Walkthroughs"
+  }
+}

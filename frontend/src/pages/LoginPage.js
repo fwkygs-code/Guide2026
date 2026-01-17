@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useTextSize } from '../contexts/TextSizeContext';
 import { BookOpen, CheckCircle2, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -232,8 +234,8 @@ const LoginPage = () => {
             <BookOpen className="w-8 h-8 text-primary" />
             <span className={`${getSizeClass('2xl')} font-heading font-bold text-white`}>InterGuide</span>
           </Link>
-          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>Welcome Back</h1>
-          <p className={`${getSizeClass('base')} text-slate-200`}>Sign in to your account</p>
+          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('common.welcome')}</h1>
+          <p className={`${getSizeClass('base')} text-slate-200`}>{t('auth.loginTitle')}</p>
         </div>
 
         <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
@@ -281,7 +283,7 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('common.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -295,7 +297,7 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('common.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -320,15 +322,15 @@ const LoginPage = () => {
                   {backendStatus === 'sleeping' ? 'Waking server...' : 'Signing in...'}
                 </span>
               ) : (
-                'Sign In'
+                t('common.login')
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-300">
-            Don't have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link to="/signup" className="text-primary font-medium hover:text-primary/80 hover:underline transition-colors" data-testid="login-signup-link">
-              Sign up
+              {t('auth.signUpHere')}
             </Link>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Plus, FolderOpen, Edit, Trash2, ChevronRight, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -20,6 +21,7 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const CategoriesPage = () => {
+  const { t } = useTranslation();
   const { workspaceId } = useParams();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -202,8 +204,8 @@ const CategoriesPage = () => {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-heading font-bold text-slate-900">Categories</h1>
-            <p className="text-slate-600 mt-1">Organize your walkthroughs into categories and sub-categories</p>
+            <h1 className="text-3xl font-heading font-bold text-slate-900">{t('workspace.categories')}</h1>
+            <p className="text-slate-600 mt-1">{t('category.organizeWalkthroughs')}</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
@@ -219,20 +221,20 @@ const CategoriesPage = () => {
             <DialogTrigger asChild>
               <Button data-testid="create-category-button">
                 <Plus className="w-4 h-4 mr-2" />
-                New Category
+                {t('category.newCategory')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
                   {creatingForParent 
-                    ? `Create Sub-category under "${categories.find(c => c.id === creatingForParent)?.name || ''}"`
-                    : 'Create Category'}
+                    ? `${t('category.creatingSubcategory')} "${categories.find(c => c.id === creatingForParent)?.name || ''}"`
+                    : t('category.create')}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateCategory} className="space-y-4 mt-4">
                 <div>
-                  <Label htmlFor="category-name">Name</Label>
+                  <Label htmlFor="category-name">{t('category.name')}</Label>
                   <Input
                     id="category-name"
                     value={newCategoryName}
@@ -244,7 +246,7 @@ const CategoriesPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="category-desc">Description</Label>
+                  <Label htmlFor="category-desc">{t('category.description')}</Label>
                   <Textarea
                     id="category-desc"
                     value={newCategoryDesc}
@@ -256,7 +258,7 @@ const CategoriesPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="category-icon">Icon/Photo (Optional)</Label>
+                  <Label htmlFor="category-icon">{t('category.icon')}</Label>
                   <div className="space-y-2 mt-1.5">
                     {newCategoryIcon ? (
                       <div className="flex items-center gap-2">
@@ -321,14 +323,14 @@ const CategoriesPage = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-slate-500 mt-1.5">
-                      Select a parent to create a sub-category, or leave as "None" for a top-level category
+                      {t('category.selectParent')}
                     </p>
                   </div>
                 )}
                 {creatingForParent && (
                   <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
                     <p className="text-sm text-slate-700">
-                      <span className="font-medium">Creating sub-category under:</span>{' '}
+                      <span className="font-medium">{t('category.creatingSubcategory')}</span>{' '}
                       {categories.find(c => c.id === creatingForParent)?.name}
                     </p>
                     <Button
@@ -341,12 +343,12 @@ const CategoriesPage = () => {
                       }}
                       className="mt-2 text-xs"
                     >
-                      Change to top-level category
+                      {t('category.changeToTopLevel')}
                     </Button>
                   </div>
                 )}
                 <div>
-                  <Label htmlFor="category-notebooklm-url">NotebookLM / Gemini Chat Link (Optional)</Label>
+                  <Label htmlFor="category-notebooklm-url">{t('category.notebooklmUrl')}</Label>
                   <Input
                     id="category-notebooklm-url"
                     type="url"
@@ -357,7 +359,7 @@ const CategoriesPage = () => {
                     data-testid="category-notebooklm-url-input"
                   />
                   <p className="text-xs text-slate-500 mt-1.5">
-                    Add a link to a Google NotebookLM or Gemini Chat notebook for this category
+                    {t('category.notebooklmDescription')}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -375,11 +377,11 @@ const CategoriesPage = () => {
                       }}
                       className="flex-1"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                   )}
                   <Button type="submit" className={creatingForParent ? "flex-1" : "w-full"} data-testid="create-category-submit">
-                    {creatingForParent ? 'Create Sub-category' : 'Create Category'}
+                    {creatingForParent ? t('category.createSubcategory') : t('category.create')}
                   </Button>
                 </div>
               </form>
@@ -511,12 +513,12 @@ const CategoriesPage = () => {
           <div className="text-center py-16">
             <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
-              No categories yet
+              {t('category.noCategories')}
             </h3>
-            <p className="text-slate-600 mb-6">Create categories to organize your walkthroughs</p>
+            <p className="text-slate-600 mb-6">{t('category.createFirst')}</p>
             <Button onClick={() => setDialogOpen(true)} data-testid="empty-create-category-button">
               <Plus className="w-4 h-4 mr-2" />
-              Create Category
+              {t('category.create')}
             </Button>
           </div>
         )}
@@ -525,7 +527,7 @@ const CategoriesPage = () => {
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Category</DialogTitle>
+              <DialogTitle>{t('category.edit')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleUpdateCategory} className="space-y-4 mt-4">
               <div>
@@ -553,7 +555,7 @@ const CategoriesPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-category-icon">Icon/Photo (Optional)</Label>
+                <Label htmlFor="edit-category-icon">{t('category.icon')}</Label>
                 <div className="space-y-2 mt-1.5">
                   {editCategoryIcon ? (
                     <div className="flex items-center gap-2">
@@ -599,7 +601,7 @@ const CategoriesPage = () => {
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit-category-notebooklm-url">NotebookLM / Gemini Chat Link (Optional)</Label>
+                <Label htmlFor="edit-category-notebooklm-url">{t('category.notebooklmUrl')}</Label>
                 <Input
                   id="edit-category-notebooklm-url"
                   type="url"
@@ -627,10 +629,10 @@ const CategoriesPage = () => {
                   }}
                   className="flex-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button type="submit" className="flex-1" data-testid="update-category-submit">
-                  Update Category
+                  {t('category.update', { defaultValue: 'Update Category' })}
                 </Button>
               </div>
             </form>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, FolderOpen, Search, Lock, ChevronRight, Phone, Clock, MessageCircle, HelpCircle, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,7 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 const PortalPage = ({ isEmbedded = false }) => {
+  const { t, i18n } = useTranslation();
   const { slug } = useParams();
   const [portal, setPortal] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -280,7 +282,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                 data-testid="category-all"
                 style={selectedCategory === null ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
               >
-                All
+                {t('common.all')}
               </Badge>
               {categoryTree.map((category) => (
                 <Badge
@@ -541,7 +543,7 @@ const PortalPage = ({ isEmbedded = false }) => {
             style={{ backgroundColor: primaryColor }}
           >
             <HelpCircle className="w-5 h-5" />
-            <span>Need Help?</span>
+            <span>{t('portal.needHelp')}</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -610,7 +612,7 @@ const PortalPage = ({ isEmbedded = false }) => {
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5" />
               <div>
-                <div className="font-semibold">Chat Opened</div>
+                  <div className="font-semibold">{t('portal.chatOpened')}</div>
                 <div className="text-xs opacity-90">{selectedCategoryForChat.name}</div>
               </div>
             </div>
@@ -644,7 +646,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                 }
               }}
             >
-              Open Chat in New Tab
+              {t('portal.openChatTab')}
             </Button>
           </div>
         </motion.div>

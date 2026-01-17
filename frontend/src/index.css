@@ -1,8 +1,84 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* RTL Support Utilities */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+}
+
+/* RTL text alignment */
+[dir="rtl"] .rtl\:text-right {
+  text-align: right;
+}
+
+[dir="rtl"] .rtl\:text-left {
+  text-align: left;
+}
+
+/* RTL margin/padding adjustments for common patterns */
+[dir="rtl"] .ml-2,
+[dir="rtl"] .ml-3,
+[dir="rtl"] .ml-4 {
+  margin-left: 0;
+}
+
+[dir="rtl"] .mr-2,
+[dir="rtl"] .mr-3,
+[dir="rtl"] .mr-4 {
+  margin-right: 0;
+}
+
+/* RTL flex direction for icon + text patterns */
+[dir="rtl"] .flex.items-center > svg:first-child {
+  order: 2;
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+[dir="rtl"] .flex.items-center > span:last-child {
+  order: 1;
+}
+
+/* RTL-safe spacing - gap handles this automatically, but space-x needs help */
+[dir="rtl"] .space-x-2 > * + * {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+[dir="rtl"] .space-x-3 > * + * {
+  margin-left: 0;
+  margin-right: 0.75rem;
+}
+
+[dir="rtl"] .space-x-4 > * + * {
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+/* RTL dropdown menu alignment */
+[dir="rtl"] [data-radix-popper-content-wrapper] {
+  direction: rtl;
+}
+
+/* RTL button icon spacing */
+[dir="rtl"] button > svg + span,
+[dir="rtl"] button > span + svg {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+[dir="rtl"] button > svg:first-child {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}
 
 body {
   margin: 0;

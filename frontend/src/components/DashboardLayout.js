@@ -1,34 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { api } from '../lib/api';
+import LanguageSwitcher from './LanguageSwitcher';
 
-const DashboardLayout = ({ children, backgroundUrl = null }) => {
+const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
+  const { t } = useTranslation();
   const { logout } = useAuth();
+  const { workspace, workspaceId: contextWorkspaceId, backgroundUrl: contextBackgroundUrl, logoUrl } = useWorkspace();
+  
+  // Use prop background (for dashboard) or context background (for workspace pages)
+  const backgroundUrl = propBackgroundUrl || contextBackgroundUrl;
   const navigate = useNavigate();
   const location = useLocation();
   const [workspaceSlug, setWorkspaceSlug] = useState(null);
 
   const workspaceMatch = location.pathname.match(/^\/workspace\/([^/]+)/);
-  const workspaceId = workspaceMatch?.[1] || null;
+  const workspaceId = workspaceMatch?.[1] || contextWorkspaceId;
 
-  // Fetch workspace slug when workspaceId is available
+  // Fetch workspace slug when workspaceId is available (fallback if context doesn't have it)
   useEffect(() => {
-    if (workspaceId) {
-      api.getWorkspace(workspaceId)
-        .then(response => {
-          setWorkspaceSlug(response.data.slug);
-        })
-        .catch(error => {
-          console.error('Failed to fetch workspace:', error);
-          setWorkspaceSlug(null);
-        });
-    } else {
+    if (workspaceId && !workspaceSlug) {
+      if (workspace?.slug) {
+        setWorkspaceSlug(workspace.slug);
+      } else {
+        api.getWorkspace(workspaceId)
+          .then(response => {
+            setWorkspaceSlug(response.data.slug);
+          })
+          .catch(error => {
+            console.error('Failed to fetch workspace:', error);
+            setWorkspaceSlug(null);
+          });
+      }
+    } else if (!workspaceId) {
       setWorkspaceSlug(null);
     }
-  }, [workspaceId]);
+  }, [workspaceId, workspace, workspaceSlug]);
 
   const handleLogout = () => {
     logout();
@@ -55,13 +67,24 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
               onClick={() => navigate(-1)}
               className="shrink-0"
               data-testid="nav-back-button"
-              title="Back"
+              title={t('common.back')}
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
 
             <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={() => navigate('/dashboard')} data-testid="dashboard-logo">
-            <BookOpen className="w-7 h-7 text-primary" />
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={workspace?.name || 'Workspace'} 
+                className="w-7 h-7 rounded-lg object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            ) : (
+              <BookOpen className="w-7 h-7 text-primary" />
+            )}
             <span className="text-xl font-heading font-bold truncate">InterGuide</span>
           </div>
           </div>
@@ -73,7 +96,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
               data-testid="nav-home-button"
             >
               <Home className="w-4 h-4 mr-2" />
-              Dashboard
+              {t('common.dashboard')}
             </Button>
             {workspaceSlug && (
               <Button
@@ -87,6 +110,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
                 Portal
               </Button>
             )}
+            <LanguageSwitcher />
             <Button
               variant="ghost"
               size="sm"
@@ -94,7 +118,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
               data-testid="nav-logout-button"
             >
               <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              {t('common.logout')}
             </Button>
           </div>
         </div>
@@ -110,7 +134,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
                 data-testid="nav-workspace-walkthroughs"
               >
                 <BookText className="w-4 h-4 mr-2" />
-                Guides
+                {t('workspace.guides')}
               </Button>
               <Button
                 variant={location.pathname.includes('/archive') ? 'default' : 'outline'}
@@ -119,7 +143,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
                 data-testid="nav-workspace-archive"
               >
                 <Archive className="w-4 h-4 mr-2" />
-                Archive
+                {t('workspace.archive')}
               </Button>
               <Button
                 variant={location.pathname.includes('/categories') ? 'default' : 'outline'}
@@ -128,7 +152,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
                 data-testid="nav-workspace-categories"
               >
                 <FolderOpen className="w-4 h-4 mr-2" />
-                Categories
+                {t('workspace.categories')}
               </Button>
               <Button
                 variant={location.pathname.includes('/analytics') ? 'default' : 'outline'}
@@ -137,7 +161,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
                 data-testid="nav-workspace-analytics"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Analytics
+                {t('workspace.analytics')}
               </Button>
               <Button
                 variant={location.pathname.includes('/settings') ? 'default' : 'outline'}
@@ -146,7 +170,7 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
                 data-testid="nav-workspace-settings"
               >
                 <Settings className="w-4 h-4 mr-2" />
-                Settings
+                {t('workspace.settings')}
               </Button>
             </div>
           </div>

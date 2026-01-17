@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TextSizeProvider } from './contexts/TextSizeContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { Toaster } from '@/components/ui/sonner';
+import './i18n/config'; // Initialize i18n
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -30,11 +33,22 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
-function App() {
+// Component to handle direction changes
+const AppContent = () => {
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    // Ensure direction is set on mount and language changes
+    const dir = i18n.language === 'he' ? 'rtl' : 'ltr';
+    document.documentElement.setAttribute('dir', dir);
+    document.documentElement.setAttribute('lang', i18n.language);
+  }, [i18n.language]);
+
   return (
     <TextSizeProvider>
       <AuthProvider>
         <BrowserRouter>
+        <WorkspaceProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -53,11 +67,16 @@ function App() {
           <Route path="/workspace/:workspaceId/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         </Routes>
+        </WorkspaceProvider>
         </BrowserRouter>
-        <Toaster position="top-right" />
+        <Toaster position={i18n.language === 'he' ? 'top-left' : 'top-right'} />
       </AuthProvider>
     </TextSizeProvider>
   );
+};
+
+function App() {
+  return <AppContent />;
 }
 
 export default App;

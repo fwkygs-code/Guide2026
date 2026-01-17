@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Plus, BookOpen, FolderOpen, BarChart3, Settings, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -10,12 +11,15 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { normalizeImageUrl } from '../lib/utils';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import DashboardLayout from '../components/DashboardLayout';
 import QuotaDisplay from '../components/QuotaDisplay';
 import OverQuotaBanner from '../components/OverQuotaBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
 
 const DashboardPage = () => {
+  const { t } = useTranslation();
+  const { backgroundUrl: workspaceBackground } = useWorkspace(); // Won't be set on dashboard, but available for consistency
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -96,11 +100,6 @@ const DashboardPage = () => {
     }
   };
 
-  // Get portal background from first workspace (if available)
-  const dashboardBackground = workspaces.length > 0 && workspaces[0].portal_background_url
-    ? normalizeImageUrl(workspaces[0].portal_background_url)
-    : null;
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -108,6 +107,11 @@ const DashboardPage = () => {
       </div>
     );
   }
+
+  // For dashboard page, use first workspace background if available
+  const dashboardBackground = workspaces.length > 0 && workspaces[0].portal_background_url
+    ? normalizeImageUrl(workspaces[0].portal_background_url)
+    : null;
 
   return (
     <DashboardLayout backgroundUrl={dashboardBackground}>
@@ -120,23 +124,23 @@ const DashboardPage = () => {
           <div className="lg:col-span-2 space-y-8">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-heading font-bold text-slate-900">Welcome, {user?.name}</h1>
-                <p className="text-slate-600 mt-1">Manage your workspaces and walkthroughs</p>
+                <h1 className="text-3xl font-heading font-bold text-slate-900">{t('dashboard.welcome', { name: user?.name })}</h1>
+                <p className="text-slate-600 mt-1">{t('dashboard.manageWorkspaces')}</p>
               </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-full" data-testid="create-workspace-button">
                 <Plus className="w-4 h-4 mr-2" />
-                New Workspace
+                {t('dashboard.newWorkspace')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create Workspace</DialogTitle>
+                <DialogTitle>{t('workspace.create')}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateWorkspace} className="space-y-4 mt-4">
                 <div>
-                  <Label htmlFor="workspace-name">Workspace Name</Label>
+                  <Label htmlFor="workspace-name">{t('workspace.workspaces')} {t('common.name')}</Label>
                   <Input
                     id="workspace-name"
                     value={newWorkspaceName}
@@ -352,12 +356,12 @@ const DashboardPage = () => {
           <div className="text-center py-16">
             <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
-              No workspaces yet
+              {t('dashboard.noWorkspaces')}
             </h3>
-            <p className="text-slate-600 mb-6">Create your first workspace to get started</p>
+            <p className="text-slate-600 mb-6">{t('dashboard.createFirst')}</p>
             <Button onClick={() => setCreateDialogOpen(true)} data-testid="empty-create-workspace-button">
               <Plus className="w-4 h-4 mr-2" />
-              Create Workspace
+              {t('dashboard.newWorkspace')}
             </Button>
           </div>
         )}

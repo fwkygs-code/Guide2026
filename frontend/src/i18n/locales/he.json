@@ -1,0 +1,95 @@
+{
+  "common": {
+    "welcome": "ברוכים הבאים",
+    "dashboard": "לוח בקרה",
+    "logout": "התנתק",
+    "login": "התחבר",
+    "signup": "הירשם",
+    "email": "אימייל",
+    "password": "סיסמה",
+    "name": "שם",
+    "save": "שמור",
+    "cancel": "ביטול",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "create": "צור",
+    "update": "עדכן",
+    "close": "סגור",
+    "back": "חזור",
+    "next": "הבא",
+    "previous": "הקודם",
+    "search": "חפש",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "success": "הצלחה",
+    "confirm": "אישור",
+    "all": "הכל"
+  },
+  "auth": {
+    "loginTitle": "התחבר לחשבון שלך",
+    "signupTitle": "צור את החשבון שלך",
+    "forgotPassword": "שכחת סיסמה?",
+    "noAccount": "אין לך חשבון?",
+    "hasAccount": "כבר יש לך חשבון?",
+    "signUpHere": "הירשם כאן",
+    "loginHere": "התחבר כאן"
+  },
+  "dashboard": {
+    "welcome": "ברוך הבא, {{name}}",
+    "manageWorkspaces": "נהל את אזורי העבודה והמדריכים שלך",
+    "newWorkspace": "אזור עבודה חדש",
+    "noWorkspaces": "אין אזורי עבודה עדיין",
+    "createFirst": "צור את אזור העבודה הראשון שלך כדי להתחיל"
+  },
+  "workspace": {
+    "guides": "מדריכים",
+    "categories": "קטגוריות",
+    "analytics": "אנליטיקה",
+    "settings": "הגדרות",
+    "archive": "ארכיון",
+    "walkthroughs": "מדריכים",
+    "create": "צור אזור עבודה",
+    "workspaces": "אזור עבודה"
+  },
+  "portal": {
+    "needHelp": "צריך עזרה?",
+    "chatOpened": "צ'אט נפתח",
+    "selectCategory": "בחר קטגוריה לעזרה",
+    "openChatTab": "פתח צ'אט בלשונית חדשה"
+  },
+  "category": {
+    "create": "צור קטגוריה",
+    "edit": "ערוך קטגוריה",
+    "update": "עדכן קטגוריה",
+    "name": "שם קטגוריה",
+    "description": "תיאור",
+    "icon": "אייקון/תמונה (אופציונלי)",
+    "parentCategory": "קטגוריית אב (אופציונלי)",
+    "notebooklmUrl": "קישור NotebookLM / Gemini Chat (אופציונלי)",
+    "notebooklmDescription": "הוסף קישור למחברת Google NotebookLM או Gemini Chat עבור קטגוריה זו",
+    "newCategory": "קטגוריה חדשה",
+    "createSubcategory": "צור תת-קטגוריה",
+    "organizeWalkthroughs": "ארגן את המדריכים שלך לקטגוריות ותת-קטגוריות",
+    "noCategories": "אין קטגוריות עדיין",
+    "createFirst": "צור קטגוריות כדי לארגן את המדריכים שלך",
+    "selectParent": "בחר אב כדי ליצור תת-קטגוריה, או השאר כ\"אין\" לקטגוריה ברמה העליונה",
+    "creatingSubcategory": "יוצר תת-קטגוריה תחת:",
+    "changeToTopLevel": "שנה לקטגוריה ברמה העליונה"
+  },
+  "walkthrough": {
+    "new": "מדריך חדש",
+    "edit": "ערוך מדריך",
+    "title": "כותרת",
+    "description": "תיאור",
+    "steps": "שלבים",
+    "step": "שלב"
+  },
+  "quota": {
+    "usage": "שימוש במכסה",
+    "upgrade": "שדרג תוכנית",
+    "storage": "אחסון",
+    "workspaces": "אזורי עבודה",
+    "categories": "קטגוריות",
+    "walkthroughs": "מדריכים"
+  }
+}
