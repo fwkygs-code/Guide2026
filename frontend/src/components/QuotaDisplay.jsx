@@ -166,12 +166,19 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
 
   return (
     <div className="space-y-4">
-      {/* Plan Badge */}
+      {/* Plan Badge and Upgrade Button */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-900">Quota Usage</h3>
-        <Badge variant={plan.name === 'enterprise' ? 'default' : plan.name === 'pro' ? 'secondary' : 'outline'}>
-          {plan.display_name} Plan
-        </Badge>
+        <div className="flex items-center gap-2">
+          {onUpgrade && (
+            <Button size="sm" variant="default" onClick={onUpgrade}>
+              Upgrade Plan
+            </Button>
+          )}
+          <Badge variant={plan.name === 'enterprise' ? 'default' : plan.name === 'pro' ? 'secondary' : 'outline'}>
+            {plan.display_name} Plan
+          </Badge>
+        </div>
       </div>
 
       {/* Warnings */}
