@@ -182,8 +182,8 @@ const LoginPage = () => {
       let errorMessage = error.response?.data?.detail || error.message || 'Login failed.';
       
       // Provide helpful context for timeout errors
-      if (errorMessage.includes('not responding') || errorMessage.includes('sleeping')) {
-        errorMessage += ' If you\'re on Render free tier, the server may be sleeping. Please wait 30-60 seconds and try again.';
+      if (errorMessage.includes('not responding') || errorMessage.includes('timeout')) {
+        errorMessage += ' The system is initializing. Please wait a moment and try again.';
       }
       
       toast.error(errorMessage, {
@@ -231,25 +231,25 @@ const LoginPage = () => {
                 {backendStatus === 'sleeping' && (
                   <>
                     <WifiOff className="w-4 h-4 text-amber-500 animate-pulse" />
-                    <span className="text-xs text-amber-600">Server waking up...</span>
+                    <span className="text-xs text-amber-600">Initializing system...</span>
                   </>
                 )}
                 {backendStatus === 'error' && (
                   <>
                     <AlertCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-xs text-red-600">Server unavailable</span>
+                    <span className="text-xs text-red-600">Connection unavailable</span>
                   </>
                 )}
               </div>
               {backendStatus === 'sleeping' && (
                 <Badge variant="outline" className="text-xs">
-                  Wait 30-60s
+                  Please wait
                 </Badge>
               )}
             </div>
             {backendStatus === 'sleeping' && (
               <p className="text-xs text-slate-500 mt-2">
-                Render free tier servers sleep after inactivity. The first request wakes them up (30-60 seconds).
+                The system is preparing your environment. This may take a moment.
               </p>
             )}
           </div>

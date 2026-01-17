@@ -102,13 +102,13 @@ export const AuthProvider = ({ children }) => {
       // Don't fail login if health check fails - the login request itself will wake the server
       checkBackendHealth().then(isHealthy => {
         if (!isHealthy) {
-          console.warn('Backend health check failed - server may be sleeping (Render free tier)');
+          console.warn('Backend health check failed - system may be initializing');
         }
       }).catch(() => {
         // Ignore health check errors
       });
       
-      // Set timeout to prevent hanging - increased to 45 seconds for Render free tier wake-up
+      // Set timeout to prevent hanging - increased to 45 seconds for system initialization
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Login request timeout')), 45000)
       );
@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }) => {
       // Log API endpoint for debugging
       console.log('Attempting login to:', `${API}/auth/login`);
       
-      // Retry logic for sleeping servers (Render free tier)
+      // Retry logic for system initialization
       let lastError = null;
       const maxRetries = 2;
       

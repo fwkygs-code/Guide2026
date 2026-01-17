@@ -82,12 +82,37 @@ const CanvasBuilderPage = () => {
   );
 
   useEffect(() => {
+    // Clear draft when explicitly creating a new walkthrough
+    if (!isEditing) {
+      // Check if we're navigating to /new (not just walkthroughId is undefined)
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/walkthroughs/new')) {
+        // Clear any existing draft to ensure fresh start
+        localStorage.removeItem(draftKey);
+        // Reset walkthrough to initial state
+        setWalkthrough({
+          title: 'Untitled Walkthrough',
+          description: '',
+          status: 'draft',
+          privacy: 'public',
+          steps: [],
+          category_ids: [],
+          navigation_type: 'next_prev',
+          navigation_placement: 'bottom'
+        });
+      }
+    }
     fetchData();
   }, [workspaceId, walkthroughId]);
 
   // Restore draft for new walkthroughs (prevents losing long edits on refresh)
+  // Only restore if we're not explicitly on /new route
   useEffect(() => {
     if (isEditing) return;
+    const currentPath = window.location.pathname;
+    // Don't restore draft if we're explicitly creating new
+    if (currentPath.includes('/walkthroughs/new')) return;
+    
     try {
       const raw = localStorage.getItem(draftKey);
       if (!raw) return;
