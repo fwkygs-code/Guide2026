@@ -1230,8 +1230,8 @@ const CanvasBuilderPage = () => {
             <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
             {/* Left Sidebar */}
             {leftPanelVisible ? (
-              <div className="relative">
-                <div className="hidden lg:block">
+              <div className="relative h-full flex-shrink-0">
+                <div className="hidden lg:block h-full">
                   <LeftSidebar
                     walkthrough={walkthrough}
                     categories={categories}
@@ -1246,7 +1246,7 @@ const CanvasBuilderPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-4 -right-10 rtl:-left-10 rtl:right-auto z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                    className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-left-10' : '-right-10'}`}
                     onClick={() => setLeftPanelVisible(false)}
                     title="Hide walkthrough settings"
                   >
@@ -1322,9 +1322,9 @@ const CanvasBuilderPage = () => {
 
             {/* Right Inspector */}
             {rightPanelVisible ? (
-              <div className="relative">
-                <div className="hidden lg:block">
-                      <RightInspector
+              <div className="relative h-full flex-shrink-0">
+                <div className="hidden lg:block h-full">
+                  <RightInspector
                         selectedElement={selectedElement}
                         currentStep={walkthrough.steps[currentStepIndex]}
                         onUpdate={(updates) => {
@@ -1353,7 +1353,7 @@ const CanvasBuilderPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-4 -left-10 rtl:-right-10 rtl:left-auto z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                    className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-right-10' : '-left-10'}`}
                     onClick={() => setRightPanelVisible(false)}
                     title="Hide element settings"
                   >
