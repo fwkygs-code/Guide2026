@@ -153,7 +153,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Step-level controls
   if (selectedElement.type === 'step') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full">
+      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">Step Settings</h3>
           <p className="text-xs text-slate-500">Configure this step</p>
@@ -197,7 +197,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Media controls
   if (selectedElement.type === 'media') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full">
+      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">Media</h3>
           <p className="text-xs text-slate-500">Replace or remove media</p>
@@ -286,7 +286,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Problem controls
   if (selectedElement.type === 'problem') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full">
+      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">Common Problems</h3>
           <p className="text-xs text-slate-500">Help users troubleshoot</p>
@@ -356,7 +356,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
     if (!updateBlock) return null;
     
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full">
+      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">Block Settings</h3>
           <p className="text-xs text-slate-500">Adjust spacing and borders</p>
