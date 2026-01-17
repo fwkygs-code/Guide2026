@@ -60,6 +60,14 @@ CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
 
 USE_CLOUDINARY = all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
 
+# CRITICAL: Log Cloudinary configuration status at startup
+logging.info("=" * 60)
+logging.info("Cloudinary Configuration Check:")
+logging.info(f"  CLOUDINARY_CLOUD_NAME: {'SET' if CLOUDINARY_CLOUD_NAME else 'NOT SET'}")
+logging.info(f"  CLOUDINARY_API_KEY: {'SET' if CLOUDINARY_API_KEY else 'NOT SET'}")
+logging.info(f"  CLOUDINARY_API_SECRET: {'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
+logging.info(f"  USE_CLOUDINARY: {USE_CLOUDINARY}")
+
 if USE_CLOUDINARY:
     cloudinary.config(
         cloud_name=CLOUDINARY_CLOUD_NAME,
@@ -67,9 +75,12 @@ if USE_CLOUDINARY:
         api_secret=CLOUDINARY_API_SECRET,
         secure=True  # Use HTTPS
     )
-    logging.info("Cloudinary configured for persistent file storage")
+    logging.info("✓ Cloudinary configured for persistent file storage - ALL uploads will go to Cloudinary")
+    logging.info(f"  Cloud name: {CLOUDINARY_CLOUD_NAME}")
 else:
-    logging.warning("Cloudinary not configured - using local storage (files will be lost on redeployment)")
+    logging.error("✗ Cloudinary NOT configured - files will be stored locally and LOST on redeployment!")
+    logging.error("  Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables")
+logging.info("=" * 60)
 
 # Mount uploads directory under /api/uploads (fallback for local storage)
 UPLOAD_DIR = Path(os.environ.get('UPLOAD_DIR', str(ROOT_DIR / "uploads")))
@@ -1835,6 +1846,7 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
 # Media Upload Route
 @api_router.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+    logger = logging.getLogger(__name__)
     file_extension = Path(file.filename).suffix.lower()
     file_id = str(uuid.uuid4())
     
@@ -1854,9 +1866,14 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
     elif file_extension in ['.pdf', '.doc', '.docx', '.txt']:
         resource_type = "raw"
     
+    # CRITICAL: If Cloudinary is configured, we MUST use it - never fall back to local storage
+    # Local storage is ephemeral and files will be lost on redeployment
+    logger = logging.getLogger(__name__)
+    
+    # CRITICAL: Verify Cloudinary configuration before attempting upload
     if USE_CLOUDINARY:
+        logger.info(f"[upload_file] Cloudinary configured, uploading file: {file.filename} ({file_size} bytes, type: {resource_type})")
         # Upload to Cloudinary (persistent storage)
-        logger = logging.getLogger(__name__)
         try:
             # Prepare upload parameters with optimization
             upload_params = {
@@ -1920,16 +1937,24 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
                     status_code=500,
                     detail=f"File upload to Cloudinary failed: {str(e)}. Please try again."
                 )
-            # Cloudinary not configured - fallback to local storage is OK
-            logger.warning("[upload_file] Cloudinary not configured, falling back to local storage")
+            # Cloudinary not configured - fallback to local storage is OK (development only)
+            logger.warning("[upload_file] Cloudinary not configured, falling back to local storage (WARNING: files will be lost on redeployment)")
+    else:
+        # Cloudinary is NOT configured - warn but allow local storage for development
+        logger.warning(f"[upload_file] Cloudinary NOT configured (USE_CLOUDINARY={USE_CLOUDINARY}). Files will be stored locally and LOST on redeployment!")
+        logger.warning(f"[upload_file] Cloudinary config check: CLOUDINARY_CLOUD_NAME={'SET' if CLOUDINARY_CLOUD_NAME else 'NOT SET'}, CLOUDINARY_API_KEY={'SET' if CLOUDINARY_API_KEY else 'NOT SET'}, CLOUDINARY_API_SECRET={'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
     
-    # Fallback: Local storage (for development or if Cloudinary fails)
+    # Fallback: Local storage (ONLY for development when Cloudinary is NOT configured)
+    # CRITICAL: This should NEVER happen if Cloudinary is configured (see error above)
+    logger.warning(f"[upload_file] Using local storage fallback for file: {file_id}{file_extension}")
     file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
     with file_path.open("wb") as buffer:
         buffer.write(file_content)
     
     # Return relative URL for local storage
-    return {"url": f"/api/media/{file_id}{file_extension}"}
+    local_url = f"/api/media/{file_id}{file_extension}"
+    logger.warning(f"[upload_file] WARNING: File stored locally at {local_url} - this will be LOST on redeployment!")
+    return {"url": local_url}
 
 # Media serving route (fallback for local storage)
 # Note: If using Cloudinary, files are served directly from Cloudinary CDN
