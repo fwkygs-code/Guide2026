@@ -2512,8 +2512,14 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
         "workspace_id": {"$in": workspace_ids},
         "archived": {"$ne": True}
     })
+    # Count only top-level categories (exclude sub-categories)
     total_categories = await db.categories.count_documents({
-        "workspace_id": {"$in": workspace_ids}
+        "workspace_id": {"$in": workspace_ids},
+        "$or": [
+            {"parent_id": None},
+            {"parent_id": ""},
+            {"parent_id": {"$exists": False}}
+        ]
     })
     
     # Check if downgrading
