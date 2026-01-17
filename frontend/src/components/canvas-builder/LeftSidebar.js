@@ -18,6 +18,7 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick, currentStepIndex, onDeleteStep, workspaceId, onUpgrade }) => {
+  const { t } = useTranslation();
   const { canUploadFile } = useQuota(workspaceId);
   
   // Organize categories into tree structure
@@ -119,7 +120,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
           value={walkthrough.title}
           onChange={(e) => onUpdate({ ...walkthrough, title: e.target.value })}
           className="text-lg font-heading font-semibold mb-3 border-0 px-0 focus-visible:ring-0"
-          placeholder="Walkthrough title"
+          placeholder={t('walkthrough.title')}
           data-testid="walkthrough-title"
         />
         
@@ -127,14 +128,14 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
           value={walkthrough.description || ''}
           onChange={(e) => onUpdate({ ...walkthrough, description: e.target.value })}
           className="w-full text-sm text-slate-600 resize-none border-0 px-0 focus:outline-none"
-          placeholder="Add description..."
+          placeholder={t('walkthrough.description')}
           rows={2}
           data-testid="walkthrough-description"
         />
 
         <div className="mt-4 space-y-3">
           <div>
-            <label className="text-xs text-slate-500 mb-1.5 block">Icon/Photo</label>
+            <label className="text-xs text-slate-500 mb-1.5 block">{t('category.icon')}</label>
             <div className="space-y-2">
               {walkthrough.icon_url ? (
                 <div className="flex items-center gap-2">
@@ -172,7 +173,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
                     type="url"
                     value={walkthrough.icon_url || ''}
                     onChange={(e) => onUpdate({ ...walkthrough, icon_url: e.target.value })}
-                    placeholder="Icon/Photo URL"
+                    placeholder={t('category.icon')}
                     className="h-9"
                     data-testid="icon-url-input"
                   />
@@ -197,7 +198,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
               </div>
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              Enter a URL or upload an image
+              {t('builder.enterUrlOrUpload')}
             </div>
           </div>
 
@@ -242,16 +243,16 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-400">No categories available. Create categories in the Categories page.</p>
+                <p className="text-xs text-slate-400">{t('builder.noCategoriesAvailable')}</p>
               )}
             </div>
             <div className="text-xs text-slate-400 mt-1.5">
-              Select one or more categories for this walkthrough
+              {t('builder.selectCategoriesForWalkthrough')}
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 mb-1.5 block">Privacy</label>
+            <label className="text-xs text-slate-500 mb-1.5 block">{t('builder.privacy')}</label>
             <Select
               value={walkthrough.privacy}
               onValueChange={(value) => onUpdate({ ...walkthrough, privacy: value })}
@@ -260,34 +261,34 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-                <SelectItem value="password">Password Protected</SelectItem>
+                <SelectItem value="public">{t('builder.public')}</SelectItem>
+                <SelectItem value="private">{t('builder.private')}</SelectItem>
+                <SelectItem value="password">{t('builder.passwordProtected')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {walkthrough.privacy === 'password' && (
             <div>
-              <label className="text-xs text-slate-500 mb-1.5 block">Portal password</label>
+              <label className="text-xs text-slate-500 mb-1.5 block">{t('builder.portalPassword')}</label>
               <Input
                 type="password"
                 value={walkthrough.password || ''}
                 onChange={(e) => onUpdate({ ...walkthrough, password: e.target.value })}
-                placeholder="Set a password"
+                placeholder={t('builder.setPassword')}
                 className="h-9"
                 data-testid="portal-password-input"
               />
               <div className="text-xs text-slate-400 mt-1">
-                This is only stored as a hash on the server.
+                {t('builder.passwordStoredAsHash')}
               </div>
             </div>
           )}
 
           <div>
-            <label className="text-xs text-slate-500 mb-1.5 block">Status</label>
+            <label className="text-xs text-slate-500 mb-1.5 block">{t('builder.statusLabel')}</label>
             <Badge variant={walkthrough.status === 'published' ? 'default' : 'secondary'}>
-              {walkthrough.status}
+              {walkthrough.status === 'published' ? t('builder.status.published') : t('builder.status.draft')}
             </Badge>
           </div>
         </div>
@@ -297,7 +298,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
       <div className="flex-1 overflow-y-auto min-h-0" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-slate-700">Steps</h3>
+            <h3 className="text-sm font-medium text-slate-700">{t('walkthrough.steps')}</h3>
             <Button
               size="sm"
               variant="ghost"
@@ -306,7 +307,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
               className="h-7 px-2"
             >
               <Plus className="w-4 h-4 mr-1" />
-              Add
+              {t('common.create')}
             </Button>
           </div>
 
@@ -331,7 +332,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
             {walkthrough.steps.length === 0 && (
               <div className="text-center py-12 text-slate-400">
                 <FileText className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">No steps yet</p>
+                <p className="text-sm">{t('walkthrough.noStepsYet')}</p>
               </div>
             )}
           </div>

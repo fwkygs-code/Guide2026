@@ -134,7 +134,11 @@ const WalkthroughsPage = () => {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-heading font-bold text-slate-900">
+            <h1 className="text-3xl font-heading font-bold text-slate-900 glass rounded-xl px-6 py-3 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg inline-block"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
+                }}>
               {workspace?.name} - {t('workspace.walkthroughs')}
             </h1>
             <p className="text-slate-600 mt-1">{t('walkthrough.createAndManage')}</p>
@@ -188,7 +192,11 @@ const WalkthroughsPage = () => {
                       />
                       <FolderOpen className="w-6 h-6 text-primary" />
                       <div className="text-left">
-                        <h2 className="text-2xl font-heading font-bold text-slate-900 group-hover:text-primary transition-colors">
+                        <h2 className="text-2xl font-heading font-bold text-slate-900 group-hover:text-primary transition-colors glass rounded-xl px-4 py-2 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
+                              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
+                            }}>
                           {category.name}
                         </h2>
                         {category.description && (
@@ -208,7 +216,11 @@ const WalkthroughsPage = () => {
                   </div>
                 ) : (
                   <div className="mb-6">
-                    <h2 className="text-2xl font-heading font-bold text-slate-900">{t('walkthrough.uncategorized')}</h2>
+                    <h2 className="text-2xl font-heading font-bold text-slate-900 glass rounded-xl px-4 py-2 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg inline-block group-hover:text-primary transition-colors"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
+                        }}>{t('walkthrough.uncategorized')}</h2>
                   </div>
                 )}
 
@@ -269,7 +281,7 @@ const WalkthroughsPage = () => {
 
                         <div className="flex items-center gap-2 mb-4">
                           <Badge variant={walkthrough.status === 'published' ? 'default' : 'secondary'}>
-                            {walkthrough.status}
+                            {walkthrough.status === 'published' ? t('builder.status.published') : t('builder.status.draft')}
                           </Badge>
                           <Badge variant="outline">
                             {walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +19,7 @@ import StepTimeline from '../components/canvas-builder/StepTimeline';
 import PreviewMode from '../components/canvas-builder/PreviewMode';
 
 const CanvasBuilderPage = () => {
+  const { t } = useTranslation();
   const { workspaceId, walkthroughId } = useParams();
   const navigate = useNavigate();
   const isEditing = !!walkthroughId;
@@ -1028,7 +1030,7 @@ const CanvasBuilderPage = () => {
             <div className="bg-white rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               <div className="text-sm text-slate-700">
-                {isPublishing ? 'Publishing…' : 'Saving…'} Please wait.
+                {isPublishing ? t('builder.publishing') : t('builder.saving')} {t('builder.pleaseWait')}
               </div>
             </div>
           </div>
@@ -1043,7 +1045,7 @@ const CanvasBuilderPage = () => {
               data-testid="back-button"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              {t('common.back')}
             </Button>
             <div className="h-6 w-px bg-slate-200" />
             <div className="flex items-center gap-2">
@@ -1051,7 +1053,7 @@ const CanvasBuilderPage = () => {
               {lastSaved && !isSaving && (
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <Check className="w-4 h-4 text-success" />
-                  Saved {Math.round((new Date() - lastSaved) / 1000)}s ago
+                  {t('builder.saved')} {Math.round((new Date() - lastSaved) / 1000)}s {t('builder.ago')}
                 </div>
               )}
             </div>
@@ -1070,7 +1072,7 @@ const CanvasBuilderPage = () => {
               data-testid="select-steps-button"
             >
               {selectStepsMode ? <CheckSquare className="w-4 h-4 mr-2" /> : <Square className="w-4 h-4 mr-2" />}
-              {selectStepsMode ? 'Selecting' : 'Select steps'}
+              {selectStepsMode ? t('walkthrough.selecting') : t('walkthrough.selectSteps')}
             </Button>
             {selectStepsMode && (
               <>
@@ -1084,7 +1086,7 @@ const CanvasBuilderPage = () => {
                   disabled={isSaving || isPublishing}
                   data-testid="select-all-steps-button"
                 >
-                  {selectedStepIds.size === (walkthrough.steps || []).length ? 'Unselect all' : 'Select all'}
+                  {selectedStepIds.size === (walkthrough.steps || []).length ? t('walkthrough.unselectAll') : t('walkthrough.selectAll')}
                 </Button>
                 <Button
                   variant="destructive"
@@ -1094,7 +1096,7 @@ const CanvasBuilderPage = () => {
                   data-testid="delete-selected-steps-button"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete selected
+                  {t('walkthrough.deleteSelected')}
                 </Button>
               </>
             )}
@@ -1106,7 +1108,7 @@ const CanvasBuilderPage = () => {
               disabled={isSaving || isPublishing}
               data-testid="insert-step-after-button"
             >
-              Add step below
+              {t('builder.addStepBelow')}
             </Button>
 
             {isEditing && (
@@ -1118,7 +1120,7 @@ const CanvasBuilderPage = () => {
                 data-testid="versions-button"
               >
                 <History className="w-4 h-4 mr-2" />
-                Versions
+                {t('builder.versions')}
               </Button>
             )}
             <Button
@@ -1129,7 +1131,7 @@ const CanvasBuilderPage = () => {
               data-testid="new-step-button"
             >
               <Plus className="w-4 h-4 mr-2" />
-              New Step
+              {t('builder.newStep')}
             </Button>
 
             {walkthrough.status === 'published' && workspace && (
@@ -1140,7 +1142,7 @@ const CanvasBuilderPage = () => {
                 data-testid="view-portal-button"
               >
                 <Eye className="w-4 h-4 mr-2" />
-                View Portal
+                {t('builder.viewPortal')}
               </Button>
             )}
 
@@ -1151,7 +1153,7 @@ const CanvasBuilderPage = () => {
               data-testid="save-button"
             >
               <Save className="w-4 h-4 mr-2" />
-              Save
+              {t('common.save')}
             </Button>
 
             <Button
@@ -1161,7 +1163,7 @@ const CanvasBuilderPage = () => {
               className="bg-success hover:bg-success/90"
               disabled={isSaving || isPublishing}
             >
-              Publish
+              {t('builder.publish')}
             </Button>
           </div>
         </div>
@@ -1454,10 +1456,10 @@ const CanvasBuilderPage = () => {
       <Dialog open={showVersions} onOpenChange={setShowVersions}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Version history</DialogTitle>
+            <DialogTitle>{t('builder.versionHistory')}</DialogTitle>
           </DialogHeader>
           {versionsLoading ? (
-            <div className="py-8 text-center text-slate-500">Loading…</div>
+            <div className="py-8 text-center text-slate-500">{t('common.loading')}</div>
           ) : versions.length > 0 ? (
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
               {versions.map((v, idx) => {
@@ -1466,49 +1468,49 @@ const CanvasBuilderPage = () => {
                 return (
                   <div key={v.id} className="flex items-start justify-between border border-slate-200 rounded-lg p-3">
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-slate-900">Version {v.version}</div>
+                      <div className="font-medium text-slate-900">{t('builder.version')} {v.version}</div>
                       <div className="text-xs text-slate-500 truncate">{new Date(v.created_at).toLocaleString()}</div>
                       {changes && (
                         <div className="mt-2 text-xs text-slate-600 space-y-1">
                           {changes.stepsChanged > 0 && (
-                            <div>• {changes.stepsChanged} step(s) changed</div>
+                            <div>• {t('builder.stepsChanged', { count: changes.stepsChanged })}</div>
                           )}
                           {changes.blocksChanged > 0 && (
-                            <div>• {changes.blocksChanged} block(s) changed</div>
+                            <div>• {t('builder.blocksChanged', { count: changes.blocksChanged })}</div>
                           )}
                           {changes.imagesChanged > 0 && (
-                            <div>• {changes.imagesChanged} image(s) changed</div>
+                            <div>• {t('builder.imagesChanged', { count: changes.imagesChanged })}</div>
                           )}
                           {changes.titleChanged && (
-                            <div>• Title changed</div>
+                            <div>• {t('builder.titleChanged')}</div>
                           )}
                         </div>
                       )}
                     </div>
                     <div className="flex gap-2 ml-3">
-                      <Button size="sm" variant="outline" onClick={() => rollbackToVersion(v.version)}>
-                        Rollback
+                        <Button size="sm" variant="outline" onClick={() => rollbackToVersion(v.version)}>
+                        {t('builder.rollback')}
                       </Button>
                       {versions.length > 1 && (
                         <Button 
                           size="sm" 
                           variant="ghost" 
                           onClick={async () => {
-                            if (window.confirm(`Delete version ${v.version}? This cannot be undone.`)) {
+                            if (window.confirm(t('builder.deleteVersionConfirm', { version: v.version }))) {
                               try {
                                 await api.deleteWalkthroughVersion(workspaceId, walkthroughId, v.version);
-                                toast.success('Version deleted');
+                                toast.success(t('builder.versionDeleted'));
                                 // Refresh versions list
                                 const response = await api.getWalkthroughVersions(workspaceId, walkthroughId);
                                 setVersions(response.data);
                               } catch (error) {
-                                toast.error(error.response?.data?.detail || 'Failed to delete version');
+                                toast.error(error.response?.data?.detail || t('builder.failedToDeleteVersion'));
                               }
                             }
                           }}
                           className="text-destructive hover:text-destructive"
                         >
-                          Delete
+                          {t('common.delete')}
                         </Button>
                       )}
                     </div>
@@ -1518,7 +1520,7 @@ const CanvasBuilderPage = () => {
             </div>
           ) : (
             <div className="py-8 text-center text-slate-500">
-              No versions yet. A version is created each time you publish.
+              {t('builder.noVersions')}
             </div>
           )}
         </DialogContent>
@@ -1530,38 +1532,38 @@ const CanvasBuilderPage = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-warning-600" />
-              Image Recovery
+              {t('builder.imageRecovery')}
             </DialogTitle>
             <p className="text-sm text-slate-600 mt-2">
-              This tool attempts to recover image URLs from version snapshots. If snapshots were saved with empty image URLs, recovery won't be possible and you'll need to re-upload the images.
+              {t('builder.imageRecoveryDescription')}
             </p>
           </DialogHeader>
           {diagnosisData ? (
             <div className="space-y-4 mt-4">
               {/* Current Status */}
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                <h3 className="font-semibold text-slate-900 mb-2">Current Status</h3>
+                <h3 className="font-semibold text-slate-900 mb-2">{t('builder.currentStatus')}</h3>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-600">Current Version:</span>
+                    <span className="text-slate-600">{t('builder.currentVersion')}:</span>
                     <span className="font-medium">{diagnosisData.current_version}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-600">Has Images:</span>
+                    <span className="text-slate-600">{t('builder.hasImages')}:</span>
                     <span className={`font-medium ${diagnosisData.current_blocks_status.has_blocks ? 'text-success' : 'text-destructive'}`}>
-                      {diagnosisData.current_blocks_status.has_blocks ? 'Yes' : 'No'}
+                      {diagnosisData.current_blocks_status.has_blocks ? t('common.yes') : t('common.no')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-600">Total Image Blocks:</span>
+                    <span className="text-slate-600">{t('builder.totalImageBlocks')}:</span>
                     <span className="font-medium">{diagnosisData.current_blocks_status.total_image_blocks}</span>
                   </div>
                   {diagnosisData.current_blocks_status.steps_with_images.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-200">
-                      <p className="text-xs text-slate-500 mb-1">Steps with images:</p>
+                      <p className="text-xs text-slate-500 mb-1">{t('builder.stepsWithImages')}:</p>
                       {diagnosisData.current_blocks_status.steps_with_images.map((step, idx) => (
                         <div key={idx} className="text-xs text-slate-600 ml-2">
-                          • {step.step_title}: {step.image_count} image(s)
+                          • {step.step_title}: {step.image_count} {step.image_count === 1 ? t('builder.imageCount') : t('builder.imageCountPlural')}
                         </div>
                       ))}
                     </div>
@@ -1571,14 +1573,14 @@ const CanvasBuilderPage = () => {
 
               {/* Version Snapshots */}
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                <h3 className="font-semibold text-slate-900 mb-2">Version Snapshots</h3>
+                <h3 className="font-semibold text-slate-900 mb-2">{t('builder.versionSnapshots')}</h3>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-600">Total Versions:</span>
+                    <span className="text-slate-600">{t('builder.totalVersions')}:</span>
                     <span className="font-medium">{diagnosisData.version_snapshots_status.total_versions}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-600">Versions with Images:</span>
+                    <span className="text-slate-600">{t('builder.versionsWithImages')}:</span>
                     <span className="font-medium">{diagnosisData.version_snapshots_status.versions_with_images}</span>
                   </div>
                 </div>
@@ -1616,9 +1618,9 @@ const CanvasBuilderPage = () => {
               {/* Recovery Action */}
               {diagnosisData.can_recover && (
                 <div className="p-4 rounded-xl border border-warning/30 bg-warning/10">
-                  <h3 className="font-semibold text-warning-600 mb-2">Recovery Available</h3>
+                  <h3 className="font-semibold text-warning-600 mb-2">{t('builder.recoveryAvailable')}</h3>
                   <p className="text-sm text-slate-700 mb-4">
-                    Images were found in version snapshots. You can recover them by merging blocks from a previous version into your current walkthrough.
+                    {t('builder.imagesFoundInSnapshots')}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -1627,7 +1629,7 @@ const CanvasBuilderPage = () => {
                       className="bg-warning/20 text-warning-600 hover:bg-warning/30 border-warning/30"
                     >
                       <RefreshCw className={`w-4 h-4 mr-2 ${recovering ? 'animate-spin' : ''}`} />
-                      {recovering ? 'Recovering...' : 'Recover from Latest Version'}
+                      {recovering ? t('builder.recovering') : t('builder.recoverFromLatest')}
                     </Button>
                     {diagnosisData.version_snapshots_status.version_details.length > 1 && (
                       <Button
@@ -1638,7 +1640,7 @@ const CanvasBuilderPage = () => {
                         }}
                         disabled={recovering}
                       >
-                        Recover from Version {diagnosisData.version_snapshots_status.version_details[0]?.version}
+                        {t('builder.recoverFromVersion', { version: diagnosisData.version_snapshots_status.version_details[0]?.version })}
                       </Button>
                     )}
                   </div>
@@ -1648,11 +1650,10 @@ const CanvasBuilderPage = () => {
               {!diagnosisData.can_recover && (
                 <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/10">
                   <p className="text-sm text-destructive font-medium mb-2">
-                    No recoverable images found in version snapshots.
+                    {t('builder.noRecoverableImages')}
                   </p>
                   <p className="text-xs text-destructive/80">
-                    The version snapshots were saved with empty image URLs. This means the images cannot be automatically recovered. 
-                    You will need to <strong>re-upload the images manually</strong> by clicking on each empty image block and uploading the file again.
+                    {t('builder.emptyImageUrls')} {t('builder.reuploadManually')}
                   </p>
                 </div>
               )}
