@@ -172,9 +172,17 @@
     "unlimited": "Unlimited",
     "trialEndsIn": "Trial ends in",
     "nextBillingIn": "Next billing in",
+    "trialEnded": "Trial ended",
     "workspaceQuota": "Quota usage for this specific workspace",
+    "thisWorkspace": "This Workspace",
     "failedToLoad": "Failed to load quota information",
-    "unableToLoad": "Unable to load quota information"
+    "unableToLoad": "Unable to load quota information",
+    "remaining": "remaining",
+    "percentUsed": "% used",
+    "plan": "Plan",
+    "planLimits": "Plan Limits",
+    "maxFileSize": "Max file size",
+    "extraStorageIncrements": "Extra storage increments"
   },
   "upgrade": {
     "title": "Upgrade Your Plan",
@@ -189,8 +197,16 @@
     "current": "Current",
     "recommended": "Recommended",
     "select": "Select",
+    "selectPlan": "Select Plan",
+    "selecting": "Selecting...",
     "contactForPricing": "Contact for pricing",
-    "customPricing": "Custom pricing"
+    "customPricing": "Custom pricing",
+    "choosePlan": "Choose Your Plan",
+    "changePlan": "Change Plan",
+    "selectPlanDescription": "Select a plan to get started. You can change your plan anytime.",
+    "changePlanDescription": "Select a new plan. Your current usage will be preserved.",
+    "popular": "Popular",
+    "freeTrial": "Start with a free 14-day trial"
   },
   "builder": {
     "viewPortal": "View Portal",

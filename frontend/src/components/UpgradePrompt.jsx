@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +7,7 @@ import { Check, X, Info } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 
 const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }) => {
+  const { t } = useTranslation();
   const { quotaData } = useQuota(workspaceId);
   const [mediaCapacityDialogOpen, setMediaCapacityDialogOpen] = useState(false);
   const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
@@ -101,7 +103,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Upgrade Your Plan</DialogTitle>
+          <DialogTitle>{t('upgrade.title')}</DialogTitle>
           <DialogDescription>
             {getReasonMessage()}
           </DialogDescription>
@@ -120,11 +122,11 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
               }`}
             >
               {planOption.current && (
-                <Badge className="absolute top-4 right-4">Current</Badge>
+                <Badge className="absolute top-4 right-4">{t('upgrade.current')}</Badge>
               )}
               {planOption.recommended && !planOption.current && (
                 <Badge variant="default" className="absolute top-4 right-4">
-                  Recommended
+                  {t('upgrade.recommended')}
                 </Badge>
               )}
 
@@ -148,7 +150,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
 
               {planOption.current ? (
                 <Button variant="outline" className="w-full" disabled>
-                  Current Plan
+                  {t('upgrade.current')} {t('quota.plan')}
                 </Button>
               ) : (
                 <Button
@@ -159,7 +161,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     onOpenChange(false);
                   }}
                 >
-                  {planOption.name === 'enterprise' ? 'Contact Sales' : 'Upgrade Now'}
+                  {planOption.name === 'enterprise' ? t('upgrade.contactSales') : t('upgrade.select')}
                 </Button>
               )}
 
@@ -173,7 +175,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 }}
               >
                 <Info className="w-4 h-4 mr-2" />
-                Max Media Capacity
+                {t('upgrade.maxMediaCapacity')}
               </Button>
             </div>
           ))}
@@ -184,7 +186,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {selectedPlanMedia?.displayName} - Max Media Capacity
+                {selectedPlanMedia?.displayName} - {t('upgrade.maxMediaCapacity')}
               </DialogTitle>
               <DialogDescription>
                 {selectedPlanMedia?.name === 'enterprise'
@@ -204,7 +206,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     setMediaCapacityDialogOpen(false);
                   }}
                 >
-                  Contact Sales
+                  {t('upgrade.contactSales')}
                 </Button>
               </div>
             ) : selectedPlanMedia?.mediaCapacity ? (

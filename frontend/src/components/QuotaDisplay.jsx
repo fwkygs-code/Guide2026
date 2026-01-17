@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { api } from '../lib/api';
 
 const formatBytes = (bytes, t) => {
+  const safeT = t || ((key) => key);
   if (bytes === 0) return '0 B';
-  if (bytes === null || bytes === undefined) return t('quota.unlimited');
+  if (bytes === null || bytes === undefined) return safeT('quota.unlimited');
   
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -19,7 +20,8 @@ const formatBytes = (bytes, t) => {
 };
 
 const formatNumber = (num, t) => {
-  if (num === null || num === undefined) return t('quota.unlimited');
+  const safeT = t || ((key) => key);
+  if (num === null || num === undefined) return safeT('quota.unlimited');
   return num.toLocaleString();
 };
 
@@ -194,15 +196,15 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     <div className="space-y-4">
       {/* Plan Badge and Upgrade Button */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900">Quota Usage</h3>
+        <h3 className="text-lg font-semibold text-slate-900">{t('quota.usage')}</h3>
         <div className="flex items-center gap-2">
           {onUpgrade && (
             <Button size="sm" variant="default" onClick={onUpgrade}>
-              Upgrade Plan
+              {t('quota.upgrade')}
             </Button>
           )}
           <Badge variant={plan.name === 'enterprise' ? 'default' : plan.name === 'pro' ? 'secondary' : 'outline'}>
-            {plan.display_name} Plan
+            {plan.display_name} {t('quota.plan')}
           </Badge>
         </div>
       </div>
@@ -224,19 +226,19 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
               <CardContent className="pt-4">
                 {trialActive && (
                   <div className="flex items-center gap-2 text-sm text-blue-900">
-                    <span className="font-medium">Trial ends in:</span>
+                    <span className="font-medium">{t('quota.trialEndsIn')}:</span>
                     <span>{formatTimeUntil(trial_period_end)}</span>
                   </div>
                 )}
                 {billingUpcoming && !trialActive && (
                   <div className="flex items-center gap-2 text-sm text-blue-900">
-                    <span className="font-medium">Next billing:</span>
+                    <span className="font-medium">{t('quota.nextBillingIn')}:</span>
                     <span>{formatTimeUntil(next_billing_date)}</span>
                   </div>
                 )}
                 {!trialActive && !billingUpcoming && trial_period_end && (
                   <div className="flex items-center gap-2 text-sm text-blue-700">
-                    <span>Trial ended</span>
+                    <span>{t('quota.trialEnded')}</span>
                   </div>
                 )}
               </CardContent>
@@ -250,7 +252,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2 text-sm text-blue-900">
-                  <span className="font-medium">Next billing:</span>
+                  <span className="font-medium">{t('quota.nextBillingIn')}:</span>
                   <span>{formatTimeUntil(next_billing_date)}</span>
                 </div>
               </CardContent>
@@ -339,20 +341,20 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Database className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium">Storage</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('quota.storage')}</CardTitle>
             </div>
             <span className="text-xs text-slate-500">
-              {formatBytes(quota.storage_used)} / {formatBytes(quota.storage_allowed)}
+              {formatBytes(quota.storage_used, t)} / {formatBytes(quota.storage_allowed, t)}
             </span>
           </div>
         </CardHeader>
         <CardContent>
           <Progress value={storagePercent} className="h-2" />
           <div className="mt-2 text-xs text-slate-500">
-            {storagePercent.toFixed(1)}% used
+            {storagePercent.toFixed(1)}{t('quota.percentUsed')}
             {quota.storage_allowed > 0 && (
               <span className="ml-2">
-                ({formatBytes(quota.storage_allowed - quota.storage_used)} remaining)
+                ({formatBytes(quota.storage_allowed - quota.storage_used, t)} {t('quota.remaining')})
               </span>
             )}
           </div>
@@ -365,10 +367,10 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium">Workspaces</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('quota.workspaces')}</CardTitle>
             </div>
             <span className="text-xs text-slate-500">
-              {quota.workspaces_used} / {formatNumber(quota.workspaces_limit)}
+              {quota.workspaces_used} / {formatNumber(quota.workspaces_limit, t)}
             </span>
           </div>
         </CardHeader>
@@ -377,13 +379,13 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
             <>
               <Progress value={workspacesPercent} className="h-2" />
               <div className="mt-2 text-xs text-slate-500">
-                {workspacesPercent.toFixed(1)}% used
+                {workspacesPercent.toFixed(1)}{t('quota.percentUsed')}
               </div>
             </>
           ) : (
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <CheckCircle2 className="h-3 w-3 text-success" />
-              <span>Unlimited</span>
+              <span>{t('quota.unlimited')}</span>
             </div>
           )}
         </CardContent>
@@ -395,10 +397,10 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium">Walkthroughs</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('quota.walkthroughs')}</CardTitle>
             </div>
             <span className="text-xs text-slate-500">
-              {quota.walkthroughs_used} / {formatNumber(quota.walkthroughs_limit)}
+              {quota.walkthroughs_used} / {formatNumber(quota.walkthroughs_limit, t)}
             </span>
           </div>
         </CardHeader>
@@ -407,13 +409,13 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
             <>
               <Progress value={walkthroughsPercent} className="h-2" />
               <div className="mt-2 text-xs text-slate-500">
-                {walkthroughsPercent.toFixed(1)}% used
+                {walkthroughsPercent.toFixed(1)}{t('quota.percentUsed')}
               </div>
             </>
           ) : (
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <CheckCircle2 className="h-3 w-3 text-success" />
-              <span>Unlimited</span>
+              <span>{t('quota.unlimited')}</span>
             </div>
           )}
         </CardContent>
@@ -425,10 +427,10 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium">Categories</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('quota.categories')}</CardTitle>
             </div>
             <span className="text-xs text-slate-500">
-              {quota.categories_used} / {formatNumber(quota.categories_limit)}
+              {quota.categories_used} / {formatNumber(quota.categories_limit, t)}
             </span>
           </div>
         </CardHeader>
@@ -437,13 +439,13 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
             <>
               <Progress value={categoriesPercent} className="h-2" />
               <div className="mt-2 text-xs text-slate-500">
-                {categoriesPercent.toFixed(1)}% used
+                {categoriesPercent.toFixed(1)}{t('quota.percentUsed')}
               </div>
             </>
           ) : (
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <CheckCircle2 className="h-3 w-3 text-success" />
-              <span>Unlimited</span>
+              <span>{t('quota.unlimited')}</span>
             </div>
           )}
         </CardContent>
@@ -453,22 +455,22 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       {workspaceQuota && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">This Workspace</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('quota.thisWorkspace')}</CardTitle>
             <CardDescription className="text-xs">
-              Quota usage for this specific workspace
+              {t('quota.workspaceQuota')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">Walkthroughs:</span>
+              <span className="text-slate-600">{t('quota.walkthroughs')}:</span>
               <span className="font-medium">
-                {workspaceQuota.walkthroughs_used} / {formatNumber(workspaceQuota.walkthroughs_limit)}
+                {workspaceQuota.walkthroughs_used} / {formatNumber(workspaceQuota.walkthroughs_limit, t)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">Categories:</span>
+              <span className="text-slate-600">{t('quota.categories')}:</span>
               <span className="font-medium">
-                {workspaceQuota.categories_used} / {formatNumber(workspaceQuota.categories_limit)}
+                {workspaceQuota.categories_used} / {formatNumber(workspaceQuota.categories_limit, t)}
               </span>
             </div>
           </CardContent>
@@ -478,17 +480,17 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       {/* Plan Limits Info */}
       <Card className="bg-slate-50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Plan Limits</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('quota.planLimits')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-xs text-slate-600">
           <div className="flex items-center justify-between">
-            <span>Max file size:</span>
-            <span className="font-medium">{formatBytes(plan.max_file_size_bytes)}</span>
+            <span>{t('quota.maxFileSize')}:</span>
+            <span className="font-medium">{formatBytes(plan.max_file_size_bytes, t)}</span>
           </div>
           {plan.extra_storage_increment_bytes && (
             <div className="flex items-center justify-between">
-              <span>Extra storage increments:</span>
-              <span className="font-medium">{formatBytes(plan.extra_storage_increment_bytes)}</span>
+              <span>{t('quota.extraStorageIncrements')}:</span>
+              <span className="font-medium">{formatBytes(plan.extra_storage_increment_bytes, t)}</span>
             </div>
           )}
         </CardContent>

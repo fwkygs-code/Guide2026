@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +8,7 @@ import { api } from '../lib/api';
 import { toast } from 'sonner';
 
 const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = false }) => {
+  const { t } = useTranslation();
   const [selecting, setSelecting] = useState(false);
   const [mediaCapacityDialogOpen, setMediaCapacityDialogOpen] = useState(false);
   const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
@@ -137,7 +139,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
               {plan.popular && (
                 <Badge className="absolute top-4 right-4 bg-primary">
                   <Sparkles className="w-3 h-3 mr-1" />
-                  Popular
+                  {t('upgrade.popular')}
                 </Badge>
               )}
 
@@ -157,7 +159,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
                 </div>
                 {plan.trial && (
                   <p className="text-xs text-primary mt-1 font-medium">
-                    Start with a free 14-day trial
+                    {t('upgrade.freeTrial')}
                   </p>
                 )}
               </div>
@@ -177,7 +179,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
                 onClick={() => handleSelectPlan(plan.name)}
                 disabled={selecting}
               >
-                {selecting ? 'Selecting...' : plan.name === 'enterprise' ? 'Contact Sales' : 'Select Plan'}
+                {selecting ? t('upgrade.selecting') : plan.name === 'enterprise' ? t('upgrade.contactSales') : t('upgrade.selectPlan')}
               </Button>
 
               <Button
@@ -190,7 +192,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
                 }}
               >
                 <Info className="w-4 h-4 mr-2" />
-                Max Media Capacity
+                {t('upgrade.maxMediaCapacity')}
               </Button>
             </div>
           ))}
@@ -201,7 +203,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {selectedPlanMedia?.displayName} - Max Media Capacity
+                {selectedPlanMedia?.displayName} - {t('upgrade.maxMediaCapacity')}
               </DialogTitle>
               <DialogDescription>
                 {selectedPlanMedia?.name === 'enterprise'
@@ -221,7 +223,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
                     setMediaCapacityDialogOpen(false);
                   }}
                 >
-                  Contact Sales
+                  {t('upgrade.contactSales')}
                 </Button>
               </div>
             ) : selectedPlanMedia?.mediaCapacity ? (

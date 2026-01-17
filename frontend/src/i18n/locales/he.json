@@ -172,9 +172,17 @@
     "unlimited": "ללא הגבלה",
     "trialEndsIn": "תקופת ניסיון מסתיימת בעוד",
     "nextBillingIn": "חיוב הבא בעוד",
+    "trialEnded": "תקופת הניסיון הסתיימה",
     "workspaceQuota": "שימוש במכסה עבור אזור העבודה הספציפי הזה",
+    "thisWorkspace": "אזור עבודה זה",
     "failedToLoad": "נכשל בטעינת מידע על מכסה",
-    "unableToLoad": "לא ניתן לטעון מידע על מכסה"
+    "unableToLoad": "לא ניתן לטעון מידע על מכסה",
+    "remaining": "נותר",
+    "percentUsed": "% בשימוש",
+    "plan": "תוכנית",
+    "planLimits": "מגבלות תוכנית",
+    "maxFileSize": "גודל קובץ מקסימלי",
+    "extraStorageIncrements": "תוספות אחסון"
   },
   "upgrade": {
     "title": "שדרג את התוכנית שלך",
@@ -189,8 +197,16 @@
     "current": "נוכחי",
     "recommended": "מומלץ",
     "select": "בחר",
+    "selectPlan": "בחר תוכנית",
+    "selecting": "בוחר...",
     "contactForPricing": "צור קשר למחיר",
-    "customPricing": "מחיר מותאם אישית"
+    "customPricing": "מחיר מותאם אישית",
+    "choosePlan": "בחר את התוכנית שלך",
+    "changePlan": "שנה תוכנית",
+    "selectPlanDescription": "בחר תוכנית כדי להתחיל. תוכל לשנות את התוכנית שלך בכל עת.",
+    "changePlanDescription": "בחר תוכנית חדשה. השימוש הנוכחי שלך יישמר.",
+    "popular": "פופולרי",
+    "freeTrial": "התחל עם תקופת ניסיון חינם של 14 ימים"
   },
   "builder": {
     "viewPortal": "צפה בפורטל",
