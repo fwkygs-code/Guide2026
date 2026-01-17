@@ -53,6 +53,8 @@ const CanvasBuilderPage = () => {
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
   const [isPublishing, setIsPublishing] = useState(false);
   const [activeStepId, setActiveStepId] = useState(null);
+  const [overStepId, setOverStepId] = useState(null);
+  const [insertAfterIndex, setInsertAfterIndex] = useState(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState(null);
   const [recovering, setRecovering] = useState(false);
@@ -1177,7 +1179,9 @@ const CanvasBuilderPage = () => {
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
               >
                 <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={horizontalListSortingStrategy}>
                   <StepTimeline
@@ -1188,6 +1192,9 @@ const CanvasBuilderPage = () => {
                     selectMode={selectStepsMode}
                     selectedIds={selectedStepIds}
                     onToggleSelect={toggleStepSelected}
+                    overStepId={overStepId}
+                    activeStepId={activeStepId}
+                    insertAfterIndex={insertAfterIndex}
                   />
                 </SortableContext>
                 <DragOverlay>

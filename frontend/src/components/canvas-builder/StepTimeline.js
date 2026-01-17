@@ -4,7 +4,7 @@ import { X, CheckSquare, Square, GripVertical } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDeleteStep, selectMode, selectedIds, onToggleSelect, stepsLength }) => {
+const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDeleteStep, selectMode, selectedIds, onToggleSelect, stepsLength, overStepId, activeStepId }) => {
   const {
     attributes,
     listeners,
@@ -14,10 +14,14 @@ const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDelete
     isDragging,
   } = useSortable({ id: step.id });
 
+  const isOver = overStepId === step.id && activeStepId !== step.id;
+  const isActive = activeStepId === step.id;
+
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transition: isDragging ? 'none' : transition,
+    opacity: isDragging ? 0.4 : isOver ? 0.8 : 1,
+    zIndex: isDragging ? 50 : isOver ? 40 : 1,
   };
 
   return (
@@ -96,6 +100,9 @@ const StepTimeline = ({
   selectMode = false,
   selectedIds = new Set(),
   onToggleSelect,
+  overStepId,
+  activeStepId,
+  insertAfterIndex,
 }) => {
 
   if (steps.length === 0) return null;
@@ -105,6 +112,13 @@ const StepTimeline = ({
       <div className="flex items-center gap-3 overflow-x-auto overflow-y-visible min-h-[72px]">
         {steps.map((step, index) => (
           <React.Fragment key={step.id}>
+            {/* Insertion indicator before this step */}
+            {insertAfterIndex === index - 1 && activeStepId && (
+              <div className="relative flex items-center justify-center w-2 h-16 z-50">
+                <div className="absolute w-1 h-full bg-primary rounded-full shadow-lg animate-pulse" />
+                <div className="absolute w-3 h-3 bg-primary rounded-full border-2 border-white shadow-lg" />
+              </div>
+            )}
             <SortableStepItem
               step={step}
               index={index}
@@ -115,9 +129,20 @@ const StepTimeline = ({
               selectedIds={selectedIds}
               onToggleSelect={onToggleSelect}
               stepsLength={steps.length}
+              overStepId={overStepId}
+              activeStepId={activeStepId}
             />
-            {index < steps.length - 1 && (
-              <div className="w-8 h-px bg-slate-300" />
+            {/* Insertion indicator after this step */}
+            {insertAfterIndex === index && activeStepId && (
+              <div className="relative flex items-center justify-center w-2 h-16 z-50">
+                <div className="absolute w-1 h-full bg-primary rounded-full shadow-lg animate-pulse" />
+                <div className="absolute w-3 h-3 bg-primary rounded-full border-2 border-white shadow-lg" />
+              </div>
+            )}
+            {index < steps.length - 1 && insertAfterIndex !== index && (
+              <div className={`w-8 h-px transition-colors ${
+                insertAfterIndex === index - 1 ? 'bg-primary' : 'bg-slate-300'
+              }`} />
             )}
           </React.Fragment>
         ))}
