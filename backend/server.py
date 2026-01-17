@@ -2442,6 +2442,60 @@ async def upload_file(
     
     logging.info(f"[upload_file] File type determined: extension={file_extension}, resource_type={resource_type}, size={file_size} bytes")
     
+    # Build Cloudinary folder structure: guide2026/user_id/workspace_id/category_id/walkthrough_id
+    # Determine category_id and walkthrough_id from reference_type and reference_id
+    category_id = None
+    walkthrough_id = None
+    
+    if reference_type and reference_id:
+        if reference_type == "walkthrough_icon":
+            # reference_id is walkthrough_id
+            walkthrough_id = reference_id
+            # Get walkthrough to find category_id
+            walkthrough = await db.walkthroughs.find_one(
+                {"id": walkthrough_id, "workspace_id": workspace_id},
+                {"_id": 0, "category_ids": 1}
+            )
+            if walkthrough and walkthrough.get("category_ids"):
+                # Use first category if multiple
+                category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
+        elif reference_type == "category_icon":
+            # reference_id is category_id
+            category_id = reference_id
+        elif reference_type == "step_media":
+            # reference_id is step_id - need to find walkthrough
+            # Search for walkthrough containing this step
+            walkthrough = await db.walkthroughs.find_one(
+                {"workspace_id": workspace_id, "steps.id": reference_id},
+                {"_id": 0, "id": 1, "category_ids": 1}
+            )
+            if walkthrough:
+                walkthrough_id = walkthrough["id"]
+                if walkthrough.get("category_ids"):
+                    category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
+        elif reference_type == "block_image":
+            # reference_id is block_id - need to find step, then walkthrough
+            # Search for walkthrough containing this block
+            walkthrough = await db.walkthroughs.find_one(
+                {"workspace_id": workspace_id, "steps.blocks.id": reference_id},
+                {"_id": 0, "id": 1, "category_ids": 1}
+            )
+            if walkthrough:
+                walkthrough_id = walkthrough["id"]
+                if walkthrough.get("category_ids"):
+                    category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
+        # workspace_logo, workspace_background don't have category/walkthrough
+    
+    # Build folder path: guide2026/user_id/workspace_id/category_id/walkthrough_id
+    folder_parts = ["guide2026", current_user.id, workspace_id]
+    if category_id:
+        folder_parts.append(category_id)
+    if walkthrough_id:
+        folder_parts.append(walkthrough_id)
+    
+    cloudinary_folder = "/".join(folder_parts)
+    logging.info(f"[upload_file] Cloudinary folder: {cloudinary_folder} (user={current_user.id}, workspace={workspace_id}, category={category_id}, walkthrough={walkthrough_id})")
+    
     # Phase 1: Create file record with status=pending (reserves quota)
     file_id = str(uuid.uuid4())
     file_record = File(
@@ -2470,7 +2524,7 @@ async def upload_file(
         upload_params = {
             "public_id": file_id,
             "resource_type": resource_type,
-            "folder": "guide2026",
+            "folder": cloudinary_folder,  # Organized: guide2026/user_id/workspace_id/category_id/walkthrough_id
             "overwrite": False,
             "invalidate": True
         }
