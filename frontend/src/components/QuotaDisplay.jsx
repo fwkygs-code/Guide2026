@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Database, FolderOpen, BookOpen, Tag, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -7,9 +8,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { api } from '../lib/api';
 
-const formatBytes = (bytes) => {
+const formatBytes = (bytes, t) => {
   if (bytes === 0) return '0 B';
-  if (bytes === null || bytes === undefined) return 'Unlimited';
+  if (bytes === null || bytes === undefined) return t('quota.unlimited');
   
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -17,12 +18,13 @@ const formatBytes = (bytes) => {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
-const formatNumber = (num) => {
-  if (num === null || num === undefined) return 'Unlimited';
+const formatNumber = (num, t) => {
+  if (num === null || num === undefined) return t('quota.unlimited');
   return num.toLocaleString();
 };
 
 const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = null }) => {
+  const { t } = useTranslation();
   const [quotaData, setQuotaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,7 +79,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       });
     } catch (err) {
       console.error('Failed to fetch quota data:', err);
-      setError('Failed to load quota information');
+      setError(t('quota.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +89,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     return (
       <Card className="bg-white border-slate-200">
         <CardHeader>
-          <CardTitle>Quota Usage</CardTitle>
+          <CardTitle>{t('quota.usage')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
@@ -103,10 +105,10 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     return (
       <Card className="bg-white border-slate-200">
         <CardHeader>
-          <CardTitle>Quota Usage</CardTitle>
+          <CardTitle>{t('quota.usage')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-500">{error || 'Unable to load quota information'}</p>
+          <p className="text-sm text-slate-500">{error || t('quota.unableToLoad')}</p>
         </CardContent>
       </Card>
     );

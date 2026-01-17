@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
 const WalkthroughsPage = () => {
+  const { t } = useTranslation();
   const { workspaceId } = useParams();
   const navigate = useNavigate();
   const [walkthroughs, setWalkthroughs] = useState([]);
@@ -92,13 +94,13 @@ const WalkthroughsPage = () => {
   };
 
   const handleDelete = async (walkthroughId) => {
-    if (window.confirm('Move this walkthrough to Archive? You can restore it later from Archive.')) {
+    if (window.confirm(t('walkthrough.moveToArchive'))) {
       try {
         await api.archiveWalkthrough(workspaceId, walkthroughId);
         setWalkthroughs(walkthroughs.filter(w => w.id !== walkthroughId));
-        toast.success('Moved to Archive');
+        toast.success(t('walkthrough.movedToArchive'));
       } catch (error) {
-        toast.error('Failed to archive walkthrough');
+        toast.error(t('archive.failedToLoad'));
       }
     }
   };
@@ -119,9 +121,9 @@ const WalkthroughsPage = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-heading font-bold text-slate-900">
-              {workspace?.name} - Walkthroughs
+              {workspace?.name} - {t('workspace.walkthroughs')}
             </h1>
-            <p className="text-slate-600 mt-1">Create and manage your interactive guides</p>
+            <p className="text-slate-600 mt-1">{t('walkthrough.createAndManage')}</p>
           </div>
           <div className="flex gap-3">
             <Button
@@ -130,7 +132,7 @@ const WalkthroughsPage = () => {
               data-testid="view-portal-button"
             >
               <Eye className="w-4 h-4 mr-2" />
-              View Portal
+              {t('walkthrough.viewPortal')}
             </Button>
             <Button
               variant="outline"
@@ -138,14 +140,14 @@ const WalkthroughsPage = () => {
               data-testid="view-archive-button"
             >
               <Archive className="w-4 h-4 mr-2" />
-              Archive
+              {t('workspace.archive')}
             </Button>
             <Button
               onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/new`)}
               data-testid="create-walkthrough-button"
             >
               <Plus className="w-4 h-4 mr-2" />
-              New Walkthrough
+              {t('walkthrough.new')}
             </Button>
           </div>
         </div>
@@ -192,7 +194,7 @@ const WalkthroughsPage = () => {
                   </div>
                 ) : (
                   <div className="mb-6">
-                    <h2 className="text-2xl font-heading font-bold text-slate-900">Uncategorized</h2>
+                    <h2 className="text-2xl font-heading font-bold text-slate-900">{t('walkthrough.uncategorized')}</h2>
                   </div>
                 )}
 
@@ -228,7 +230,7 @@ const WalkthroughsPage = () => {
                               {walkthrough.title}
                             </h3>
                             <p className="text-sm text-slate-600 line-clamp-2">
-                              {walkthrough.description || 'No description'}
+                              {walkthrough.description || t('walkthrough.noDescription')}
                             </p>
                           </div>
                         </div>
@@ -238,7 +240,7 @@ const WalkthroughsPage = () => {
                             {walkthrough.status}
                           </Badge>
                           <Badge variant="outline">
-                            {walkthrough.steps?.length || 0} steps
+                            {walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}
                           </Badge>
                         </div>
 
@@ -251,7 +253,7 @@ const WalkthroughsPage = () => {
                             data-testid={`edit-walkthrough-${walkthrough.id}`}
                           >
                             <Edit className="w-3 h-3 mr-1" />
-                            Edit
+                            {t('common.edit')}
                           </Button>
                           <WalkthroughShareButton 
                             walkthrough={walkthrough} 
@@ -277,12 +279,12 @@ const WalkthroughsPage = () => {
           <div className="text-center py-16">
             <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
-              No walkthroughs yet
+              {t('walkthrough.noWalkthroughs')}
             </h3>
-            <p className="text-slate-600 mb-6">Create your first walkthrough to get started</p>
+            <p className="text-slate-600 mb-6">{t('walkthrough.createFirst')}</p>
             <Button onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/new`)} data-testid="empty-create-walkthrough-button">
               <Plus className="w-4 h-4 mr-2" />
-              Create Walkthrough
+              {t('walkthrough.createWalkthrough')}
             </Button>
           </div>
         )}
@@ -293,12 +295,13 @@ const WalkthroughsPage = () => {
 
 // Share Button Component for Walkthroughs
 const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
+  const { t } = useTranslation();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const walkthroughUrl = `${window.location.origin}/portal/${workspaceSlug}/${walkthrough.id}`;
   const embedUrl = `${window.location.origin}/embed/portal/${workspaceSlug}/${walkthrough.id}`;
   const iframeCode = `<iframe src="${embedUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
 
-  const copyToClipboard = (text, message = 'Copied!') => {
+  const copyToClipboard = (text, message = t('common.success')) => {
     navigator.clipboard.writeText(text);
     toast.success(message);
   };
@@ -320,24 +323,24 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Share & Embed Walkthrough</DialogTitle>
+          <DialogTitle>{t('walkthrough.shareAndEmbed')}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="share" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="share">
               <Share2 className="w-4 h-4 mr-2" />
-              Share Link
+              {t('walkthrough.shareLink')}
             </TabsTrigger>
             <TabsTrigger value="embed">
               <Code className="w-4 h-4 mr-2" />
-              Embed Code
+              {t('walkthrough.embedCode')}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="share" className="space-y-4 mt-4">
             <div>
-              <Label>Walkthrough Link</Label>
-              <p className="text-xs text-gray-500 mb-1.5">Share this link to give others access</p>
+              <Label>{t('walkthrough.walkthroughLink')}</Label>
+              <p className="text-xs text-gray-500 mb-1.5">{t('walkthrough.shareLinkDescription')}</p>
               <div className="flex gap-2 mt-1.5">
                 <Input
                   value={walkthroughUrl}
@@ -346,7 +349,7 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
                 />
                 <Button 
                   variant="outline" 
-                  onClick={() => copyToClipboard(walkthroughUrl, 'Link copied!')}
+                  onClick={() => copyToClipboard(walkthroughUrl, t('walkthrough.linkCopied'))}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
@@ -356,8 +359,8 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
 
           <TabsContent value="embed" className="space-y-4 mt-4">
             <div>
-              <Label>iFrame Embed Code</Label>
-              <p className="text-xs text-gray-500 mb-1.5">Copy and paste this code into your website</p>
+              <Label>{t('walkthrough.iframeEmbedCode')}</Label>
+              <p className="text-xs text-gray-500 mb-1.5">{t('walkthrough.embedCodeDescription')}</p>
               <div className="flex gap-2 mt-1.5">
                 <Textarea
                   value={iframeCode}
@@ -366,13 +369,13 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
                 />
                 <Button 
                   variant="outline" 
-                  onClick={() => copyToClipboard(iframeCode, 'Embed code copied!')}
+                  onClick={() => copyToClipboard(iframeCode, t('walkthrough.embedCodeCopied'))}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
               <div className="mt-3 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl border border-gray-200/50">
-                <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                <p className="text-xs text-gray-600 mb-2">{t('walkthrough.preview')}</p>
                 <iframe 
                   src={embedUrl}
                   className="w-full h-96 border border-gray-200 rounded-lg"
