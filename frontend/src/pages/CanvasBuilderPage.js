@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -1169,15 +1169,39 @@ const CanvasBuilderPage = () => {
         {/* Timeline */}
         {stepTimelineVisible && (
           <div className="relative">
-            <StepTimeline
-              steps={walkthrough.steps}
-              currentStepIndex={currentStepIndex}
-              onStepClick={setCurrentStepIndex}
-              onDeleteStep={deleteStep}
-              selectMode={selectStepsMode}
-              selectedIds={selectedStepIds}
-              onToggleSelect={toggleStepSelected}
-            />
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={horizontalListSortingStrategy}>
+                <StepTimeline
+                  steps={walkthrough.steps}
+                  currentStepIndex={currentStepIndex}
+                  onStepClick={setCurrentStepIndex}
+                  onDeleteStep={deleteStep}
+                  selectMode={selectStepsMode}
+                  selectedIds={selectedStepIds}
+                  onToggleSelect={toggleStepSelected}
+                />
+              </SortableContext>
+              <DragOverlay>
+                {activeStepId ? (() => {
+                  const step = walkthrough.steps.find(s => s.id === activeStepId);
+                  const stepIndex = walkthrough.steps.findIndex(s => s.id === activeStepId);
+                  if (!step) return null;
+                  return (
+                    <div className="flex flex-col items-center justify-center p-4 rounded-xl min-w-[180px] bg-primary text-white shadow-lg scale-105">
+                      <div className="text-xs font-medium mb-1">Step {stepIndex + 1}</div>
+                      <div className="text-sm font-semibold max-w-[140px] text-center line-clamp-2">
+                        {step.title}
+                      </div>
+                    </div>
+                  );
+                })() : null}
+              </DragOverlay>
+            </DndContext>
             <Button
               variant="ghost"
               size="sm"
