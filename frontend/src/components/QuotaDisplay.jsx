@@ -85,7 +85,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
 
   if (loading) {
     return (
-      <Card>
+      <Card className="bg-white border-slate-200">
         <CardHeader>
           <CardTitle>Quota Usage</CardTitle>
         </CardHeader>
@@ -101,7 +101,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
 
   if (error || !quotaData) {
     return (
-      <Card>
+      <Card className="bg-white border-slate-200">
         <CardHeader>
           <CardTitle>Quota Usage</CardTitle>
         </CardHeader>
