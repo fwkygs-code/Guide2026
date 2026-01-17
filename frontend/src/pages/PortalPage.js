@@ -515,8 +515,23 @@ const PortalPage = ({ isEmbedded = false }) => {
               }
               if (categoriesWithChat.length === 1) {
                 // If only one category has chat, open it directly
-                setSelectedCategoryForChat(categoriesWithChat[0]);
+                const category = categoriesWithChat[0];
+                setSelectedCategoryForChat(category);
                 setHelpChatOpen(true);
+                // Open NotebookLM in a new popup window (not iframe - Google blocks iframes)
+                const popup = window.open(
+                  category.notebooklm_url,
+                  'gemini_chat',
+                  'width=800,height=700,resizable=yes,scrollbars=yes,status=yes,location=yes,toolbar=no,menubar=no'
+                );
+                // Store reference to close it later
+                if (popup) {
+                  window.chatWindow = popup;
+                  // Focus the popup
+                  popup.focus();
+                } else {
+                  toast.error('Popup blocked. Please allow popups for this site and try again.');
+                }
               } else {
                 // Multiple categories - show selection dialog
                 setCategorySelectOpen(true);
@@ -547,6 +562,22 @@ const PortalPage = ({ isEmbedded = false }) => {
                   setSelectedCategoryForChat(category);
                   setCategorySelectOpen(false);
                   setHelpChatOpen(true);
+                  // Open NotebookLM in a new popup window (not iframe - Google blocks iframes)
+                  const popup = window.open(
+                    category.notebooklm_url,
+                    'gemini_chat',
+                    'width=800,height=700,resizable=yes,scrollbars=yes,status=yes,location=yes,toolbar=no,menubar=no'
+                  );
+                  // Store reference to close it later
+                  if (popup) {
+                    window.chatWindow = popup;
+                    // Focus the popup
+                    popup.focus();
+                  } else {
+                    toast.error('Popup blocked. Please allow popups for this site and try again.');
+                    setHelpChatOpen(false);
+                    setSelectedCategoryForChat(null);
+                  }
                 }}
               >
                 <FolderOpen className="w-4 h-4 mr-3" style={{ color: primaryColor }} />
@@ -562,54 +593,62 @@ const PortalPage = ({ isEmbedded = false }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Embedded Chat Bubble */}
-      <AnimatePresence>
-        {helpChatOpen && selectedCategoryForChat && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-50 w-[500px] h-[600px] rounded-2xl shadow-2xl overflow-hidden"
-            style={{ maxWidth: 'calc(100vw - 48px)', maxHeight: 'calc(100vh - 48px)' }}
+      {/* Chat Bubble Indicator - Shows when chat window is open */}
+      {helpChatOpen && selectedCategoryForChat && (
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.9 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="fixed bottom-6 right-6 z-50 w-[320px] rounded-2xl shadow-2xl overflow-hidden"
+        >
+          {/* Chat Header */}
+          <div 
+            className="flex items-center justify-between px-4 py-3 text-white"
+            style={{ backgroundColor: primaryColor }}
           >
-            {/* Chat Header */}
-            <div 
-              className="flex items-center justify-between px-4 py-3 text-white"
-              style={{ backgroundColor: primaryColor }}
-            >
-              <div className="flex items-center gap-3">
-                <HelpCircle className="w-5 h-5" />
-                <div>
-                  <div className="font-semibold">Need Help?</div>
-                  <div className="text-xs opacity-90">{selectedCategoryForChat.name}</div>
-                </div>
+            <div className="flex items-center gap-3">
+              <HelpCircle className="w-5 h-5" />
+              <div>
+                <div className="font-semibold">Chat Opened</div>
+                <div className="text-xs opacity-90">{selectedCategoryForChat.name}</div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                onClick={() => {
-                  setHelpChatOpen(false);
-                  setSelectedCategoryForChat(null);
-                }}
-              >
-                <X className="w-4 h-4" />
-              </Button>
             </div>
-
-            {/* Embedded NotebookLM/Gemini Chat iframe */}
-            <div className="h-[calc(100%-57px)] bg-white">
-              <iframe
-                src={selectedCategoryForChat.notebooklm_url}
-                className="w-full h-full border-0"
-                title="Gemini Chat"
-                allow="clipboard-read; clipboard-write"
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-white hover:bg-white/20"
+              onClick={() => {
+                setHelpChatOpen(false);
+                setSelectedCategoryForChat(null);
+                // Try to close the popup window if it's still open
+                if (window.chatWindow && !window.chatWindow.closed) {
+                  window.chatWindow.close();
+                }
+              }}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="bg-white p-4 border-t border-slate-200">
+            <p className="text-sm text-slate-600 mb-3">
+              The chat window should have opened in a new tab. If it didn't, please check your popup blocker settings.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                if (selectedCategoryForChat.notebooklm_url) {
+                  window.open(selectedCategoryForChat.notebooklm_url, '_blank', 'noopener,noreferrer');
+                }
+              }}
+            >
+              Open Chat in New Tab
+            </Button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };
