@@ -56,6 +56,8 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       setQuotaData({
         plan: planData.plan,
         subscription: planData.subscription,
+        trial_period_end: planData.trial_period_end || null,
+        next_billing_date: planData.next_billing_date || null,
         quota: {
           storage_used: planData.quota.storage_used_bytes || 0,
           storage_allowed: planData.quota.storage_allowed_bytes || 0,
@@ -110,7 +112,29 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     );
   }
 
-  const { plan, quota, workspaceQuota } = quotaData;
+  const { plan, quota, workspaceQuota, trial_period_end, next_billing_date } = quotaData;
+  
+  // Calculate time until trial ends or next billing
+  const formatTimeUntil = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = date - now;
+    
+    if (diff <= 0) return null; // Past date
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+      return `${days} day${days !== 1 ? 's' : ''}${hours > 0 ? `, ${hours} hour${hours !== 1 ? 's' : ''}` : ''}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''}${minutes > 0 ? `, ${minutes} minute${minutes !== 1 ? 's' : ''}` : ''}`;
+    } else {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+  };
   
   // Calculate percentages
   const storagePercent = quota.storage_allowed > 0 
@@ -180,6 +204,26 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           </Badge>
         </div>
       </div>
+
+      {/* Trial Period / Billing Date Info */}
+      {(trial_period_end || next_billing_date) && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-4">
+            {trial_period_end && new Date(trial_period_end) > new Date() && (
+              <div className="flex items-center gap-2 text-sm text-blue-900">
+                <span className="font-medium">Trial ends in:</span>
+                <span>{formatTimeUntil(trial_period_end)}</span>
+              </div>
+            )}
+            {next_billing_date && (!trial_period_end || new Date(trial_period_end) <= new Date()) && (
+              <div className="flex items-center gap-2 text-sm text-blue-900">
+                <span className="font-medium">Next billing:</span>
+                <span>{formatTimeUntil(next_billing_date)}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Warnings */}
       {showWarnings && (

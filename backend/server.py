@@ -2763,9 +2763,58 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         ]
     })
     
+    # Calculate trial period end and next billing date
+    trial_period_end = None
+    next_billing_date = None
+    
+    if subscription:
+        subscription_dict = subscription.model_dump()
+        started_at = subscription.started_at
+        
+        # For Pro plan, trial period is 14 days from started_at
+        if plan.name == 'pro' and subscription.status == SubscriptionStatus.ACTIVE:
+            # Calculate trial period end (14 days from started_at)
+            if isinstance(started_at, str):
+                started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            else:
+                started_at_dt = started_at
+            trial_period_end = (started_at_dt + timedelta(days=14)).isoformat()
+            
+            # If trial has ended, next billing is 30 days after trial end (or now if trial already ended)
+            now = datetime.now(timezone.utc)
+            trial_end_dt = datetime.fromisoformat(trial_period_end.replace('Z', '+00:00'))
+            
+            if now >= trial_end_dt:
+                # Trial ended, calculate next billing (monthly from trial end)
+                next_billing_date = (trial_end_dt + timedelta(days=30)).isoformat()
+            else:
+                # Still in trial, billing starts after trial ends
+                next_billing_date = trial_period_end
+        
+        # For Enterprise plan (if on monthly/yearly billing), calculate next billing date
+        elif plan.name == 'enterprise' and subscription.status == SubscriptionStatus.ACTIVE:
+            # Assume monthly billing for enterprise (30 days from started_at, then monthly)
+            if isinstance(started_at, str):
+                started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            else:
+                started_at_dt = started_at
+            # First billing after 30 days from start
+            first_billing = started_at_dt + timedelta(days=30)
+            now = datetime.now(timezone.utc)
+            
+            # Calculate next billing date (monthly from first billing)
+            next_billing = first_billing
+            while next_billing <= now:
+                next_billing += timedelta(days=30)
+            next_billing_date = next_billing.isoformat()
+    else:
+        subscription_dict = None
+    
     return {
         "plan": plan.model_dump(),
-        "subscription": subscription.model_dump() if subscription else None,
+        "subscription": subscription_dict,
+        "trial_period_end": trial_period_end,
+        "next_billing_date": next_billing_date,
         "quota": {
             "storage_used_bytes": storage_used,
             "storage_allowed_bytes": storage_allowed,
