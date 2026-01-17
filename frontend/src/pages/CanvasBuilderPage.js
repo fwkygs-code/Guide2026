@@ -48,7 +48,6 @@ const CanvasBuilderPage = () => {
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [selectStepsMode, setSelectStepsMode] = useState(false);
   const [selectedStepIds, setSelectedStepIds] = useState(new Set());
-  const [activeStepId, setActiveStepId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [activeStepId, setActiveStepId] = useState(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
