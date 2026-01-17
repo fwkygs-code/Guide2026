@@ -60,7 +60,21 @@ if USE_CLOUDINARY:
     )
     logging.info("Cloudinary configured for persistent file storage")
 else:
-    logging.warning("Cloudinary not configured - using local storage (files will be lost on redeployment)")
+    # Check if we're in production
+    is_production = os.environ.get('ENVIRONMENT', '').lower() in ['production', 'prod'] or \
+                    os.environ.get('RENDER', '').lower() == 'true' or \
+                    'render.com' in os.environ.get('RENDER_EXTERNAL_URL', '')
+    if is_production:
+        logging.error("=" * 80)
+        logging.error("CRITICAL: Cloudinary not configured in production!")
+        logging.error("Files will be stored on ephemeral disk and LOST on redeployment.")
+        logging.error("Please set environment variables:")
+        logging.error("  - CLOUDINARY_CLOUD_NAME")
+        logging.error("  - CLOUDINARY_API_KEY")
+        logging.error("  - CLOUDINARY_API_SECRET")
+        logging.error("=" * 80)
+    else:
+        logging.warning("Cloudinary not configured - using local storage (files will be lost on redeployment)")
 
 # Mount uploads directory under /api/uploads (fallback for local storage)
 UPLOAD_DIR = Path(os.environ.get('UPLOAD_DIR', str(ROOT_DIR / "uploads")))
@@ -2452,7 +2466,7 @@ async def upload_file(
                     "status": "active"
                 }
             except Exception as e:
-                logging.error(f"Cloudinary upload failed: {str(e)}")
+                logging.error(f"Cloudinary upload failed for file {file_id}: {str(e)}")
                 # Mark file as failed
                 await db.files.update_one(
                     {"id": file_id},
@@ -2461,10 +2475,24 @@ async def upload_file(
                         "updated_at": datetime.now(timezone.utc).isoformat()
                     }}
                 )
-                # Fallback to local storage
-                logging.warning("Falling back to local storage")
+                # CRITICAL: In production, fail the upload if Cloudinary is configured but fails
+                # Don't silently fall back to ephemeral local storage
+                is_production = os.environ.get('ENVIRONMENT', '').lower() in ['production', 'prod']
+                if is_production and USE_CLOUDINARY:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"File upload to Cloudinary failed: {str(e)}. Please try again or contact support."
+                    )
+                # Only fall back to local storage in development
+                logging.warning(f"Falling back to local storage (development mode only)")
         
-        # Fallback: Local storage
+        # Fallback: Local storage (ONLY for development - will be lost on redeploy)
+        # CRITICAL: Warn if using local storage in what appears to be production
+        is_production = os.environ.get('ENVIRONMENT', '').lower() in ['production', 'prod']
+        if is_production and not USE_CLOUDINARY:
+            logging.error("CRITICAL: Local storage is being used in production! Files will be lost on redeploy.")
+            logging.error("Please configure Cloudinary environment variables: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET")
+        
         file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
         with file_path.open("wb") as buffer:
             buffer.write(file_content)
@@ -2480,6 +2508,8 @@ async def upload_file(
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
+        
+        logging.warning(f"File {file_id} stored locally at {file_path}. This is ephemeral and will be lost on redeploy.")
         
         return {
             "file_id": file_id,
@@ -2508,6 +2538,11 @@ async def get_media(filename: str):
     """
     Serve media files. Only serves ACTIVE files (not PENDING or FAILED).
     This ensures uploads are only accessible after successful completion.
+    
+    CRITICAL: Handles persistence across redeploys:
+    - If file record has Cloudinary URL, redirect directly
+    - If file record has /api/media/ URL but file missing locally, try Cloudinary by public_id
+    - If Cloudinary is configured, always try Cloudinary lookup before local storage
     """
     # Extract file_id from filename (remove extension)
     file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
@@ -2515,34 +2550,67 @@ async def get_media(filename: str):
     # Check if file record exists and is ACTIVE
     file_record = await db.files.find_one({"id": file_id}, {"_id": 0})
     if not file_record:
+        logging.warning(f"[get_media] File record not found for file_id: {file_id}")
         raise HTTPException(status_code=404, detail="File not found")
     
     # Only serve ACTIVE files - block PENDING, FAILED, DELETING
     if file_record.get('status') != FileStatus.ACTIVE:
+        logging.warning(f"[get_media] File {file_id} not available (status: {file_record.get('status')})")
         raise HTTPException(
             status_code=404, 
             detail=f"File not available (status: {file_record.get('status')})"
         )
     
+    stored_url = file_record.get('url', '')
+    public_id = file_record.get('public_id')
+    resource_type = file_record.get('resource_type', 'auto')
+    
+    # CRITICAL FIX: Check stored URL first - if it's a Cloudinary URL, redirect directly
+    # This handles files that were uploaded to Cloudinary but are being accessed via /api/media/
+    if stored_url and 'res.cloudinary.com' in stored_url:
+        logging.info(f"[get_media] File {file_id} has Cloudinary URL, redirecting: {stored_url}")
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=stored_url)
+    
+    # If Cloudinary is configured, try to serve from Cloudinary
+    # This handles cases where:
+    # 1. File was uploaded to Cloudinary but URL wasn't saved correctly
+    # 2. File was uploaded locally but Cloudinary is now configured
+    # 3. File exists in Cloudinary but local file was lost on redeploy
     if USE_CLOUDINARY:
-        # If Cloudinary is configured, try to serve from Cloudinary
-        # This is a fallback - normally Cloudinary URLs are used directly
         try:
-            public_id = file_record.get('public_id') or file_id
-            resource = cloudinary.api.resource(public_id, resource_type=file_record.get('resource_type', 'auto'))
-            # Redirect to Cloudinary URL
-            from fastapi.responses import RedirectResponse
-            return RedirectResponse(url=resource.get('secure_url') or resource.get('url'))
+            # Use public_id if available, otherwise use file_id
+            lookup_id = public_id or file_id
+            logging.info(f"[get_media] Attempting Cloudinary lookup for file {file_id} (public_id: {lookup_id}, resource_type: {resource_type})")
+            resource = cloudinary.api.resource(lookup_id, resource_type=resource_type)
+            cloudinary_url = resource.get('secure_url') or resource.get('url')
+            if cloudinary_url:
+                logging.info(f"[get_media] Found file {file_id} in Cloudinary, redirecting: {cloudinary_url}")
+                # Update file record with Cloudinary URL for future requests
+                await db.files.update_one(
+                    {"id": file_id},
+                    {"$set": {"url": cloudinary_url, "public_id": lookup_id}}
+                )
+                from fastapi.responses import RedirectResponse
+                return RedirectResponse(url=cloudinary_url)
         except Exception as e:
-            logging.warning(f"Cloudinary resource lookup failed for {public_id}: {str(e)}")
-            # If not found in Cloudinary, try local storage
-            pass
+            logging.warning(f"[get_media] Cloudinary resource lookup failed for {file_id} (public_id: {lookup_id}): {str(e)}")
+            # Continue to local storage fallback
     
     # Local storage fallback
+    # Only use this if file was stored locally AND file exists
     file_path = UPLOAD_DIR / filename
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found on server")
-    return FileResponse(file_path)
+    if file_path.exists():
+        logging.info(f"[get_media] Serving file {file_id} from local storage: {file_path}")
+        return FileResponse(file_path)
+    
+    # File doesn't exist locally and Cloudinary lookup failed
+    # This means the file was lost (ephemeral storage) or never uploaded successfully
+    logging.error(f"[get_media] File {file_id} not found in local storage and Cloudinary lookup failed. Stored URL: {stored_url}, Public ID: {public_id}, USE_CLOUDINARY: {USE_CLOUDINARY}")
+    raise HTTPException(
+        status_code=404, 
+        detail=f"File not found on server. This may indicate the file was stored on ephemeral storage and lost during redeployment. Please re-upload the file."
+    )
 
 # Subscription & Quota Routes
 @api_router.put("/users/me/plan")
