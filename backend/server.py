@@ -664,7 +664,10 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
     if not existing:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
-    update_data = walkthrough_data.model_dump(exclude_none=True)
+    # CRITICAL: Don't use exclude_none=True as it removes None fields
+    # We need to preserve None values for fields like icon_url, password_hash, etc.
+    # Use model_dump() without exclude_none to preserve all fields
+    update_data = walkthrough_data.model_dump()
     
     # CRITICAL: Preserve icon_url if it's not being updated (don't overwrite with None)
     if "icon_url" not in update_data or update_data.get("icon_url") is None:
@@ -1255,7 +1258,16 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         order=insert_at
     )
 
-    steps.insert(insert_at, step.model_dump())
+    # CRITICAL: Use model_dump() WITHOUT exclude_none to preserve None values
+    # exclude_none=True would remove media_url/media_type if they're None, causing them to be lost
+    step_dict = step.model_dump()
+    # CRITICAL: Explicitly ensure media_url and media_type are in the dict, even if None
+    step_dict['media_url'] = step_data.media_url
+    step_dict['media_type'] = step_data.media_type
+    
+    logger.info(f"[add_step] Adding step with media_url={step_dict.get('media_url')}, media_type={step_dict.get('media_type')}")
+    
+    steps.insert(insert_at, step_dict)
     # Re-number orders
     for idx, s in enumerate(steps):
         s["order"] = idx
@@ -1397,45 +1409,58 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     logger.info(f"[update_step] Step {step_id}: Media URL - existing: {existing_media_url}, provided: {step_data.media_url}, final: {final_media_url}")
     logger.info(f"[update_step] Step {step_id}: Media TYPE - existing: {existing_media_type}, provided: {step_data.media_type}, final: {final_media_type}")
     
-    updated_step = {
+    # CRITICAL: Build the complete step dict from scratch to ensure all fields are preserved
+    # Include ALL fields from existing step, then override with new values
+    existing_step_full = steps[step_index].copy()  # Get all existing fields to preserve any we might miss
+    
+    # CRITICAL: Build step dict ensuring media_url/media_type are ALWAYS present
+    # Even if None, we must include them so MongoDB doesn't remove the field
+    # Start with existing fields, then override with new values
+    new_step_dict = {
+        'id': existing_step_full.get('id'),
         'title': step_data.title,
         'content': step_data.content,
-        'media_url': final_media_url,  # CRITICAL: Always include media_url (even if None)
-        'media_type': final_media_type,  # CRITICAL: Always include media_type (even if None)
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
-        'blocks': new_blocks  # Always ensure it's a list with proper structure
+        'blocks': new_blocks if isinstance(new_blocks, list) else [],
+        'order': existing_step_full.get('order', step_index),  # Preserve order
+        # CRITICAL: Always explicitly set media_url and media_type, even if None
+        # MongoDB will preserve None values if we explicitly set them
+        # If we don't include them, MongoDB removes the field entirely
+        'media_url': final_media_url,  # Explicitly set (could be None, empty string, or URL)
+        'media_type': final_media_type  # Explicitly set (could be None, empty string, or type)
     }
-    # Ensure blocks is always a list, never None
-    if not isinstance(updated_step['blocks'], list):
-        updated_step['blocks'] = []
     
-    # CRITICAL: Replace the entire step dict to ensure all fields are preserved
-    # Don't use update() as it might skip None values - replace the entire step
-    steps[step_index] = {
-        'id': steps[step_index].get('id'),
-        'title': updated_step['title'],
-        'content': updated_step['content'],
-        'media_url': final_media_url,  # CRITICAL: Always explicitly set (even if None)
-        'media_type': final_media_type,  # CRITICAL: Always explicitly set (even if None)
-        'navigation_type': updated_step['navigation_type'],
-        'common_problems': updated_step['common_problems'],
-        'blocks': updated_step['blocks'],
-        'order': steps[step_index].get('order', step_index)  # Preserve order
-    }
+    steps[step_index] = new_step_dict
+    
+    # CRITICAL: Double-check media_url is in the dict before saving
+    if 'media_url' not in steps[step_index]:
+        logger.error(f"[update_step] CRITICAL - media_url key is missing from step dict before save!")
+        steps[step_index]['media_url'] = final_media_url
+    if 'media_type' not in steps[step_index]:
+        logger.error(f"[update_step] CRITICAL - media_type key is missing from step dict before save!")
+        steps[step_index]['media_type'] = final_media_type
     
     # CRITICAL: Verify before saving to database
-    logger.info(f"[update_step] Step {step_id}: Before DB save - media_url={steps[step_index].get('media_url')}, media_type={steps[step_index].get('media_type')}")
+    logger.info(f"[update_step] Step {step_id}: Before DB save - media_url={steps[step_index].get('media_url')}, media_type={steps[step_index].get('media_type')}, has_media_url_key={'media_url' in steps[step_index]}")
     
+    # CRITICAL: Use $set with explicit field paths to ensure media_url is always included
+    # This prevents MongoDB from removing fields that are None
+    # We set the entire steps array, which ensures all fields are preserved
     await db.walkthroughs.update_one(
         {"id": walkthrough_id, "workspace_id": workspace_id},
-        {"$set": {"steps": steps, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {
+            "$set": {
+                "steps": steps,  # Replace entire steps array to ensure all fields are preserved
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
     )
     
     # CRITICAL: Verify after saving by reading back from database
     # Wait a moment for write to complete
     import asyncio
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.2)  # Increased wait time for deployment scenarios
     
     verify_walkthrough = await db.walkthroughs.find_one(
         {"id": walkthrough_id, "workspace_id": workspace_id},
@@ -1444,11 +1469,21 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     if verify_walkthrough and verify_walkthrough.get("steps"):
         verified_step = next((s for s in verify_walkthrough["steps"] if s.get("id") == step_id), None)
         if verified_step:
-            logger.info(f"[update_step] Step {step_id}: After DB save - media_url={verified_step.get('media_url')}, media_type={verified_step.get('media_type')}")
-            if verified_step.get('media_url') != final_media_url:
-                logger.error(f"[update_step] Step {step_id}: CRITICAL - media_url mismatch! Expected: {final_media_url}, Got: {verified_step.get('media_url')}")
+            verified_media_url = verified_step.get('media_url')
+            verified_media_type = verified_step.get('media_type')
+            logger.info(f"[update_step] Step {step_id}: After DB save - media_url={verified_media_url}, media_type={verified_media_type}")
+            
+            # CRITICAL: Check if media_url is missing from database (not just None)
+            if 'media_url' not in verified_step:
+                logger.error(f"[update_step] Step {step_id}: CRITICAL - media_url field is MISSING from database document!")
+            elif verified_media_url != final_media_url:
+                logger.error(f"[update_step] Step {step_id}: CRITICAL - media_url mismatch! Expected: {final_media_url}, Got: {verified_media_url}")
+            else:
+                logger.info(f"[update_step] Step {step_id}: ✓ media_url verified in database: {verified_media_url}")
         else:
             logger.warning(f"[update_step] Step {step_id}: Could not find step in database after save")
+    else:
+        logger.warning(f"[update_step] Step {step_id}: Could not find walkthrough in database after save")
     
     logger.info(f"[update_step] Step {step_id}: Successfully saved to database")
     return steps[step_index]

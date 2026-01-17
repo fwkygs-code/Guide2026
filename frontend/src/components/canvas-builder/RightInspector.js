@@ -70,10 +70,25 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
         ? uploadedUrl
         : `${API_BASE.replace(/\/$/, '')}${uploadedUrl}`;
 
+      // CRITICAL: Log upload to track media_url assignment
+      console.log('[RightInspector] Media uploaded, setting media_url:', {
+        'uploadedUrl': uploadedUrl,
+        'fullUrl': fullUrl,
+        'mediaType': mediaType,
+        'currentStep.media_url': currentStep?.media_url,
+        'stepId': currentStep?.id
+      });
+
       onUpdate({
         media_url: fullUrl,
         media_type: mediaType
       });
+      
+      // CRITICAL: Verify media_url was set by checking state after a brief delay
+      setTimeout(() => {
+        // This will be logged by updateStep, but we can't access the updated state here
+        console.log('[RightInspector] Media upload complete, media_url should be:', fullUrl);
+      }, 100);
 
       toast.success('Media uploaded!');
     } catch (error) {

@@ -266,12 +266,25 @@ const CanvasBuilderPage = () => {
             console.log('[CanvasBuilder] Saving step:', step.id, {
               'step.media_url (state)': step.media_url,
               'step.media_url type': typeof step.media_url,
+              'step.media_url is undefined': step.media_url === undefined,
+              'step.media_url is null': step.media_url === null,
               'step.media_url length': step.media_url?.length || 0,
               'updateData.media_url (sending)': updateData.media_url,
+              'updateData.media_url type': typeof updateData.media_url,
               'step.media_type (state)': step.media_type,
               'updateData.media_type (sending)': updateData.media_type,
-              'hasBlocks': step.blocks?.length || 0
+              'hasBlocks': step.blocks?.length || 0,
+              'step keys': Object.keys(step).filter(k => k.includes('media'))
             });
+            
+            // CRITICAL: Verify we're sending a valid media_url value
+            if (updateData.media_url === undefined) {
+              console.error('[CanvasBuilder] CRITICAL - updateData.media_url is undefined!', {
+                'step': step.id,
+                'step.media_url': step.media_url,
+                'updateData': updateData
+              });
+            }
             
             await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
           } else if (step.isNew) {
@@ -836,24 +849,52 @@ const CanvasBuilderPage = () => {
   };
 
   const updateStep = (stepId, updates) => {
-    console.log('[CanvasBuilder] updateStep called for step:', stepId, 'Updates:', updates);
+    console.log('[CanvasBuilder] updateStep called for step:', stepId, 'Updates:', updates, {
+      'updates.media_url': updates.media_url,
+      'updates.media_type': updates.media_type,
+      'updates.hasBlocks': !!updates.blocks
+    });
     
     setWalkthrough((prev) => {
       const updatedSteps = prev.steps.map((s) => {
         if (s.id === stepId) {
           // CRITICAL: Preserve media_url and media_type from existing step if not provided in updates
           // This prevents losing media_url when updating other fields like blocks, title, etc.
+          const existingMediaUrl = s.media_url !== undefined ? s.media_url : null;
+          const existingMediaType = s.media_type !== undefined ? s.media_type : null;
+          
           const preservedMedia = {
             // Only update media_url/media_type if explicitly provided in updates
-            // Otherwise, preserve from existing step (even if it's null/undefined)
-            media_url: updates.media_url !== undefined ? updates.media_url : (s.media_url !== undefined ? s.media_url : null),
-            media_type: updates.media_type !== undefined ? updates.media_type : (s.media_type !== undefined ? s.media_type : null)
+            // Otherwise, preserve from existing step (even if it's null)
+            media_url: updates.media_url !== undefined ? updates.media_url : existingMediaUrl,
+            media_type: updates.media_type !== undefined ? updates.media_type : existingMediaType
           };
+          
           const updated = { ...s, ...updates, ...preservedMedia };
           
-          // Log media_url preservation for debugging
-          if (updates.media_url === undefined && s.media_url) {
-            console.log('[CanvasBuilder] updateStep: Preserved media_url:', s.media_url, 'for step:', stepId);
+          // CRITICAL: Log media_url preservation for debugging
+          if (updates.media_url === undefined) {
+            console.log('[CanvasBuilder] updateStep: Media not in updates - preserved existing:', {
+              'existing': existingMediaUrl,
+              'preserved': preservedMedia.media_url,
+              'stepId': stepId,
+              'updating': Object.keys(updates)
+            });
+          } else {
+            console.log('[CanvasBuilder] updateStep: Media explicitly updated:', {
+              'old': existingMediaUrl,
+              'new': updates.media_url,
+              'stepId': stepId
+            });
+          }
+          
+          // CRITICAL: Verify media_url is actually preserved in the updated step
+          if (updated.media_url !== preservedMedia.media_url) {
+            console.error('[CanvasBuilder] updateStep: CRITICAL - media_url was not preserved!', {
+              'expected': preservedMedia.media_url,
+              'got': updated.media_url,
+              'stepId': stepId
+            });
           }
           
           // CRITICAL: Ensure blocks array always exists with proper structure
