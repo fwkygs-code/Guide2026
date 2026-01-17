@@ -155,13 +155,13 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Step-level controls
   if (selectedElement.type === 'step') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.stepSettings')}</h3>
           <p className="text-xs text-slate-500">{t('builder.configureStep')}</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto' }}>
           {/* Navigation */}
           <div>
             <Label className="text-xs text-slate-500 mb-2">{t('builder.navigationType')}</Label>
@@ -199,13 +199,13 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Media controls
   if (selectedElement.type === 'media') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.media')}</h3>
           <p className="text-xs text-slate-500">{t('builder.replaceOrRemoveMedia')}</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto' }}>
           <div>
             <Label className="mb-2">{t('builder.uploadNew')}</Label>
             <Input
@@ -242,7 +242,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             onClick={() => onUpdate({ media_url: null, media_type: null })}
             className="w-full"
           >
-            Remove Media
+            {t('builder.removeMedia')}
           </Button>
         </div>
       </div>
@@ -252,13 +252,13 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Content controls
   if (selectedElement.type === 'content') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full">
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.content')}</h3>
           <p className="text-xs text-slate-500">{t('builder.textFormattingOptions')}</p>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 overflow-y-auto flex-1" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto' }}>
           <p className="text-sm text-slate-600">
             {t('builder.editTextDirectly')}
           </p>
@@ -288,17 +288,17 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Problem controls
   if (selectedElement.type === 'problem') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">Common Problems</h3>
           <p className="text-xs text-slate-500">Help users troubleshoot</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto' }}>
           {/* Existing Problems */}
           {currentStep.common_problems && currentStep.common_problems.length > 0 && (
             <div className="space-y-3">
-              <Label className="text-xs">Existing Problems</Label>
+              <Label className="text-xs">{t('builder.existingProblems')}</Label>
               {currentStep.common_problems.map((problem, index) => (
                 <div key={index} className="p-3 bg-slate-50 rounded-lg">
                   <div className="flex items-start justify-between mb-2">

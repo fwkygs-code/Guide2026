@@ -114,9 +114,9 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
   };
 
   return (
-    <div className="w-80 border-r border-slate-200 bg-white flex flex-col h-full overflow-hidden" style={{ maxHeight: '100%' }}>
+    <div className="w-80 border-r border-slate-200 bg-white flex flex-col h-full" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Walkthrough Info */}
-      <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '30%' }}>
+      <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '30%', minHeight: 0 }}>
         <Input
           value={walkthrough.title}
           onChange={(e) => onUpdate({ ...walkthrough, title: e.target.value })}
@@ -296,7 +296,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
       </div>
 
       {/* Steps List */}
-      <div className="flex-1 overflow-y-auto min-h-0" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-slate-700">{t('walkthrough.steps')}</h3>
