@@ -138,19 +138,23 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
   };
 
   const getWorkspacesWarning = () => {
-    if (workspacesPercent >= 100) return { level: 'error', message: 'Workspace limit reached' };
+    // Only show warning when approaching (80-99%), not when at limit (100%)
+    // Being at limit is fine - user just can't create more, but can use existing ones
+    if (workspacesPercent >= 100) return null; // At limit is OK, no warning
     if (workspacesPercent >= 80) return { level: 'warning', message: 'Approaching workspace limit' };
     return null;
   };
 
   const getWalkthroughsWarning = () => {
-    if (walkthroughsPercent >= 100) return { level: 'error', message: 'Walkthrough limit reached' };
+    // Only show warning when approaching (80-99%), not when at limit (100%)
+    if (walkthroughsPercent >= 100) return null; // At limit is OK, no warning
     if (walkthroughsPercent >= 80) return { level: 'warning', message: 'Approaching walkthrough limit' };
     return null;
   };
 
   const getCategoriesWarning = () => {
-    if (categoriesPercent >= 100) return { level: 'error', message: 'Category limit reached' };
+    // Only show warning when approaching (80-99%), not when at limit (100%)
+    if (categoriesPercent >= 100) return null; // At limit is OK, no warning
     if (categoriesPercent >= 80) return { level: 'warning', message: 'Approaching category limit' };
     return null;
   };
@@ -192,14 +196,12 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
             </Alert>
           )}
           {workspacesWarning && (
-            <Alert variant={workspacesWarning.level === 'error' ? 'destructive' : 'default'}>
+            <Alert variant="default">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>{workspacesWarning.message}</AlertTitle>
               <AlertDescription className="flex items-center justify-between gap-2">
                 <span>
-                  {workspacesWarning.level === 'error'
-                    ? 'You cannot create more workspaces. Please upgrade your plan.'
-                    : 'You are approaching your workspace limit.'}
+                  You are approaching your workspace limit. You'll need to upgrade to create more.
                 </span>
                 {onUpgrade && (
                   <Button size="sm" variant="outline" onClick={onUpgrade} className="shrink-0">
@@ -210,14 +212,12 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
             </Alert>
           )}
           {walkthroughsWarning && (
-            <Alert variant={walkthroughsWarning.level === 'error' ? 'destructive' : 'default'}>
+            <Alert variant="default">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>{walkthroughsWarning.message}</AlertTitle>
               <AlertDescription className="flex items-center justify-between gap-2">
                 <span>
-                  {walkthroughsWarning.level === 'error'
-                    ? 'You cannot create more walkthroughs. Please upgrade your plan.'
-                    : 'You are approaching your walkthrough limit.'}
+                  You are approaching your walkthrough limit. You'll need to upgrade to create more.
                 </span>
                 {onUpgrade && (
                   <Button size="sm" variant="outline" onClick={onUpgrade} className="shrink-0">
@@ -228,14 +228,12 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
             </Alert>
           )}
           {categoriesWarning && (
-            <Alert variant={categoriesWarning.level === 'error' ? 'destructive' : 'default'}>
+            <Alert variant="default">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>{categoriesWarning.message}</AlertTitle>
               <AlertDescription className="flex items-center justify-between gap-2">
                 <span>
-                  {categoriesWarning.level === 'error'
-                    ? 'You cannot create more categories. Please upgrade your plan.'
-                    : 'You are approaching your category limit.'}
+                  You are approaching your category limit. You'll need to upgrade to create more.
                 </span>
                 {onUpgrade && (
                   <Button size="sm" variant="outline" onClick={onUpgrade} className="shrink-0">
