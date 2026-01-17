@@ -50,7 +50,7 @@ const BuildingTips = () => {
   ];
 
   return (
-    <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div className="p-6 border-b border-slate-200 sticky top-0 bg-white z-10">
         <div className="flex items-center gap-2 mb-1">
           <Lightbulb className="w-5 h-5 text-primary" />

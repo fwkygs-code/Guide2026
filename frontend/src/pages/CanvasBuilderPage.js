@@ -1220,7 +1220,7 @@ const CanvasBuilderPage = () => {
         </div>
 
         {/* Main Editor Area */}
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex overflow-hidden relative" style={{ minHeight: 0, height: '100%' }}>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}

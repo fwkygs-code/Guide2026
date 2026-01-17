@@ -114,7 +114,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
   };
 
   return (
-    <div className="w-80 border-r border-slate-200 bg-white flex flex-col h-full" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="w-80 border-r border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Walkthrough Info */}
       <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '30%', minHeight: 0 }}>
         <Input

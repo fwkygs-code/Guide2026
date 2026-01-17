@@ -155,7 +155,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Step-level controls
   if (selectedElement.type === 'step') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.stepSettings')}</h3>
           <p className="text-xs text-slate-500">{t('builder.configureStep')}</p>
@@ -199,7 +199,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Media controls
   if (selectedElement.type === 'media') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.media')}</h3>
           <p className="text-xs text-slate-500">{t('builder.replaceOrRemoveMedia')}</p>
@@ -252,7 +252,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Content controls
   if (selectedElement.type === 'content') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.content')}</h3>
           <p className="text-xs text-slate-500">{t('builder.textFormattingOptions')}</p>
@@ -288,7 +288,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   // Problem controls
   if (selectedElement.type === 'problem') {
     return (
-      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="p-6 border-b border-slate-200">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">Common Problems</h3>
           <p className="text-xs text-slate-500">Help users troubleshoot</p>
