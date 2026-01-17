@@ -416,13 +416,88 @@ async def get_user_subscription(user_id: str) -> Optional[Subscription]:
     return Subscription(**subscription) if subscription else None
 
 async def get_user_storage_usage(user_id: str) -> int:
-    """Calculate total storage used by user (only active files)."""
+    """Calculate total storage used by user (only active files).
+    Includes both File records and files from existing walkthroughs that don't have File records yet.
+    """
+    # Count storage from File records
     active_files = await db.files.find(
         {"user_id": user_id, "status": FileStatus.ACTIVE},
-        {"size_bytes": 1}
+        {"size_bytes": 1, "url": 1}
     ).to_list(10000)
     
-    return sum(file.get('size_bytes', 0) for file in active_files)
+    file_storage = sum(file.get('size_bytes', 0) for file in active_files)
+    tracked_urls = {file.get('url') for file in active_files if file.get('url')}
+    
+    # Also count storage from existing walkthroughs that don't have File records yet
+    # Get all user's workspaces
+    workspaces = await db.workspaces.find({"owner_id": user_id}, {"_id": 0, "id": 1}).to_list(1000)
+    workspace_ids = [w["id"] for w in workspaces]
+    
+    if not workspace_ids:
+        return file_storage
+    
+    # Get all walkthroughs in user's workspaces
+    walkthroughs = await db.walkthroughs.find(
+        {"workspace_id": {"$in": workspace_ids}},
+        {"_id": 0, "icon_url": 1, "steps": 1}
+    ).to_list(10000)
+    
+    # Extract all file URLs from walkthroughs
+    untracked_urls = []
+    for walkthrough in walkthroughs:
+        # Walkthrough icon
+        if walkthrough.get('icon_url') and walkthrough['icon_url'] not in tracked_urls:
+            untracked_urls.append(walkthrough['icon_url'])
+        
+        # Step media and block images
+        steps = walkthrough.get('steps', [])
+        for step in steps:
+            # Step media
+            if step.get('media_url') and step['media_url'] not in tracked_urls:
+                untracked_urls.append(step['media_url'])
+            
+            # Block images
+            blocks = step.get('blocks', [])
+            for block in blocks:
+                if block.get('type') == 'image' and block.get('data', {}).get('url'):
+                    url = block['data']['url']
+                    if url not in tracked_urls:
+                        untracked_urls.append(url)
+    
+    # Calculate storage for untracked files
+    untracked_storage = 0
+    if untracked_urls and USE_CLOUDINARY:
+        # Try to get file sizes from Cloudinary
+        for url in untracked_urls:
+            if 'res.cloudinary.com' in url:
+                try:
+                    # Extract public_id from URL
+                    parts = url.split('/')
+                    if 'upload' in parts:
+                        upload_idx = parts.index('upload')
+                        if upload_idx + 1 < len(parts):
+                            public_id_part = parts[-1]
+                            public_id = public_id_part.rsplit('.', 1)[0] if '.' in public_id_part else public_id_part
+                            
+                            # Try to get resource info from Cloudinary
+                            try:
+                                resource = cloudinary.api.resource(public_id)
+                                untracked_storage += resource.get('bytes', 0)
+                            except Exception:
+                                # If can't get size, estimate based on URL (conservative estimate)
+                                # Most images are 100KB-2MB, GIFs/videos can be larger
+                                if '.gif' in url.lower() or '/video/upload/' in url:
+                                    untracked_storage += 2 * 1024 * 1024  # Estimate 2MB for GIFs/videos
+                                else:
+                                    untracked_storage += 500 * 1024  # Estimate 500KB for images
+                except Exception:
+                    # If URL parsing fails, use conservative estimate
+                    untracked_storage += 500 * 1024
+            else:
+                # Local storage or external URL - use conservative estimate
+                untracked_storage += 500 * 1024
+    
+    return file_storage + untracked_storage
 
 async def get_user_allowed_storage(user_id: str) -> int:
     """Get total storage allowed for user (plan storage + extra storage)."""
@@ -456,8 +531,16 @@ async def get_walkthrough_count(workspace_id: str) -> int:
     return count
 
 async def get_category_count(workspace_id: str) -> int:
-    """Count categories in workspace."""
-    count = await db.categories.count_documents({"workspace_id": workspace_id})
+    """Count top-level categories in workspace (excludes sub-categories)."""
+    # Only count categories without a parent_id (top-level categories)
+    count = await db.categories.count_documents({
+        "workspace_id": workspace_id,
+        "$or": [
+            {"parent_id": None},
+            {"parent_id": ""},
+            {"parent_id": {"$exists": False}}
+        ]
+    })
     return count
 
 async def extract_file_urls_from_walkthrough(walkthrough: dict) -> List[str]:
@@ -2530,9 +2613,14 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         "archived": {"$ne": True}
     })
     
-    # Calculate total categories across all workspaces
+    # Calculate total top-level categories across all workspaces (exclude sub-categories)
     total_categories = await db.categories.count_documents({
-        "workspace_id": {"$in": workspace_ids}
+        "workspace_id": {"$in": workspace_ids},
+        "$or": [
+            {"parent_id": None},
+            {"parent_id": ""},
+            {"parent_id": {"$exists": False}}
+        ]
     })
     
     return {
