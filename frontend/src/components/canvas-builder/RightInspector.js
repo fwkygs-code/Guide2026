@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { useQuota } from '../../hooks/useQuota';
+import BuildingTips from './BuildingTips';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -23,14 +24,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
   const { canUploadFile } = useQuota(workspaceId);
 
   if (!selectedElement || !currentStep) {
-    return (
-      <div className="w-80 border-l border-slate-200 bg-white p-6 h-full overflow-y-auto">
-        <div className="text-center text-slate-400 mt-12">
-          <p className="text-sm">Select an element</p>
-          <p className="text-xs mt-2">Click on any element in the canvas to edit</p>
-        </div>
-      </div>
-    );
+    return <BuildingTips />;
   }
 
   const handleMediaUpload = async (file) => {
@@ -348,8 +342,13 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
     );
   }
 
-  // Block controls
+  // Block controls - Show Tips instead of block settings
   if (selectedElement && selectedElement.type === 'block') {
+    return <BuildingTips />;
+  }
+
+  // Legacy block settings code (kept for reference but not used)
+  if (false && selectedElement && selectedElement.type === 'block') {
     const block = selectedElement.block;
     const settings = block.settings || {};
     const updateBlock = selectedElement.onUpdateBlock || onUpdateBlock;

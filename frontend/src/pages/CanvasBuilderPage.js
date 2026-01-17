@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -57,6 +57,7 @@ const CanvasBuilderPage = () => {
   // On mobile, hide panels by default; on desktop, show them
   const [leftPanelVisible, setLeftPanelVisible] = useState(window.innerWidth >= 1024);
   const [rightPanelVisible, setRightPanelVisible] = useState(window.innerWidth >= 1024);
+  const [stepTimelineVisible, setStepTimelineVisible] = useState(true);
   
   // Handle window resize
   useEffect(() => {
@@ -1179,15 +1180,28 @@ const CanvasBuilderPage = () => {
         </div>
 
         {/* Timeline */}
-        <StepTimeline
-          steps={walkthrough.steps}
-          currentStepIndex={currentStepIndex}
-          onStepClick={setCurrentStepIndex}
-          onDeleteStep={deleteStep}
-          selectMode={selectStepsMode}
-          selectedIds={selectedStepIds}
-          onToggleSelect={toggleStepSelected}
-        />
+        <div className="relative">
+          {stepTimelineVisible && (
+            <StepTimeline
+              steps={walkthrough.steps}
+              currentStepIndex={currentStepIndex}
+              onStepClick={setCurrentStepIndex}
+              onDeleteStep={deleteStep}
+              selectMode={selectStepsMode}
+              selectedIds={selectedStepIds}
+              onToggleSelect={toggleStepSelected}
+            />
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-4 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+            onClick={() => setStepTimelineVisible(!stepTimelineVisible)}
+            title={stepTimelineVisible ? "Hide steps timeline" : "Show steps timeline"}
+          >
+            {stepTimelineVisible ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
 
         {/* Main Editor Area */}
         <div className="flex-1 flex overflow-hidden relative">

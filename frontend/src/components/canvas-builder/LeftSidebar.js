@@ -114,7 +114,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
   return (
     <div className="w-80 border-r border-slate-200 bg-white flex flex-col h-full overflow-hidden">
       {/* Walkthrough Info */}
-      <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '40%' }}>
+      <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '35%' }}>
         <Input
           value={walkthrough.title}
           onChange={(e) => onUpdate({ ...walkthrough, title: e.target.value })}
@@ -319,6 +319,12 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
                 isActive={currentStepIndex === index}
                 onClick={() => onStepClick(index)}
                 onDelete={() => onDeleteStep(step.id)}
+                onUpdate={(updates) => {
+                  const updatedSteps = walkthrough.steps.map((s, i) => 
+                    i === index ? { ...s, ...updates } : s
+                  );
+                  onUpdate({ ...walkthrough, steps: updatedSteps });
+                }}
               />
             ))}
 
@@ -335,7 +341,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
   );
 };
 
-const StepItem = ({ step, index, isActive, onClick, onDelete }) => {
+const StepItem = ({ step, index, isActive, onClick, onDelete, onUpdate }) => {
   const {
     attributes,
     listeners,
@@ -353,45 +359,66 @@ const StepItem = ({ step, index, isActive, onClick, onDelete }) => {
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+      className={`group flex flex-col gap-2 p-3 rounded-lg cursor-pointer transition-all ${
         isActive
           ? 'bg-primary/10 border-2 border-primary'
           : 'bg-gray-50/50 backdrop-blur-sm hover:bg-gray-100/80 border-2 border-transparent'
       }`}
       data-testid={`step-item-${index}`}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing"
-      >
-        <GripVertical className="w-4 h-4 text-slate-400" />
-      </div>
-
-      <div className="flex-1 min-w-0" onClick={onClick}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-medium text-slate-500">#{index + 1}</span>
-          <span className="text-sm font-medium text-slate-900 truncate">
-            {step.title}
-          </span>
+      <div className="flex items-center gap-2">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="w-4 h-4 text-slate-400" />
         </div>
-        {step.blocks && step.blocks.length > 0 && (
-          <span className="text-xs text-slate-400">{step.blocks.length} blocks</span>
-        )}
+
+        <div className="flex-1 min-w-0" onClick={onClick}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-medium text-slate-500">#{index + 1}</span>
+            <span className="text-sm font-medium text-slate-900 truncate">
+              {step.title}
+            </span>
+          </div>
+          {step.blocks && step.blocks.length > 0 && (
+            <span className="text-xs text-slate-400">{step.blocks.length} blocks</span>
+          )}
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm('Delete this step?')) {
+              onDelete();
+            }
+          }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+          data-testid={`delete-step-${index}`}
+        >
+          <Trash2 className="w-4 h-4 text-red-500" />
+        </button>
       </div>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (window.confirm('Delete this step?')) {
-            onDelete();
-          }
-        }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
-        data-testid={`delete-step-${index}`}
-      >
-        <Trash2 className="w-4 h-4 text-red-500" />
-      </button>
+      {/* Navigation Type Selector */}
+      {onUpdate && (
+        <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={step.navigation_type || 'next_prev'}
+            onValueChange={(value) => onUpdate({ navigation_type: value })}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="next_prev">Previous / Next</SelectItem>
+              <SelectItem value="checkoff">Tick When Done</SelectItem>
+              <SelectItem value="auto">Auto Advance</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 };
