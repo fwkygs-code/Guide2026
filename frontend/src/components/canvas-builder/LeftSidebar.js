@@ -299,7 +299,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
           </div>
         </ResizablePanel>
         
-        <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors cursor-row-resize" />
+        <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-400 transition-colors cursor-row-resize active:bg-slate-500" />
         
         {/* Steps List */}
         <ResizablePanel defaultSize={70} minSize={40}>
