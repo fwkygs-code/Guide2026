@@ -95,7 +95,20 @@ export const api = {
     
     console.log('[API] Making POST request to:', `${API}/upload`, 'with headers:', headers);
     
-    const requestPromise = axios.post(`${API}/upload`, formData, { headers });
+    // Set timeout for large files (GIFs can be several MB)
+    // 5 minutes should be enough for most files
+    const requestPromise = axios.post(`${API}/upload`, formData, { 
+      headers,
+      timeout: 300000, // 5 minutes for large files
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`[API] Upload progress: ${percentCompleted}%`);
+        }
+      }
+    });
     
     requestPromise
       .then(response => {
@@ -103,6 +116,9 @@ export const api = {
       })
       .catch(error => {
         console.error('[API] Upload request failed:', error);
+        if (error.code === 'ECONNABORTED') {
+          console.error('[API] Upload timed out - file may be too large or connection too slow');
+        }
       });
     
     return requestPromise;
