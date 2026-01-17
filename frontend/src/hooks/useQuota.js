@@ -64,6 +64,16 @@ export const useQuota = (workspaceId = null) => {
     
     const { quota, plan } = quotaData;
     
+    // Debug logging
+    console.log('[Quota Check]', {
+      fileSize: formatBytes(fileSize),
+      storageUsed: formatBytes(quota.storage_used),
+      storageAllowed: formatBytes(quota.storage_allowed),
+      availableStorage: formatBytes(quota.storage_allowed - quota.storage_used),
+      maxFileSize: formatBytes(plan.max_file_size_bytes),
+      overQuota: quota.over_quota
+    });
+    
     // Check file size limit
     if (fileSize > plan.max_file_size_bytes) {
       return { allowed: false, reason: 'file_size', message: `File size (${formatBytes(fileSize)}) exceeds maximum allowed (${formatBytes(plan.max_file_size_bytes)}) for your plan.` };
@@ -73,6 +83,12 @@ export const useQuota = (workspaceId = null) => {
     // Only block if storage would be exceeded (not if already at limit, since user might have space)
     const availableStorage = quota.storage_allowed - quota.storage_used;
     if (availableStorage < fileSize) {
+      console.warn('[Quota Check] Blocked:', {
+        availableStorage: formatBytes(availableStorage),
+        fileSize: formatBytes(fileSize),
+        storageUsed: formatBytes(quota.storage_used),
+        storageAllowed: formatBytes(quota.storage_allowed)
+      });
       return { 
         allowed: false, 
         reason: 'storage', 
@@ -80,6 +96,7 @@ export const useQuota = (workspaceId = null) => {
       };
     }
     
+    console.log('[Quota Check] Allowed');
     return { allowed: true };
   };
 
