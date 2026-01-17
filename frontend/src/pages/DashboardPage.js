@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, FolderOpen, BarChart3, Settings } from 'lucide-react';
+import { Plus, BookOpen, FolderOpen, BarChart3, Settings, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 
 const DashboardPage = () => {
@@ -17,6 +18,8 @@ const DashboardPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [newWorkspaceColor, setNewWorkspaceColor] = useState('#4f46e5');
+  const [newWorkspaceLogo, setNewWorkspaceLogo] = useState('');
+  const [newWorkspaceBackground, setNewWorkspaceBackground] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -35,18 +38,50 @@ const DashboardPage = () => {
     }
   };
 
+  const handleLogoUpload = async (file) => {
+    try {
+      const response = await api.uploadFile(file);
+      const uploadedUrl = response.data.url;
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : `${(process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')}${uploadedUrl}`;
+      setNewWorkspaceLogo(fullUrl);
+      toast.success('Logo uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload logo');
+    }
+  };
+
+  const handleBackgroundUpload = async (file) => {
+    try {
+      const response = await api.uploadFile(file);
+      const uploadedUrl = response.data.url;
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : `${(process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')}${uploadedUrl}`;
+      setNewWorkspaceBackground(fullUrl);
+      toast.success('Background uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload background');
+    }
+  };
+
   const handleCreateWorkspace = async (e) => {
     e.preventDefault();
     try {
       const response = await api.createWorkspace({
         name: newWorkspaceName,
-        brand_color: newWorkspaceColor
+        brand_color: newWorkspaceColor,
+        logo: newWorkspaceLogo || null,
+        portal_background_url: newWorkspaceBackground || null
       });
       toast.success('Workspace created!');
       setWorkspaces([...workspaces, response.data]);
       setCreateDialogOpen(false);
       setNewWorkspaceName('');
       setNewWorkspaceColor('#4f46e5');
+      setNewWorkspaceLogo('');
+      setNewWorkspaceBackground('');
     } catch (error) {
       toast.error('Failed to create workspace');
     }
@@ -111,6 +146,96 @@ const DashboardPage = () => {
                     />
                   </div>
                 </div>
+                <div>
+                  <Label htmlFor="workspace-logo">Workspace Logo</Label>
+                  <div className="mt-1.5 space-y-2">
+                    {newWorkspaceLogo && (
+                      <div className="relative">
+                        <img src={newWorkspaceLogo} alt="Logo preview" className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewWorkspaceLogo('')}
+                          className="absolute top-0 right-0 h-6 w-6 p-0 text-destructive bg-white/90 hover:bg-white"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        value={newWorkspaceLogo}
+                        onChange={(e) => setNewWorkspaceLogo(e.target.value)}
+                        placeholder="Logo URL (optional)"
+                        className="flex-1 text-sm"
+                      />
+                      <label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleLogoUpload(file);
+                            e.target.value = '';
+                          }}
+                          className="hidden"
+                        />
+                        <Button type="button" variant="outline" size="sm" className="h-9" asChild>
+                          <span>
+                            <Upload className="w-4 h-4" />
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="workspace-background">Portal Background Image</Label>
+                  <div className="mt-1.5 space-y-2">
+                    {newWorkspaceBackground && (
+                      <div className="relative">
+                        <img src={newWorkspaceBackground} alt="Background preview" className="w-full h-32 rounded-lg object-cover border border-slate-200" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewWorkspaceBackground('')}
+                          className="absolute top-2 right-2 text-destructive bg-white/90 hover:bg-white"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        value={newWorkspaceBackground}
+                        onChange={(e) => setNewWorkspaceBackground(e.target.value)}
+                        placeholder="Background image URL (optional)"
+                        className="flex-1 text-sm"
+                      />
+                      <label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleBackgroundUpload(file);
+                            e.target.value = '';
+                          }}
+                          className="hidden"
+                        />
+                        <Button type="button" variant="outline" size="sm" className="h-9" asChild>
+                          <span>
+                            <Upload className="w-4 h-4" />
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                </div>
                 <Button type="submit" className="w-full rounded-full" data-testid="create-workspace-submit">
                   Create Workspace
                 </Button>
@@ -131,8 +256,21 @@ const DashboardPage = () => {
               data-testid={`workspace-card-${workspace.id}`}
             >
               <div className="flex items-start gap-4">
+                {workspace.logo ? (
+                  <img 
+                    src={normalizeImageUrl(workspace.logo)} 
+                    alt={workspace.name} 
+                    className="w-12 h-12 rounded-lg object-cover border border-slate-200"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      if (e.target.nextSibling) {
+                        e.target.nextSibling.style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
                 <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold ${workspace.logo ? 'hidden' : ''}`}
                   style={{ backgroundColor: workspace.brand_color }}
                 >
                   {workspace.name.charAt(0).toUpperCase()}
