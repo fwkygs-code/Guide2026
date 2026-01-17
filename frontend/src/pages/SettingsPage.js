@@ -31,6 +31,7 @@ const SettingsPage = () => {
   const [portalWhatsapp, setPortalWhatsapp] = useState('');
   const [saving, setSaving] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const [planSelectionOpen, setPlanSelectionOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkspace();
