@@ -199,22 +199,44 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6">
+    <div 
+      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+      style={{
+        backgroundImage: 'url(/auth-background.jpg), linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      {/* Dark overlay for better readability - ensures text is always readable */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-800/75 to-slate-900/85"></div>
+      
+      {/* Animated gradient overlay for depth and visual interest */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-primary/10"></div>
+      
+      {/* Subtle animated particles effect */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+      
+      {/* Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative z-10"
       >
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <BookOpen className="w-8 h-8 text-primary" />
-            <span className={`${getSizeClass('2xl')} font-heading font-bold`}>InterGuide</span>
+            <span className={`${getSizeClass('2xl')} font-heading font-bold text-white`}>InterGuide</span>
           </Link>
-          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-slate-900 mb-2`}>Get Started</h1>
-          <p className={`${getSizeClass('base')} text-slate-600`}>Create your account</p>
+          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>Get Started</h1>
+          <p className={`${getSizeClass('base')} text-slate-200`}>Create your account</p>
         </div>
 
-        <div className="glass rounded-2xl p-8">
+        <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
           {/* Backend Status Indicator */}
           <div className="mb-6 pb-4 border-b border-slate-200/50">
             <div className="flex items-center justify-between">
@@ -318,9 +340,9 @@ const SignupPage = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-600">
+          <div className="mt-6 text-center text-sm text-slate-300">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary font-medium hover:underline" data-testid="signup-login-link">
+            <Link to="/login" className="text-primary font-medium hover:text-primary/80 hover:underline transition-colors" data-testid="signup-login-link">
               Sign in
             </Link>
           </div>
