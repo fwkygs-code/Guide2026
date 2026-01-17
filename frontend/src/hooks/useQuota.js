@@ -58,8 +58,11 @@ export const useQuota = (workspaceId = null) => {
 
   // Check if user can upload a file of given size
   const canUploadFile = (fileSize) => {
-    if (!quotaData) {
-      return { allowed: false, reason: 'loading', message: 'Quota data is loading. Please wait...' };
+    // If quota data is still loading, allow upload to proceed
+    // Backend will perform the final quota check anyway
+    if (!quotaData || loading) {
+      console.log('[Quota Check] Data loading, allowing upload (backend will verify)');
+      return { allowed: true };
     }
     
     const { quota, plan } = quotaData;
@@ -162,7 +165,8 @@ export const useQuota = (workspaceId = null) => {
     canCreateWorkspace,
     canCreateWalkthrough,
     canCreateCategory,
-    isOverQuota
+    isOverQuota,
+    isLoading: loading // Alias for clarity
   };
 };
 
