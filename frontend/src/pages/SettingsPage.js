@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useTextSize } from '../contexts/TextSizeContext';
 import DashboardLayout from '../components/DashboardLayout';
+import QuotaDisplay from '../components/QuotaDisplay';
+import UpgradePrompt from '../components/UpgradePrompt';
+import PlanSelectionModal from '../components/PlanSelectionModal';
 
 const SettingsPage = () => {
   const { workspaceId } = useParams();
@@ -27,6 +30,7 @@ const SettingsPage = () => {
   const [portalWorkingHours, setPortalWorkingHours] = useState('');
   const [portalWhatsapp, setPortalWhatsapp] = useState('');
   const [saving, setSaving] = useState(false);
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkspace();
@@ -127,13 +131,22 @@ const SettingsPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-heading font-bold text-slate-900">Workspace Settings</h1>
-          <p className="text-slate-600 mt-1">Manage your workspace configuration</p>
-        </div>
+      <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} workspaceId={workspaceId} />
+      <PlanSelectionModal
+        open={planSelectionOpen}
+        onOpenChange={setPlanSelectionOpen}
+        isSignup={false}
+      />
+      <div className="p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="mb-8">
+              <h1 className="text-3xl font-heading font-bold text-slate-900">Workspace Settings</h1>
+              <p className="text-slate-600 mt-1">Manage your workspace configuration</p>
+            </div>
 
-        <div className="space-y-6">
+            <div className="space-y-6">
           {/* Basic Settings */}
           <div className="glass rounded-xl p-6">
             <h2 className="text-xl font-heading font-semibold mb-4">Basic Information</h2>
@@ -401,6 +414,26 @@ const SettingsPage = () => {
             </div>
           </div>
 
+          {/* Plan Management */}
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold mb-4">Plan Management</h2>
+            <div className="space-y-4">
+              <div>
+                <Label>Current Plan</Label>
+                <p className="text-sm text-slate-600 mt-1.5">
+                  Manage your subscription and plan settings
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setPlanSelectionOpen(true)}
+                className="w-full"
+              >
+                Change Plan
+              </Button>
+            </div>
+          </div>
+
           {/* Text Size Settings */}
           <div className="glass rounded-xl p-6">
             <h2 className="text-xl font-heading font-semibold mb-4">Text Size</h2>
@@ -590,6 +623,12 @@ const SettingsPage = () => {
                 Save Changes
               </Button>
             </div>
+          </div>
+          </div>
+
+          {/* Quota Sidebar */}
+          <div className="lg:col-span-1">
+            <QuotaDisplay workspaceId={workspaceId} showWarnings={true} onUpgrade={() => setUpgradePromptOpen(true)} />
           </div>
         </div>
       </div>

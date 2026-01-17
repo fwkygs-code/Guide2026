@@ -11,6 +11,9 @@ import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
+import QuotaDisplay from '../components/QuotaDisplay';
+import OverQuotaBanner from '../components/OverQuotaBanner';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 const DashboardPage = () => {
   const [workspaces, setWorkspaces] = useState([]);
@@ -20,6 +23,7 @@ const DashboardPage = () => {
   const [newWorkspaceColor, setNewWorkspaceColor] = useState('#4f46e5');
   const [newWorkspaceLogo, setNewWorkspaceLogo] = useState('');
   const [newWorkspaceBackground, setNewWorkspaceBackground] = useState('');
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -83,7 +87,12 @@ const DashboardPage = () => {
       setNewWorkspaceLogo('');
       setNewWorkspaceBackground('');
     } catch (error) {
-      toast.error('Failed to create workspace');
+      if (error.response?.status === 402) {
+        toast.error(error.response?.data?.detail || 'Workspace limit reached. Please upgrade your plan.');
+        setUpgradePromptOpen(true);
+      } else {
+        toast.error(error.response?.data?.detail || 'Failed to create workspace');
+      }
     }
   };
 
@@ -98,11 +107,17 @@ const DashboardPage = () => {
   return (
     <DashboardLayout>
       <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-slate-900">Welcome, {user?.name}</h1>
-            <p className="text-slate-600 mt-1">Manage your workspaces and walkthroughs</p>
-          </div>
+        <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
+        <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-heading font-bold text-slate-900">Welcome, {user?.name}</h1>
+                <p className="text-slate-600 mt-1">Manage your workspaces and walkthroughs</p>
+              </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-full" data-testid="create-workspace-button">
@@ -241,10 +256,10 @@ const DashboardPage = () => {
                 </Button>
               </form>
             </DialogContent>
-          </Dialog>
-        </div>
+            </Dialog>
+            </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {workspaces.map((workspace, index) => (
             <motion.div
               key={workspace.id}
@@ -341,6 +356,13 @@ const DashboardPage = () => {
             </Button>
           </div>
         )}
+          </div>
+
+          {/* Quota Sidebar */}
+          <div className="lg:col-span-1">
+            <QuotaDisplay showWarnings={true} onUpgrade={() => setUpgradePromptOpen(true)} />
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

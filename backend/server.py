@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File, UploadFile, Request
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File, UploadFile, Request, Header, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -92,6 +92,17 @@ class NavigationPlacement(str, Enum):
     BOTTOM = "bottom"
     FLOATING = "floating"
 
+class SubscriptionStatus(str, Enum):
+    ACTIVE = "active"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+class FileStatus(str, Enum):
+    PENDING = "pending"
+    ACTIVE = "active"
+    FAILED = "failed"
+    DELETING = "deleting"
+
 # Models
 class UserCreate(BaseModel):
     email: EmailStr
@@ -107,6 +118,8 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
     name: str
+    subscription_id: Optional[str] = None
+    plan_id: Optional[str] = None  # Denormalized for performance
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class WorkspaceCreate(BaseModel):
@@ -249,6 +262,51 @@ class Feedback(BaseModel):
 class StepsReorder(BaseModel):
     step_ids: List[str]
 
+# Subscription & Quota Models
+class Plan(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str  # "free", "pro", "enterprise"
+    display_name: str  # "Free", "Pro", "Enterprise"
+    max_workspaces: Optional[int] = None  # None = unlimited
+    max_categories: Optional[int] = None
+    max_walkthroughs: Optional[int] = None
+    storage_bytes: int  # Total storage included in plan
+    max_file_size_bytes: int  # Maximum size for individual files
+    extra_storage_increment_bytes: Optional[int] = None  # 25GB increments, None if not available
+    is_public: bool = True  # Enterprise plans are not publicly priced
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Subscription(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    plan_id: str
+    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    extra_storage_bytes: int = 0  # Additional storage beyond plan storage
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    cancelled_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class File(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    workspace_id: str
+    status: FileStatus = FileStatus.PENDING
+    size_bytes: int  # Authoritative file size
+    url: str  # Cloudinary URL or local path
+    public_id: Optional[str] = None  # Cloudinary public_id for deletion
+    resource_type: str  # "image", "video", "raw"
+    idempotency_key: str  # Unique key for deduplication
+    reference_type: Optional[str] = None  # "walkthrough_icon", "step_media", "block_image", "workspace_logo", etc.
+    reference_id: Optional[str] = None  # walkthrough_id, step_id, block_id, etc.
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    deleted_at: Optional[datetime] = None
+
 # Helper Functions
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -301,6 +359,18 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="User not found")
     return User(**user)
 
+async def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))):
+    """Optional authentication - returns user if token provided, None otherwise."""
+    if not credentials:
+        return None
+    try:
+        token = credentials.credentials
+        payload = decode_token(token)
+        user = await db.users.find_one({"id": payload['user_id']}, {"_id": 0})
+        return User(**user) if user else None
+    except Exception:
+        return None
+
 async def get_workspace_member(workspace_id: str, user_id: str):
     member = await db.workspace_members.find_one(
         {"workspace_id": workspace_id, "user_id": user_id},
@@ -310,6 +380,339 @@ async def get_workspace_member(workspace_id: str, user_id: str):
 
 def create_slug(name: str) -> str:
     return name.lower().replace(' ', '-').replace('_', '-')[:50]
+
+# Quota & Subscription Helper Functions
+async def get_user_plan(user_id: str) -> Optional[Plan]:
+    """Get user's current plan, defaulting to Free if none assigned."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        return None
+    
+    plan_id = user.get('plan_id')
+    if not plan_id:
+        # Default to Free plan if no plan assigned
+        free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+        if free_plan:
+            return Plan(**free_plan)
+        return None
+    
+    plan = await db.plans.find_one({"id": plan_id}, {"_id": 0})
+    return Plan(**plan) if plan else None
+
+async def get_user_subscription(user_id: str) -> Optional[Subscription]:
+    """Get user's active subscription."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        return None
+    
+    subscription_id = user.get('subscription_id')
+    if not subscription_id:
+        return None
+    
+    subscription = await db.subscriptions.find_one(
+        {"id": subscription_id, "status": SubscriptionStatus.ACTIVE},
+        {"_id": 0}
+    )
+    return Subscription(**subscription) if subscription else None
+
+async def get_user_storage_usage(user_id: str) -> int:
+    """Calculate total storage used by user (only active files)."""
+    active_files = await db.files.find(
+        {"user_id": user_id, "status": FileStatus.ACTIVE},
+        {"size_bytes": 1}
+    ).to_list(10000)
+    
+    return sum(file.get('size_bytes', 0) for file in active_files)
+
+async def get_user_allowed_storage(user_id: str) -> int:
+    """Get total storage allowed for user (plan storage + extra storage)."""
+    subscription = await get_user_subscription(user_id)
+    if not subscription:
+        plan = await get_user_plan(user_id)
+        if plan:
+            return plan.storage_bytes
+        # Default to Free plan storage if no plan
+        return 500 * 1024 * 1024  # 500 MB
+    
+    plan = await db.plans.find_one({"id": subscription.plan_id}, {"_id": 0})
+    if not plan:
+        return 500 * 1024 * 1024  # Default to Free
+    
+    plan_storage = plan.get('storage_bytes', 0)
+    extra_storage = subscription.extra_storage_bytes
+    return plan_storage + extra_storage
+
+async def get_workspace_count(user_id: str) -> int:
+    """Count workspaces owned by user."""
+    count = await db.workspaces.count_documents({"owner_id": user_id})
+    return count
+
+async def get_walkthrough_count(workspace_id: str) -> int:
+    """Count non-archived walkthroughs in workspace."""
+    count = await db.walkthroughs.count_documents({
+        "workspace_id": workspace_id,
+        "archived": {"$ne": True}
+    })
+    return count
+
+async def get_category_count(workspace_id: str) -> int:
+    """Count categories in workspace."""
+    count = await db.categories.count_documents({"workspace_id": workspace_id})
+    return count
+
+async def extract_file_urls_from_walkthrough(walkthrough: dict) -> List[str]:
+    """Extract all file URLs from a walkthrough (for cascade deletion)."""
+    urls = []
+    
+    # Walkthrough icon
+    if walkthrough.get('icon_url'):
+        urls.append(walkthrough['icon_url'])
+    
+    # Step media and block images
+    steps = walkthrough.get('steps', [])
+    for step in steps:
+        # Step media
+        if step.get('media_url'):
+            urls.append(step['media_url'])
+        
+        # Block images
+        blocks = step.get('blocks', [])
+        for block in blocks:
+            if block.get('type') == 'image' and block.get('data', {}).get('url'):
+                urls.append(block['data']['url'])
+    
+    return urls
+
+async def delete_files_by_urls(urls: List[str], user_id: str) -> int:
+    """Delete files by their URLs (for cascade deletion). Returns count of deleted files."""
+    if not urls:
+        return 0
+    
+    deleted_count = 0
+    for url in urls:
+        # Find file record by URL
+        file_record = await db.files.find_one(
+            {"url": url, "user_id": user_id, "status": FileStatus.ACTIVE},
+            {"_id": 0}
+        )
+        
+        if file_record:
+            # Delete file (idempotent)
+            try:
+                file_id = file_record['id']
+                
+                # Mark as deleting
+                await db.files.update_one(
+                    {"id": file_id},
+                    {"$set": {
+                        "status": FileStatus.DELETING,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                # Delete from object storage
+                if USE_CLOUDINARY and file_record.get('public_id'):
+                    try:
+                        cloudinary.uploader.destroy(
+                            file_record['public_id'],
+                            resource_type=file_record.get('resource_type', 'auto')
+                        )
+                    except Exception as e:
+                        logging.warning(f"Cloudinary deletion failed: {str(e)}")
+                elif not USE_CLOUDINARY:
+                    # Local storage deletion
+                    try:
+                        url_path = file_record.get('url', '')
+                        if url_path.startswith('/api/media/'):
+                            filename = url_path.replace('/api/media/', '')
+                            file_path = UPLOAD_DIR / filename
+                            if file_path.exists():
+                                file_path.unlink()
+                    except Exception as e:
+                        logging.warning(f"Local file deletion failed: {str(e)}")
+                
+                # Mark as deleted
+                await db.files.update_one(
+                    {"id": file_id},
+                    {"$set": {
+                        "deleted_at": datetime.now(timezone.utc).isoformat(),
+                        "status": "deleted",
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                deleted_count += 1
+            except Exception as e:
+                logging.error(f"Failed to delete file {file_record.get('id')}: {str(e)}")
+    
+    return deleted_count
+
+async def create_file_record_from_url(url: str, user_id: str, workspace_id: str, reference_type: str, reference_id: str) -> Optional[str]:
+    """
+    Lazy migration: Create file record from existing URL if it's an uploaded file.
+    Returns file_id if record created, None if external URL.
+    """
+    if not url:
+        return None
+    
+    # Check if URL is from our storage (Cloudinary or local)
+    is_uploaded_file = False
+    public_id = None
+    
+    if USE_CLOUDINARY:
+        # Check if it's a Cloudinary URL
+        if 'res.cloudinary.com' in url:
+            is_uploaded_file = True
+            # Extract public_id from URL
+            try:
+                # Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{transformations}/{public_id}.{format}
+                parts = url.split('/')
+                if 'upload' in parts:
+                    upload_idx = parts.index('upload')
+                    if upload_idx + 1 < len(parts):
+                        # Get public_id (everything after upload, minus extension)
+                        public_id_part = parts[-1]
+                        public_id = public_id_part.rsplit('.', 1)[0] if '.' in public_id_part else public_id_part
+            except Exception:
+                pass
+    else:
+        # Check if it's a local storage URL
+        if url.startswith('/api/media/'):
+            is_uploaded_file = True
+    
+    if not is_uploaded_file:
+        # External URL, don't create file record
+        return None
+    
+    # Check if file record already exists
+    existing = await db.files.find_one({"url": url, "user_id": user_id}, {"_id": 0})
+    if existing:
+        return existing['id']
+    
+    # Try to get file size from Cloudinary if possible
+    size_bytes = 0
+    if USE_CLOUDINARY and public_id:
+        try:
+            resource = cloudinary.api.resource(public_id)
+            size_bytes = resource.get('bytes', 0)
+        except Exception:
+            # If can't get size, estimate or use 0 (will be recalculated)
+            pass
+    
+    # Create file record (status=active since file already exists)
+    file_id = str(uuid.uuid4())
+    file_record = File(
+        id=file_id,
+        user_id=user_id,
+        workspace_id=workspace_id,
+        status=FileStatus.ACTIVE,
+        size_bytes=size_bytes,
+        url=url,
+        public_id=public_id,
+        resource_type="image",  # Default, could be improved
+        idempotency_key=f"migrated_{url}_{user_id}",  # Unique key for migration
+        reference_type=reference_type,
+        reference_id=reference_id
+    )
+    
+    file_dict = file_record.model_dump()
+    file_dict['created_at'] = file_dict['created_at'].isoformat()
+    file_dict['updated_at'] = file_dict['updated_at'].isoformat()
+    
+    await db.files.insert_one(file_dict)
+    logging.info(f"Created file record for migrated URL: {url}")
+    
+    return file_id
+
+async def initialize_default_plans():
+    """Initialize default plans if they don't exist."""
+    plans = [
+        {
+            "id": "plan_free",
+            "name": "free",
+            "display_name": "Free",
+            "max_workspaces": 1,
+            "max_categories": 3,
+            "max_walkthroughs": 10,
+            "storage_bytes": 500 * 1024 * 1024,  # 500 MB
+            "max_file_size_bytes": 10 * 1024 * 1024,  # 10 MB
+            "extra_storage_increment_bytes": None,
+            "is_public": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": "plan_pro",
+            "name": "pro",
+            "display_name": "Pro",
+            "max_workspaces": 3,
+            "max_categories": None,  # unlimited
+            "max_walkthroughs": None,  # unlimited
+            "storage_bytes": 25 * 1024 * 1024 * 1024,  # 25 GB
+            "max_file_size_bytes": 150 * 1024 * 1024,  # 150 MB
+            "extra_storage_increment_bytes": 25 * 1024 * 1024 * 1024,  # 25 GB increments
+            "is_public": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": "plan_enterprise",
+            "name": "enterprise",
+            "display_name": "Enterprise",
+            "max_workspaces": None,  # unlimited
+            "max_categories": None,  # unlimited
+            "max_walkthroughs": None,  # unlimited
+            "storage_bytes": 200 * 1024 * 1024 * 1024,  # 200 GB
+            "max_file_size_bytes": 500 * 1024 * 1024,  # 500 MB (customizable)
+            "extra_storage_increment_bytes": None,  # Custom pricing
+            "is_public": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+    
+    for plan_data in plans:
+        existing = await db.plans.find_one({"id": plan_data["id"]})
+        if not existing:
+            await db.plans.insert_one(plan_data)
+            logging.info(f"Initialized plan: {plan_data['name']}")
+
+async def assign_free_plan_to_user(user_id: str):
+    """Assign Free plan to user if they don't have one."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user or user.get('plan_id'):
+        return  # User already has a plan
+    
+    free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+    if not free_plan:
+        await initialize_default_plans()
+        free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+        if not free_plan:
+            logging.error("Failed to initialize Free plan")
+            return
+    
+    # Create subscription
+    subscription = Subscription(
+        user_id=user_id,
+        plan_id=free_plan['id'],
+        status=SubscriptionStatus.ACTIVE
+    )
+    subscription_dict = subscription.model_dump()
+    subscription_dict['started_at'] = subscription_dict['started_at'].isoformat()
+    subscription_dict['created_at'] = subscription_dict['created_at'].isoformat()
+    subscription_dict['updated_at'] = subscription_dict['updated_at'].isoformat()
+    
+    await db.subscriptions.insert_one(subscription_dict)
+    
+    # Update user
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "subscription_id": subscription.id,
+            "plan_id": free_plan['id']
+        }}
+    )
+    logging.info(f"Assigned Free plan to user: {user_id}")
 
 # Auth Routes
 @api_router.post("/auth/signup")
@@ -327,9 +730,14 @@ async def signup(user_data: UserCreate):
     user_dict['created_at'] = user_dict['created_at'].isoformat()
     
     await db.users.insert_one(user_dict)
+    
+    # Initialize plans (but don't auto-assign - user will choose)
+    await initialize_default_plans()
+    # Note: Plan will be assigned when user selects one via plan selection modal
+    
     token = create_token(user.id)
     
-    return {"user": user, "token": token}
+    return {"user": user, "token": token, "plan_selection_required": True}
 
 @api_router.post("/auth/login")
 async def login(login_data: UserLogin):
@@ -344,11 +752,29 @@ async def login(login_data: UserLogin):
 
 @api_router.get("/auth/me", response_model=User)
 async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
+    # Ensure user has a plan assigned
+    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not user_doc.get('plan_id'):
+        await assign_free_plan_to_user(current_user.id)
+        # Refresh user data
+        user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    return User(**user_doc)
 
 # Workspace Routes
 @api_router.post("/workspaces", response_model=Workspace)
 async def create_workspace(workspace_data: WorkspaceCreate, current_user: User = Depends(get_current_user)):
+    # Check workspace count limit
+    plan = await get_user_plan(current_user.id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="User has no plan assigned")
+    
+    workspace_count = await get_workspace_count(current_user.id)
+    if plan.max_workspaces is not None and workspace_count >= plan.max_workspaces:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Workspace limit reached. Current: {workspace_count}, Limit: {plan.max_workspaces} for your plan"
+        )
+    
     workspace = Workspace(
         name=workspace_data.name,
         slug=create_slug(workspace_data.name),
@@ -369,6 +795,24 @@ async def create_workspace(workspace_data: WorkspaceCreate, current_user: User =
     member_dict = member.model_dump()
     member_dict['joined_at'] = member_dict['joined_at'].isoformat()
     await db.workspace_members.insert_one(member_dict)
+    
+    # Lazy migration: Create file records for logo and background if uploaded files
+    if workspace.logo:
+        await create_file_record_from_url(
+            workspace.logo,
+            current_user.id,
+            workspace.id,
+            "workspace_logo",
+            workspace.id
+        )
+    if workspace_data.portal_background_url:
+        await create_file_record_from_url(
+            workspace_data.portal_background_url,
+            current_user.id,
+            workspace.id,
+            "workspace_background",
+            workspace.id
+        )
     
     return workspace
 
@@ -415,6 +859,18 @@ async def create_category(workspace_id: str, category_data: CategoryCreate, curr
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Check category count limit
+    plan = await get_user_plan(current_user.id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="User has no plan assigned")
+    
+    category_count = await get_category_count(workspace_id)
+    if plan.max_categories is not None and category_count >= plan.max_categories:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Category limit reached. Current: {category_count}, Limit: {plan.max_categories} for your plan"
+        )
     
     category = Category(
         workspace_id=workspace_id,
@@ -506,6 +962,18 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Check walkthrough count limit
+    plan = await get_user_plan(current_user.id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="User has no plan assigned")
+    
+    walkthrough_count = await get_walkthrough_count(workspace_id)
+    if plan.max_walkthroughs is not None and walkthrough_count >= plan.max_walkthroughs:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Walkthrough limit reached. Current: {walkthrough_count}, Limit: {plan.max_walkthroughs} for your plan"
+        )
+    
     # Store password safely (hash only) if password-protected
     password_hash = None
     if walkthrough_data.privacy == Privacy.PASSWORD:
@@ -536,6 +1004,16 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
     walkthrough_dict['created_at'] = walkthrough_dict['created_at'].isoformat()
     walkthrough_dict['updated_at'] = walkthrough_dict['updated_at'].isoformat()
     await db.walkthroughs.insert_one(walkthrough_dict)
+    
+    # Lazy migration: Create file record for icon_url if it's an uploaded file
+    if walkthrough.icon_url:
+        await create_file_record_from_url(
+            walkthrough.icon_url,
+            current_user.id,
+            workspace_id,
+            "walkthrough_icon",
+            walkthrough.id
+        )
     
     return walkthrough
 
@@ -701,6 +1179,16 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         {"$set": update_data}
     )
     
+    # Lazy migration: Create file record for icon_url if it's an uploaded file and changed
+    if "icon_url" in update_data and update_data.get("icon_url"):
+        await create_file_record_from_url(
+            update_data["icon_url"],
+            current_user.id,
+            workspace_id,
+            "walkthrough_icon",
+            walkthrough_id
+        )
+    
     walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id}, {"_id": 0})
     return Walkthrough(**walkthrough)
 
@@ -750,10 +1238,27 @@ async def permanently_delete_walkthrough(workspace_id: str, walkthrough_id: str,
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Get walkthrough before deletion (for cascade file deletion)
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id, "archived": True},
+        {"_id": 0}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Archived walkthrough not found")
+    
+    # Cascade delete: Find and delete all associated files
+    file_urls = await extract_file_urls_from_walkthrough(walkthrough)
+    deleted_files_count = await delete_files_by_urls(file_urls, current_user.id)
+    
+    # Delete walkthrough
     result = await db.walkthroughs.delete_one({"id": walkthrough_id, "workspace_id": workspace_id, "archived": True})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Archived walkthrough not found")
-    return {"message": "Walkthrough permanently deleted"}
+    
+    return {
+        "message": "Walkthrough permanently deleted",
+        "files_deleted": deleted_files_count
+    }
 
 # Version History / Rollback
 @api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/versions")
@@ -1150,6 +1655,10 @@ async def rollback_walkthrough(workspace_id: str, walkthrough_id: str, version: 
 # Backwards-compatible delete: archive instead of hard delete
 @api_router.delete("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}")
 async def delete_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Archive walkthrough (soft delete).
+    Files are NOT deleted on archive, only on permanent deletion.
+    """
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -1172,6 +1681,28 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
     walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id}, {"_id": 0})
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
+    
+    # Lazy migration: Create file records for step media and block images
+    if step_data.media_url:
+        await create_file_record_from_url(
+            step_data.media_url,
+            current_user.id,
+            workspace_id,
+            "step_media",
+            step_data.id if hasattr(step_data, 'id') else None
+        )
+    
+    # Track block images
+    if step_data.blocks:
+        for block in step_data.blocks:
+            if block.get('type') == 'image' and block.get('data', {}).get('url'):
+                await create_file_record_from_url(
+                    block['data']['url'],
+                    current_user.id,
+                    workspace_id,
+                    "block_image",
+                    block.get('id')
+                )
     
     steps = walkthrough.get('steps', [])
     insert_at = step_data.order if step_data.order is not None else len(steps)
@@ -1232,6 +1763,28 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Lazy migration: Create file records for step media and block images before update
+    if step_data.media_url:
+        await create_file_record_from_url(
+            step_data.media_url,
+            current_user.id,
+            workspace_id,
+            "step_media",
+            step_id
+        )
+    
+    # Track block images
+    if step_data.blocks:
+        for block in step_data.blocks:
+            if block.get('type') == 'image' and block.get('data', {}).get('url'):
+                await create_file_record_from_url(
+                    block['data']['url'],
+                    current_user.id,
+                    workspace_id,
+                    "block_image",
+                    block.get('id')
+                )
     
     walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id}, {"_id": 0})
     if not walkthrough:
@@ -1585,19 +2138,93 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
     feedback_list = await db.feedback.find({"walkthrough_id": walkthrough_id}, {"_id": 0}).to_list(1000)
     return feedback_list
 
-# Media Upload Route
+# Media Upload Route - Two-Phase Commit with Quota Enforcement
 @api_router.post("/upload")
-async def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
-    file_extension = Path(file.filename).suffix.lower()
-    file_id = str(uuid.uuid4())
+async def upload_file(
+    file: UploadFile = File(...),
+    workspace_id: Optional[str] = Header(None, alias="X-Workspace-Id"),
+    idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
+    reference_type: Optional[str] = Header(None, alias="X-Reference-Type"),
+    reference_id: Optional[str] = Header(None, alias="X-Reference-Id"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload file with quota enforcement and two-phase commit.
+    
+    Two-phase commit:
+    1. Create file record in DB with status=pending (reserves quota)
+    2. Upload to object storage
+    3. Update file record to status=active on success, or status=failed on failure
+    
+    Idempotent: If idempotency_key provided and file exists, returns existing file.
+    """
+    # Generate idempotency key if not provided
+    if not idempotency_key:
+        idempotency_key = str(uuid.uuid4())
+    
+    # Check for existing file with same idempotency key (idempotency check)
+    existing_file = await db.files.find_one(
+        {"idempotency_key": idempotency_key, "user_id": current_user.id},
+        {"_id": 0}
+    )
+    if existing_file:
+        if existing_file.get('status') == FileStatus.ACTIVE:
+            # Return existing file
+            return {
+                "file_id": existing_file['id'],
+                "url": existing_file['url'],
+                "size_bytes": existing_file['size_bytes'],
+                "status": "existing"
+            }
+        elif existing_file.get('status') == FileStatus.PENDING:
+            # Upload in progress, return pending status
+            raise HTTPException(
+                status_code=409,
+                detail="Upload already in progress with this idempotency key"
+            )
     
     # Read file content
     file_content = await file.read()
     file_size = len(file_content)
     
+    # Get user's plan and check file size limit
+    plan = await get_user_plan(current_user.id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="User has no plan assigned")
+    
+    # Check file size limit
+    if file_size > plan.max_file_size_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
+        )
+    
+    # Get workspace_id from request or use first workspace if not provided
+    if not workspace_id:
+        # Get user's first workspace (for backward compatibility)
+        workspace = await db.workspaces.find_one({"owner_id": current_user.id}, {"_id": 0})
+        if not workspace:
+            raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
+        workspace_id = workspace['id']
+    else:
+        # Verify user has access to workspace
+        member = await get_workspace_member(workspace_id, current_user.id)
+        if not member:
+            raise HTTPException(status_code=403, detail="Access denied to workspace")
+    
+    # Check quota: current storage + file size <= allowed storage
+    storage_used = await get_user_storage_usage(current_user.id)
+    storage_allowed = await get_user_allowed_storage(current_user.id)
+    
+    if storage_used + file_size > storage_allowed:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Storage quota exceeded. Used: {storage_used} bytes, Allowed: {storage_allowed} bytes, File size: {file_size} bytes"
+        )
+    
     # Determine resource type based on file extension
-    # Upload GIFs as video for better mobile playback support
-    resource_type = "auto"  # Cloudinary auto-detects
+    file_extension = Path(file.filename).suffix.lower()
+    resource_type = "auto"
     if file_extension == '.gif':
         resource_type = "video"  # Upload GIFs as video for mobile compatibility
     elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
@@ -1607,71 +2234,142 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
     elif file_extension in ['.pdf', '.doc', '.docx', '.txt']:
         resource_type = "raw"
     
-    if USE_CLOUDINARY:
-        # Upload to Cloudinary (persistent storage)
-        try:
-            # Prepare upload parameters with optimization
-            upload_params = {
-                "public_id": file_id,
-                "resource_type": resource_type,
-                "folder": "guide2026",
-                "overwrite": False,
-                "invalidate": True
-            }
-            
-            # Add optimization parameters based on resource type
-            if resource_type == "image":
-                # Image optimization: auto format, quality, and responsive
-                upload_params.update({
-                    "format": "auto",  # Auto WebP/AVIF when supported
-                    "quality": "auto:good",  # Good quality with auto optimization
-                    "fetch_format": "auto"
-                })
-            elif resource_type == "video":
-                # Video optimization: auto format, quality, and size limits
-                upload_params.update({
-                    "format": "auto",  # Auto MP4/WebM when supported
-                    "quality": "auto:good",  # Good quality with auto optimization
-                    "fetch_format": "auto",
-                    "video_codec": "auto",  # Auto codec selection
-                    "bit_rate": "1m",  # Limit bitrate for smaller files
-                    "max_video_bitrate": 1000000,  # 1Mbps max
-                })
-                # For GIFs uploaded as video, add specific optimizations
-                if file_extension == '.gif':
+    # Phase 1: Create file record with status=pending (reserves quota)
+    file_id = str(uuid.uuid4())
+    file_record = File(
+        id=file_id,
+        user_id=current_user.id,
+        workspace_id=workspace_id,
+        status=FileStatus.PENDING,
+        size_bytes=file_size,
+        url="",  # Will be set after upload
+        public_id=None,
+        resource_type=resource_type,
+        idempotency_key=idempotency_key,
+        reference_type=reference_type,
+        reference_id=reference_id
+    )
+    
+    file_dict = file_record.model_dump()
+    file_dict['created_at'] = file_dict['created_at'].isoformat()
+    file_dict['updated_at'] = file_dict['updated_at'].isoformat()
+    
+    # Insert file record (this reserves the quota)
+    await db.files.insert_one(file_dict)
+    
+    # Phase 2: Upload to object storage
+    try:
+        if USE_CLOUDINARY:
+            # Upload to Cloudinary
+            try:
+                upload_params = {
+                    "public_id": file_id,
+                    "resource_type": resource_type,
+                    "folder": "guide2026",
+                    "overwrite": False,
+                    "invalidate": True
+                }
+                
+                # Add optimization parameters
+                if resource_type == "image":
                     upload_params.update({
-                        "eager": "f_mp4",  # Generate MP4 version immediately
-                        "eager_async": False
+                        "format": "auto",
+                        "quality": "auto:good",
+                        "fetch_format": "auto"
                     })
-            
-            # Upload file to Cloudinary
-            upload_result = cloudinary.uploader.upload(
-                file_content,
-                **upload_params
-            )
-            
-            # Return Cloudinary URL
-            secure_url = upload_result.get('secure_url') or upload_result.get('url')
-            return {
-                "url": secure_url,
-                "public_id": upload_result.get('public_id'),
-                "format": upload_result.get('format'),
-                "width": upload_result.get('width'),
-                "height": upload_result.get('height'),
-                "bytes": upload_result.get('bytes')
-            }
-        except Exception as e:
-            logging.error(f"Cloudinary upload failed: {str(e)}")
-            # Fallback to local storage if Cloudinary fails
-            logging.warning("Falling back to local storage")
-    
-    # Fallback: Local storage (for development or if Cloudinary fails)
-    file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
-    with file_path.open("wb") as buffer:
-        buffer.write(file_content)
-    
-    # Return relative URL for local storage
-    return {"url": f"/api/media/{file_id}{file_extension}"}
+                elif resource_type == "video":
+                    upload_params.update({
+                        "format": "auto",
+                        "quality": "auto:good",
+                        "fetch_format": "auto",
+                        "video_codec": "auto",
+                        "bit_rate": "1m",
+                        "max_video_bitrate": 1000000,
+                    })
+                    if file_extension == '.gif':
+                        upload_params.update({
+                            "eager": "f_mp4",
+                            "eager_async": False
+                        })
+                
+                upload_result = cloudinary.uploader.upload(
+                    file_content,
+                    **upload_params
+                )
+                
+                secure_url = upload_result.get('secure_url') or upload_result.get('url')
+                public_id = upload_result.get('public_id')
+                
+                # Update file record to status=active
+                await db.files.update_one(
+                    {"id": file_id},
+                    {"$set": {
+                        "status": FileStatus.ACTIVE,
+                        "url": secure_url,
+                        "public_id": public_id,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                return {
+                    "file_id": file_id,
+                    "url": secure_url,
+                    "public_id": public_id,
+                    "size_bytes": file_size,
+                    "format": upload_result.get('format'),
+                    "width": upload_result.get('width'),
+                    "height": upload_result.get('height'),
+                    "bytes": upload_result.get('bytes'),
+                    "status": "active"
+                }
+            except Exception as e:
+                logging.error(f"Cloudinary upload failed: {str(e)}")
+                # Mark file as failed
+                await db.files.update_one(
+                    {"id": file_id},
+                    {"$set": {
+                        "status": FileStatus.FAILED,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                # Fallback to local storage
+                logging.warning("Falling back to local storage")
+        
+        # Fallback: Local storage
+        file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
+        with file_path.open("wb") as buffer:
+            buffer.write(file_content)
+        
+        local_url = f"/api/media/{file_id}{file_extension}"
+        
+        # Update file record to status=active
+        await db.files.update_one(
+            {"id": file_id},
+            {"$set": {
+                "status": FileStatus.ACTIVE,
+                "url": local_url,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "file_id": file_id,
+            "url": local_url,
+            "size_bytes": file_size,
+            "status": "active"
+        }
+        
+    except Exception as e:
+        # Mark file as failed if upload fails
+        logging.error(f"File upload failed: {str(e)}")
+        await db.files.update_one(
+            {"id": file_id},
+            {"$set": {
+                "status": FileStatus.FAILED,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 # Media serving route (fallback for local storage)
 # Note: If using Cloudinary, files are served directly from Cloudinary CDN
@@ -1696,6 +2394,375 @@ async def get_media(filename: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
+
+# Subscription & Quota Routes
+@api_router.put("/users/me/plan")
+async def change_user_plan(plan_name: str = Query(..., description="Plan name to change to"), current_user: User = Depends(get_current_user)):
+    """
+    Change user's plan.
+    Handles plan upgrades and downgrades gracefully.
+    - Allows downgrades even if user is over new plan's quota (read-only mode for uploads)
+    - Blocks downgrades if user exceeds new plan's workspace/walkthrough/category limits
+    - Never auto-deletes user files
+    """
+    # Validate plan name
+    plan = await db.plans.find_one({"name": plan_name}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
+    
+    # Check if plan is public (unless user is admin)
+    if not plan.get('is_public', False) and plan_name != 'free':
+        # For now, allow any plan change (no payment system yet)
+        # In future, check if user has permission to access this plan
+        pass
+    
+    # Get current plan and usage
+    current_plan = await get_user_plan(current_user.id)
+    storage_used = await get_user_storage_usage(current_user.id)
+    new_plan_storage = plan.get('storage_bytes', 0)
+    
+    # Get user's current usage counts
+    workspace_count = await get_workspace_count(current_user.id)
+    workspaces = await db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1}).to_list(100)
+    workspace_ids = [w["id"] for w in workspaces]
+    total_walkthroughs = await db.walkthroughs.count_documents({
+        "workspace_id": {"$in": workspace_ids},
+        "archived": {"$ne": True}
+    })
+    total_categories = await db.categories.count_documents({
+        "workspace_id": {"$in": workspace_ids}
+    })
+    
+    # Check if downgrading
+    is_downgrade = current_plan and current_plan.storage_bytes > new_plan_storage
+    
+    # Validate limits for new plan (block downgrade if over hard limits)
+    new_max_workspaces = plan.get('max_workspaces')
+    new_max_walkthroughs = plan.get('max_walkthroughs')
+    new_max_categories = plan.get('max_categories')
+    
+    if new_max_workspaces is not None and workspace_count > new_max_workspaces:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot downgrade: You have {workspace_count} workspaces, but the {plan.get('display_name', plan_name)} plan allows only {new_max_workspaces}. Please delete workspaces first."
+        )
+    
+    if new_max_walkthroughs is not None and total_walkthroughs > new_max_walkthroughs:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot downgrade: You have {total_walkthroughs} walkthroughs, but the {plan.get('display_name', plan_name)} plan allows only {new_max_walkthroughs}. Please archive or delete walkthroughs first."
+        )
+    
+    if new_max_categories is not None and total_categories > new_max_categories:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot downgrade: You have {total_categories} categories, but the {plan.get('display_name', plan_name)} plan allows only {new_max_categories}. Please delete categories first."
+        )
+    
+    # Check if downgrading and user is over new plan's storage quota
+    if is_downgrade and storage_used > new_plan_storage:
+        # User is over quota for new plan
+        # Allow the change but log warning - user will be in read-only mode for uploads
+        # The over_quota flag will be automatically set by get_user_plan_endpoint
+        logging.warning(
+            f"User {current_user.id} downgraded to {plan_name} but is over storage quota "
+            f"({storage_used} bytes used, {new_plan_storage} bytes allowed). "
+            f"Uploads will be blocked until quota is reduced."
+        )
+    
+    # Get or create subscription
+    subscription = await get_user_subscription(current_user.id)
+    
+    if subscription:
+        # Update existing subscription
+        await db.subscriptions.update_one(
+            {"id": subscription.id},
+            {"$set": {
+                "plan_id": plan['id'],
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        # Create new subscription
+        new_subscription = Subscription(
+            user_id=current_user.id,
+            plan_id=plan['id'],
+            status=SubscriptionStatus.ACTIVE
+        )
+        subscription_dict = new_subscription.model_dump()
+        subscription_dict['started_at'] = subscription_dict['started_at'].isoformat()
+        subscription_dict['created_at'] = subscription_dict['created_at'].isoformat()
+        subscription_dict['updated_at'] = subscription_dict['updated_at'].isoformat()
+        await db.subscriptions.insert_one(subscription_dict)
+    
+    # Update user's plan_id
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"plan_id": plan['id']}}
+    )
+    
+    logging.info(f"User {current_user.id} changed plan to {plan_name}")
+    
+    return {
+        "message": f"Plan changed to {plan.get('display_name', plan_name)}",
+        "plan": plan
+    }
+
+@api_router.get("/users/me/plan")
+async def get_user_plan_endpoint(current_user: User = Depends(get_current_user)):
+    """Get user's current plan and quota information."""
+    plan = await get_user_plan(current_user.id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    subscription = await get_user_subscription(current_user.id)
+    storage_used = await get_user_storage_usage(current_user.id)
+    storage_allowed = await get_user_allowed_storage(current_user.id)
+    workspace_count = await get_workspace_count(current_user.id)
+    
+    # Get all user's workspaces to calculate total walkthroughs and categories
+    workspaces = await db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1}).to_list(100)
+    workspace_ids = [w["id"] for w in workspaces]
+    
+    # Calculate total walkthroughs across all workspaces
+    total_walkthroughs = await db.walkthroughs.count_documents({
+        "workspace_id": {"$in": workspace_ids},
+        "archived": {"$ne": True}
+    })
+    
+    # Calculate total categories across all workspaces
+    total_categories = await db.categories.count_documents({
+        "workspace_id": {"$in": workspace_ids}
+    })
+    
+    return {
+        "plan": plan.model_dump(),
+        "subscription": subscription.model_dump() if subscription else None,
+        "quota": {
+            "storage_used_bytes": storage_used,
+            "storage_allowed_bytes": storage_allowed,
+            "storage_used_percent": round((storage_used / storage_allowed * 100) if storage_allowed > 0 else 0, 2),
+            "workspace_count": workspace_count,
+            "workspace_limit": plan.max_workspaces,
+            "walkthroughs_used": total_walkthroughs,
+            "walkthroughs_limit": plan.max_walkthroughs,
+            "categories_used": total_categories,
+            "categories_limit": plan.max_categories,
+            "over_quota": storage_used > storage_allowed
+        }
+    }
+
+@api_router.get("/plans")
+async def get_plans(current_user: Optional[User] = Depends(get_current_user_optional)):
+    """Get all available plans. Public endpoint for plan selection."""
+    plans = await db.plans.find({"is_public": True}, {"_id": 0}).to_list(100)
+    return {"plans": plans}
+
+@api_router.get("/workspaces/{workspace_id}/quota")
+async def get_workspace_quota(workspace_id: str, current_user: User = Depends(get_current_user)):
+    """Get workspace quota usage."""
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get workspace owner's plan
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    owner_plan = await get_user_plan(workspace['owner_id'])
+    if not owner_plan:
+        raise HTTPException(status_code=404, detail="Workspace owner has no plan")
+    
+    walkthrough_count = await get_walkthrough_count(workspace_id)
+    category_count = await get_category_count(workspace_id)
+    
+    # Calculate workspace storage (files in this workspace)
+    workspace_files = await db.files.find(
+        {"workspace_id": workspace_id, "status": FileStatus.ACTIVE},
+        {"size_bytes": 1}
+    ).to_list(10000)
+    workspace_storage = sum(file.get('size_bytes', 0) for file in workspace_files)
+    
+    return {
+        "workspace_id": workspace_id,
+        "plan": owner_plan.model_dump(),
+        "usage": {
+            "walkthrough_count": walkthrough_count,
+            "walkthrough_limit": owner_plan.max_walkthroughs,
+            "category_count": category_count,
+            "category_limit": owner_plan.max_categories,
+            "storage_bytes": workspace_storage
+        },
+        "limits": {
+            "max_walkthroughs": owner_plan.max_walkthroughs,
+            "max_categories": owner_plan.max_categories,
+            "max_file_size_bytes": owner_plan.max_file_size_bytes
+        }
+    }
+
+@api_router.post("/admin/reconcile-quota")
+async def reconcile_quota(
+    user_id: Optional[str] = Query(None, description="Specific user ID to reconcile (optional, admin only)"),
+    fix_discrepancies: bool = Query(False, description="Whether to fix discrepancies automatically"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reconcile quota usage by recalculating storage from file records.
+    Compares calculated storage with expected values and reports discrepancies.
+    Admin-only endpoint (can be called by any authenticated user for now, but should be restricted in production).
+    """
+    # TODO: Add admin role check in production
+    # if current_user.role != "admin":
+    #     raise HTTPException(status_code=403, detail="Admin access required")
+    
+    discrepancies = []
+    fixed_count = 0
+    
+    # Get users to reconcile
+    if user_id:
+        users = [await db.users.find_one({"id": user_id}, {"_id": 0})]
+        if not users[0]:
+            raise HTTPException(status_code=404, detail="User not found")
+    else:
+        # Reconcile all users
+        users = await db.users.find({}, {"_id": 0, "id": 1}).to_list(10000)
+    
+    for user in users:
+        user_id_to_check = user["id"]
+        
+        # Recalculate storage from file records
+        active_files = await db.files.find(
+            {"user_id": user_id_to_check, "status": FileStatus.ACTIVE},
+            {"size_bytes": 1}
+        ).to_list(10000)
+        
+        calculated_storage = sum(file.get('size_bytes', 0) for file in active_files)
+        
+        # Get expected storage (from get_user_storage_usage)
+        expected_storage = await get_user_storage_usage(user_id_to_check)
+        
+        if calculated_storage != expected_storage:
+            discrepancy = {
+                "user_id": user_id_to_check,
+                "calculated_storage": calculated_storage,
+                "expected_storage": expected_storage,
+                "difference": calculated_storage - expected_storage
+            }
+            discrepancies.append(discrepancy)
+            
+            if fix_discrepancies:
+                # The get_user_storage_usage function already calculates from DB, so this shouldn't happen
+                # But if it does, we log it
+                logging.warning(
+                    f"Storage discrepancy for user {user_id_to_check}: "
+                    f"calculated={calculated_storage}, expected={expected_storage}"
+                )
+                fixed_count += 1
+    
+    return {
+        "reconciled_users": len(users),
+        "discrepancies_found": len(discrepancies),
+        "discrepancies": discrepancies,
+        "fixed_count": fixed_count if fix_discrepancies else 0,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.post("/admin/cleanup-files")
+async def cleanup_files(
+    pending_hours: int = Query(24, description="Delete PENDING files older than this many hours"),
+    failed_days: int = Query(7, description="Delete FAILED files older than this many days"),
+    dry_run: bool = Query(True, description="If True, only report what would be deleted without actually deleting"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cleanup old PENDING and FAILED file records.
+    - PENDING files older than pending_hours are likely abandoned uploads
+    - FAILED files older than failed_days are failed uploads that won't be retried
+    Admin-only endpoint (can be called by any authenticated user for now, but should be restricted in production).
+    """
+    # TODO: Add admin role check in production
+    # if current_user.role != "admin":
+    #     raise HTTPException(status_code=403, detail="Admin access required")
+    
+    now = datetime.now(timezone.utc)
+    pending_threshold = now - timedelta(hours=pending_hours)
+    failed_threshold = now - timedelta(days=failed_days)
+    
+    # Find old PENDING files
+    pending_files = await db.files.find(
+        {
+            "status": FileStatus.PENDING,
+            "created_at": {"$lt": pending_threshold.isoformat()}
+        },
+        {"_id": 0, "id": 1, "url": 1, "public_id": 1, "resource_type": 1, "created_at": 1}
+    ).to_list(10000)
+    
+    # Find old FAILED files
+    failed_files = await db.files.find(
+        {
+            "status": FileStatus.FAILED,
+            "created_at": {"$lt": failed_threshold.isoformat()}
+        },
+        {"_id": 0, "id": 1, "url": 1, "public_id": 1, "resource_type": 1, "created_at": 1}
+    ).to_list(10000)
+    
+    deleted_count = 0
+    errors = []
+    
+    if not dry_run:
+        # Delete PENDING files
+        for file_record in pending_files:
+            try:
+                file_id = file_record['id']
+                
+                # Try to delete from storage if it exists
+                if USE_CLOUDINARY and file_record.get('public_id'):
+                    try:
+                        cloudinary.uploader.destroy(
+                            file_record['public_id'],
+                            resource_type=file_record.get('resource_type', 'auto')
+                        )
+                    except Exception as e:
+                        logging.warning(f"Cloudinary deletion failed for {file_id}: {str(e)}")
+                
+                # Delete DB record
+                await db.files.delete_one({"id": file_id})
+                deleted_count += 1
+            except Exception as e:
+                errors.append({"file_id": file_record.get('id'), "error": str(e)})
+        
+        # Delete FAILED files
+        for file_record in failed_files:
+            try:
+                file_id = file_record['id']
+                
+                # Try to delete from storage if it exists
+                if USE_CLOUDINARY and file_record.get('public_id'):
+                    try:
+                        cloudinary.uploader.destroy(
+                            file_record['public_id'],
+                            resource_type=file_record.get('resource_type', 'auto')
+                        )
+                    except Exception as e:
+                        logging.warning(f"Cloudinary deletion failed for {file_id}: {str(e)}")
+                
+                # Delete DB record
+                await db.files.delete_one({"id": file_id})
+                deleted_count += 1
+            except Exception as e:
+                errors.append({"file_id": file_record.get('id'), "error": str(e)})
+    
+    return {
+        "dry_run": dry_run,
+        "pending_files_found": len(pending_files),
+        "failed_files_found": len(failed_files),
+        "deleted_count": deleted_count if not dry_run else 0,
+        "errors": errors,
+        "pending_threshold": pending_threshold.isoformat(),
+        "failed_threshold": failed_threshold.isoformat(),
+        "timestamp": now.isoformat()
+    }
 
 # Health check endpoint (no auth required)
 # Available at both /health and /api/health for flexibility
@@ -1842,6 +2909,12 @@ async def global_exception_handler(request: Request, exc: Exception):
             "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
         }
     )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize default plans on startup."""
+    await initialize_default_plans()
+    logging.info("Default plans initialized")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { api } from '../../lib/api';
 import { normalizeImageUrl } from '../../lib/utils';
 import { toast } from 'sonner';
+import { useQuota } from '../../hooks/useQuota';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -22,7 +23,7 @@ const rawBase =
 // Render can provide a bare hostname; ensure we always have a valid absolute URL
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
-const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDuplicate, isRTL }) => {
+const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDuplicate, isRTL, workspaceId, walkthroughId, stepId, onUpgrade }) => {
   const {
     attributes,
     listeners,
@@ -31,6 +32,8 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
     transition,
     isDragging
   } = useSortable({ id: block.id });
+  
+  const { canUploadFile } = useQuota(workspaceId);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -41,7 +44,26 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
   const handleMediaUpload = async (file) => {
     try {
       console.log('[BlockComponent] Starting upload for block:', block.id, 'Type:', block.type);
-      const response = await api.uploadFile(file);
+      
+      // Check quota before upload
+      const quotaCheck = canUploadFile(file.size);
+      if (!quotaCheck.allowed) {
+        toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
+        if (onUpgrade && (quotaCheck.reason === 'storage' || quotaCheck.reason === 'file_size')) {
+          onUpgrade(quotaCheck.reason);
+        }
+        return;
+      }
+      
+      // Generate idempotency key for this upload
+      const idempotencyKey = `${block.id}-${file.name}-${file.size}-${Date.now()}`;
+      
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'block_image',
+        referenceId: block.id
+      });
       console.log('[BlockComponent] Upload response:', response.data);
       
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
@@ -59,7 +81,8 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
         ...block,
         data: {
           ...(block.data || {}), // Preserve all existing data fields
-          url: fullUrl // Update URL
+          url: fullUrl, // Update URL
+          file_id: response.data.file_id // Store file_id for tracking
         },
         settings: block.settings || {} // Preserve settings
       };
@@ -83,7 +106,25 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       toast.success('File uploaded!');
     } catch (error) {
       console.error('[BlockComponent] Upload error:', error);
-      toast.error('Upload failed');
+      
+      // Handle quota errors with user-friendly messages
+      if (error.response?.status === 402) {
+        const message = error.response?.data?.detail || 'Storage quota exceeded. Please upgrade your plan or delete some files.';
+        toast.error(message);
+        if (onUpgrade) {
+          onUpgrade('storage');
+        }
+      } else if (error.response?.status === 413) {
+        const message = error.response?.data?.detail || 'File size exceeds the maximum allowed for your plan.';
+        toast.error(message);
+        if (onUpgrade) {
+          onUpgrade('file_size');
+        }
+      } else if (error.response?.status === 409) {
+        toast.error('Upload already in progress. Please wait...');
+      } else {
+        toast.error(error.response?.data?.detail || 'Upload failed');
+      }
     }
   };
 

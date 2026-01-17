@@ -16,9 +16,10 @@ const rawBase =
 // Render can provide a bare hostname; ensure we always have a valid absolute URL
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
-const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, onUpdateBlock }) => {
+const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, onUpdateBlock, workspaceId, walkthroughId, stepId, onUpgrade }) => {
   const [mediaUrl, setMediaUrl] = useState('');
   const [newProblem, setNewProblem] = useState({ title: '', explanation: '' });
+  const { canUploadFile } = useQuota(workspaceId);
 
   if (!selectedElement || !currentStep) {
     return (
@@ -33,6 +34,16 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
 
   const handleMediaUpload = async (file) => {
     try {
+      // Check quota before upload
+      const quotaCheck = canUploadFile(file.size);
+      if (!quotaCheck.allowed) {
+        toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
+        if (onUpgrade && (quotaCheck.reason === 'storage' || quotaCheck.reason === 'file_size')) {
+          onUpgrade(quotaCheck.reason);
+        }
+        return;
+      }
+      
       const fileType = file.type.split('/')[0];
       const fileName = file.name.toLowerCase();
 
@@ -43,7 +54,13 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
         mediaType = 'video';
       }
 
-      const response = await api.uploadFile(file);
+      const idempotencyKey = `step-media-${stepId}-${file.name}-${Date.now()}`;
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'step_media',
+        referenceId: stepId
+      });
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       // If URL is already absolute (starts with http:// or https://), use it directly
       // Otherwise, prepend API_BASE for local storage fallback
@@ -60,7 +77,21 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
       toast.success('Media uploaded!');
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Upload failed');
+      if (error.response?.status === 402) {
+        const message = error.response?.data?.detail || 'Storage quota exceeded. Please upgrade your plan or delete some files.';
+        toast.error(message);
+        if (onUpgrade) {
+          onUpgrade('storage');
+        }
+      } else if (error.response?.status === 413) {
+        const message = error.response?.data?.detail || 'File size exceeds the maximum allowed for your plan.';
+        toast.error(message);
+        if (onUpgrade) {
+          onUpgrade('file_size');
+        }
+      } else {
+        toast.error(error.response?.data?.detail || 'Upload failed');
+      }
     }
   };
 

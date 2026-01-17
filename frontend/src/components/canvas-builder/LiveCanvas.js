@@ -8,7 +8,7 @@ import BlockComponent from './BlockComponent';
 import InlineRichEditor from './InlineRichEditor';
 import { BLOCK_TYPES, createBlock, getBlockIcon, getBlockLabel, detectRTL } from '../../utils/blockUtils';
 
-const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectElement, onUpdateStep }) => {
+const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectElement, onUpdateStep, workspaceId, walkthroughId, onUpgrade }) => {
   const currentStep = walkthrough.steps[currentStepIndex];
   const [selectedBlockId, setSelectedBlockId] = useState(null);
   const [isBlockPickerOpen, setIsBlockPickerOpen] = useState(false);
@@ -174,6 +174,10 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
                     onDelete={deleteBlock}
                     onDuplicate={duplicateBlock}
                     isRTL={isRTL}
+                    workspaceId={workspaceId}
+                    walkthroughId={walkthroughId}
+                    stepId={currentStep.id}
+                    onUpgrade={onUpgrade}
                   />
                 ))}
               </SortableContext>

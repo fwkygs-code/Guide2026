@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrlsInObject, normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
+import UpgradePrompt from '../components/UpgradePrompt';
 import LeftSidebar from '../components/canvas-builder/LeftSidebar';
 import LiveCanvas from '../components/canvas-builder/LiveCanvas';
 import RightInspector from '../components/canvas-builder/RightInspector';
@@ -953,6 +954,7 @@ const CanvasBuilderPage = () => {
 
   return (
     <DashboardLayout>
+      <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} workspaceId={workspaceId} />
       <div className="h-screen flex flex-col bg-white">
         {(isSaving || isPublishing) && (
           <div
@@ -1145,6 +1147,8 @@ const CanvasBuilderPage = () => {
                     onStepClick={setCurrentStepIndex}
                     onDeleteStep={deleteStep}
                     currentStepIndex={currentStepIndex}
+                    workspaceId={workspaceId}
+                    onUpgrade={(reason) => setUpgradePromptOpen(true)}
                   />
                   <Button
                     variant="ghost"
@@ -1171,6 +1175,7 @@ const CanvasBuilderPage = () => {
                         }}
                         onDeleteStep={deleteStep}
                         currentStepIndex={currentStepIndex}
+                        workspaceId={workspaceId}
                       />
                       <Button
                         variant="ghost"
@@ -1217,34 +1222,41 @@ const CanvasBuilderPage = () => {
               selectedElement={selectedElement}
               onSelectElement={setSelectedElement}
               onUpdateStep={updateStep}
+              workspaceId={workspaceId}
+              walkthroughId={walkthroughId}
+              onUpgrade={(reason) => setUpgradePromptOpen(true)}
             />
 
             {/* Right Inspector */}
             {rightPanelVisible ? (
               <div className="relative">
                 <div className="hidden lg:block">
-                  <RightInspector
-                    selectedElement={selectedElement}
-                    currentStep={walkthrough.steps[currentStepIndex]}
-                    onUpdate={(updates) => {
-                      if (walkthrough.steps[currentStepIndex]) {
-                        updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                      }
-                    }}
-                    onDeleteStep={() => {
-                      if (walkthrough.steps[currentStepIndex]) {
-                        deleteStep(walkthrough.steps[currentStepIndex].id);
-                      }
-                    }}
-                    onUpdateBlock={(updatedBlock) => {
-                      if (walkthrough.steps[currentStepIndex]) {
-                        const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
-                          b.id === updatedBlock.id ? updatedBlock : b
-                        );
-                        updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
-                      }
-                    }}
-                  />
+                      <RightInspector
+                        selectedElement={selectedElement}
+                        currentStep={walkthrough.steps[currentStepIndex]}
+                        onUpdate={(updates) => {
+                          if (walkthrough.steps[currentStepIndex]) {
+                            updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                          }
+                        }}
+                        onDeleteStep={() => {
+                          if (walkthrough.steps[currentStepIndex]) {
+                            deleteStep(walkthrough.steps[currentStepIndex].id);
+                          }
+                        }}
+                        onUpdateBlock={(updatedBlock) => {
+                          if (walkthrough.steps[currentStepIndex]) {
+                            const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                              b.id === updatedBlock.id ? updatedBlock : b
+                            );
+                            updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
+                          }
+                        }}
+                        workspaceId={workspaceId}
+                        walkthroughId={walkthroughId}
+                        stepId={walkthrough.steps[currentStepIndex]?.id}
+                        onUpgrade={(reason) => setUpgradePromptOpen(true)}
+                      />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1280,6 +1292,10 @@ const CanvasBuilderPage = () => {
                             updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
                           }
                         }}
+                        workspaceId={workspaceId}
+                        walkthroughId={walkthroughId}
+                        stepId={walkthrough.steps[currentStepIndex]?.id}
+                        onUpgrade={(reason) => setUpgradePromptOpen(true)}
                       />
                       <Button
                         variant="ghost"

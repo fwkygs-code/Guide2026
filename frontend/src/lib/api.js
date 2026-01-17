@@ -65,11 +65,35 @@ export const api = {
   getFeedback: (workspaceId, walkthroughId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/feedback`),
 
   // Upload
-  uploadFile: (file) => {
+  uploadFile: (file, options = {}) => {
     const formData = new FormData();
     formData.append('file', file);
-    return axios.post(`${API}/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  }
+    
+    const headers = { 'Content-Type': 'multipart/form-data' };
+    
+    // Add optional headers for file tracking
+    if (options.workspaceId) {
+      headers['X-Workspace-Id'] = options.workspaceId;
+    }
+    if (options.idempotencyKey) {
+      headers['X-Idempotency-Key'] = options.idempotencyKey;
+    }
+    if (options.referenceType) {
+      headers['X-Reference-Type'] = options.referenceType;
+    }
+    if (options.referenceId) {
+      headers['X-Reference-Id'] = options.referenceId;
+    }
+    
+    return axios.post(`${API}/upload`, formData, { headers });
+  },
+  
+  // Quota & Plan
+  getUserPlan: () => axios.get(`${API}/users/me/plan`),
+  getWorkspaceQuota: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/quota`),
+  changePlan: (planName) => axios.put(`${API}/users/me/plan`, null, { params: { plan_name: planName } }),
+  getPlans: () => axios.get(`${API}/plans`),
+  
+  // File Management
+  deleteFile: (fileId) => axios.delete(`${API}/files/${fileId}`)
 };

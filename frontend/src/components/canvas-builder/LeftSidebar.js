@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { api } from '../../lib/api';
 import { normalizeImageUrl } from '../../lib/utils';
 import { toast } from 'sonner';
+import { useQuota } from '../../hooks/useQuota';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -16,7 +17,9 @@ const rawBase =
   'http://127.0.0.1:8000';
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
-const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick, currentStepIndex, onDeleteStep }) => {
+const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick, currentStepIndex, onDeleteStep, workspaceId, onUpgrade }) => {
+  const { canUploadFile } = useQuota(workspaceId);
+  
   // Organize categories into tree structure
   const categoryTree = useMemo(() => {
     // Filter out any null/undefined categories and ensure parent_id is properly handled
@@ -30,7 +33,23 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
 
   const handleIconUpload = async (file) => {
     try {
-      const response = await api.uploadFile(file);
+      // Check quota before upload
+      const quotaCheck = canUploadFile(file.size);
+      if (!quotaCheck.allowed) {
+        toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
+        if (onUpgrade && (quotaCheck.reason === 'storage' || quotaCheck.reason === 'file_size')) {
+          onUpgrade(quotaCheck.reason);
+        }
+        return;
+      }
+      
+      const idempotencyKey = `walkthrough-icon-${walkthrough.id}-${file.name}-${Date.now()}`;
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'walkthrough_icon',
+        referenceId: walkthrough.id
+      });
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       // If URL is already absolute (starts with http:// or https://), use it directly
       // Otherwise, prepend API_BASE for local storage fallback
@@ -48,7 +67,21 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
       toast.success('Icon uploaded!');
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Upload failed');
+      if (error.response?.status === 402) {
+        const message = error.response?.data?.detail || 'Storage quota exceeded. Please upgrade your plan or delete some files.';
+        toast.error(message);
+        if (onUpgrade) {
+          onUpgrade('storage');
+        }
+      } else if (error.response?.status === 413) {
+        const message = error.response?.data?.detail || 'File size exceeds the maximum allowed for your plan.';
+        toast.error(message);
+        if (onUpgrade) {
+          onUpgrade('file_size');
+        }
+      } else {
+        toast.error(error.response?.data?.detail || 'Upload failed');
+      }
     }
   };
 
