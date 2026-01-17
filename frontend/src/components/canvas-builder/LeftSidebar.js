@@ -50,6 +50,21 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
         referenceType: 'walkthrough_icon',
         referenceId: walkthrough.id
       });
+      
+      // CRITICAL: Only update walkthrough if upload status is confirmed as ACTIVE or EXISTING
+      const uploadStatus = response.data.status;
+      if (uploadStatus !== 'active' && uploadStatus !== 'existing') {
+        console.error('[LeftSidebar] Upload not confirmed active:', uploadStatus);
+        toast.error(`Upload not completed (status: ${uploadStatus}). Please try again.`);
+        return; // Do not update walkthrough
+      }
+      
+      if (!response.data.url) {
+        console.error('[LeftSidebar] Upload response missing URL');
+        toast.error('Upload succeeded but no URL returned. Please try again.');
+        return; // Do not update walkthrough
+      }
+      
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       // If URL is already absolute (starts with http:// or https://), use it directly
       // Otherwise, prepend API_BASE for local storage fallback

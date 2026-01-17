@@ -77,23 +77,27 @@ export const api = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const headers = { 'Content-Type': 'multipart/form-data' };
-    
-    // Add optional headers for file tracking
+    // CRITICAL: Move all metadata to FormData body, NOT headers
+    // Headers cannot contain Unicode characters (ISO-8859-1 only)
+    // User-controlled values like filenames must be in body, not headers
     if (options.workspaceId) {
-      headers['X-Workspace-Id'] = options.workspaceId;
+      formData.append('workspace_id', options.workspaceId);
     }
     if (options.idempotencyKey) {
-      headers['X-Idempotency-Key'] = options.idempotencyKey;
+      // Idempotency key may contain Unicode from filename, so it must be in body
+      formData.append('idempotency_key', options.idempotencyKey);
     }
     if (options.referenceType) {
-      headers['X-Reference-Type'] = options.referenceType;
+      formData.append('reference_type', options.referenceType);
     }
     if (options.referenceId) {
-      headers['X-Reference-Id'] = options.referenceId;
+      formData.append('reference_id', options.referenceId);
     }
     
-    console.log('[API] Making POST request to:', `${API}/upload`, 'with headers:', headers);
+    // Only set Content-Type header - let browser set it with boundary for multipart/form-data
+    const headers = {};
+    
+    console.log('[API] Making POST request to:', `${API}/upload`, 'with FormData (no Unicode in headers)');
     
     // Set timeout for large files (GIFs can be several MB)
     // 5 minutes should be enough for most files

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -2235,10 +2235,10 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
 @api_router.post("/upload")
 async def upload_file(
     file: UploadFile = FastAPIFile(...),
-    workspace_id: Optional[str] = Header(None, alias="X-Workspace-Id"),
-    idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
-    reference_type: Optional[str] = Header(None, alias="X-Reference-Type"),
-    reference_id: Optional[str] = Header(None, alias="X-Reference-Id"),
+    workspace_id: Optional[str] = Form(None),
+    idempotency_key: Optional[str] = Form(None),
+    reference_type: Optional[str] = Form(None),
+    reference_id: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -2469,23 +2469,43 @@ async def upload_file(
 # This route is only used for local storage fallback
 @api_router.get("/media/{filename}")
 async def get_media(filename: str):
+    """
+    Serve media files. Only serves ACTIVE files (not PENDING or FAILED).
+    This ensures uploads are only accessible after successful completion.
+    """
+    # Extract file_id from filename (remove extension)
+    file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
+    
+    # Check if file record exists and is ACTIVE
+    file_record = await db.files.find_one({"id": file_id}, {"_id": 0})
+    if not file_record:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Only serve ACTIVE files - block PENDING, FAILED, DELETING
+    if file_record.get('status') != FileStatus.ACTIVE:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"File not available (status: {file_record.get('status')})"
+        )
+    
     if USE_CLOUDINARY:
         # If Cloudinary is configured, try to serve from Cloudinary
         # This is a fallback - normally Cloudinary URLs are used directly
         try:
-            public_id = filename.rsplit('.', 1)[0]  # Remove extension
-            resource = cloudinary.api.resource(public_id)
+            public_id = file_record.get('public_id') or file_id
+            resource = cloudinary.api.resource(public_id, resource_type=file_record.get('resource_type', 'auto'))
             # Redirect to Cloudinary URL
             from fastapi.responses import RedirectResponse
             return RedirectResponse(url=resource.get('secure_url') or resource.get('url'))
-        except Exception:
+        except Exception as e:
+            logging.warning(f"Cloudinary resource lookup failed for {public_id}: {str(e)}")
             # If not found in Cloudinary, try local storage
             pass
     
     # Local storage fallback
     file_path = UPLOAD_DIR / filename
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail="File not found on server")
     return FileResponse(file_path)
 
 # Subscription & Quota Routes

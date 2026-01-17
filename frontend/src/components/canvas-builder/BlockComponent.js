@@ -79,6 +79,22 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       console.log('[BlockComponent] Upload response received:', response);
       console.log('[BlockComponent] Upload response data:', response.data);
       
+      // CRITICAL: Only update step if upload status is confirmed as ACTIVE or EXISTING
+      // Do NOT update for PENDING, FAILED, or any other status
+      const uploadStatus = response.data.status;
+      if (uploadStatus !== 'active' && uploadStatus !== 'existing') {
+        console.error('[BlockComponent] Upload not confirmed active:', uploadStatus);
+        toast.error(`Upload not completed (status: ${uploadStatus}). Please try again.`);
+        return; // Do not update step
+      }
+      
+      // Verify URL exists in response
+      if (!response.data.url) {
+        console.error('[BlockComponent] Upload response missing URL');
+        toast.error('Upload succeeded but no URL returned. Please try again.');
+        return; // Do not update step
+      }
+      
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       // If URL is already absolute (starts with http:// or https://), use it directly
       // Otherwise, prepend API_BASE for local storage fallback

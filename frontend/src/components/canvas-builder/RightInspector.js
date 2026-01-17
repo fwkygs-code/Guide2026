@@ -62,6 +62,21 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
         referenceType: 'step_media',
         referenceId: stepId
       });
+      
+      // CRITICAL: Only update step if upload status is confirmed as ACTIVE or EXISTING
+      const uploadStatus = response.data.status;
+      if (uploadStatus !== 'active' && uploadStatus !== 'existing') {
+        console.error('[RightInspector] Upload not confirmed active:', uploadStatus);
+        toast.error(`Upload not completed (status: ${uploadStatus}). Please try again.`);
+        return; // Do not update step
+      }
+      
+      if (!response.data.url) {
+        console.error('[RightInspector] Upload response missing URL');
+        toast.error('Upload succeeded but no URL returned. Please try again.');
+        return; // Do not update step
+      }
+      
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       // If URL is already absolute (starts with http:// or https://), use it directly
       // Otherwise, prepend API_BASE for local storage fallback
