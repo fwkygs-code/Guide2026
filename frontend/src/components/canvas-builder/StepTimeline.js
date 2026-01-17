@@ -4,7 +4,7 @@ import { X, CheckSquare, Square, GripVertical } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDeleteStep, selectMode, selectedIds, onToggleSelect }) => {
+const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDeleteStep, selectMode, selectedIds, onToggleSelect, stepsLength }) => {
   const {
     attributes,
     listeners,
@@ -114,6 +114,7 @@ const StepTimeline = ({
               selectMode={selectMode}
               selectedIds={selectedIds}
               onToggleSelect={onToggleSelect}
+              stepsLength={steps.length}
             />
             {index < steps.length - 1 && (
               <div className="w-8 h-px bg-slate-300" />
