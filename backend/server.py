@@ -2431,13 +2431,16 @@ async def upload_file(
     file_extension = Path(file.filename).suffix.lower()
     resource_type = "auto"
     if file_extension == '.gif':
-        resource_type = "video"  # Upload GIFs as video for mobile compatibility
+        resource_type = "video"  # CRITICAL: Upload GIFs as video for mobile compatibility
+        logging.info(f"[upload_file] GIF detected, using resource_type=video for file {file.filename}")
     elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
         resource_type = "image"
     elif file_extension in ['.mp4', '.webm', '.mov', '.avi', '.mkv']:
         resource_type = "video"
     elif file_extension in ['.pdf', '.doc', '.docx', '.txt']:
         resource_type = "raw"
+    
+    logging.info(f"[upload_file] File type determined: extension={file_extension}, resource_type={resource_type}, size={file_size} bytes")
     
     # Phase 1: Create file record with status=pending (reserves quota)
     file_id = str(uuid.uuid4())
@@ -2479,6 +2482,7 @@ async def upload_file(
                 "quality": "auto:good",
                 "fetch_format": "auto"
             })
+            logging.info(f"[upload_file] Image upload params: {upload_params}")
         elif resource_type == "video":
             upload_params.update({
                 "format": "auto",
@@ -2493,7 +2497,12 @@ async def upload_file(
                     "eager": "f_mp4",
                     "eager_async": False
                 })
+                logging.info(f"[upload_file] GIF upload as video with MP4 eager conversion: {upload_params}")
+            else:
+                logging.info(f"[upload_file] Video upload params: {upload_params}")
         
+        # CRITICAL: Upload to Cloudinary - this is the only storage mechanism
+        logging.info(f"[upload_file] Uploading file {file_id} to Cloudinary with resource_type={resource_type}")
         upload_result = cloudinary.uploader.upload(
             file_content,
             **upload_params
@@ -2501,22 +2510,43 @@ async def upload_file(
         
         secure_url = upload_result.get('secure_url') or upload_result.get('url')
         public_id = upload_result.get('public_id')
+        returned_resource_type = upload_result.get('resource_type')
         
+        # CRITICAL: Verify upload succeeded and returned required data
         if not secure_url:
             raise ValueError("Cloudinary upload succeeded but no URL returned")
+        if not public_id:
+            raise ValueError("Cloudinary upload succeeded but no public_id returned")
         
-        # Update file record to status=active
-        await db.files.update_one(
+        logging.info(f"[upload_file] Cloudinary upload successful: file_id={file_id}, public_id={public_id}, resource_type={returned_resource_type}, url={secure_url}")
+        
+        # CRITICAL: Update file record with Cloudinary data - this is what /api/media/:id uses
+        update_result = await db.files.update_one(
             {"id": file_id},
             {"$set": {
                 "status": FileStatus.ACTIVE,
-                "url": secure_url,
-                "public_id": public_id,
+                "url": secure_url,  # CRITICAL: Store Cloudinary URL
+                "public_id": public_id,  # CRITICAL: Store public_id for lookups
+                "resource_type": resource_type,  # CRITICAL: Store resource_type for lookups
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
         
-        logging.info(f"File {file_id} uploaded successfully to Cloudinary: {secure_url}")
+        if update_result.modified_count == 0:
+            logging.error(f"[upload_file] WARNING: File record update failed for {file_id}")
+        else:
+            logging.info(f"[upload_file] File record updated successfully: file_id={file_id}, status=ACTIVE, url={secure_url}, public_id={public_id}")
+        
+        # Verify the record was saved correctly
+        verification = await db.files.find_one({"id": file_id}, {"_id": 0, "url": 1, "public_id": 1, "resource_type": 1, "status": 1})
+        if verification:
+            logging.info(f"[upload_file] Verification: DB record for {file_id} = {verification}")
+            if verification.get('url') != secure_url:
+                logging.error(f"[upload_file] CRITICAL: URL mismatch! Expected: {secure_url}, Got: {verification.get('url')}")
+            if verification.get('public_id') != public_id:
+                logging.error(f"[upload_file] CRITICAL: public_id mismatch! Expected: {public_id}, Got: {verification.get('public_id')}")
+        else:
+            logging.error(f"[upload_file] CRITICAL: File record not found after update for {file_id}")
         
         return {
             "file_id": file_id,
@@ -2577,49 +2607,60 @@ async def get_media(filename: str):
     public_id = file_record.get('public_id')
     resource_type = file_record.get('resource_type', 'auto')
     
-    # If stored URL is a Cloudinary URL, redirect directly
+    logging.info(f"[get_media] File record for {file_id}: url={stored_url}, public_id={public_id}, resource_type={resource_type}")
+    
+    # CRITICAL: If stored URL is a Cloudinary URL, redirect directly
+    # This is the primary path for all files uploaded after Cloudinary migration
     if stored_url and 'res.cloudinary.com' in stored_url:
         logging.info(f"[get_media] File {file_id} has Cloudinary URL, redirecting: {stored_url}")
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url=stored_url)
     
-    # If URL is not Cloudinary but we have public_id, try to get Cloudinary URL
+    # CRITICAL: If URL is not Cloudinary but we have public_id, look up in Cloudinary
+    # This handles files that were uploaded but URL wasn't saved correctly
     if public_id:
         try:
-            logging.info(f"[get_media] Looking up file {file_id} in Cloudinary by public_id: {public_id}")
+            logging.info(f"[get_media] Looking up file {file_id} in Cloudinary by public_id: {public_id}, resource_type: {resource_type}")
             resource = cloudinary.api.resource(public_id, resource_type=resource_type)
             cloudinary_url = resource.get('secure_url') or resource.get('url')
             if cloudinary_url:
                 logging.info(f"[get_media] Found file {file_id} in Cloudinary, redirecting: {cloudinary_url}")
-                # Update file record with Cloudinary URL for future requests
+                # CRITICAL: Update file record with Cloudinary URL for future requests
                 await db.files.update_one(
                     {"id": file_id},
-                    {"$set": {"url": cloudinary_url, "public_id": public_id}}
+                    {"$set": {"url": cloudinary_url, "public_id": public_id, "resource_type": resource_type}}
                 )
-                from fastapi.responses import RedirectResponse
                 return RedirectResponse(url=cloudinary_url)
+            else:
+                logging.error(f"[get_media] Cloudinary resource found but no URL: {resource}")
         except Exception as e:
-            logging.warning(f"[get_media] Cloudinary resource lookup failed for {file_id} (public_id: {public_id}): {str(e)}")
+            logging.warning(f"[get_media] Cloudinary resource lookup failed for {file_id} (public_id: {public_id}, resource_type: {resource_type}): {str(e)}")
     
-    # If we have file_id but no public_id, try to look up by file_id
+    # CRITICAL: If we have file_id but no public_id, try to look up by file_id
+    # This handles edge cases where public_id wasn't saved
     try:
-        logging.info(f"[get_media] Attempting Cloudinary lookup for file {file_id} by file_id")
+        logging.info(f"[get_media] Attempting Cloudinary lookup for file {file_id} by file_id, resource_type: {resource_type}")
         resource = cloudinary.api.resource(file_id, resource_type=resource_type)
         cloudinary_url = resource.get('secure_url') or resource.get('url')
+        returned_public_id = resource.get('public_id')
         if cloudinary_url:
             logging.info(f"[get_media] Found file {file_id} in Cloudinary by file_id, redirecting: {cloudinary_url}")
-            # Update file record with Cloudinary URL and public_id
+            # CRITICAL: Update file record with Cloudinary URL and public_id
             await db.files.update_one(
                 {"id": file_id},
-                {"$set": {"url": cloudinary_url, "public_id": file_id}}
+                {"$set": {
+                    "url": cloudinary_url,
+                    "public_id": returned_public_id or file_id,
+                    "resource_type": resource_type
+                }}
             )
-            from fastapi.responses import RedirectResponse
             return RedirectResponse(url=cloudinary_url)
+        else:
+            logging.error(f"[get_media] Cloudinary resource found by file_id but no URL: {resource}")
     except Exception as e:
-        logging.warning(f"[get_media] Cloudinary resource lookup by file_id failed for {file_id}: {str(e)}")
+        logging.warning(f"[get_media] Cloudinary resource lookup by file_id failed for {file_id} (resource_type: {resource_type}): {str(e)}")
     
     # File not found in Cloudinary
-    logging.error(f"[get_media] File {file_id} not found in Cloudinary. Stored URL: {stored_url}, Public ID: {public_id}")
+    logging.error(f"[get_media] File {file_id} not found in Cloudinary. Stored URL: {stored_url}, Public ID: {public_id}, Resource Type: {resource_type}")
     raise HTTPException(
         status_code=404, 
         detail="File not found in Cloudinary. The file may have been deleted or never uploaded successfully."
