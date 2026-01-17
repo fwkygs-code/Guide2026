@@ -59,6 +59,20 @@ const WalkthroughsPage = () => {
     }));
   }, [categories]);
 
+  // Helper function to get category names for a walkthrough
+  const getWalkthroughCategoryNames = (walkthrough) => {
+    if (!walkthrough.category_ids || walkthrough.category_ids.length === 0) {
+      return [t('walkthrough.uncategorized')];
+    }
+    const categoryNames = walkthrough.category_ids
+      .map(catId => {
+        const cat = categories.find(c => c.id === catId);
+        return cat ? cat.name : null;
+      })
+      .filter(Boolean);
+    return categoryNames.length > 0 ? categoryNames : [t('walkthrough.uncategorized')];
+  };
+
   // Group walkthroughs by category
   const walkthroughsByCategory = useMemo(() => {
     const grouped = {};
@@ -206,9 +220,27 @@ const WalkthroughsPage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
-                        className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all"
+                        className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all relative"
                         data-testid={`walkthrough-card-${walkthrough.id}`}
                       >
+                        {/* Transparent 3D Bubble with Category and Company Name */}
+                        <div 
+                          className="absolute -top-3 -right-3 z-10 px-3 py-1.5 rounded-full backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg transform hover:scale-105 transition-transform"
+                          style={{
+                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset',
+                            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
+                          }}
+                        >
+                          <div className="flex flex-col items-end gap-0.5">
+                            <div className="text-xs font-semibold text-slate-900 leading-tight">
+                              {getWalkthroughCategoryNames(walkthrough).join(', ')}
+                            </div>
+                            <div className="text-[10px] font-medium text-slate-600 leading-tight">
+                              {workspace?.name}
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="flex items-start gap-3 mb-4">
                           {walkthrough.icon_url ? (
                             <img
