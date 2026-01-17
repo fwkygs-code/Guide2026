@@ -249,13 +249,24 @@ const CanvasBuilderPage = () => {
               blocks: step.blocks  // Send blocks with complete structure
             };
             
-            // Only include media_url/media_type if they are explicitly set (not undefined)
-            // This preserves existing media when not being updated
+            // CRITICAL: Only include media_url/media_type if they are explicitly provided
+            // - If value is a non-empty string, send it (explicitly set)
+            // - If value is null, send null (user cleared it)
+            // - If value is undefined or empty string, DON'T send it (preserves existing value in database)
             if (step.media_url !== undefined) {
-              updateData.media_url = step.media_url || null;
+              // Only send if it's a valid string or explicitly null (user cleared it)
+              if (step.media_url === null || (typeof step.media_url === 'string' && step.media_url.length > 0)) {
+                updateData.media_url = step.media_url;
+              }
+              // If empty string, don't include in updateData (preserves existing)
             }
+            
             if (step.media_type !== undefined) {
-              updateData.media_type = step.media_type || null;
+              // Only send if it's a valid string or explicitly null (user cleared it)
+              if (step.media_type === null || (typeof step.media_type === 'string' && step.media_type.length > 0)) {
+                updateData.media_type = step.media_type;
+              }
+              // If empty string, don't include in updateData (preserves existing)
             }
             
             console.log('[CanvasBuilder] Saving step:', step.id, 'media_url:', updateData.media_url, 'media_type:', updateData.media_type);
@@ -280,8 +291,12 @@ const CanvasBuilderPage = () => {
         setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
         // Persist step ordering (only after all steps have real IDs)
+        // CRITICAL: Wait a moment before reordering to ensure all updateStep calls have completed
+        // This prevents race condition where reorderSteps might read stale data
         const persistedIds = nextSteps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
         if (persistedIds.length === nextSteps.length) {
+          // Small delay to ensure database writes from updateStep calls are complete
+          await new Promise(resolve => setTimeout(resolve, 100));
           await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
         }
         
@@ -622,12 +637,24 @@ const CanvasBuilderPage = () => {
                 blocks: stepBlocks  // Send blocks with complete structure including URLs
               };
               
-              // Only include media_url/media_type if they are explicitly set (not undefined)
+              // CRITICAL: Only include media_url/media_type if they are explicitly provided
+              // - If value is a non-empty string, send it (explicitly set)
+              // - If value is null, send null (user cleared it)
+              // - If value is undefined or empty string, DON'T send it (preserves existing value in database)
               if (step.media_url !== undefined) {
-                updateData.media_url = step.media_url || null;
+                // Only send if it's a valid string or explicitly null (user cleared it)
+                if (step.media_url === null || (typeof step.media_url === 'string' && step.media_url.length > 0)) {
+                  updateData.media_url = step.media_url;
+                }
+                // If empty string, don't include in updateData (preserves existing)
               }
+              
               if (step.media_type !== undefined) {
-                updateData.media_type = step.media_type || null;
+                // Only send if it's a valid string or explicitly null (user cleared it)
+                if (step.media_type === null || (typeof step.media_type === 'string' && step.media_type.length > 0)) {
+                  updateData.media_type = step.media_type;
+                }
+                // If empty string, don't include in updateData (preserves existing)
               }
               
               await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
@@ -798,7 +825,12 @@ const CanvasBuilderPage = () => {
     setWalkthrough((prev) => {
       const updatedSteps = prev.steps.map((s) => {
         if (s.id === stepId) {
-          const updated = { ...s, ...updates };
+          // CRITICAL: Preserve media_url and media_type from existing step if not provided in updates
+          const preservedMedia = {
+            media_url: updates.media_url !== undefined ? updates.media_url : s.media_url,
+            media_type: updates.media_type !== undefined ? updates.media_type : s.media_type
+          };
+          const updated = { ...s, ...updates, ...preservedMedia };
           
           // CRITICAL: Ensure blocks array always exists with proper structure
           if (!updated.blocks) {

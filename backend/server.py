@@ -1405,6 +1405,7 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
     ordered = [step_map[sid] for sid in body.step_ids if sid in step_map]
     
     # CRITICAL: Ensure all steps have blocks array before reordering with proper structure
+    # CRITICAL: Also preserve media_url and media_type fields
     for step in ordered:
         if "blocks" not in step or step["blocks"] is None:
             step["blocks"] = []
@@ -1421,6 +1422,13 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
                     block["type"] = "text"
                 if "id" not in block:
                     block["id"] = str(uuid.uuid4())
+        
+        # CRITICAL: Ensure media_url and media_type are preserved (don't lose them during reorder)
+        # If media_url/media_type are missing, preserve them as None (but don't overwrite existing values)
+        if "media_url" not in step:
+            step["media_url"] = None
+        if "media_type" not in step:
+            step["media_type"] = None
     
     if len(ordered) != len(steps):
         # If mismatch, keep any missing steps at the end (stable)
@@ -1440,7 +1448,6 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
                         block["type"] = "text"
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
-        ordered.extend(missing)
         ordered.extend(missing)
 
     # Update order fields
