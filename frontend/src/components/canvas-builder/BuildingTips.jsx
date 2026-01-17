@@ -50,7 +50,7 @@ const BuildingTips = () => {
   ];
 
   return (
-    <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
+    <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="p-6 border-b border-slate-200 sticky top-0 bg-white z-10">
         <div className="flex items-center gap-2 mb-1">
           <Lightbulb className="w-5 h-5 text-primary" />
@@ -59,7 +59,7 @@ const BuildingTips = () => {
         <p className="text-xs text-slate-500">Helpful tips for creating effective walkthroughs</p>
       </div>
 
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4 overflow-y-auto flex-1" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto' }}>
         {tips.map((tip, index) => (
           <Card key={index} className="bg-white border-slate-200 hover:border-primary/50 transition-colors">
             <CardHeader className="pb-3">

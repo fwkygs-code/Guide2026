@@ -1169,65 +1169,54 @@ const CanvasBuilderPage = () => {
         </div>
 
         {/* Timeline */}
-        {stepTimelineVisible && (
-          <div className="relative">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={horizontalListSortingStrategy}>
-                <StepTimeline
-                  steps={walkthrough.steps}
-                  currentStepIndex={currentStepIndex}
-                  onStepClick={setCurrentStepIndex}
-                  onDeleteStep={deleteStep}
-                  selectMode={selectStepsMode}
-                  selectedIds={selectedStepIds}
-                  onToggleSelect={toggleStepSelected}
-                />
-              </SortableContext>
-              <DragOverlay>
-                {activeStepId ? (() => {
-                  const step = walkthrough.steps.find(s => s.id === activeStepId);
-                  const stepIndex = walkthrough.steps.findIndex(s => s.id === activeStepId);
-                  if (!step) return null;
-                  return (
-                    <div className="flex flex-col items-center justify-center p-4 rounded-xl min-w-[180px] bg-primary text-white shadow-lg scale-105">
-                      <div className="text-xs font-medium mb-1">Step {stepIndex + 1}</div>
-                      <div className="text-sm font-semibold max-w-[140px] text-center line-clamp-2">
-                        {step.title}
+        <div className="relative border-b border-slate-200">
+          {stepTimelineVisible && (
+            <div className="pr-12">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={horizontalListSortingStrategy}>
+                  <StepTimeline
+                    steps={walkthrough.steps}
+                    currentStepIndex={currentStepIndex}
+                    onStepClick={setCurrentStepIndex}
+                    onDeleteStep={deleteStep}
+                    selectMode={selectStepsMode}
+                    selectedIds={selectedStepIds}
+                    onToggleSelect={toggleStepSelected}
+                  />
+                </SortableContext>
+                <DragOverlay>
+                  {activeStepId ? (() => {
+                    const step = walkthrough.steps.find(s => s.id === activeStepId);
+                    const stepIndex = walkthrough.steps.findIndex(s => s.id === activeStepId);
+                    if (!step) return null;
+                    return (
+                      <div className="flex flex-col items-center justify-center p-4 rounded-xl min-w-[180px] bg-primary text-white shadow-lg scale-105">
+                        <div className="text-xs font-medium mb-1">Step {stepIndex + 1}</div>
+                        <div className="text-sm font-semibold max-w-[140px] text-center line-clamp-2">
+                          {step.title}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })() : null}
-              </DragOverlay>
-            </DndContext>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-2 right-4 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
-              onClick={() => setStepTimelineVisible(false)}
-              title="Hide steps timeline"
-            >
-              <ChevronUp className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-        {!stepTimelineVisible && (
-          <div className="relative border-b border-slate-200 h-12 flex items-center justify-end pr-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
-              onClick={() => setStepTimelineVisible(true)}
-              title="Show steps timeline"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
+                    );
+                  })() : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-2 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+            onClick={() => setStepTimelineVisible(!stepTimelineVisible)}
+            title={stepTimelineVisible ? "Hide steps timeline" : "Show steps timeline"}
+          >
+            {stepTimelineVisible ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
 
         {/* Main Editor Area */}
         <div className="flex-1 flex overflow-hidden relative">
