@@ -44,9 +44,15 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
   const handleMediaUpload = async (file) => {
     try {
       console.log('[BlockComponent] Starting upload for block:', block.id, 'Type:', block.type);
+      console.log('[BlockComponent] File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
       
       // Check quota before upload
       const quotaCheck = canUploadFile(file.size);
+      console.log('[BlockComponent] Quota check result:', quotaCheck);
       if (!quotaCheck.allowed) {
         toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
         if (onUpgrade && (quotaCheck.reason === 'storage' || quotaCheck.reason === 'file_size')) {
@@ -57,6 +63,12 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       
       // Generate idempotency key for this upload
       const idempotencyKey = `${block.id}-${file.name}-${file.size}-${Date.now()}`;
+      console.log('[BlockComponent] Calling api.uploadFile with options:', {
+        workspaceId,
+        idempotencyKey,
+        referenceType: 'block_image',
+        referenceId: block.id
+      });
       
       const response = await api.uploadFile(file, {
         workspaceId: workspaceId,
@@ -64,7 +76,8 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
         referenceType: 'block_image',
         referenceId: block.id
       });
-      console.log('[BlockComponent] Upload response:', response.data);
+      console.log('[BlockComponent] Upload response received:', response);
+      console.log('[BlockComponent] Upload response data:', response.data);
       
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       // If URL is already absolute (starts with http:// or https://), use it directly
@@ -105,7 +118,14 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       console.log('[BlockComponent] Block updated successfully:', updatedBlock);
       toast.success('File uploaded!');
     } catch (error) {
-      console.error('[BlockComponent] Upload error:', error);
+      console.error('[BlockComponent] Upload error caught:', error);
+      console.error('[BlockComponent] Error details:', {
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data,
+        stack: error.stack
+      });
       
       // Handle quota errors with user-friendly messages
       if (error.response?.status === 402) {

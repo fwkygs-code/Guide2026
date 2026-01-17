@@ -66,6 +66,14 @@ export const api = {
 
   // Upload
   uploadFile: (file, options = {}) => {
+    console.log('[API] uploadFile called:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      options,
+      endpoint: `${API}/upload`
+    });
+    
     const formData = new FormData();
     formData.append('file', file);
     
@@ -85,7 +93,19 @@ export const api = {
       headers['X-Reference-Id'] = options.referenceId;
     }
     
-    return axios.post(`${API}/upload`, formData, { headers });
+    console.log('[API] Making POST request to:', `${API}/upload`, 'with headers:', headers);
+    
+    const requestPromise = axios.post(`${API}/upload`, formData, { headers });
+    
+    requestPromise
+      .then(response => {
+        console.log('[API] Upload request succeeded:', response);
+      })
+      .catch(error => {
+        console.error('[API] Upload request failed:', error);
+      });
+    
+    return requestPromise;
   },
   
   // Quota & Plan
