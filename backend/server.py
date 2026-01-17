@@ -599,13 +599,19 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     
-    # CRITICAL: Log media_url values from database BEFORE any processing
+    # CRITICAL: Log media_url and blocks from database BEFORE any processing
     import logging
     logger = logging.getLogger(__name__)
     if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
-        logger.info(f"[get_walkthrough] Raw data from database - Step media_url values:")
+        logger.info(f"[get_walkthrough] Raw data from database - Step media_url and blocks:")
         for i, step in enumerate(walkthrough["steps"][:5]):  # Log first 5 steps
-            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}")
+            blocks = step.get('blocks', [])
+            blocks_count = len(blocks) if isinstance(blocks, list) else 0
+            image_blocks = [b for b in blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')] if isinstance(blocks, list) else []
+            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}, blocks_count={blocks_count}, image_blocks_with_urls={len(image_blocks)}")
+            if image_blocks:
+                for img_block in image_blocks:
+                    logger.info(f"[get_walkthrough]     Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
     
     # CRITICAL: Ensure icon_url exists
     if "icon_url" not in walkthrough:
@@ -627,30 +633,64 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
             if not isinstance(step.get("blocks"), list):
                 step["blocks"] = []
             # CRITICAL: Ensure each block has proper structure (data, settings, type, id)
+            # IMPORTANT: Preserve existing block data - only add missing fields, never overwrite
             for block in step["blocks"]:
                 if isinstance(block, dict):
+                    # CRITICAL: Preserve existing data - only create empty dict if key is completely missing
+                    # If data exists but is None, convert to empty dict to preserve structure
                     if "data" not in block:
                         block["data"] = {}
+                    elif block.get("data") is None:
+                        block["data"] = {}
+                    # CRITICAL: Preserve existing settings - only create empty dict if key is completely missing
                     if "settings" not in block:
                         block["settings"] = {}
+                    elif block.get("settings") is None:
+                        block["settings"] = {}
+                    # CRITICAL: Preserve existing type - only set default if completely missing
                     if "type" not in block:
                         block["type"] = "text"
+                    # CRITICAL: Preserve existing id - only generate if completely missing
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
+                    
+                    # CRITICAL: Log image blocks to verify URLs are preserved
+                    if block.get("type") == "image":
+                        block_url = block.get("data", {}).get("url") if isinstance(block.get("data"), dict) else None
+                        if block_url:
+                            logger.info(f"[get_walkthrough] Preserved image block {block.get('id')} with URL: {block_url}")
+                        else:
+                            logger.warning(f"[get_walkthrough] WARNING - Image block {block.get('id')} has NO URL after processing!")
     
-    # CRITICAL: Log media_url values AFTER processing but BEFORE Pydantic validation
+    # CRITICAL: Log media_url and blocks AFTER processing but BEFORE Pydantic validation
     if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
-        logger.info(f"[get_walkthrough] After processing - Step media_url values:")
+        logger.info(f"[get_walkthrough] After processing - Step media_url and blocks:")
         for i, step in enumerate(walkthrough["steps"][:5]):  # Log first 5 steps
-            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}")
+            blocks = step.get('blocks', [])
+            blocks_count = len(blocks) if isinstance(blocks, list) else 0
+            image_blocks = [b for b in blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')] if isinstance(blocks, list) else []
+            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}, blocks_count={blocks_count}, image_blocks_with_urls={len(image_blocks)}")
+            if image_blocks:
+                for img_block in image_blocks:
+                    logger.info(f"[get_walkthrough]     Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
     
     result = Walkthrough(**walkthrough)
     
-    # CRITICAL: Log media_url values AFTER Pydantic validation
+    # CRITICAL: Log media_url and blocks AFTER Pydantic validation
     if result.steps:
-        logger.info(f"[get_walkthrough] After Pydantic - Step media_url values:")
+        logger.info(f"[get_walkthrough] After Pydantic - Step media_url and blocks:")
         for i, step in enumerate(result.steps[:5]):  # Log first 5 steps
-            logger.info(f"[get_walkthrough]   Step {i} (id={step.id}): media_url={step.media_url}, media_type={step.media_type}")
+            blocks = step.blocks if hasattr(step, 'blocks') else []
+            blocks_count = len(blocks) if isinstance(blocks, list) else 0
+            image_blocks = [b for b in blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')] if isinstance(blocks, list) else []
+            logger.info(f"[get_walkthrough]   Step {i} (id={step.id}): media_url={step.media_url}, media_type={step.media_type}, blocks_count={blocks_count}, image_blocks_with_urls={len(image_blocks)}")
+            if image_blocks:
+                for img_block in image_blocks:
+                    logger.info(f"[get_walkthrough]     Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
+            
+            # CRITICAL: Check if blocks were lost during Pydantic validation
+            if blocks_count == 0 and i == 0:  # Check first step
+                logger.warning(f"[get_walkthrough] WARNING - Step {step.id} has 0 blocks after Pydantic validation!")
     
     return result
 
@@ -1413,8 +1453,8 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     # Include ALL fields from existing step, then override with new values
     existing_step_full = steps[step_index].copy()  # Get all existing fields to preserve any we might miss
     
-    # CRITICAL: Build step dict ensuring media_url/media_type are ALWAYS present
-    # Even if None, we must include them so MongoDB doesn't remove the field
+    # CRITICAL: Build step dict ensuring media_url/media_type and blocks are ALWAYS present
+    # Even if None/empty, we must include them so MongoDB doesn't remove the field
     # Start with existing fields, then override with new values
     new_step_dict = {
         'id': existing_step_full.get('id'),
@@ -1422,6 +1462,8 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         'content': step_data.content,
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
+        # CRITICAL: Always explicitly set blocks, even if empty array
+        # MongoDB will preserve empty arrays if we explicitly set them
         'blocks': new_blocks if isinstance(new_blocks, list) else [],
         'order': existing_step_full.get('order', step_index),  # Preserve order
         # CRITICAL: Always explicitly set media_url and media_type, even if None
@@ -1430,6 +1472,11 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         'media_url': final_media_url,  # Explicitly set (could be None, empty string, or URL)
         'media_type': final_media_type  # Explicitly set (could be None, empty string, or type)
     }
+    
+    # CRITICAL: Verify blocks are in the dict before saving
+    blocks_count = len(new_step_dict.get('blocks', []))
+    image_blocks_count = len([b for b in new_step_dict.get('blocks', []) if isinstance(b, dict) and b.get('type') == 'image'])
+    logger.info(f"[update_step] Step {step_id}: Before save - blocks count: {blocks_count}, image blocks: {image_blocks_count}")
     
     steps[step_index] = new_step_dict
     
@@ -1471,7 +1518,11 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         if verified_step:
             verified_media_url = verified_step.get('media_url')
             verified_media_type = verified_step.get('media_type')
-            logger.info(f"[update_step] Step {step_id}: After DB save - media_url={verified_media_url}, media_type={verified_media_type}")
+            verified_blocks = verified_step.get('blocks', [])
+            verified_blocks_count = len(verified_blocks) if isinstance(verified_blocks, list) else 0
+            verified_image_blocks = [b for b in verified_blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')]
+            
+            logger.info(f"[update_step] Step {step_id}: After DB save - media_url={verified_media_url}, media_type={verified_media_type}, blocks_count={verified_blocks_count}, image_blocks_with_urls={len(verified_image_blocks)}")
             
             # CRITICAL: Check if media_url is missing from database (not just None)
             if 'media_url' not in verified_step:
@@ -1480,6 +1531,19 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
                 logger.error(f"[update_step] Step {step_id}: CRITICAL - media_url mismatch! Expected: {final_media_url}, Got: {verified_media_url}")
             else:
                 logger.info(f"[update_step] Step {step_id}: ✓ media_url verified in database: {verified_media_url}")
+            
+            # CRITICAL: Verify blocks are preserved
+            if verified_blocks_count != blocks_count:
+                logger.error(f"[update_step] Step {step_id}: CRITICAL - blocks count mismatch! Expected: {blocks_count}, Got: {verified_blocks_count}")
+            elif not isinstance(verified_blocks, list):
+                logger.error(f"[update_step] Step {step_id}: CRITICAL - blocks is not a list in database! Got: {type(verified_blocks)}")
+            else:
+                logger.info(f"[update_step] Step {step_id}: ✓ blocks verified in database: {verified_blocks_count} blocks, {len(verified_image_blocks)} image blocks with URLs")
+                
+                # Log image block URLs for debugging
+                if verified_image_blocks:
+                    for img_block in verified_image_blocks:
+                        logger.info(f"[update_step] Step {step_id}: Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
         else:
             logger.warning(f"[update_step] Step {step_id}: Could not find step in database after save")
     else:
