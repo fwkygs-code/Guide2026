@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { BookOpen, FolderOpen, Search, Lock, ChevronRight, Phone, Clock, MessageCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BookOpen, FolderOpen, Search, Lock, ChevronRight, Phone, Clock, MessageCircle, HelpCircle, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { normalizeImageUrl } from '../lib/utils';
@@ -23,6 +24,9 @@ const PortalPage = ({ isEmbedded = false }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [helpChatOpen, setHelpChatOpen] = useState(false);
+  const [categorySelectOpen, setCategorySelectOpen] = useState(false);
+  const [selectedCategoryForChat, setSelectedCategoryForChat] = useState(null);
   const isLoggedIn = !!localStorage.getItem('token');
   
   // Detect if we're in an iframe
@@ -302,24 +306,6 @@ const PortalPage = ({ isEmbedded = false }) => {
       {/* Walkthroughs - Organized by Category */}
       <section className="py-12 px-6 pb-20">
         <div className="max-w-7xl mx-auto">
-          {/* Show NotebookLM link when a category is selected */}
-          {selectedCategory && (() => {
-            const selectedCatObj = portal.categories?.find(c => c.id === selectedCategory);
-            return selectedCatObj?.notebooklm_url ? (
-              <div className="mb-6 flex justify-center">
-                <a
-                  href={selectedCatObj.notebooklm_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-base font-medium text-white hover:opacity-90 transition-opacity shadow-lg"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <BookOpen className="w-5 h-5" />
-                  Open Gemini Chat for {selectedCatObj.name}
-                </a>
-              </div>
-            ) : null;
-          })()}
           {showByCategory ? (
             // Show organized by categories
             Object.keys(walkthroughsByCategory).length > 0 ? (
@@ -347,18 +333,6 @@ const PortalPage = ({ isEmbedded = false }) => {
                               )}
                             </div>
                           </div>
-                          {category.notebooklm_url && (
-                            <a
-                              href={category.notebooklm_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity"
-                              style={{ backgroundColor: primaryColor }}
-                            >
-                              <BookOpen className="w-4 h-4" />
-                              Open Gemini Chat
-                            </a>
-                          )}
                         </div>
                       </div>
                     )}
@@ -522,6 +496,120 @@ const PortalPage = ({ isEmbedded = false }) => {
         </div>
       </footer>
       )}
+
+      {/* Floating Help Button */}
+      <AnimatePresence>
+        {!helpChatOpen && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              // Get categories with NotebookLM URLs
+              const categoriesWithChat = portal?.categories?.filter(c => c.notebooklm_url) || [];
+              if (categoriesWithChat.length === 0) {
+                toast.info('No chat support available for any category.');
+                return;
+              }
+              if (categoriesWithChat.length === 1) {
+                // If only one category has chat, open it directly
+                setSelectedCategoryForChat(categoriesWithChat[0]);
+                setHelpChatOpen(true);
+              } else {
+                // Multiple categories - show selection dialog
+                setCategorySelectOpen(true);
+              }
+            }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full text-white font-medium shadow-2xl hover:shadow-3xl transition-all"
+            style={{ backgroundColor: primaryColor }}
+          >
+            <HelpCircle className="w-5 h-5" />
+            <span>Need Help?</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Category Selection Dialog */}
+      <Dialog open={categorySelectOpen} onOpenChange={setCategorySelectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select a Category for Help</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
+            {portal?.categories?.filter(c => c.notebooklm_url).map((category) => (
+              <Button
+                key={category.id}
+                variant="outline"
+                className="w-full justify-start h-auto py-3 px-4"
+                onClick={() => {
+                  setSelectedCategoryForChat(category);
+                  setCategorySelectOpen(false);
+                  setHelpChatOpen(true);
+                }}
+              >
+                <FolderOpen className="w-4 h-4 mr-3" style={{ color: primaryColor }} />
+                <div className="text-left flex-1">
+                  <div className="font-medium text-slate-900">{category.name}</div>
+                  {category.description && (
+                    <div className="text-xs text-slate-500 mt-0.5">{category.description}</div>
+                  )}
+                </div>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Embedded Chat Bubble */}
+      <AnimatePresence>
+        {helpChatOpen && selectedCategoryForChat && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-6 right-6 z-50 w-[500px] h-[600px] rounded-2xl shadow-2xl overflow-hidden"
+            style={{ maxWidth: 'calc(100vw - 48px)', maxHeight: 'calc(100vh - 48px)' }}
+          >
+            {/* Chat Header */}
+            <div 
+              className="flex items-center justify-between px-4 py-3 text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+              <div className="flex items-center gap-3">
+                <HelpCircle className="w-5 h-5" />
+                <div>
+                  <div className="font-semibold">Need Help?</div>
+                  <div className="text-xs opacity-90">{selectedCategoryForChat.name}</div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                onClick={() => {
+                  setHelpChatOpen(false);
+                  setSelectedCategoryForChat(null);
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Embedded NotebookLM/Gemini Chat iframe */}
+            <div className="h-[calc(100%-57px)] bg-white">
+              <iframe
+                src={selectedCategoryForChat.notebooklm_url}
+                className="w-full h-full border-0"
+                title="Gemini Chat"
+                allow="clipboard-read; clipboard-write"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

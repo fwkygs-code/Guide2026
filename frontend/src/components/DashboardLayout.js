@@ -1,16 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive } from 'lucide-react';
+import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../lib/api';
 
 const DashboardLayout = ({ children, backgroundUrl = null }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [workspaceSlug, setWorkspaceSlug] = useState(null);
 
   const workspaceMatch = location.pathname.match(/^\/workspace\/([^/]+)/);
   const workspaceId = workspaceMatch?.[1] || null;
+
+  // Fetch workspace slug when workspaceId is available
+  useEffect(() => {
+    if (workspaceId) {
+      api.getWorkspace(workspaceId)
+        .then(response => {
+          setWorkspaceSlug(response.data.slug);
+        })
+        .catch(error => {
+          console.error('Failed to fetch workspace:', error);
+          setWorkspaceSlug(null);
+        });
+    } else {
+      setWorkspaceSlug(null);
+    }
+  }, [workspaceId]);
 
   const handleLogout = () => {
     logout();
@@ -57,6 +75,18 @@ const DashboardLayout = ({ children, backgroundUrl = null }) => {
               <Home className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
+            {workspaceSlug && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(`/portal/${workspaceSlug}`, '_blank')}
+                data-testid="nav-portal-button"
+                title="Open Portal in new tab"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Portal
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
