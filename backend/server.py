@@ -1925,19 +1925,40 @@ async def get_media(filename: str):
         # If Cloudinary is configured, try to serve from Cloudinary
         # This is a fallback - normally Cloudinary URLs are used directly
         try:
-            public_id = filename.rsplit('.', 1)[0]  # Remove extension
-            resource = cloudinary.api.resource(public_id)
-            # Redirect to Cloudinary URL
-            from fastapi.responses import RedirectResponse
-            return RedirectResponse(url=resource.get('secure_url') or resource.get('url'))
-        except Exception:
-            # If not found in Cloudinary, try local storage
+            # CRITICAL: Remove extension to get public_id
+            public_id = filename.rsplit('.', 1)[0]  # e.g., "e16eaeac-2956-4735-80da-418a00b5c8a3"
+            # CRITICAL: Files are stored in "guide2026" folder, so include folder in public_id
+            public_id_with_folder = f"guide2026/{public_id}"
+            
+            # Try with folder first (most common case)
+            try:
+                resource = cloudinary.api.resource(public_id_with_folder)
+                # Redirect to Cloudinary URL
+                from fastapi.responses import RedirectResponse
+                secure_url = resource.get('secure_url') or resource.get('url')
+                if secure_url:
+                    return RedirectResponse(url=secure_url)
+            except Exception as e1:
+                # If not found with folder, try without folder (backward compatibility)
+                logging.warning(f"Cloudinary lookup with folder failed for {public_id_with_folder}, trying without folder: {e1}")
+                try:
+                    resource = cloudinary.api.resource(public_id)
+                    from fastapi.responses import RedirectResponse
+                    secure_url = resource.get('secure_url') or resource.get('url')
+                    if secure_url:
+                        return RedirectResponse(url=secure_url)
+                except Exception as e2:
+                    logging.warning(f"Cloudinary lookup without folder also failed for {public_id}: {e2}")
+                    # Fall through to local storage
+        except Exception as e:
+            # If Cloudinary lookup fails completely, try local storage
+            logging.warning(f"Cloudinary media lookup failed: {e}")
             pass
     
     # Local storage fallback
     file_path = UPLOAD_DIR / filename
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail=f"File not found: {filename}")
     return FileResponse(file_path)
 
 # Health check endpoint (no auth required)
