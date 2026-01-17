@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, Info } from 'lucide-react';
 import { api } from '../lib/api';
 import { toast } from 'sonner';
 
 const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = false }) => {
   const [selecting, setSelecting] = useState(false);
+  const [mediaCapacityDialogOpen, setMediaCapacityDialogOpen] = useState(false);
+  const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
 
   const plans = [
     {
@@ -23,7 +25,16 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
         '10 MB max file size',
         'Basic support'
       ],
-      popular: false
+      popular: false,
+      mediaCapacity: {
+        maxImageFileSize: '10 MB',
+        maxVideoFileSize: '100 MB',
+        maxRawFileSize: '10 MB',
+        maxImageTransformationSize: '100 MB',
+        maxVideoTransformationSize: '40 MB',
+        maxImageMegapixel: '25 MP',
+        maxMegapixelAllFrames: '50 MP'
+      }
     },
     {
       name: 'pro',
@@ -41,7 +52,16 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
         'Advanced features'
       ],
       popular: true,
-      trial: true
+      trial: true,
+      mediaCapacity: {
+        maxImageFileSize: '20 MB',
+        maxVideoFileSize: '2 GB',
+        maxRawFileSize: '20 MB',
+        maxImageTransformationSize: '100 MB',
+        maxVideoTransformationSize: '300 MB',
+        maxImageMegapixel: '25 MP',
+        maxMegapixelAllFrames: '100 MP'
+      }
     },
     {
       name: 'enterprise',
@@ -59,7 +79,8 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
         'Dedicated account manager',
         'Custom integrations'
       ],
-      popular: false
+      popular: false,
+      mediaCapacity: null // Custom - contact for details
     }
   ];
 
@@ -158,9 +179,87 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
               >
                 {selecting ? 'Selecting...' : plan.name === 'enterprise' ? 'Contact Sales' : 'Select Plan'}
               </Button>
+
+              <Button
+                className="w-full mt-2"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedPlanMedia(plan);
+                  setMediaCapacityDialogOpen(true);
+                }}
+              >
+                <Info className="w-4 h-4 mr-2" />
+                Max Media Capacity
+              </Button>
             </div>
           ))}
         </div>
+
+        {/* Media Capacity Dialog */}
+        <Dialog open={mediaCapacityDialogOpen} onOpenChange={setMediaCapacityDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedPlanMedia?.displayName} - Max Media Capacity
+              </DialogTitle>
+              <DialogDescription>
+                {selectedPlanMedia?.name === 'enterprise'
+                  ? 'Contact us for custom media capacity details'
+                  : 'Detailed media file size and transformation limits'}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedPlanMedia?.name === 'enterprise' ? (
+              <div className="py-6">
+                <p className="text-slate-600 mb-4">
+                  Enterprise plans include custom media capacity limits tailored to your needs.
+                </p>
+                <Button
+                  onClick={() => {
+                    window.open('mailto:support@example.com?subject=Enterprise Media Capacity Inquiry', '_blank');
+                    setMediaCapacityDialogOpen(false);
+                  }}
+                >
+                  Contact Sales
+                </Button>
+              </div>
+            ) : selectedPlanMedia?.mediaCapacity ? (
+              <div className="py-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                    <span className="text-slate-700 font-medium">Max image file size</span>
+                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageFileSize}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                    <span className="text-slate-700 font-medium">Max video file size</span>
+                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoFileSize}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                    <span className="text-slate-700 font-medium">Max raw file size</span>
+                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxRawFileSize}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                    <span className="text-slate-700 font-medium">Max image transformation size</span>
+                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageTransformationSize}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                    <span className="text-slate-700 font-medium">Max video transformation size</span>
+                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoTransformationSize}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                    <span className="text-slate-700 font-medium">Max image megapixel</span>
+                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageMegapixel}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-700 font-medium">Max megapixel in all frames</span>
+                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxMegapixelAllFrames}</span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
 
         {isSignup && (
           <div className="mt-6 p-4 bg-slate-50 rounded-lg">
