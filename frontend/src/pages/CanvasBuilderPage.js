@@ -794,12 +794,55 @@ const CanvasBuilderPage = () => {
   const handleDragStart = (event) => {
     const { active } = event;
     const stepIds = new Set((walkthrough.steps || []).map((s) => s.id));
-    if (active?.id && stepIds.has(active.id)) setActiveStepId(active.id);
+    if (active?.id && stepIds.has(active.id)) {
+      setActiveStepId(active.id);
+      setOverStepId(null);
+      setInsertAfterIndex(null);
+    }
+  };
+
+  const handleDragOver = (event) => {
+    const { active, over } = event;
+    if (!over?.id || !active?.id) {
+      setOverStepId(null);
+      setInsertAfterIndex(null);
+      return;
+    }
+
+    const stepIds = new Set((walkthrough.steps || []).map((s) => s.id));
+    if (!stepIds.has(over.id)) {
+      setOverStepId(null);
+      setInsertAfterIndex(null);
+      return;
+    }
+
+    setOverStepId(over.id);
+    
+    // Calculate insertion point based on drag position
+    const overIndex = walkthrough.steps.findIndex((s) => s.id === over.id);
+    const activeIndex = walkthrough.steps.findIndex((s) => s.id === active.id);
+    
+    // Determine if we should insert before or after the over step
+    // For horizontal timeline, we check mouse position relative to step center
+    if (overIndex !== -1) {
+      // If dragging from left to right, insert after
+      // If dragging from right to left, insert before
+      if (activeIndex < overIndex) {
+        setInsertAfterIndex(overIndex);
+      } else if (activeIndex > overIndex) {
+        setInsertAfterIndex(overIndex - 1);
+      } else {
+        setInsertAfterIndex(null);
+      }
+    }
   };
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
     setActiveStepId(null);
+    setOverStepId(null);
+    setInsertAfterIndex(null);
+    
     if (!active?.id || !over?.id) return;
 
     const stepIds = new Set((walkthrough.steps || []).map((s) => s.id));
@@ -818,6 +861,12 @@ const CanvasBuilderPage = () => {
         };
       });
     }
+  };
+
+  const handleDragCancel = () => {
+    setActiveStepId(null);
+    setOverStepId(null);
+    setInsertAfterIndex(null);
   };
 
   // Insert a step at a specific position (e.g. between two steps)
