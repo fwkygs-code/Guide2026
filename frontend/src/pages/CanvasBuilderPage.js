@@ -55,6 +55,8 @@ const CanvasBuilderPage = () => {
   const [activeStepId, setActiveStepId] = useState(null);
   const [overStepId, setOverStepId] = useState(null);
   const [insertAfterIndex, setInsertAfterIndex] = useState(null);
+  const [overStepId, setOverStepId] = useState(null);
+  const [insertAfterIndex, setInsertAfterIndex] = useState(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState(null);
   const [recovering, setRecovering] = useState(false);
