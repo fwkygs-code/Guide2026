@@ -197,13 +197,16 @@ const LoginPage = () => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+      className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden"
       style={{
         backgroundImage: 'url(/auth-background.jpg), linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed'
+        backgroundAttachment: 'fixed',
+        width: '100%',
+        height: '100vh',
+        minHeight: '100vh'
       }}
     >
       {/* Dark overlay for better readability - ensures text is always readable */}
