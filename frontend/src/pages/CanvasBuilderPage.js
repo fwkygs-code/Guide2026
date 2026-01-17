@@ -236,6 +236,8 @@ const CanvasBuilderPage = () => {
 
         // Update steps - CRITICAL: Always preserve blocks array with complete structure
         const nextSteps = [...(walkthrough.steps || [])];
+        
+        // CRITICAL: Save all steps sequentially and wait for each to complete
         for (let i = 0; i < nextSteps.length; i++) {
           const step = nextSteps[i];
           // Ensure blocks array exists and has proper structure
@@ -271,38 +273,91 @@ const CanvasBuilderPage = () => {
           
           console.log('[CanvasBuilder] Saving step with blocks:', step.id, step.blocks);
           
-          if (step.id && !step.isNew) {
-            await api.updateStep(workspaceId, walkthroughId, step.id, {
-              title: step.title || '',
-              content: step.content || '',
-              media_url: step.media_url || null,
-              media_type: step.media_type || null,
-              navigation_type: step.navigation_type || 'next_prev',
-              common_problems: step.common_problems || [],
-              blocks: step.blocks  // Send blocks with complete structure
-            });
-          } else if (step.isNew) {
-            const res = await api.addStep(workspaceId, walkthroughId, {
-              title: step.title || '',
-              content: step.content || '',
-              media_url: step.media_url || null,
-              media_type: step.media_type || null,
-              navigation_type: step.navigation_type || 'next_prev',
-              order: step.order || i,
-              common_problems: step.common_problems || [],
-              blocks: step.blocks  // Send blocks with complete structure (already validated above)
-            });
-            // IMPORTANT: mark as persisted so future saves don't re-add duplicates
-            nextSteps[i] = { ...step, id: res.data.id, isNew: false };
+          try {
+            if (step.id && !step.isNew) {
+              await api.updateStep(workspaceId, walkthroughId, step.id, {
+                title: step.title || '',
+                content: step.content || '',
+                media_url: step.media_url || null,
+                media_type: step.media_type || null,
+                navigation_type: step.navigation_type || 'next_prev',
+                common_problems: step.common_problems || [],
+                blocks: step.blocks  // Send blocks with complete structure
+              });
+            } else if (step.isNew) {
+              const res = await api.addStep(workspaceId, walkthroughId, {
+                title: step.title || '',
+                content: step.content || '',
+                media_url: step.media_url || null,
+                media_type: step.media_type || null,
+                navigation_type: step.navigation_type || 'next_prev',
+                order: step.order || i,
+                common_problems: step.common_problems || [],
+                blocks: step.blocks  // Send blocks with complete structure (already validated above)
+              });
+              // IMPORTANT: mark as persisted so future saves don't re-add duplicates
+              if (res.data && res.data.id) {
+                nextSteps[i] = { ...step, id: res.data.id, isNew: false };
+                console.log('[CanvasBuilder] Step saved with ID:', res.data.id);
+              } else {
+                console.error('[CanvasBuilder] Step save failed: no ID returned', res);
+                throw new Error('Step save failed: no ID returned');
+              }
+            }
+          } catch (error) {
+            console.error('[CanvasBuilder] Error saving step:', step.id || step.title, error);
+            throw error; // Re-throw to prevent reorder with incomplete saves
           }
         }
+        
         // If we persisted any new steps, update local state to prevent duplicates.
         setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
-        // Persist step ordering (only after all steps have real IDs)
-        const persistedIds = nextSteps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
-        if (persistedIds.length === nextSteps.length) {
-          await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
+        // CRITICAL: Guard reorder - only proceed if all steps have valid IDs
+        // Filter out: undefined, null, empty strings, temp-* prefixed IDs
+        const persistedIds = nextSteps
+          .map((s) => s?.id)
+          .filter((id) => {
+            const isValid = id && 
+                           typeof id === 'string' && 
+                           id.trim().length > 0 && 
+                           !id.startsWith('temp-');
+            if (!isValid && id !== undefined) {
+              console.warn('[CanvasBuilder] Filtered out invalid step ID:', id);
+            }
+            return isValid;
+          });
+        
+        console.log('[CanvasBuilder] Reorder check:', {
+          totalSteps: nextSteps.length,
+          validIds: persistedIds.length,
+          ids: persistedIds
+        });
+        
+        // CRITICAL: Only reorder if ALL steps have valid IDs and we have at least one step
+        if (persistedIds.length === nextSteps.length && persistedIds.length > 0) {
+          console.log('[CanvasBuilder] Calling reorderSteps with:', persistedIds);
+          try {
+            await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
+            console.log('[CanvasBuilder] Reorder successful');
+          } catch (error) {
+            console.error('[CanvasBuilder] Reorder failed:', error);
+            // Log the exact error for debugging
+            if (error.response) {
+              console.error('[CanvasBuilder] Reorder error response:', {
+                status: error.response.status,
+                data: error.response.data,
+                payload: { step_ids: persistedIds }
+              });
+            }
+            throw error; // Re-throw to show error to user
+          }
+        } else {
+          console.warn('[CanvasBuilder] Skipping reorder:', {
+            reason: persistedIds.length !== nextSteps.length ? 'ID count mismatch' : 'No steps to reorder',
+            expected: nextSteps.length,
+            got: persistedIds.length
+          });
         }
         
         // CRITICAL: After saving, refetch to ensure we have the latest data with all blocks preserved
@@ -400,6 +455,13 @@ const CanvasBuilderPage = () => {
         }
         navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
       }
+    } catch (error) {
+      console.error('[CanvasBuilder] Save failed:', error);
+      if (showToast) {
+        const errorMessage = error.response?.data?.detail || error.message || 'Failed to save walkthrough';
+        toast.error(errorMessage);
+      }
+      throw error; // Re-throw for caller to handle if needed
     } finally {
       setIsSaving(false);
     }

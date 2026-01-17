@@ -260,7 +260,7 @@ class Feedback(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StepsReorder(BaseModel):
-    step_ids: List[str]
+    step_ids: List[str] = Field(..., min_length=1, description="List of step IDs in the desired order")
 
 # Subscription & Quota Models
 class Plan(BaseModel):
@@ -2015,6 +2015,27 @@ async def delete_step(workspace_id: str, walkthrough_id: str, step_id: str, curr
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps/reorder")
 async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReorder, current_user: User = Depends(get_current_user)):
+    # Log incoming request for debugging
+    logging.info(f"[reorder_steps] Received reorder request for walkthrough {walkthrough_id}")
+    logging.info(f"[reorder_steps] Request payload: step_ids={body.step_ids}, count={len(body.step_ids) if body.step_ids else 0}")
+    
+    # Validate step_ids is not empty (Pydantic Field validation should catch this, but provide detailed error)
+    if not body.step_ids or len(body.step_ids) == 0:
+        logging.error(f"[reorder_steps] Validation failed: step_ids is empty")
+        raise HTTPException(
+            status_code=422, 
+            detail="step_ids cannot be empty. Must contain at least one step ID."
+        )
+    
+    # Validate all step_ids are non-empty strings
+    invalid_ids = [sid for sid in body.step_ids if not sid or not isinstance(sid, str) or len(sid.strip()) == 0]
+    if invalid_ids:
+        logging.error(f"[reorder_steps] Validation failed: invalid step_ids found: {invalid_ids}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid step_ids found: {invalid_ids}. All step IDs must be non-empty strings."
+        )
+    
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -2024,9 +2045,19 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
     steps = walkthrough.get("steps", [])
+    logging.info(f"[reorder_steps] Walkthrough has {len(steps)} steps in DB")
+    
     step_map = {s["id"]: s for s in steps if "id" in s}
+    logging.info(f"[reorder_steps] Step map contains {len(step_map)} steps with IDs")
+    
     # Only allow reordering of existing step ids
     ordered = [step_map[sid] for sid in body.step_ids if sid in step_map]
+    logging.info(f"[reorder_steps] Matched {len(ordered)} steps from request")
+    
+    # Check for missing step IDs
+    missing_ids = [sid for sid in body.step_ids if sid not in step_map]
+    if missing_ids:
+        logging.warning(f"[reorder_steps] Some step IDs not found in DB: {missing_ids}")
     
     # CRITICAL: Ensure all steps have blocks array before reordering with proper structure
     for step in ordered:
@@ -2065,8 +2096,11 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
         ordered.extend(missing)
-        ordered.extend(missing)
 
+    # Validate we have the same number of steps
+    if len(ordered) != len(steps):
+        logging.warning(f"[reorder_steps] Step count mismatch: ordered={len(ordered)}, DB={len(steps)}")
+    
     # Update order fields
     for idx, s in enumerate(ordered):
         s["order"] = idx
@@ -2075,6 +2109,8 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
         {"id": walkthrough_id, "workspace_id": workspace_id},
         {"$set": {"steps": ordered, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
+    
+    logging.info(f"[reorder_steps] Successfully reordered {len(ordered)} steps")
     return {"message": "Steps reordered"}
 
 # Public Portal Routes
