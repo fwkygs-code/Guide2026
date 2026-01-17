@@ -296,10 +296,14 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
             </Badge>
           </div>
         </div>
-      </div>
-
-      {/* Steps List */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          </div>
+        </ResizablePanel>
+        
+        <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors cursor-row-resize" />
+        
+        {/* Steps List */}
+        <ResizablePanel defaultSize={70} minSize={40}>
+          <div className="h-full overflow-y-auto" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-slate-700">{t('walkthrough.steps')}</h3>
@@ -340,7 +344,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
               </div>
             )}
           </div>
-        </div>
+            </div>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
