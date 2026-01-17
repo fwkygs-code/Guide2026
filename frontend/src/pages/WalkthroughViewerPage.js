@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Check, X, Smile, Meh, Frown, LogIn, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -318,7 +319,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       if (error.response?.status === 401) {
         setShowPasswordDialog(true);
       } else {
-        toast.error('Walkthrough not found');
+        toast.error(t('toast.walkthroughNotFound'));
       }
     } finally {
       setLoading(false);
@@ -335,7 +336,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       setShowPasswordDialog(false);
       setPortalPassword('');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Invalid password');
+      toast.error(error.response?.data?.detail || t('toast.invalidPassword'));
     }
   };
 
@@ -359,9 +360,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       localStorage.setItem('token', response.data.token);
       setIsLoggedIn(true);
       setShowAuthDialog(false);
-      toast.success('Welcome back!');
+      toast.success(t('toast.welcomeBack'));
     } catch (error) {
-      toast.error('Login failed');
+      toast.error(t('toast.loginFailed'));
     }
   };
 
@@ -372,9 +373,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       localStorage.setItem('token', response.data.token);
       setIsLoggedIn(true);
       setShowAuthDialog(false);
-      toast.success('Account created!');
+      toast.success(t('toast.accountCreatedShort'));
     } catch (error) {
-      toast.error('Signup failed');
+      toast.error(t('toast.signupFailed'));
     }
   };
 
@@ -418,7 +419,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 
   const handleFeedbackSubmit = async () => {
     if (!feedbackRating) {
-      toast.error('Please select a rating');
+      toast.error(t('toast.ratingRequired'));
       return;
     }
 
@@ -428,7 +429,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
         rating: feedbackRating,
         comment: feedbackComment
       });
-      toast.success('Thank you for your feedback!');
+      toast.success(t('toast.feedbackSubmitted'));
       // Go back to the portal home (company panel) after completion
       navigate(`/portal/${slug}`);
     } catch (error) {

@@ -178,15 +178,15 @@ const LoginPage = () => {
     
     try {
       await login(email, password);
-      toast.success('Welcome back!');
+      toast.success(t('toast.welcomeBack'));
       navigate('/dashboard');
     } catch (error) {
       // Show user-friendly error messages
-      let errorMessage = error.response?.data?.detail || error.message || 'Login failed.';
+      let errorMessage = error.response?.data?.detail || error.message || t('toast.loginFailed');
       
       // Provide helpful context for timeout errors
       if (errorMessage.includes('not responding') || errorMessage.includes('timeout')) {
-        errorMessage += ' The system is initializing. Please wait a moment and try again.';
+        errorMessage += ' ' + t('toast.systemInitializing');
       }
       
       toast.error(errorMessage, {

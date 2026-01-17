@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useTextSize } from '../contexts/TextSizeContext';
 import { BookOpen, CheckCircle2, AlertCircle, Loader2, WifiOff } from 'lucide-react';
@@ -14,6 +15,7 @@ import PlanSelectionModal from '../components/PlanSelectionModal';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const SignupPage = () => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -179,7 +181,7 @@ const SignupPage = () => {
     
     try {
       const result = await signup(email, password, name);
-      toast.success('Account created successfully!');
+      toast.success(t('toast.accountCreated'));
       
       // Show plan selection modal if plan selection is required
       if (result?.plan_selection_required) {
@@ -188,7 +190,7 @@ const SignupPage = () => {
         navigate('/dashboard');
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Signup failed');
+      toast.error(error.response?.data?.detail || t('toast.signupFailed'));
     } finally {
       setLoading(false);
     }
