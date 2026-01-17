@@ -58,7 +58,9 @@ export const useQuota = (workspaceId = null) => {
 
   // Check if user can upload a file of given size
   const canUploadFile = (fileSize) => {
-    if (!quotaData) return false;
+    if (!quotaData) {
+      return { allowed: false, reason: 'loading', message: 'Quota data is loading. Please wait...' };
+    }
     
     const { quota, plan } = quotaData;
     
@@ -68,8 +70,14 @@ export const useQuota = (workspaceId = null) => {
     }
     
     // Check storage quota
-    if (quota.storage_used + fileSize > quota.storage_allowed) {
-      return { allowed: false, reason: 'storage', message: `Storage quota would be exceeded. Available: ${formatBytes(quota.storage_allowed - quota.storage_used)}, Required: ${formatBytes(fileSize)}.` };
+    // Only block if storage would be exceeded (not if already at limit, since user might have space)
+    const availableStorage = quota.storage_allowed - quota.storage_used;
+    if (availableStorage < fileSize) {
+      return { 
+        allowed: false, 
+        reason: 'storage', 
+        message: `Storage quota would be exceeded. Available: ${formatBytes(Math.max(0, availableStorage))}, Required: ${formatBytes(fileSize)}. Please delete some files or upgrade your plan.` 
+      };
     }
     
     return { allowed: true };

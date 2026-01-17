@@ -469,6 +469,7 @@ async def get_user_storage_usage(user_id: str) -> int:
     if untracked_urls and USE_CLOUDINARY:
         # Try to get file sizes from Cloudinary
         for url in untracked_urls:
+            # Only count files from our storage (Cloudinary or local), skip external URLs
             if 'res.cloudinary.com' in url:
                 try:
                     # Extract public_id from URL
@@ -482,20 +483,29 @@ async def get_user_storage_usage(user_id: str) -> int:
                             # Try to get resource info from Cloudinary
                             try:
                                 resource = cloudinary.api.resource(public_id)
-                                untracked_storage += resource.get('bytes', 0)
-                            except Exception:
-                                # If can't get size, estimate based on URL (conservative estimate)
-                                # Most images are 100KB-2MB, GIFs/videos can be larger
-                                if '.gif' in url.lower() or '/video/upload/' in url:
-                                    untracked_storage += 2 * 1024 * 1024  # Estimate 2MB for GIFs/videos
+                                file_size = resource.get('bytes', 0)
+                                if file_size > 0:
+                                    untracked_storage += file_size
                                 else:
-                                    untracked_storage += 500 * 1024  # Estimate 500KB for images
-                except Exception:
-                    # If URL parsing fails, use conservative estimate
-                    untracked_storage += 500 * 1024
-            else:
-                # Local storage or external URL - use conservative estimate
-                untracked_storage += 500 * 1024
+                                    # If size is 0 or missing, use small estimate
+                                    if '.gif' in url.lower() or '/video/upload/' in url:
+                                        untracked_storage += 1 * 1024 * 1024  # Estimate 1MB for GIFs/videos
+                                    else:
+                                        untracked_storage += 200 * 1024  # Estimate 200KB for images
+                            except Exception as e:
+                                # If can't get size from Cloudinary API, use small estimate
+                                logging.warning(f"Could not get Cloudinary resource size for {public_id}: {str(e)}")
+                                if '.gif' in url.lower() or '/video/upload/' in url:
+                                    untracked_storage += 1 * 1024 * 1024  # Estimate 1MB for GIFs/videos
+                                else:
+                                    untracked_storage += 200 * 1024  # Estimate 200KB for images
+                except Exception as e:
+                    # If URL parsing fails, skip this URL (don't count it)
+                    logging.warning(f"Could not parse Cloudinary URL {url}: {str(e)}")
+            elif url.startswith('/api/media/'):
+                # Local storage - use small estimate
+                untracked_storage += 200 * 1024  # Estimate 200KB for local files
+            # Skip external URLs (not from our storage) - they don't count toward quota
     
     return file_storage + untracked_storage
 
