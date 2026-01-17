@@ -225,7 +225,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                     rel="noopener noreferrer"
                     className="hover:text-slate-900 transition-colors"
                   >
-                    WhatsApp
+                    {t('portal.whatsapp')}
                   </a>
                 </div>
               )}
@@ -250,9 +250,9 @@ const PortalPage = ({ isEmbedded = false }) => {
                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
                  }}>
               <h1 className="text-4xl lg:text-5xl font-heading font-bold text-slate-900 mb-4 drop-shadow-sm">
-                How can we help you?
+                {t('portal.howCanWeHelp')}
               </h1>
-              <p className="text-lg text-slate-700 mb-8 font-medium">Search our knowledge base or browse categories</p>
+              <p className="text-lg text-slate-700 mb-8 font-medium">{t('portal.searchKnowledgeBase')}</p>
               <div className="relative max-w-2xl mx-auto">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5 z-10" />
                 <Input
@@ -654,6 +654,25 @@ const PortalPage = ({ isEmbedded = false }) => {
             </Button>
           </div>
         </motion.div>
+      )}
+
+      {/* Footer - Powered by InterGuide */}
+      {!inIframe && (
+        <footer className="border-t border-slate-200/50 bg-white/80 backdrop-blur-sm py-6 px-6">
+          <div className="max-w-7xl mx-auto text-center">
+            <p className="text-sm text-slate-600 mb-2">
+              {t('portal.poweredBy')}
+            </p>
+            <p className="text-sm text-slate-500 mb-3">
+              {t('portal.wantKnowledgeBase')}
+            </p>
+            <Link to="/signup">
+              <Button variant="outline" size="sm">
+                {t('portal.getStarted')}
+              </Button>
+            </Link>
+          </div>
+        </footer>
       )}
     </div>
   );

@@ -55,7 +55,13 @@
     "needHelp": "Need Help?",
     "chatOpened": "Chat Opened",
     "selectCategory": "Select a Category for Help",
-    "openChatTab": "Open Chat in New Tab"
+    "openChatTab": "Open Chat in New Tab",
+    "howCanWeHelp": "How can we help you?",
+    "searchKnowledgeBase": "Search our knowledge base or browse categories",
+    "whatsapp": "WhatsApp",
+    "poweredBy": "Powered by InterGuide",
+    "wantKnowledgeBase": "Want a knowledge base center for yourself?",
+    "getStarted": "Get Started"
   },
   "category": {
     "create": "Create Category",
