@@ -1856,6 +1856,7 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
     
     if USE_CLOUDINARY:
         # Upload to Cloudinary (persistent storage)
+        logger = logging.getLogger(__name__)
         try:
             # Prepare upload parameters with optimization
             upload_params = {
@@ -1888,6 +1889,7 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
                 # This reduces initial upload time and allows Cloudinary to cache optimized versions
             
             # Upload file to Cloudinary
+            logger.info(f"[upload_file] Uploading to Cloudinary: {file_id} ({resource_type})")
             upload_result = cloudinary.uploader.upload(
                 file_content,
                 **upload_params
@@ -1895,6 +1897,10 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
             
             # Return Cloudinary URL
             secure_url = upload_result.get('secure_url') or upload_result.get('url')
+            if not secure_url:
+                raise ValueError("Cloudinary upload succeeded but no URL returned")
+            
+            logger.info(f"[upload_file] Successfully uploaded to Cloudinary: {secure_url}")
             return {
                 "url": secure_url,
                 "public_id": upload_result.get('public_id'),
@@ -1904,9 +1910,18 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
                 "bytes": upload_result.get('bytes')
             }
         except Exception as e:
-            logging.error(f"Cloudinary upload failed: {str(e)}")
-            # Fallback to local storage if Cloudinary fails
-            logging.warning("Falling back to local storage")
+            logger.error(f"[upload_file] Cloudinary upload failed: {str(e)}", exc_info=True)
+            # CRITICAL: Only fallback to local storage if Cloudinary is truly unavailable
+            # If Cloudinary is configured, we should NOT fall back - this causes data loss
+            if USE_CLOUDINARY:
+                # Cloudinary is configured but upload failed - this is a critical error
+                # Don't silently fall back, raise the error so user knows
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"File upload to Cloudinary failed: {str(e)}. Please try again."
+                )
+            # Cloudinary not configured - fallback to local storage is OK
+            logger.warning("[upload_file] Cloudinary not configured, falling back to local storage")
     
     # Fallback: Local storage (for development or if Cloudinary fails)
     file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
@@ -1934,24 +1949,32 @@ async def get_media(filename: str):
             
             # Try with folder first (most common case)
             try:
-                resource = cloudinary.api.resource(public_id_with_folder)
-                # Redirect to Cloudinary URL
-                from fastapi.responses import RedirectResponse
+                resource = cloudinary.api.resource(public_id_with_folder, resource_type='auto')
+                # Get the secure URL from Cloudinary
                 secure_url = resource.get('secure_url') or resource.get('url')
                 if secure_url:
-                    logger.info(f"[get_media] Found file in Cloudinary with folder: {public_id_with_folder}")
-                    return RedirectResponse(url=secure_url)
-            except Exception as e1:
+                    logger.info(f"[get_media] Found file in Cloudinary with folder: {public_id_with_folder}, redirecting to: {secure_url}")
+                    # Use 307 (Temporary Redirect) to preserve method and ensure browser follows redirect
+                    from fastapi.responses import RedirectResponse
+                    return RedirectResponse(url=secure_url, status_code=307)
+                else:
+                    logger.warning(f"[get_media] Cloudinary resource found but no URL: {public_id_with_folder}")
+            except cloudinary.exceptions.NotFound:
+                logger.warning(f"[get_media] File not found in Cloudinary with folder: {public_id_with_folder}")
+                raise  # Re-raise to try without folder
+            except (cloudinary.exceptions.NotFound, Exception) as e1:
                 # If not found with folder, try without folder (backward compatibility)
                 logger.warning(f"[get_media] Cloudinary lookup with folder failed for {public_id_with_folder}, trying without folder: {e1}")
                 try:
-                    resource = cloudinary.api.resource(public_id)
-                    from fastapi.responses import RedirectResponse
+                    resource = cloudinary.api.resource(public_id, resource_type='auto')
                     secure_url = resource.get('secure_url') or resource.get('url')
                     if secure_url:
-                        logger.info(f"[get_media] Found file in Cloudinary without folder: {public_id}")
-                        return RedirectResponse(url=secure_url)
-                except Exception as e2:
+                        logger.info(f"[get_media] Found file in Cloudinary without folder: {public_id}, redirecting to: {secure_url}")
+                        from fastapi.responses import RedirectResponse
+                        return RedirectResponse(url=secure_url, status_code=307)
+                    else:
+                        logger.warning(f"[get_media] Cloudinary resource found but no URL: {public_id}")
+                except (cloudinary.exceptions.NotFound, Exception) as e2:
                     logger.warning(f"[get_media] Cloudinary lookup without folder also failed for {public_id}: {e2}")
                     # Fall through to local storage
         except Exception as e:

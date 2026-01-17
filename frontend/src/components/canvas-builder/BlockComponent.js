@@ -149,18 +149,28 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
                   className="w-full rounded-lg mb-2"
                   onLoad={() => console.log('[BlockComponent] Image loaded successfully:', block.data.url)}
                   onError={(e) => {
+                    const normalizedUrl = normalizeImageUrl(block.data.url);
                     console.error('[BlockComponent] Image failed to load:', {
                       blockId: block.id,
-                      url: block.data.url,
-                      normalizedUrl: normalizeImageUrl(block.data.url),
+                      originalUrl: block.data.url,
+                      normalizedUrl: normalizedUrl,
+                      actualSrc: e.target.src,
                       error: e,
                       target: e.target
                     });
-                    // Show error message
+                    
+                    // Try to reload with original URL if normalized URL failed
+                    if (normalizedUrl !== block.data.url && e.target.src === normalizedUrl) {
+                      console.log('[BlockComponent] Retrying with original URL:', block.data.url);
+                      e.target.src = block.data.url;
+                      return; // Let it try again with original URL
+                    }
+                    
+                    // If still failing, show error message
                     e.target.style.display = 'none';
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'text-red-500 text-sm p-2 bg-red-50 rounded';
-                    errorDiv.textContent = 'Failed to load image';
+                    errorDiv.textContent = `Failed to load image: ${block.data.url}`;
                     e.target.parentNode.appendChild(errorDiv);
                   }}
                 />
