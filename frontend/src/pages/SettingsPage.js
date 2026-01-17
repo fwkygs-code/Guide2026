@@ -625,6 +625,7 @@ const SettingsPage = () => {
             </div>
           </div>
           </div>
+          </div>
 
           {/* Quota Sidebar */}
           <div className="lg:col-span-1">

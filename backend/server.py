@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File, UploadFile, Request, Header, Query
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -2141,7 +2141,7 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
 # Media Upload Route - Two-Phase Commit with Quota Enforcement
 @api_router.post("/upload")
 async def upload_file(
-    file: UploadFile = File(...),
+    file: UploadFile = FastAPIFile(...),
     workspace_id: Optional[str] = Header(None, alias="X-Workspace-Id"),
     idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
     reference_type: Optional[str] = Header(None, alias="X-Reference-Type"),
