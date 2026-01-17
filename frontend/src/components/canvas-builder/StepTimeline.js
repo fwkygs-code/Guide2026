@@ -70,7 +70,7 @@ const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDelete
         </div>
       )}
 
-      {onDeleteStep && (
+      {onDeleteStep && stepsLength > 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
