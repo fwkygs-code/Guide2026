@@ -2431,7 +2431,7 @@ async def upload_file(
     file_extension = Path(file.filename).suffix.lower()
     resource_type = "auto"
     if file_extension == '.gif':
-        resource_type = "image"  # GIFs are uploaded as images (not converted to MP4)
+        resource_type = "image"  # Upload GIFs as images (not video - conversion caused issues)
         logging.info(f"[upload_file] GIF detected, using resource_type=image for file {file.filename}")
     elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
         resource_type = "image"
