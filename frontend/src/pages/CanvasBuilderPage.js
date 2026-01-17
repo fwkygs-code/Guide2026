@@ -1276,7 +1276,7 @@ const CanvasBuilderPage = () => {
         </div>
 
         {/* Main Editor Area */}
-        <div className="flex-1 flex overflow-hidden relative" style={{ minHeight: 0, height: '100%' }}>
+        <div className={`flex-1 flex overflow-hidden relative ${isRTL ? 'flex-row-reverse' : ''}`} style={{ minHeight: 0, height: '100%' }}>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1306,7 +1306,7 @@ const CanvasBuilderPage = () => {
                     onClick={() => setLeftPanelVisible(false)}
                     title="Hide walkthrough settings"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
                   </Button>
                 </div>
                 {/* Mobile overlay */}
@@ -1343,11 +1343,11 @@ const CanvasBuilderPage = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 rounded-r-lg lg:flex hidden"
+                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'right-0 rounded-l-lg' : 'left-0 rounded-r-lg'}`}
                 onClick={() => setLeftPanelVisible(true)}
                 title="Show walkthrough settings"
               >
-                <ChevronRight className="w-4 h-4" />
+                {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </Button>
             )}
             
@@ -1380,7 +1380,7 @@ const CanvasBuilderPage = () => {
             {rightPanelVisible ? (
               <div className="relative h-full flex-shrink-0">
                 <div className="hidden lg:block h-full">
-                  <RightInspector
+                      <RightInspector
                         selectedElement={selectedElement}
                         currentStep={walkthrough.steps[currentStepIndex]}
                         onUpdate={(updates) => {
@@ -1413,7 +1413,7 @@ const CanvasBuilderPage = () => {
                     onClick={() => setRightPanelVisible(false)}
                     title="Hide element settings"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </Button>
                 </div>
                 {/* Mobile overlay */}
@@ -1463,11 +1463,11 @@ const CanvasBuilderPage = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 rounded-l-lg lg:flex hidden"
+                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'left-0 rounded-r-lg' : 'right-0 rounded-l-lg'}`}
                 onClick={() => setRightPanelVisible(true)}
                 title="Show element settings"
               >
-                <ChevronLeft className="w-4 h-4" />
+                {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               </Button>
             )}
             

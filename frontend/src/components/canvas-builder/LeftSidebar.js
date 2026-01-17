@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { api } from '../../lib/api';
 import { normalizeImageUrl } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -115,8 +116,10 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
 
   return (
     <div className="w-80 border-r border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Walkthrough Info */}
-      <div className="p-6 border-b border-slate-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '30%', minHeight: 0 }}>
+      <ResizablePanelGroup direction="vertical" className="h-full">
+        {/* Walkthrough Info */}
+        <ResizablePanel defaultSize={30} minSize={20} maxSize={60}>
+          <div className="p-6 h-full overflow-y-auto">
         <Input
           value={walkthrough.title}
           onChange={(e) => onUpdate({ ...walkthrough, title: e.target.value })}
@@ -338,7 +341,9 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
             )}
           </div>
         </div>
-      </div>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };
