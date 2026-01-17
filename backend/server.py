@@ -2431,8 +2431,8 @@ async def upload_file(
     file_extension = Path(file.filename).suffix.lower()
     resource_type = "auto"
     if file_extension == '.gif':
-        resource_type = "video"  # CRITICAL: Upload GIFs as video for mobile compatibility
-        logging.info(f"[upload_file] GIF detected, using resource_type=video for file {file.filename}")
+        resource_type = "image"  # GIFs are uploaded as images (not converted to MP4)
+        logging.info(f"[upload_file] GIF detected, using resource_type=image for file {file.filename}")
     elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
         resource_type = "image"
     elif file_extension in ['.mp4', '.webm', '.mov', '.avi', '.mkv']:
@@ -2490,14 +2490,7 @@ async def upload_file(
                 "bit_rate": "1m",
                 "max_video_bitrate": 1000000,
             })
-            if file_extension == '.gif':
-                upload_params.update({
-                    "eager": "f_mp4",
-                    "eager_async": False
-                })
-                logging.info(f"[upload_file] GIF upload as video with MP4 eager conversion: {upload_params}")
-            else:
-                logging.info(f"[upload_file] Video upload params: {upload_params}")
+            logging.info(f"[upload_file] Video upload params: {upload_params}")
         
         # CRITICAL: Upload to Cloudinary - this is the only storage mechanism
         logging.info(f"[upload_file] Uploading file {file_id} to Cloudinary with resource_type={resource_type}")
