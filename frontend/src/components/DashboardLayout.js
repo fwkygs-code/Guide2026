@@ -4,7 +4,7 @@ import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Set
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = ({ children, backgroundUrl = null }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,8 +17,16 @@ const DashboardLayout = ({ children }) => {
     navigate('/login');
   };
 
+  const backgroundStyle = backgroundUrl 
+    ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
+    : {};
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" style={backgroundStyle}>
+      {/* Overlay for background image readability */}
+      {backgroundUrl && (
+        <div className="fixed inset-0 bg-white/90 backdrop-blur-sm -z-10" />
+      )}
       {/* Top Navigation */}
       <nav className="glass border-b border-slate-200/50 sticky top-0 z-50">
         <div className="px-6 py-3 flex items-center justify-between gap-4">

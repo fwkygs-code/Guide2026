@@ -28,11 +28,13 @@ const CategoriesPage = () => {
   const [newCategoryDesc, setNewCategoryDesc] = useState('');
   const [newCategoryParent, setNewCategoryParent] = useState(undefined);
   const [newCategoryIcon, setNewCategoryIcon] = useState('');
+  const [newCategoryNotebooklmUrl, setNewCategoryNotebooklmUrl] = useState('');
   const [creatingForParent, setCreatingForParent] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editCategoryName, setEditCategoryName] = useState('');
   const [editCategoryDesc, setEditCategoryDesc] = useState('');
   const [editCategoryIcon, setEditCategoryIcon] = useState('');
+  const [editCategoryNotebooklmUrl, setEditCategoryNotebooklmUrl] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -100,7 +102,8 @@ const CategoriesPage = () => {
         name: newCategoryName.trim(),
         description: newCategoryDesc.trim() || null,
         parent_id: parentId,
-        icon_url: newCategoryIcon || null
+        icon_url: newCategoryIcon || null,
+        notebooklm_url: newCategoryNotebooklmUrl.trim() || null
       });
       // Refresh categories to ensure tree structure is correct
       await fetchCategories();
@@ -109,6 +112,7 @@ const CategoriesPage = () => {
       setNewCategoryDesc('');
       setNewCategoryParent(undefined);
       setNewCategoryIcon('');
+      setNewCategoryNotebooklmUrl('');
       setCreatingForParent(null);
       toast.success(parentId ? 'Sub-category created!' : 'Category created!');
     } catch (error) {
@@ -122,6 +126,7 @@ const CategoriesPage = () => {
     setEditCategoryName(category.name);
     setEditCategoryDesc(category.description || '');
     setEditCategoryIcon(category.icon_url || '');
+    setEditCategoryNotebooklmUrl(category.notebooklm_url || '');
     setEditDialogOpen(true);
   };
 
@@ -136,7 +141,8 @@ const CategoriesPage = () => {
       const response = await api.updateCategory(workspaceId, editingCategory.id, {
         name: editCategoryName.trim(),
         description: editCategoryDesc.trim() || null,
-        icon_url: editCategoryIcon || null
+        icon_url: editCategoryIcon || null,
+        notebooklm_url: editCategoryNotebooklmUrl.trim() || null
       });
       // Refresh categories to ensure consistency
       await fetchCategories();
@@ -145,6 +151,7 @@ const CategoriesPage = () => {
       setEditCategoryName('');
       setEditCategoryDesc('');
       setEditCategoryIcon('');
+      setEditCategoryNotebooklmUrl('');
       toast.success('Category updated!');
     } catch (error) {
       console.error('Update category error:', error);
@@ -206,6 +213,7 @@ const CategoriesPage = () => {
               setNewCategoryName('');
               setNewCategoryDesc('');
               setNewCategoryIcon('');
+              setNewCategoryNotebooklmUrl('');
             }
           }}>
             <DialogTrigger asChild>
@@ -337,6 +345,21 @@ const CategoriesPage = () => {
                     </Button>
                   </div>
                 )}
+                <div>
+                  <Label htmlFor="category-notebooklm-url">NotebookLM / Gemini Chat Link (Optional)</Label>
+                  <Input
+                    id="category-notebooklm-url"
+                    type="url"
+                    value={newCategoryNotebooklmUrl}
+                    onChange={(e) => setNewCategoryNotebooklmUrl(e.target.value)}
+                    placeholder="https://notebooklm.google.com/notebook/..."
+                    className="mt-1.5"
+                    data-testid="category-notebooklm-url-input"
+                  />
+                  <p className="text-xs text-slate-500 mt-1.5">
+                    Add a link to a Google NotebookLM or Gemini Chat notebook for this category
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   {creatingForParent && (
                     <Button
@@ -575,6 +598,21 @@ const CategoriesPage = () => {
                   </div>
                 </div>
               </div>
+              <div>
+                <Label htmlFor="edit-category-notebooklm-url">NotebookLM / Gemini Chat Link (Optional)</Label>
+                <Input
+                  id="edit-category-notebooklm-url"
+                  type="url"
+                  value={editCategoryNotebooklmUrl}
+                  onChange={(e) => setEditCategoryNotebooklmUrl(e.target.value)}
+                  placeholder="https://notebooklm.google.com/notebook/..."
+                  className="mt-1.5"
+                  data-testid="edit-category-notebooklm-url-input"
+                />
+                <p className="text-xs text-slate-500 mt-1.5">
+                  Add a link to a Google NotebookLM or Gemini Chat notebook for this category
+                </p>
+              </div>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -585,6 +623,7 @@ const CategoriesPage = () => {
                     setEditCategoryName('');
                     setEditCategoryDesc('');
                     setEditCategoryIcon('');
+                    setEditCategoryNotebooklmUrl('');
                   }}
                   className="flex-1"
                 >

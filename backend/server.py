@@ -172,12 +172,14 @@ class CategoryCreate(BaseModel):
     description: Optional[str] = None
     parent_id: Optional[str] = None
     icon_url: Optional[str] = None
+    notebooklm_url: Optional[str] = None
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     parent_id: Optional[str] = None
     icon_url: Optional[str] = None
+    notebooklm_url: Optional[str] = None
 
 class Category(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -187,6 +189,7 @@ class Category(BaseModel):
     description: Optional[str] = None
     parent_id: Optional[str] = None
     icon_url: Optional[str] = None
+    notebooklm_url: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CommonProblem(BaseModel):
@@ -1046,7 +1049,8 @@ async def create_category(workspace_id: str, category_data: CategoryCreate, curr
         name=category_data.name,
         description=category_data.description,
         parent_id=category_data.parent_id,
-        icon_url=category_data.icon_url
+        icon_url=category_data.icon_url,
+        notebooklm_url=category_data.notebooklm_url
     )
     
     category_dict = category.model_dump()
@@ -1084,6 +1088,8 @@ async def update_category(workspace_id: str, category_id: str, category_data: Ca
         update_dict["parent_id"] = category_data.parent_id
     if category_data.icon_url is not None:
         update_dict["icon_url"] = category_data.icon_url
+    if category_data.notebooklm_url is not None:
+        update_dict["notebooklm_url"] = category_data.notebooklm_url
     
     if update_dict:
         await db.categories.update_one(

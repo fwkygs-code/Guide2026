@@ -96,6 +96,11 @@ const DashboardPage = () => {
     }
   };
 
+  // Get portal background from first workspace (if available)
+  const dashboardBackground = workspaces.length > 0 && workspaces[0].portal_background_url
+    ? normalizeImageUrl(workspaces[0].portal_background_url)
+    : null;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -105,7 +110,7 @@ const DashboardPage = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout backgroundUrl={dashboardBackground}>
       <div className="p-8">
         <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
         <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />

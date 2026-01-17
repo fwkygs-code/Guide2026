@@ -302,6 +302,24 @@ const PortalPage = ({ isEmbedded = false }) => {
       {/* Walkthroughs - Organized by Category */}
       <section className="py-12 px-6 pb-20">
         <div className="max-w-7xl mx-auto">
+          {/* Show NotebookLM link when a category is selected */}
+          {selectedCategory && (() => {
+            const selectedCatObj = portal.categories?.find(c => c.id === selectedCategory);
+            return selectedCatObj?.notebooklm_url ? (
+              <div className="mb-6 flex justify-center">
+                <a
+                  href={selectedCatObj.notebooklm_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-base font-medium text-white hover:opacity-90 transition-opacity shadow-lg"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  Open Gemini Chat for {selectedCatObj.name}
+                </a>
+              </div>
+            ) : null;
+          })()}
           {showByCategory ? (
             // Show organized by categories
             Object.keys(walkthroughsByCategory).length > 0 ? (
@@ -314,16 +332,32 @@ const PortalPage = ({ isEmbedded = false }) => {
                     transition={{ delay: sectionIndex * 0.1 }}
                   >
                     {category && (
-                      <div className="glass rounded-2xl p-4 mb-6 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg inline-block"
+                      <div className="glass rounded-2xl p-4 mb-6 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg"
                            style={{
                              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 100%)',
                              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
                            }}>
-                        <div className="flex items-center gap-3">
-                          <FolderOpen className="w-6 h-6" style={{ color: primaryColor }} />
-                          <h2 className="text-2xl font-heading font-bold text-slate-900">{category.name}</h2>
-                          {category.description && (
-                            <p className="text-sm text-slate-700 font-medium">{category.description}</p>
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          <div className="flex items-center gap-3">
+                            <FolderOpen className="w-6 h-6" style={{ color: primaryColor }} />
+                            <div>
+                              <h2 className="text-2xl font-heading font-bold text-slate-900">{category.name}</h2>
+                              {category.description && (
+                                <p className="text-sm text-slate-700 font-medium mt-1">{category.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          {category.notebooklm_url && (
+                            <a
+                              href={category.notebooklm_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity"
+                              style={{ backgroundColor: primaryColor }}
+                            >
+                              <BookOpen className="w-4 h-4" />
+                              Open Gemini Chat
+                            </a>
                           )}
                         </div>
                       </div>
