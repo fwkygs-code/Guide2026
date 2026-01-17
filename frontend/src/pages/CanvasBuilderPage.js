@@ -254,15 +254,19 @@ const CanvasBuilderPage = () => {
               common_problems: step.common_problems || [],
               blocks: step.blocks,  // Send blocks with complete structure
               // CRITICAL: Always include media_url and media_type from state
-              // If undefined in state, use null (backend will preserve existing if None)
-              // If null in state, send null (user cleared it)
-              // If string in state, send it (explicitly set)
-              media_url: step.media_url !== undefined ? (step.media_url || null) : null,
-              media_type: step.media_type !== undefined ? (step.media_type || null) : null
+              // Send the actual value from state - if it's a string (even empty), send it
+              // If undefined in state, send null (backend will preserve existing if None)
+              // If null in state, send null (user cleared it)  
+              // If string in state (including empty string), send it as-is
+              media_url: step.media_url !== undefined ? step.media_url : null,
+              media_type: step.media_type !== undefined ? step.media_type : null
             };
             
+            // CRITICAL: Log what we're saving to debug media_url loss
             console.log('[CanvasBuilder] Saving step:', step.id, {
               'step.media_url (state)': step.media_url,
+              'step.media_url type': typeof step.media_url,
+              'step.media_url length': step.media_url?.length || 0,
               'updateData.media_url (sending)': updateData.media_url,
               'step.media_type (state)': step.media_type,
               'updateData.media_type (sending)': updateData.media_type,
@@ -288,18 +292,24 @@ const CanvasBuilderPage = () => {
         // If we persisted any new steps, update local state to prevent duplicates.
         setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
-        // Persist step ordering (only after all steps have real IDs)
-        // CRITICAL: Wait longer before reordering to ensure all updateStep calls have completed
-        // This prevents race condition where reorderSteps might read stale data
-        // Increased delay to 500ms to ensure database writes are fully committed
+        // CRITICAL: Only reorder steps if the order actually changed
+        // If we just saved all steps in their current order, skip reordering to avoid race conditions
+        // Reordering can cause data loss if it reads stale data from the database
         const persistedIds = nextSteps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
-        if (persistedIds.length === nextSteps.length && persistedIds.length > 0) {
+        const currentOrder = walkthrough.steps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
+        const orderChanged = persistedIds.length !== currentOrder.length || 
+                            persistedIds.some((id, idx) => id !== currentOrder[idx]);
+        
+        if (orderChanged && persistedIds.length === nextSteps.length && persistedIds.length > 0) {
+          // Only reorder if order actually changed
           // Longer delay to ensure database writes from updateStep calls are complete
           // MongoDB needs time to commit writes, especially on first deployment
-          await new Promise(resolve => setTimeout(resolve, 500));
-          console.log('[CanvasBuilder] Reordering steps after save, step IDs:', persistedIds);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Increased to 1 second
+          console.log('[CanvasBuilder] Order changed, reordering steps after save, step IDs:', persistedIds);
           await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
           console.log('[CanvasBuilder] Steps reordered successfully');
+        } else {
+          console.log('[CanvasBuilder] Step order unchanged, skipping reorder to preserve data');
         }
         
         // CRITICAL: After saving, refetch to ensure we have the latest data with all blocks preserved
@@ -307,14 +317,25 @@ const CanvasBuilderPage = () => {
         const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
         const normalized = normalizeImageUrlsInObject(refreshed.data);
         if (normalized.steps) {
-          normalized.steps = normalized.steps.map(step => {
+          normalized.steps = normalized.steps.map((step, idx) => {
             const stepWithBlocks = {
               ...step,
               blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : []),
               // CRITICAL: Explicitly preserve media_url and media_type (even if null)
+              // Log first 3 steps to debug media_url loss
               media_url: step.media_url !== undefined ? step.media_url : null,
               media_type: step.media_type !== undefined ? step.media_type : null
             };
+            
+            // CRITICAL: Log first 3 steps after refetch to verify media_url is preserved
+            if (idx < 3) {
+              console.log(`[CanvasBuilder] After save refetch - Step ${idx} (id=${step.id}):`, {
+                'media_url': stepWithBlocks.media_url,
+                'media_type': stepWithBlocks.media_type,
+                'from_db': step.media_url,
+                'preserved': stepWithBlocks.media_url === step.media_url
+              });
+            }
             // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
             stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
               if (!block || typeof block !== 'object') {

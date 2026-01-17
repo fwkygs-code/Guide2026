@@ -599,13 +599,29 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     
+    # CRITICAL: Log media_url values from database BEFORE any processing
+    import logging
+    logger = logging.getLogger(__name__)
+    if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
+        logger.info(f"[get_walkthrough] Raw data from database - Step media_url values:")
+        for i, step in enumerate(walkthrough["steps"][:5]):  # Log first 5 steps
+            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}")
+    
     # CRITICAL: Ensure icon_url exists
     if "icon_url" not in walkthrough:
         walkthrough["icon_url"] = None
     
     # CRITICAL: Ensure all steps have blocks array initialized with proper structure
+    # CRITICAL: Also ensure media_url and media_type are preserved from database
     if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
         for step in walkthrough["steps"]:
+            # CRITICAL: Preserve media_url and media_type from database - don't overwrite with None
+            # Only set to None if completely missing
+            if "media_url" not in step:
+                step["media_url"] = None
+            if "media_type" not in step:
+                step["media_type"] = None
+            
             if "blocks" not in step or step["blocks"] is None:
                 step["blocks"] = []
             if not isinstance(step.get("blocks"), list):
@@ -622,7 +638,21 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
     
-    return Walkthrough(**walkthrough)
+    # CRITICAL: Log media_url values AFTER processing but BEFORE Pydantic validation
+    if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
+        logger.info(f"[get_walkthrough] After processing - Step media_url values:")
+        for i, step in enumerate(walkthrough["steps"][:5]):  # Log first 5 steps
+            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}")
+    
+    result = Walkthrough(**walkthrough)
+    
+    # CRITICAL: Log media_url values AFTER Pydantic validation
+    if result.steps:
+        logger.info(f"[get_walkthrough] After Pydantic - Step media_url values:")
+        for i, step in enumerate(result.steps[:5]):  # Log first 5 steps
+            logger.info(f"[get_walkthrough]   Step {i} (id={step.id}): media_url={step.media_url}, media_type={step.media_type}")
+    
+    return result
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
 async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(get_current_user)):
@@ -1342,11 +1372,27 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     existing_media_url = existing_step.get('media_url')
     existing_media_type = existing_step.get('media_type')
     
-    # If media_url/media_type is None in the request, preserve existing value
-    # If it's a string, use it (explicitly set)
-    # This allows frontend to send None to mean "don't change"
-    final_media_url = step_data.media_url if (step_data.media_url is not None and step_data.media_url != '') else existing_media_url
-    final_media_type = step_data.media_type if (step_data.media_type is not None and step_data.media_type != '') else existing_media_type
+    # CRITICAL: Handle media_url/media_type preservation
+    # If media_url is None in request, preserve existing (frontend sends None to mean "don't change")
+    # If media_url is empty string "", use it (explicitly cleared by user)
+    # If media_url is a non-empty string, use it (explicitly set)
+    # This ensures newly added media_url values are preserved
+    if step_data.media_url is None:
+        # Frontend sent None to mean "preserve existing"
+        final_media_url = existing_media_url
+    elif step_data.media_url == '':
+        # Frontend sent empty string to mean "clear it"
+        final_media_url = None
+    else:
+        # Frontend sent a value (non-empty string) - use it
+        final_media_url = step_data.media_url
+    
+    if step_data.media_type is None:
+        final_media_type = existing_media_type
+    elif step_data.media_type == '':
+        final_media_type = None
+    else:
+        final_media_type = step_data.media_type
     
     logger.info(f"[update_step] Step {step_id}: Media URL - existing: {existing_media_url}, provided: {step_data.media_url}, final: {final_media_url}")
     logger.info(f"[update_step] Step {step_id}: Media TYPE - existing: {existing_media_type}, provided: {step_data.media_type}, final: {final_media_type}")
@@ -1354,8 +1400,8 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     updated_step = {
         'title': step_data.title,
         'content': step_data.content,
-        'media_url': final_media_url,
-        'media_type': final_media_type,
+        'media_url': final_media_url,  # CRITICAL: Always include media_url (even if None)
+        'media_type': final_media_type,  # CRITICAL: Always include media_type (even if None)
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
         'blocks': new_blocks  # Always ensure it's a list with proper structure
@@ -1364,12 +1410,45 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     if not isinstance(updated_step['blocks'], list):
         updated_step['blocks'] = []
     
-    steps[step_index].update(updated_step)
+    # CRITICAL: Replace the entire step dict to ensure all fields are preserved
+    # Don't use update() as it might skip None values - replace the entire step
+    steps[step_index] = {
+        'id': steps[step_index].get('id'),
+        'title': updated_step['title'],
+        'content': updated_step['content'],
+        'media_url': final_media_url,  # CRITICAL: Always explicitly set (even if None)
+        'media_type': final_media_type,  # CRITICAL: Always explicitly set (even if None)
+        'navigation_type': updated_step['navigation_type'],
+        'common_problems': updated_step['common_problems'],
+        'blocks': updated_step['blocks'],
+        'order': steps[step_index].get('order', step_index)  # Preserve order
+    }
+    
+    # CRITICAL: Verify before saving to database
+    logger.info(f"[update_step] Step {step_id}: Before DB save - media_url={steps[step_index].get('media_url')}, media_type={steps[step_index].get('media_type')}")
     
     await db.walkthroughs.update_one(
-        {"id": walkthrough_id},
+        {"id": walkthrough_id, "workspace_id": workspace_id},
         {"$set": {"steps": steps, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
+    
+    # CRITICAL: Verify after saving by reading back from database
+    # Wait a moment for write to complete
+    import asyncio
+    await asyncio.sleep(0.1)
+    
+    verify_walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    if verify_walkthrough and verify_walkthrough.get("steps"):
+        verified_step = next((s for s in verify_walkthrough["steps"] if s.get("id") == step_id), None)
+        if verified_step:
+            logger.info(f"[update_step] Step {step_id}: After DB save - media_url={verified_step.get('media_url')}, media_type={verified_step.get('media_type')}")
+            if verified_step.get('media_url') != final_media_url:
+                logger.error(f"[update_step] Step {step_id}: CRITICAL - media_url mismatch! Expected: {final_media_url}, Got: {verified_step.get('media_url')}")
+        else:
+            logger.warning(f"[update_step] Step {step_id}: Could not find step in database after save")
     
     logger.info(f"[update_step] Step {step_id}: Successfully saved to database")
     return steps[step_index]
@@ -1410,6 +1489,11 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
     # This ensures we don't accidentally modify the source data
     import copy
     step_map_copy = {sid: copy.deepcopy(step) for sid, step in step_map.items()}
+    
+    # CRITICAL: Log all step media_url values before reordering to track what we're working with
+    logger.info(f"[reorder_steps] Before reorder - Step media_url values:")
+    for sid, step in step_map_copy.items():
+        logger.info(f"[reorder_steps]   Step {sid}: media_url={step.get('media_url')}, media_type={step.get('media_type')}")
     
     # Only allow reordering of existing step ids
     ordered = [step_map_copy[sid] for sid in body.step_ids if sid in step_map_copy]
@@ -1474,14 +1558,23 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
         
         ordered.extend(missing)
 
-    # Update order fields
+    # Update order fields ONLY - preserve all other fields
     for idx, s in enumerate(ordered):
         s["order"] = idx
+    
+    # CRITICAL: Log all step media_url values after reordering to verify preservation
+    logger.info(f"[reorder_steps] After reorder - Step media_url values:")
+    for s in ordered:
+        logger.info(f"[reorder_steps]   Step {s.get('id')}: media_url={s.get('media_url')}, media_type={s.get('media_type')}")
 
+    # CRITICAL: Use $set with only the steps array to preserve all step fields
+    # This ensures media_url, media_type, and all other fields are preserved
     await db.walkthroughs.update_one(
         {"id": walkthrough_id, "workspace_id": workspace_id},
         {"$set": {"steps": ordered, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
+    
+    logger.info(f"[reorder_steps] Successfully reordered {len(ordered)} steps")
     return {"message": "Steps reordered"}
 
 # Public Portal Routes
