@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import { useQuota } from '../../hooks/useQuota';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||

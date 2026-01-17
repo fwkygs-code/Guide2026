@@ -53,6 +53,7 @@ const CanvasBuilderPage = () => {
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState(null);
   const [recovering, setRecovering] = useState(false);
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   // On mobile, hide panels by default; on desktop, show them
   const [leftPanelVisible, setLeftPanelVisible] = useState(window.innerWidth >= 1024);
   const [rightPanelVisible, setRightPanelVisible] = useState(window.innerWidth >= 1024);
