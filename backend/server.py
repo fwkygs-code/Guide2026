@@ -943,16 +943,29 @@ async def create_category(workspace_id: str, category_data: CategoryCreate, curr
     if not member or member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Check category count limit
+    # Check category count limit (across ALL user's workspaces, not just this one)
     plan = await get_user_plan(current_user.id)
     if not plan:
         raise HTTPException(status_code=400, detail="User has no plan assigned")
     
-    category_count = await get_category_count(workspace_id)
-    if plan.max_categories is not None and category_count >= plan.max_categories:
+    # Get all user's workspaces to count total categories
+    workspaces = await db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1}).to_list(1000)
+    workspace_ids = [w["id"] for w in workspaces]
+    
+    # Count only top-level categories across all workspaces (exclude sub-categories)
+    total_categories = await db.categories.count_documents({
+        "workspace_id": {"$in": workspace_ids},
+        "$or": [
+            {"parent_id": None},
+            {"parent_id": ""},
+            {"parent_id": {"$exists": False}}
+        ]
+    })
+    
+    if plan.max_categories is not None and total_categories >= plan.max_categories:
         raise HTTPException(
             status_code=402,
-            detail=f"Category limit reached. Current: {category_count}, Limit: {plan.max_categories} for your plan"
+            detail=f"Category limit reached. Current: {total_categories}, Limit: {plan.max_categories} for your plan"
         )
     
     category = Category(
