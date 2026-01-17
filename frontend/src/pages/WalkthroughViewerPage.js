@@ -675,19 +675,30 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           dangerouslySetInnerHTML={{ __html: block.data?.content }}
                         />
                       )}
-                      {block.type === 'image' && block.data?.url && (() => {
+                      {block.type === 'image' && (() => {
+                        // Check if URL exists, if not show placeholder
+                        if (!block.data?.url) {
+                          console.warn('[GIF Debug] Block image missing URL:', { blockId: block.id, block });
+                          return (
+                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50">
+                              <p className="text-sm text-slate-500">Image URL missing</p>
+                            </div>
+                          );
+                        }
+                        
+                        const imageUrl = block.data.url;
                         // Enhanced mobile detection - check multiple methods
                         const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
                         const isMobileUA = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
                         const isMobileScreen = window.innerWidth <= 768 || (window.screen && window.screen.width <= 768);
                         const isMobile = isMobileUA || isMobileScreen;
                         
-                        const isGifFile = isGif(block.data.url, 'image'); // Assume image type for blocks
-                        const isVideoUrl = isCloudinaryVideo(block.data.url);
+                        const isGifFile = isGif(imageUrl, 'image'); // Assume image type for blocks
+                        const isVideoUrl = isCloudinaryVideo(imageUrl);
                         
                         console.log('[GIF Debug] Block Image Render:', {
                           blockId: block.id,
-                          url: block.data.url,
+                          url: imageUrl,
                           isMobileUA,
                           isMobileScreen,
                           isMobile,
@@ -703,15 +714,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         let gifVideoUrl = null;
                         if (shouldRenderAsVideo) {
                           if (isVideoUrl) {
-                            gifVideoUrl = block.data.url; // Re-uploaded GIF: use video URL directly
+                            gifVideoUrl = imageUrl; // Re-uploaded GIF: use video URL directly
                           } else if (isGifFile) {
                             // Old GIF: try to convert URL
-                            gifVideoUrl = getGifVideoUrl(block.data.url, 'image');
+                            gifVideoUrl = getGifVideoUrl(imageUrl, 'image');
                             if (!gifVideoUrl) {
                               console.warn('[GIF Debug] Block: URL conversion failed, but will still try to render as video on mobile');
                               // On mobile, even if conversion fails, try the original URL as video
                               // (some browsers might handle it, or we'll get an error and fallback)
-                              gifVideoUrl = block.data.url;
+                              gifVideoUrl = imageUrl;
                             }
                           }
                         }
@@ -728,21 +739,21 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           const optimizedVideoUrl = optimizeCloudinaryUrl(gifVideoUrl, true);
                           console.log('[GIF Debug] Block rendering as VIDEO:', {
                             blockId: block.id,
-                            original: block.data.url,
+                            original: imageUrl,
                             videoUrl: gifVideoUrl,
                             optimized: optimizedVideoUrl
                           });
                           return (
                             <figure>
                               <video
-                                key={`block-video-${block.id || idx}-${block.data.url}-${currentStep}`}
+                                key={`block-video-${block.id || idx}-${imageUrl}-${currentStep}`}
                                 src={optimizedVideoUrl}
                                 autoPlay
                                 loop
                                 muted
                                 playsInline
                                 className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
-                                onClick={() => setImagePreviewUrl(block.data.url)}
+                                onClick={() => setImagePreviewUrl(imageUrl)}
                                 onLoadStart={() => console.log('[GIF Debug] Block video load started:', optimizedVideoUrl)}
                                 onLoadedData={() => console.log('[GIF Debug] Block video loaded successfully:', optimizedVideoUrl)}
                                 onError={(e) => {
@@ -750,13 +761,13 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                     blockId: block.id,
                                     error: e,
                                     src: optimizedVideoUrl,
-                                    original: block.data.url,
+                                    original: imageUrl,
                                     videoElement: e.target
                                   });
                                   const img = document.createElement('img');
-                                  img.src = block.data.url;
+                                  img.src = imageUrl;
                                   img.className = e.target.className;
-                                  img.onclick = () => setImagePreviewUrl(block.data.url);
+                                  img.onclick = () => setImagePreviewUrl(imageUrl);
                                   e.target.parentNode.replaceChild(img, e.target);
                                 }}
                               />
@@ -770,21 +781,21 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         }
                         
                         // Regular image for non-GIFs or desktop non-video GIFs
-                        const optimizedImageUrl = isCloudinary(block.data.url) 
-                          ? optimizeCloudinaryUrl(block.data.url, false)
-                          : block.data.url;
+                        const optimizedImageUrl = isCloudinary(imageUrl) 
+                          ? optimizeCloudinaryUrl(imageUrl, false)
+                          : imageUrl;
                         
                         return (
                           <figure>
                             <img
-                              data-gif-src={isGifFile ? block.data.url : undefined}
+                              data-gif-src={isGifFile ? imageUrl : undefined}
                               src={optimizedImageUrl} 
                               alt={block.data?.alt || ''} 
                               className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
-                              onClick={() => setImagePreviewUrl(block.data.url)}
+                              onClick={() => setImagePreviewUrl(imageUrl)}
                               loading="eager"
                               decoding="async"
-                              key={`block-${block.id || idx}-${block.data.url}-${currentStep}`}
+                              key={`block-${block.id || idx}-${imageUrl}-${currentStep}`}
                               style={isGifFile ? {
                                 imageRendering: 'auto',
                                 WebkitBackfaceVisibility: 'visible',

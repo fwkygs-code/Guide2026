@@ -173,9 +173,26 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       case BLOCK_TYPES.IMAGE:
         return (
           <div>
-            {block.data.url ? (
+            {block.data?.url ? (
               <div>
-                <img src={normalizeImageUrl(block.data.url)} alt={block.data.alt} className="w-full rounded-lg mb-2" />
+                <img 
+                  src={normalizeImageUrl(block.data.url)} 
+                  alt={block.data.alt || ''} 
+                  className="w-full rounded-lg mb-2"
+                  onError={(e) => {
+                    console.error('[BlockComponent] Image failed to load:', {
+                      blockId: block.id,
+                      url: block.data.url,
+                      error: e
+                    });
+                    // Show placeholder on error
+                    e.target.style.display = 'none';
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'border-2 border-dashed border-red-300 rounded-lg p-4 text-center bg-red-50';
+                    placeholder.innerHTML = '<p class="text-sm text-red-600">Image failed to load</p>';
+                    e.target.parentNode.appendChild(placeholder);
+                  }}
+                />
                 <Input
                   value={block.data.caption || ''}
                   onChange={(e) => onUpdate({ ...block, data: { ...block.data, caption: e.target.value } })}
