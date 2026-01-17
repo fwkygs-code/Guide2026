@@ -2475,19 +2475,17 @@ async def upload_file(
             "invalidate": True
         }
         
-        # Add optimization parameters
+        # Add optimization parameters for upload
+        # Note: format="auto" and fetch_format are NOT valid upload parameters
+        # Format optimization is done at delivery time via URL transformations, not upload
         if resource_type == "image":
             upload_params.update({
-                "format": "auto",
-                "quality": "auto:good",
-                "fetch_format": "auto"
+                "quality": "auto:good"
             })
             logging.info(f"[upload_file] Image upload params: {upload_params}")
         elif resource_type == "video":
             upload_params.update({
-                "format": "auto",
                 "quality": "auto:good",
-                "fetch_format": "auto",
                 "video_codec": "auto",
                 "bit_rate": "1m",
                 "max_video_bitrate": 1000000,
