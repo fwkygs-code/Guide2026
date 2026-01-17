@@ -552,21 +552,22 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     });
                     
                     // Render as video if:
+                    // Render as video if:
                     // 1. It's a Cloudinary video URL with media_type='image' (re-uploaded GIFs) - ALWAYS render as video on ALL devices
-                    // 2. It's a Cloudinary GIF that can be converted to video format (on mobile only)
-                    // CRITICAL: Do NOT render backend-stored GIF files as video - they must be <img>
-                    const shouldRenderAsVideo = (isVideoUrl && step.media_type === 'image') || (isGifFile && isMobile && isCloudinary(step.media_url));
+                    // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
+                    const shouldRenderAsVideo = (isVideoUrl && step.media_type === 'image') || (isGifFile && isMobile);
                     let gifVideoUrl = null;
                     if (shouldRenderAsVideo) {
                       if (isVideoUrl && step.media_type === 'image') {
                         gifVideoUrl = step.media_url; // Re-uploaded GIF: use video URL directly
-                      } else if (isGifFile && isCloudinary(step.media_url)) {
-                        // Only for Cloudinary GIFs: try to convert URL to video format
+                      } else if (isGifFile) {
+                        // Old GIF: try to convert URL
                         gifVideoUrl = getGifVideoUrl(step.media_url, step.media_type);
                         if (!gifVideoUrl) {
-                          console.warn('[GIF Debug] Cloudinary GIF URL conversion failed, falling back to image');
-                          // Don't try to render as video if conversion failed
-                          gifVideoUrl = null;
+                          console.warn('[GIF Debug] Legacy: URL conversion failed, but will still try to render as video on mobile');
+                          // On mobile, even if conversion fails, try the original URL as video
+                          // (some browsers might handle it, or we'll get an error and fallback)
+                          gifVideoUrl = step.media_url;
                         }
                       }
                     }
@@ -702,20 +703,20 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         
                         // Render as video if:
                         // 1. It's a Cloudinary video URL in an image block (re-uploaded GIFs) - ALWAYS render as video on ALL devices
-                        // 2. It's a Cloudinary GIF that can be converted to video format (on mobile only)
-                        // CRITICAL: Do NOT render backend-stored GIF files as video - they must be <img>
-                        const shouldRenderAsVideo = isVideoUrl || (isGifFile && isMobile && isCloudinary(block.data.url));
+                        // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
+                        const shouldRenderAsVideo = isVideoUrl || (isGifFile && isMobile);
                         let gifVideoUrl = null;
                         if (shouldRenderAsVideo) {
                           if (isVideoUrl) {
                             gifVideoUrl = block.data.url; // Re-uploaded GIF: use video URL directly
-                          } else if (isGifFile && isCloudinary(block.data.url)) {
-                            // Only for Cloudinary GIFs: try to convert URL to video format
+                          } else if (isGifFile) {
+                            // Old GIF: try to convert URL
                             gifVideoUrl = getGifVideoUrl(block.data.url, 'image');
                             if (!gifVideoUrl) {
-                              console.warn('[GIF Debug] Block: Cloudinary GIF URL conversion failed, falling back to image');
-                              // Don't try to render as video if conversion failed
-                              gifVideoUrl = null;
+                              console.warn('[GIF Debug] Block: URL conversion failed, but will still try to render as video on mobile');
+                              // On mobile, even if conversion fails, try the original URL as video
+                              // (some browsers might handle it, or we'll get an error and fallback)
+                              gifVideoUrl = block.data.url;
                             }
                           }
                         }
