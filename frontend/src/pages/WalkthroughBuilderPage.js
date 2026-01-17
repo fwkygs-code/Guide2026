@@ -125,24 +125,15 @@ const WalkthroughBuilderPage = () => {
         for (let i = 0; i < nextSteps.length; i++) {
           const step = nextSteps[i];
           if (step.id && !step.isNew) {
-            // CRITICAL: Preserve media_url and media_type - only send if they exist
-            const updateData = {
+            await api.updateStep(workspaceId, walkthroughId, step.id, {
               title: step.title,
               content: step.content,
+              media_url: step.media_url,
+              media_type: step.media_type,
               navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
               blocks: step.blocks || []
-            };
-            
-            // Only include media_url/media_type if they are explicitly set
-            if (step.media_url !== undefined) {
-              updateData.media_url = step.media_url;
-            }
-            if (step.media_type !== undefined) {
-              updateData.media_type = step.media_type;
-            }
-            
-            await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
+            });
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
               title: step.title,

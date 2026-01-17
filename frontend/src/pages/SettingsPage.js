@@ -24,7 +24,6 @@ const SettingsPage = () => {
   const [portalPalette, setPortalPalette] = useState({ primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
   const [portalLinks, setPortalLinks] = useState([]);
   const [portalPhone, setPortalPhone] = useState('');
-  const [portalWorkingDays, setPortalWorkingDays] = useState('');
   const [portalWorkingHours, setPortalWorkingHours] = useState('');
   const [portalWhatsapp, setPortalWhatsapp] = useState('');
   const [saving, setSaving] = useState(false);
@@ -44,7 +43,6 @@ const SettingsPage = () => {
       setPortalPalette(response.data.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
       setPortalLinks(response.data.portal_links || []);
       setPortalPhone(response.data.portal_phone || '');
-      setPortalWorkingDays(response.data.portal_working_days || '');
       setPortalWorkingHours(response.data.portal_working_hours || '');
       setPortalWhatsapp(response.data.portal_whatsapp || '');
     } catch (error) {
@@ -95,7 +93,6 @@ const SettingsPage = () => {
         portal_palette: portalPalette,
         portal_links: portalLinks.length > 0 ? portalLinks : null,
         portal_phone: portalPhone || null,
-        portal_working_days: portalWorkingDays || null,
         portal_working_hours: portalWorkingHours || null,
         portal_whatsapp: portalWhatsapp || null
       });
@@ -311,20 +308,6 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="portal-working-days" className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Working Days
-                </Label>
-                <Input
-                  id="portal-working-days"
-                  value={portalWorkingDays}
-                  onChange={(e) => setPortalWorkingDays(e.target.value)}
-                  placeholder="e.g., Monday - Friday"
-                  className="mt-1.5"
-                />
-                <p className="text-xs text-slate-400 mt-1">Specify which days you're open</p>
-              </div>
-              <div>
                 <Label htmlFor="portal-working-hours" className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Working Hours
@@ -333,10 +316,9 @@ const SettingsPage = () => {
                   id="portal-working-hours"
                   value={portalWorkingHours}
                   onChange={(e) => setPortalWorkingHours(e.target.value)}
-                  placeholder="e.g., 9:00 AM - 5:00 PM EST"
+                  placeholder="e.g., Mon-Fri: 9AM-5PM EST"
                   className="mt-1.5"
                 />
-                <p className="text-xs text-slate-400 mt-1">Specify your operating hours</p>
               </div>
               <div>
                 <Label htmlFor="portal-whatsapp" className="flex items-center gap-2">
@@ -595,7 +577,6 @@ const SettingsPage = () => {
                   setPortalPalette(workspace?.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
                   setPortalLinks(workspace?.portal_links || []);
                   setPortalPhone(workspace?.portal_phone || '');
-                  setPortalWorkingDays(workspace?.portal_working_days || '');
                   setPortalWorkingHours(workspace?.portal_working_hours || '');
                   setPortalWhatsapp(workspace?.portal_whatsapp || '');
                   setBrandColor(workspace?.brand_color || '#4f46e5');

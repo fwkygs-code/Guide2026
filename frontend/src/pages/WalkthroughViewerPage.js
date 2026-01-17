@@ -108,10 +108,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       }
       
       if (isVideo) {
-        // Video optimizations: lighter transformations for faster loading
-        // Use f_auto instead of f_mp4 to allow Cloudinary to choose best format
-        // Remove bitrate limit for faster delivery (Cloudinary will optimize automatically)
-        const transformations = 'q_auto:good,f_auto';
+        // Video optimizations: quality, format, bitrate
+        const transformations = 'q_auto:good,f_auto,vc_auto,br_1m';
         if (path.includes('/video/upload/')) {
           // Insert transformations after /video/upload/ but before version if exists
           // Cloudinary format: /video/upload/[transformations]/v123/folder/file
@@ -185,11 +183,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           console.log('[GIF Debug] getGifVideoUrl: Extracted path after /image/upload/:', cleanPath);
           
           // Handle version numbers: /v1234567890/folder/file.gif
-          // Use f_auto instead of f_mp4 for faster loading and better caching
           if (cleanPath.match(/^v\d+\//)) {
             // Has version, keep it and replace .gif with .mp4
             cleanPath = cleanPath.replace(/\.gif$/i, '.mp4'); // Case-insensitive
-            const transformations = 'q_auto:good,f_auto';
+            const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
             const videoPath = `/video/upload/${transformations}/${cleanPath}`;
             const result = `${urlObj.protocol}//${urlObj.host}${videoPath}${urlObj.search}`;
             console.log('[GIF Debug] getGifVideoUrl: Converted (with version):', result);
@@ -198,7 +195,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
             // No version, just replace .gif with .mp4
             // Remove .gif extension (case-insensitive)
             cleanPath = cleanPath.replace(/\.gif$/i, '');
-            const transformations = 'q_auto:good,f_auto';
+            const transformations = 'q_auto:good,f_mp4,vc_auto,br_1m';
             const videoPath = `/video/upload/${transformations}/${cleanPath}.mp4`;
             const result = `${urlObj.protocol}//${urlObj.host}${videoPath}${urlObj.search}`;
             console.log('[GIF Debug] getGifVideoUrl: Converted (no version):', result);
@@ -552,7 +549,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     });
                     
                     // Render as video if:
-                    // Render as video if:
                     // 1. It's a Cloudinary video URL with media_type='image' (re-uploaded GIFs) - ALWAYS render as video on ALL devices
                     // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
                     const shouldRenderAsVideo = (isVideoUrl && step.media_type === 'image') || (isGifFile && isMobile);
@@ -594,7 +590,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           loop
                           muted
                           playsInline
-                          preload="auto"
                           className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
                           onClick={() => setImagePreviewUrl(step.media_url)}
                           onLoadStart={() => console.log('[GIF Debug] Video load started:', optimizedVideoUrl)}
@@ -746,7 +741,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 loop
                                 muted
                                 playsInline
-                                preload="auto"
                                 className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
                                 onClick={() => setImagePreviewUrl(block.data.url)}
                                 onLoadStart={() => console.log('[GIF Debug] Block video load started:', optimizedVideoUrl)}
@@ -776,52 +770,21 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         }
                         
                         // Regular image for non-GIFs or desktop non-video GIFs
-                        // CRITICAL: Always render image blocks, even if URL processing failed
-                        const optimizedImageUrl = block.data?.url ? (
-                          isCloudinary(block.data.url) 
-                            ? optimizeCloudinaryUrl(block.data.url, false)
-                            : block.data.url
-                        ) : null;
-                        
-                        // CRITICAL: If no URL, log error but don't break rendering
-                        if (!block.data?.url) {
-                          console.error('[GIF Debug] Block Image ERROR: Missing URL!', {
-                            blockId: block.id,
-                            blockType: block.type,
-                            blockData: block.data,
-                            fullBlock: block
-                          });
-                          return null; // Don't render if no URL
-                        }
-                        
-                        console.log('[GIF Debug] Block rendering as IMAGE:', {
-                          blockId: block.id,
-                          originalUrl: block.data.url,
-                          optimizedUrl: optimizedImageUrl,
-                          isGifFile
-                        });
+                        const optimizedImageUrl = isCloudinary(block.data.url) 
+                          ? optimizeCloudinaryUrl(block.data.url, false)
+                          : block.data.url;
                         
                         return (
                           <figure>
                             <img
                               data-gif-src={isGifFile ? block.data.url : undefined}
-                              src={optimizedImageUrl || block.data.url} 
+                              src={optimizedImageUrl} 
                               alt={block.data?.alt || ''} 
                               className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
                               onClick={() => setImagePreviewUrl(block.data.url)}
                               loading="eager"
                               decoding="async"
                               key={`block-${block.id || idx}-${block.data.url}-${currentStep}`}
-                              onLoad={() => console.log('[GIF Debug] Block image loaded successfully:', optimizedImageUrl || block.data.url)}
-                              onError={(e) => {
-                                console.error('[GIF Debug] Block image failed to load:', {
-                                  blockId: block.id,
-                                  error: e,
-                                  src: e.target.src,
-                                  originalUrl: block.data.url,
-                                  optimizedUrl: optimizedImageUrl
-                                });
-                              }}
                               style={isGifFile ? {
                                 imageRendering: 'auto',
                                 WebkitBackfaceVisibility: 'visible',

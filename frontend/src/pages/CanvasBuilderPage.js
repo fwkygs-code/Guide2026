@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -35,15 +35,6 @@ const CanvasBuilderPage = () => {
   });
 
   const [selectedElement, setSelectedElement] = useState(null);
-  const [showRightInspector, setShowRightInspector] = useState(true);
-  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
-  
-  // Auto-show inspector when element is selected
-  useEffect(() => {
-    if (selectedElement) {
-      setShowRightInspector(true);
-    }
-  }, [selectedElement]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,6 +52,26 @@ const CanvasBuilderPage = () => {
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState(null);
   const [recovering, setRecovering] = useState(false);
+  // On mobile, hide panels by default; on desktop, show them
+  const [leftPanelVisible, setLeftPanelVisible] = useState(window.innerWidth >= 1024);
+  const [rightPanelVisible, setRightPanelVisible] = useState(window.innerWidth >= 1024);
+  
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        // On mobile, panels should be hidden by default
+        if (leftPanelVisible && window.innerWidth < 768) {
+          setLeftPanelVisible(false);
+        }
+        if (rightPanelVisible && window.innerWidth < 768) {
+          setRightPanelVisible(false);
+        }
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [leftPanelVisible, rightPanelVisible]);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -135,15 +146,11 @@ const CanvasBuilderPage = () => {
         // Normalize image URLs in walkthrough data
         const normalized = normalizeImageUrlsInObject(wtResponse.data);
         // CRITICAL: Ensure all steps have blocks array initialized with proper structure
-        // CRITICAL: Preserve media_url and media_type from loaded steps
         if (normalized.steps) {
           normalized.steps = normalized.steps.map(step => {
             const stepWithBlocks = {
               ...step,
-              blocks: step.blocks || [],
-              // CRITICAL: Explicitly preserve media_url and media_type (even if null)
-              media_url: step.media_url !== undefined ? step.media_url : null,
-              media_type: step.media_type !== undefined ? step.media_type : null
+              blocks: step.blocks || []
             };
             // Ensure blocks array is properly structured
             if (!Array.isArray(stepWithBlocks.blocks)) {
@@ -161,12 +168,6 @@ const CanvasBuilderPage = () => {
                 data: block.data || {},
                 settings: block.settings || {}
               };
-            });
-            console.log('[CanvasBuilder] Loaded step:', stepWithBlocks.id, {
-              'media_url': stepWithBlocks.media_url,
-              'media_type': stepWithBlocks.media_type,
-              'blocks_count': stepWithBlocks.blocks?.length || 0,
-              'image_blocks': stepWithBlocks.blocks?.filter(b => b.type === 'image').length || 0
             });
             return stepWithBlocks;
           });
@@ -244,49 +245,15 @@ const CanvasBuilderPage = () => {
           console.log('[CanvasBuilder] Saving step with blocks:', step.id, step.blocks);
           
           if (step.id && !step.isNew) {
-            // CRITICAL: ALWAYS send media_url and media_type from current state
-            // This ensures we're explicit about what we want to save
-            // Backend will preserve existing if we send None, but we should send the actual state value
-            const updateData = {
+            await api.updateStep(workspaceId, walkthroughId, step.id, {
               title: step.title || '',
               content: step.content || '',
+              media_url: step.media_url || null,
+              media_type: step.media_type || null,
               navigation_type: step.navigation_type || 'next_prev',
               common_problems: step.common_problems || [],
-              blocks: step.blocks,  // Send blocks with complete structure
-              // CRITICAL: Always include media_url and media_type from state
-              // Send the actual value from state - if it's a string (even empty), send it
-              // If undefined in state, send null (backend will preserve existing if None)
-              // If null in state, send null (user cleared it)  
-              // If string in state (including empty string), send it as-is
-              media_url: step.media_url !== undefined ? step.media_url : null,
-              media_type: step.media_type !== undefined ? step.media_type : null
-            };
-            
-            // CRITICAL: Log what we're saving to debug media_url loss
-            console.log('[CanvasBuilder] Saving step:', step.id, {
-              'step.media_url (state)': step.media_url,
-              'step.media_url type': typeof step.media_url,
-              'step.media_url is undefined': step.media_url === undefined,
-              'step.media_url is null': step.media_url === null,
-              'step.media_url length': step.media_url?.length || 0,
-              'updateData.media_url (sending)': updateData.media_url,
-              'updateData.media_url type': typeof updateData.media_url,
-              'step.media_type (state)': step.media_type,
-              'updateData.media_type (sending)': updateData.media_type,
-              'hasBlocks': step.blocks?.length || 0,
-              'step keys': Object.keys(step).filter(k => k.includes('media'))
+              blocks: step.blocks  // Send blocks with complete structure
             });
-            
-            // CRITICAL: Verify we're sending a valid media_url value
-            if (updateData.media_url === undefined) {
-              console.error('[CanvasBuilder] CRITICAL - updateData.media_url is undefined!', {
-                'step': step.id,
-                'step.media_url': step.media_url,
-                'updateData': updateData
-              });
-            }
-            
-            await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
           } else if (step.isNew) {
             const res = await api.addStep(workspaceId, walkthroughId, {
               title: step.title || '',
@@ -305,24 +272,10 @@ const CanvasBuilderPage = () => {
         // If we persisted any new steps, update local state to prevent duplicates.
         setWalkthrough((prev) => ({ ...prev, steps: nextSteps }));
 
-        // CRITICAL: Only reorder steps if the order actually changed
-        // If we just saved all steps in their current order, skip reordering to avoid race conditions
-        // Reordering can cause data loss if it reads stale data from the database
+        // Persist step ordering (only after all steps have real IDs)
         const persistedIds = nextSteps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
-        const currentOrder = walkthrough.steps.map((s) => s.id).filter((id) => id && !id.startsWith('temp-'));
-        const orderChanged = persistedIds.length !== currentOrder.length || 
-                            persistedIds.some((id, idx) => id !== currentOrder[idx]);
-        
-        if (orderChanged && persistedIds.length === nextSteps.length && persistedIds.length > 0) {
-          // Only reorder if order actually changed
-          // Longer delay to ensure database writes from updateStep calls are complete
-          // MongoDB needs time to commit writes, especially on first deployment
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Increased to 1 second
-          console.log('[CanvasBuilder] Order changed, reordering steps after save, step IDs:', persistedIds);
+        if (persistedIds.length === nextSteps.length) {
           await api.reorderSteps(workspaceId, walkthroughId, persistedIds);
-          console.log('[CanvasBuilder] Steps reordered successfully');
-        } else {
-          console.log('[CanvasBuilder] Step order unchanged, skipping reorder to preserve data');
         }
         
         // CRITICAL: After saving, refetch to ensure we have the latest data with all blocks preserved
@@ -330,25 +283,11 @@ const CanvasBuilderPage = () => {
         const refreshed = await api.getWalkthrough(workspaceId, walkthroughId);
         const normalized = normalizeImageUrlsInObject(refreshed.data);
         if (normalized.steps) {
-          normalized.steps = normalized.steps.map((step, idx) => {
+          normalized.steps = normalized.steps.map(step => {
             const stepWithBlocks = {
               ...step,
-              blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : []),
-              // CRITICAL: Explicitly preserve media_url and media_type (even if null)
-              // Log first 3 steps to debug media_url loss
-              media_url: step.media_url !== undefined ? step.media_url : null,
-              media_type: step.media_type !== undefined ? step.media_type : null
+              blocks: Array.isArray(step.blocks) ? step.blocks : (step.blocks ? [step.blocks] : [])
             };
-            
-            // CRITICAL: Log first 3 steps after refetch to verify media_url is preserved
-            if (idx < 3) {
-              console.log(`[CanvasBuilder] After save refetch - Step ${idx} (id=${step.id}):`, {
-                'media_url': stepWithBlocks.media_url,
-                'media_type': stepWithBlocks.media_type,
-                'from_db': step.media_url,
-                'preserved': stepWithBlocks.media_url === step.media_url
-              });
-            }
             // CRITICAL: Ensure each block has proper structure (data, settings, type, id)
             stepWithBlocks.blocks = stepWithBlocks.blocks.map(block => {
               if (!block || typeof block !== 'object') {
@@ -383,12 +322,6 @@ const CanvasBuilderPage = () => {
               const withUrls = imageBlocks.filter(b => b.data && b.data.url);
               console.log(`[CanvasBuilder] Step ${step.id}: ${imageBlocks.length} image blocks, ${withUrls.length} with URLs`);
             }
-            console.log('[CanvasBuilder] Loaded step after save:', stepWithBlocks.id, {
-              'media_url': stepWithBlocks.media_url,
-              'media_type': stepWithBlocks.media_type,
-              'blocks_count': stepWithBlocks.blocks?.length || 0,
-              'image_blocks': stepWithBlocks.blocks?.filter(b => b.type === 'image').length || 0
-            });
             return stepWithBlocks;
           });
         }
@@ -669,24 +602,15 @@ const CanvasBuilderPage = () => {
             });
             
             if (step.id && !step.isNew) {
-              // CRITICAL: ALWAYS send media_url and media_type from current state
-              const updateData = {
+              await api.updateStep(workspaceId, walkthroughId, step.id, {
                 title: step.title || '',
                 content: step.content || '',
+                media_url: step.media_url || null,
+                media_type: step.media_type || null,
                 navigation_type: step.navigation_type || 'next_prev',
                 common_problems: step.common_problems || [],
-                blocks: stepBlocks,  // Send blocks with complete structure including URLs
-                // CRITICAL: Always include media_url and media_type from state
-                media_url: step.media_url !== undefined ? (step.media_url || null) : null,
-                media_type: step.media_type !== undefined ? (step.media_type || null) : null
-              };
-              
-              console.log('[CanvasBuilder] Publishing - Saving step:', step.id, {
-                'media_url': updateData.media_url,
-                'media_type': updateData.media_type
+                blocks: stepBlocks  // Send blocks with complete structure including URLs
               });
-              
-              await api.updateStep(workspaceId, walkthroughId, step.id, updateData);
             } else if (step.isNew) {
               await api.addStep(workspaceId, walkthroughId, {
                 title: step.title || '',
@@ -849,53 +773,12 @@ const CanvasBuilderPage = () => {
   };
 
   const updateStep = (stepId, updates) => {
-    console.log('[CanvasBuilder] updateStep called for step:', stepId, 'Updates:', updates, {
-      'updates.media_url': updates.media_url,
-      'updates.media_type': updates.media_type,
-      'updates.hasBlocks': !!updates.blocks
-    });
+    console.log('[CanvasBuilder] updateStep called for step:', stepId, 'Updates:', updates);
     
     setWalkthrough((prev) => {
       const updatedSteps = prev.steps.map((s) => {
         if (s.id === stepId) {
-          // CRITICAL: Preserve media_url and media_type from existing step if not provided in updates
-          // This prevents losing media_url when updating other fields like blocks, title, etc.
-          const existingMediaUrl = s.media_url !== undefined ? s.media_url : null;
-          const existingMediaType = s.media_type !== undefined ? s.media_type : null;
-          
-          const preservedMedia = {
-            // Only update media_url/media_type if explicitly provided in updates
-            // Otherwise, preserve from existing step (even if it's null)
-            media_url: updates.media_url !== undefined ? updates.media_url : existingMediaUrl,
-            media_type: updates.media_type !== undefined ? updates.media_type : existingMediaType
-          };
-          
-          const updated = { ...s, ...updates, ...preservedMedia };
-          
-          // CRITICAL: Log media_url preservation for debugging
-          if (updates.media_url === undefined) {
-            console.log('[CanvasBuilder] updateStep: Media not in updates - preserved existing:', {
-              'existing': existingMediaUrl,
-              'preserved': preservedMedia.media_url,
-              'stepId': stepId,
-              'updating': Object.keys(updates)
-            });
-          } else {
-            console.log('[CanvasBuilder] updateStep: Media explicitly updated:', {
-              'old': existingMediaUrl,
-              'new': updates.media_url,
-              'stepId': stepId
-            });
-          }
-          
-          // CRITICAL: Verify media_url is actually preserved in the updated step
-          if (updated.media_url !== preservedMedia.media_url) {
-            console.error('[CanvasBuilder] updateStep: CRITICAL - media_url was not preserved!', {
-              'expected': preservedMedia.media_url,
-              'got': updated.media_url,
-              'stepId': stepId
-            });
-          }
+          const updated = { ...s, ...updates };
           
           // CRITICAL: Ensure blocks array always exists with proper structure
           if (!updated.blocks) {
@@ -1225,187 +1108,194 @@ const CanvasBuilderPage = () => {
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
-            {/* Left Sidebar - Hidden on mobile, shown on desktop */}
-            {showLeftSidebar && (
-              <div className="hidden md:block">
-                <LeftSidebar
-                  walkthrough={walkthrough}
-                  categories={categories}
-                  onUpdate={setWalkthrough}
-                  onAddStep={addStep}
-                  onStepClick={setCurrentStepIndex}
-                  onDeleteStep={deleteStep}
-                  currentStepIndex={currentStepIndex}
-                />
+            {/* Left Sidebar */}
+            {leftPanelVisible ? (
+              <div className="relative">
+                <div className="hidden lg:block">
+                  <LeftSidebar
+                    walkthrough={walkthrough}
+                    categories={categories}
+                    onUpdate={setWalkthrough}
+                    onAddStep={addStep}
+                    onStepClick={setCurrentStepIndex}
+                    onDeleteStep={deleteStep}
+                    currentStepIndex={currentStepIndex}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 -right-10 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                    onClick={() => setLeftPanelVisible(false)}
+                    title="Hide walkthrough settings"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                </div>
+                {/* Mobile overlay */}
+                <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setLeftPanelVisible(false)}>
+                  <div className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative h-full">
+                      <LeftSidebar
+                        walkthrough={walkthrough}
+                        categories={categories}
+                        onUpdate={setWalkthrough}
+                        onAddStep={addStep}
+                        onStepClick={(index) => {
+                          setCurrentStepIndex(index);
+                          setLeftPanelVisible(false);
+                        }}
+                        onDeleteStep={deleteStep}
+                        currentStepIndex={currentStepIndex}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-4 right-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                        onClick={() => setLeftPanelVisible(false)}
+                        title="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 rounded-r-lg lg:flex hidden"
+                onClick={() => setLeftPanelVisible(true)}
+                title="Show walkthrough settings"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             )}
             
-            {/* Left Sidebar Toggle Buttons - Desktop */}
-            {!showLeftSidebar ? (
-              <button
-                className="hidden md:flex fixed top-20 left-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
-                onClick={() => setShowLeftSidebar(true)}
-                title="Show Sidebar"
+            {/* Mobile button to show left panel */}
+            {!leftPanelVisible && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden fixed left-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
+                onClick={() => setLeftPanelVisible(true)}
+                title="Show walkthrough settings"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-            ) : (
-              <button
-                className="hidden md:flex fixed top-20 left-[340px] z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
-                onClick={() => setShowLeftSidebar(false)}
-                title="Hide Sidebar"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             )}
-
-            {/* Mobile Sidebar Toggle Button */}
-            <button
-              className="md:hidden fixed top-4 left-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg"
-              onClick={() => {
-                const sidebar = document.getElementById('mobile-left-sidebar');
-                sidebar?.classList.toggle('hidden');
-              }}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-
-            {/* Mobile Left Sidebar */}
-            <div id="mobile-left-sidebar" className="md:hidden fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-slate-200 shadow-xl transform transition-transform">
-              <LeftSidebar
-                walkthrough={walkthrough}
-                categories={categories}
-                onUpdate={setWalkthrough}
-                onAddStep={addStep}
-                onStepClick={(index) => {
-                  setCurrentStepIndex(index);
-                  document.getElementById('mobile-left-sidebar')?.classList.add('hidden');
-                }}
-                onDeleteStep={deleteStep}
-                currentStepIndex={currentStepIndex}
-              />
-            </div>
 
             {/* Live Canvas */}
-            <div className="flex-1 overflow-auto md:ml-0" data-canvas-container>
-              <LiveCanvas
-                walkthrough={walkthrough}
-                currentStepIndex={currentStepIndex}
-                selectedElement={selectedElement}
-                onSelectElement={setSelectedElement}
-                onUpdateStep={updateStep}
-              />
-            </div>
+            <LiveCanvas
+              walkthrough={walkthrough}
+              currentStepIndex={currentStepIndex}
+              selectedElement={selectedElement}
+              onSelectElement={setSelectedElement}
+              onUpdateStep={updateStep}
+            />
 
-            {/* Right Inspector - Hidden on mobile, shown on desktop */}
-            {showRightInspector && (
-              <div className="hidden md:block">
-                <RightInspector
-                  selectedElement={selectedElement}
-                  currentStep={walkthrough.steps[currentStepIndex]}
-                  onUpdate={(updates) => {
-                    if (walkthrough.steps[currentStepIndex]) {
-                      updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                    }
-                  }}
-                  onDeleteStep={() => {
-                    if (walkthrough.steps[currentStepIndex]) {
-                      deleteStep(walkthrough.steps[currentStepIndex].id);
-                    }
-                  }}
-                  onUpdateBlock={(updatedBlock) => {
-                    if (walkthrough.steps[currentStepIndex]) {
-                      const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
-                        b.id === updatedBlock.id ? updatedBlock : b
-                      );
-                      updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
-                    }
-                  }}
-                  onClose={() => setShowRightInspector(false)}
-                />
+            {/* Right Inspector */}
+            {rightPanelVisible ? (
+              <div className="relative">
+                <div className="hidden lg:block">
+                  <RightInspector
+                    selectedElement={selectedElement}
+                    currentStep={walkthrough.steps[currentStepIndex]}
+                    onUpdate={(updates) => {
+                      if (walkthrough.steps[currentStepIndex]) {
+                        updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                      }
+                    }}
+                    onDeleteStep={() => {
+                      if (walkthrough.steps[currentStepIndex]) {
+                        deleteStep(walkthrough.steps[currentStepIndex].id);
+                      }
+                    }}
+                    onUpdateBlock={(updatedBlock) => {
+                      if (walkthrough.steps[currentStepIndex]) {
+                        const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                          b.id === updatedBlock.id ? updatedBlock : b
+                        );
+                        updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 -left-10 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                    onClick={() => setRightPanelVisible(false)}
+                    title="Hide element settings"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+                {/* Mobile overlay */}
+                <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setRightPanelVisible(false)}>
+                  <div className="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative h-full">
+                      <RightInspector
+                        selectedElement={selectedElement}
+                        currentStep={walkthrough.steps[currentStepIndex]}
+                        onUpdate={(updates) => {
+                          if (walkthrough.steps[currentStepIndex]) {
+                            updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                          }
+                        }}
+                        onDeleteStep={() => {
+                          if (walkthrough.steps[currentStepIndex]) {
+                            deleteStep(walkthrough.steps[currentStepIndex].id);
+                          }
+                        }}
+                        onUpdateBlock={(updatedBlock) => {
+                          if (walkthrough.steps[currentStepIndex]) {
+                            const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                              b.id === updatedBlock.id ? updatedBlock : b
+                            );
+                            updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-4 right-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                        onClick={() => setRightPanelVisible(false)}
+                        title="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 rounded-l-lg lg:flex hidden"
+                onClick={() => setRightPanelVisible(true)}
+                title="Show element settings"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
             )}
             
-            {/* Right Inspector Toggle Buttons - Desktop */}
-            {!showRightInspector ? (
-              <button
-                className="hidden md:flex fixed top-20 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
-                onClick={() => setShowRightInspector(true)}
-                title="Show Inspector"
+            {/* Mobile button to show right panel */}
+            {!rightPanelVisible && selectedElement && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden fixed right-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
+                onClick={() => setRightPanelVisible(true)}
+                title="Show element settings"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </button>
-            ) : (
-              <button
-                className="hidden md:flex fixed top-20 right-[340px] z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg hover:bg-slate-50 transition-colors items-center justify-center"
-                onClick={() => {
-                  setShowRightInspector(false);
-                  setSelectedElement(null);
-                }}
-                title="Hide Inspector"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
             )}
+            </SortableContext>
 
-            {/* Mobile Right Inspector Toggle */}
-            {selectedElement && (
-              <button
-                className="md:hidden fixed top-4 right-4 z-50 bg-white border border-slate-200 rounded-lg p-2 shadow-lg"
-                onClick={() => {
-                  const inspector = document.getElementById('mobile-right-inspector');
-                  inspector?.classList.toggle('hidden');
-                }}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </button>
-            )}
-
-            {/* Mobile Right Inspector */}
-            {selectedElement && (
-              <div id="mobile-right-inspector" className="md:hidden fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-slate-200 shadow-xl transform transition-transform overflow-hidden flex flex-col">
-                <RightInspector
-                  selectedElement={selectedElement}
-                  currentStep={walkthrough.steps[currentStepIndex]}
-                  onUpdate={(updates) => {
-                    if (walkthrough.steps[currentStepIndex]) {
-                      updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                    }
-                  }}
-                  onDeleteStep={() => {
-                    if (walkthrough.steps[currentStepIndex]) {
-                      deleteStep(walkthrough.steps[currentStepIndex].id);
-                    }
-                  }}
-                  onUpdateBlock={(updatedBlock) => {
-                    if (walkthrough.steps[currentStepIndex]) {
-                      const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
-                        b.id === updatedBlock.id ? updatedBlock : b
-                      );
-                      updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
-                    }
-                  }}
-                  onClose={() => {
-                    setSelectedElement(null);
-                    document.getElementById('mobile-right-inspector')?.classList.add('hidden');
-                  }}
-                />
-              </div>
-            )}
-          </SortableContext>
-          <DragOverlay>
+            <DragOverlay>
               {activeStepId ? (
                 <div className="px-4 py-3 rounded-xl bg-primary text-white shadow-lg max-w-[240px]">
                   <div className="text-xs font-medium mb-1">Move step</div>

@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
-import ServerWakeUpLoader from '../components/ServerWakeUpLoader';
 
 const SignupPage = () => {
   const [name, setName] = useState('');
@@ -18,7 +17,6 @@ const SignupPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking'); // 'checking', 'ready', 'sleeping', 'error'
-  const [showWakeUpLoader, setShowWakeUpLoader] = useState(false);
   const statusRef = useRef('checking');
   const { signup } = useAuth();
   const { getSizeClass } = useTextSize();
@@ -115,7 +113,6 @@ const SignupPage = () => {
             console.log('[Health Check] Server is ready!');
             statusRef.current = 'ready';
             setBackendStatus('ready');
-            setShowWakeUpLoader(false); // Hide loading screen
           } else {
             console.log('[Health Check] Unexpected status:', response.data);
             statusRef.current = 'error';
@@ -144,7 +141,6 @@ const SignupPage = () => {
           console.log('[Health Check] Server appears to be sleeping/unavailable');
           statusRef.current = 'sleeping';
           setBackendStatus('sleeping');
-          setShowWakeUpLoader(true); // Show professional loading screen
         } else {
           console.log('[Health Check] Other error, setting to error state');
           statusRef.current = 'error';
@@ -189,18 +185,8 @@ const SignupPage = () => {
     }
   };
 
-  const handleServerReady = () => {
-    setShowWakeUpLoader(false);
-    setBackendStatus('ready');
-  };
-
   return (
-    <>
-      <ServerWakeUpLoader 
-        isVisible={showWakeUpLoader} 
-        onServerReady={handleServerReady}
-      />
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white flex items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -328,7 +314,6 @@ const SignupPage = () => {
         </div>
       </motion.div>
     </div>
-    </>
   );
 };
 

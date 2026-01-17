@@ -24,20 +24,11 @@ import cloudinary.api
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection - use connection timeout to prevent blocking
+# MongoDB connection
 mongo_uri = os.environ.get("MONGO_URI") or os.environ.get("MONGO_URL")
 if not mongo_uri:
     raise RuntimeError("Missing MongoDB connection string. Set MONGO_URI.")
-
-# Create client with connection timeout to prevent blocking startup
-# serverSelectionTimeoutMS: How long to wait for server selection
-# connectTimeoutMS: How long to wait for initial connection
-client = AsyncIOMotorClient(
-    mongo_uri,
-    serverSelectionTimeoutMS=5000,  # 5 seconds max for server selection
-    connectTimeoutMS=5000,  # 5 seconds max for initial connection
-    socketTimeoutMS=30000  # 30 seconds for socket operations
-)
+client = AsyncIOMotorClient(mongo_uri)
 
 db_name = os.environ.get("DB_NAME", "guide2026")
 db = client[db_name]
@@ -60,14 +51,6 @@ CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
 
 USE_CLOUDINARY = all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
 
-# CRITICAL: Log Cloudinary configuration status at startup
-logging.info("=" * 60)
-logging.info("Cloudinary Configuration Check:")
-logging.info(f"  CLOUDINARY_CLOUD_NAME: {'SET' if CLOUDINARY_CLOUD_NAME else 'NOT SET'}")
-logging.info(f"  CLOUDINARY_API_KEY: {'SET' if CLOUDINARY_API_KEY else 'NOT SET'}")
-logging.info(f"  CLOUDINARY_API_SECRET: {'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
-logging.info(f"  USE_CLOUDINARY: {USE_CLOUDINARY}")
-
 if USE_CLOUDINARY:
     cloudinary.config(
         cloud_name=CLOUDINARY_CLOUD_NAME,
@@ -75,12 +58,9 @@ if USE_CLOUDINARY:
         api_secret=CLOUDINARY_API_SECRET,
         secure=True  # Use HTTPS
     )
-    logging.info("✓ Cloudinary configured for persistent file storage - ALL uploads will go to Cloudinary")
-    logging.info(f"  Cloud name: {CLOUDINARY_CLOUD_NAME}")
+    logging.info("Cloudinary configured for persistent file storage")
 else:
-    logging.error("✗ Cloudinary NOT configured - files will be stored locally and LOST on redeployment!")
-    logging.error("  Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables")
-logging.info("=" * 60)
+    logging.warning("Cloudinary not configured - using local storage (files will be lost on redeployment)")
 
 # Mount uploads directory under /api/uploads (fallback for local storage)
 UPLOAD_DIR = Path(os.environ.get('UPLOAD_DIR', str(ROOT_DIR / "uploads")))
@@ -137,7 +117,6 @@ class WorkspaceCreate(BaseModel):
     portal_palette: Optional[Dict[str, str]] = None  # e.g., {"primary": "#3b82f6", "secondary": "#8b5cf6", "accent": "#10b981"}
     portal_links: Optional[List[Dict[str, str]]] = None  # e.g., [{"label": "Website", "url": "https://example.com"}, {"label": "Support", "url": "https://support.example.com"}]
     portal_phone: Optional[str] = None
-    portal_working_days: Optional[str] = None
     portal_working_hours: Optional[str] = None
     portal_whatsapp: Optional[str] = None
 
@@ -610,100 +589,30 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     
-    # CRITICAL: Log media_url and blocks from database BEFORE any processing
-    import logging
-    logger = logging.getLogger(__name__)
-    if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
-        logger.info(f"[get_walkthrough] Raw data from database - Step media_url and blocks:")
-        for i, step in enumerate(walkthrough["steps"][:5]):  # Log first 5 steps
-            blocks = step.get('blocks', [])
-            blocks_count = len(blocks) if isinstance(blocks, list) else 0
-            image_blocks = [b for b in blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')] if isinstance(blocks, list) else []
-            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}, blocks_count={blocks_count}, image_blocks_with_urls={len(image_blocks)}")
-            if image_blocks:
-                for img_block in image_blocks:
-                    logger.info(f"[get_walkthrough]     Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
-    
     # CRITICAL: Ensure icon_url exists
     if "icon_url" not in walkthrough:
         walkthrough["icon_url"] = None
     
     # CRITICAL: Ensure all steps have blocks array initialized with proper structure
-    # CRITICAL: Also ensure media_url and media_type are preserved from database
     if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
         for step in walkthrough["steps"]:
-            # CRITICAL: Preserve media_url and media_type from database - don't overwrite with None
-            # Only set to None if completely missing
-            if "media_url" not in step:
-                step["media_url"] = None
-            if "media_type" not in step:
-                step["media_type"] = None
-            
             if "blocks" not in step or step["blocks"] is None:
                 step["blocks"] = []
             if not isinstance(step.get("blocks"), list):
                 step["blocks"] = []
             # CRITICAL: Ensure each block has proper structure (data, settings, type, id)
-            # IMPORTANT: Preserve existing block data - only add missing fields, never overwrite
             for block in step["blocks"]:
                 if isinstance(block, dict):
-                    # CRITICAL: Preserve existing data - only create empty dict if key is completely missing
-                    # If data exists but is None, convert to empty dict to preserve structure
                     if "data" not in block:
                         block["data"] = {}
-                    elif block.get("data") is None:
-                        block["data"] = {}
-                    # CRITICAL: Preserve existing settings - only create empty dict if key is completely missing
                     if "settings" not in block:
                         block["settings"] = {}
-                    elif block.get("settings") is None:
-                        block["settings"] = {}
-                    # CRITICAL: Preserve existing type - only set default if completely missing
                     if "type" not in block:
                         block["type"] = "text"
-                    # CRITICAL: Preserve existing id - only generate if completely missing
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
-                    
-                    # CRITICAL: Log image blocks to verify URLs are preserved
-                    if block.get("type") == "image":
-                        block_url = block.get("data", {}).get("url") if isinstance(block.get("data"), dict) else None
-                        if block_url:
-                            logger.info(f"[get_walkthrough] Preserved image block {block.get('id')} with URL: {block_url}")
-                        else:
-                            logger.warning(f"[get_walkthrough] WARNING - Image block {block.get('id')} has NO URL after processing!")
     
-    # CRITICAL: Log media_url and blocks AFTER processing but BEFORE Pydantic validation
-    if "steps" in walkthrough and isinstance(walkthrough["steps"], list):
-        logger.info(f"[get_walkthrough] After processing - Step media_url and blocks:")
-        for i, step in enumerate(walkthrough["steps"][:5]):  # Log first 5 steps
-            blocks = step.get('blocks', [])
-            blocks_count = len(blocks) if isinstance(blocks, list) else 0
-            image_blocks = [b for b in blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')] if isinstance(blocks, list) else []
-            logger.info(f"[get_walkthrough]   Step {i} (id={step.get('id')}): media_url={step.get('media_url')}, media_type={step.get('media_type')}, blocks_count={blocks_count}, image_blocks_with_urls={len(image_blocks)}")
-            if image_blocks:
-                for img_block in image_blocks:
-                    logger.info(f"[get_walkthrough]     Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
-    
-    result = Walkthrough(**walkthrough)
-    
-    # CRITICAL: Log media_url and blocks AFTER Pydantic validation
-    if result.steps:
-        logger.info(f"[get_walkthrough] After Pydantic - Step media_url and blocks:")
-        for i, step in enumerate(result.steps[:5]):  # Log first 5 steps
-            blocks = step.blocks if hasattr(step, 'blocks') else []
-            blocks_count = len(blocks) if isinstance(blocks, list) else 0
-            image_blocks = [b for b in blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')] if isinstance(blocks, list) else []
-            logger.info(f"[get_walkthrough]   Step {i} (id={step.id}): media_url={step.media_url}, media_type={step.media_type}, blocks_count={blocks_count}, image_blocks_with_urls={len(image_blocks)}")
-            if image_blocks:
-                for img_block in image_blocks:
-                    logger.info(f"[get_walkthrough]     Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
-            
-            # CRITICAL: Check if blocks were lost during Pydantic validation
-            if blocks_count == 0 and i == 0:  # Check first step
-                logger.warning(f"[get_walkthrough] WARNING - Step {step.id} has 0 blocks after Pydantic validation!")
-    
-    return result
+    return Walkthrough(**walkthrough)
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
 async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(get_current_user)):
@@ -715,10 +624,7 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
     if not existing:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
-    # CRITICAL: Don't use exclude_none=True as it removes None fields
-    # We need to preserve None values for fields like icon_url, password_hash, etc.
-    # Use model_dump() without exclude_none to preserve all fields
-    update_data = walkthrough_data.model_dump()
+    update_data = walkthrough_data.model_dump(exclude_none=True)
     
     # CRITICAL: Preserve icon_url if it's not being updated (don't overwrite with None)
     if "icon_url" not in update_data or update_data.get("icon_url") is None:
@@ -1309,16 +1215,7 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         order=insert_at
     )
 
-    # CRITICAL: Use model_dump() WITHOUT exclude_none to preserve None values
-    # exclude_none=True would remove media_url/media_type if they're None, causing them to be lost
-    step_dict = step.model_dump()
-    # CRITICAL: Explicitly ensure media_url and media_type are in the dict, even if None
-    step_dict['media_url'] = step_data.media_url
-    step_dict['media_type'] = step_data.media_type
-    
-    logger.info(f"[add_step] Adding step with media_url={step_dict.get('media_url')}, media_type={step_dict.get('media_type')}")
-    
-    steps.insert(insert_at, step_dict)
+    steps.insert(insert_at, step.model_dump())
     # Re-number orders
     for idx, s in enumerate(steps):
         s["order"] = idx
@@ -1428,137 +1325,25 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
         for block in image_blocks_without_urls:
             logger.warning(f"[update_step] Block {block.get('id')} missing URL: {block}")
     
-    # CRITICAL: Preserve existing media_url and media_type if None is provided
-    # Frontend now ALWAYS sends media_url/media_type (either the value or null)
-    # If None is sent, it means "preserve existing" (not "clear it")
-    existing_step = steps[step_index]
-    existing_media_url = existing_step.get('media_url')
-    existing_media_type = existing_step.get('media_type')
-    
-    # CRITICAL: Handle media_url/media_type preservation
-    # If media_url is None in request, preserve existing (frontend sends None to mean "don't change")
-    # If media_url is empty string "", use it (explicitly cleared by user)
-    # If media_url is a non-empty string, use it (explicitly set)
-    # This ensures newly added media_url values are preserved
-    if step_data.media_url is None:
-        # Frontend sent None to mean "preserve existing"
-        final_media_url = existing_media_url
-    elif step_data.media_url == '':
-        # Frontend sent empty string to mean "clear it"
-        final_media_url = None
-    else:
-        # Frontend sent a value (non-empty string) - use it
-        final_media_url = step_data.media_url
-    
-    if step_data.media_type is None:
-        final_media_type = existing_media_type
-    elif step_data.media_type == '':
-        final_media_type = None
-    else:
-        final_media_type = step_data.media_type
-    
-    logger.info(f"[update_step] Step {step_id}: Media URL - existing: {existing_media_url}, provided: {step_data.media_url}, final: {final_media_url}")
-    logger.info(f"[update_step] Step {step_id}: Media TYPE - existing: {existing_media_type}, provided: {step_data.media_type}, final: {final_media_type}")
-    
-    # CRITICAL: Build the complete step dict from scratch to ensure all fields are preserved
-    # Include ALL fields from existing step, then override with new values
-    existing_step_full = steps[step_index].copy()  # Get all existing fields to preserve any we might miss
-    
-    # CRITICAL: Build step dict ensuring media_url/media_type and blocks are ALWAYS present
-    # Even if None/empty, we must include them so MongoDB doesn't remove the field
-    # Start with existing fields, then override with new values
-    new_step_dict = {
-        'id': existing_step_full.get('id'),
+    updated_step = {
         'title': step_data.title,
         'content': step_data.content,
+        'media_url': step_data.media_url,
+        'media_type': step_data.media_type,
         'navigation_type': step_data.navigation_type,
         'common_problems': [p.model_dump() for p in step_data.common_problems],
-        # CRITICAL: Always explicitly set blocks, even if empty array
-        # MongoDB will preserve empty arrays if we explicitly set them
-        'blocks': new_blocks if isinstance(new_blocks, list) else [],
-        'order': existing_step_full.get('order', step_index),  # Preserve order
-        # CRITICAL: Always explicitly set media_url and media_type, even if None
-        # MongoDB will preserve None values if we explicitly set them
-        # If we don't include them, MongoDB removes the field entirely
-        'media_url': final_media_url,  # Explicitly set (could be None, empty string, or URL)
-        'media_type': final_media_type  # Explicitly set (could be None, empty string, or type)
+        'blocks': new_blocks  # Always ensure it's a list with proper structure
     }
+    # Ensure blocks is always a list, never None
+    if not isinstance(updated_step['blocks'], list):
+        updated_step['blocks'] = []
     
-    # CRITICAL: Verify blocks are in the dict before saving
-    blocks_count = len(new_step_dict.get('blocks', []))
-    image_blocks_count = len([b for b in new_step_dict.get('blocks', []) if isinstance(b, dict) and b.get('type') == 'image'])
-    logger.info(f"[update_step] Step {step_id}: Before save - blocks count: {blocks_count}, image blocks: {image_blocks_count}")
+    steps[step_index].update(updated_step)
     
-    steps[step_index] = new_step_dict
-    
-    # CRITICAL: Double-check media_url is in the dict before saving
-    if 'media_url' not in steps[step_index]:
-        logger.error(f"[update_step] CRITICAL - media_url key is missing from step dict before save!")
-        steps[step_index]['media_url'] = final_media_url
-    if 'media_type' not in steps[step_index]:
-        logger.error(f"[update_step] CRITICAL - media_type key is missing from step dict before save!")
-        steps[step_index]['media_type'] = final_media_type
-    
-    # CRITICAL: Verify before saving to database
-    logger.info(f"[update_step] Step {step_id}: Before DB save - media_url={steps[step_index].get('media_url')}, media_type={steps[step_index].get('media_type')}, has_media_url_key={'media_url' in steps[step_index]}")
-    
-    # CRITICAL: Use $set with explicit field paths to ensure media_url is always included
-    # This prevents MongoDB from removing fields that are None
-    # We set the entire steps array, which ensures all fields are preserved
     await db.walkthroughs.update_one(
-        {"id": walkthrough_id, "workspace_id": workspace_id},
-        {
-            "$set": {
-                "steps": steps,  # Replace entire steps array to ensure all fields are preserved
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }
-        }
+        {"id": walkthrough_id},
+        {"$set": {"steps": steps, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
-    
-    # CRITICAL: Verify after saving by reading back from database
-    # Wait a moment for write to complete
-    import asyncio
-    await asyncio.sleep(0.2)  # Increased wait time for deployment scenarios
-    
-    verify_walkthrough = await db.walkthroughs.find_one(
-        {"id": walkthrough_id, "workspace_id": workspace_id},
-        {"_id": 0}
-    )
-    if verify_walkthrough and verify_walkthrough.get("steps"):
-        verified_step = next((s for s in verify_walkthrough["steps"] if s.get("id") == step_id), None)
-        if verified_step:
-            verified_media_url = verified_step.get('media_url')
-            verified_media_type = verified_step.get('media_type')
-            verified_blocks = verified_step.get('blocks', [])
-            verified_blocks_count = len(verified_blocks) if isinstance(verified_blocks, list) else 0
-            verified_image_blocks = [b for b in verified_blocks if isinstance(b, dict) and b.get('type') == 'image' and b.get('data', {}).get('url')]
-            
-            logger.info(f"[update_step] Step {step_id}: After DB save - media_url={verified_media_url}, media_type={verified_media_type}, blocks_count={verified_blocks_count}, image_blocks_with_urls={len(verified_image_blocks)}")
-            
-            # CRITICAL: Check if media_url is missing from database (not just None)
-            if 'media_url' not in verified_step:
-                logger.error(f"[update_step] Step {step_id}: CRITICAL - media_url field is MISSING from database document!")
-            elif verified_media_url != final_media_url:
-                logger.error(f"[update_step] Step {step_id}: CRITICAL - media_url mismatch! Expected: {final_media_url}, Got: {verified_media_url}")
-            else:
-                logger.info(f"[update_step] Step {step_id}: ✓ media_url verified in database: {verified_media_url}")
-            
-            # CRITICAL: Verify blocks are preserved
-            if verified_blocks_count != blocks_count:
-                logger.error(f"[update_step] Step {step_id}: CRITICAL - blocks count mismatch! Expected: {blocks_count}, Got: {verified_blocks_count}")
-            elif not isinstance(verified_blocks, list):
-                logger.error(f"[update_step] Step {step_id}: CRITICAL - blocks is not a list in database! Got: {type(verified_blocks)}")
-            else:
-                logger.info(f"[update_step] Step {step_id}: ✓ blocks verified in database: {verified_blocks_count} blocks, {len(verified_image_blocks)} image blocks with URLs")
-                
-                # Log image block URLs for debugging
-                if verified_image_blocks:
-                    for img_block in verified_image_blocks:
-                        logger.info(f"[update_step] Step {step_id}: Image block {img_block.get('id')} URL: {img_block.get('data', {}).get('url')}")
-        else:
-            logger.warning(f"[update_step] Step {step_id}: Could not find step in database after save")
-    else:
-        logger.warning(f"[update_step] Step {step_id}: Could not find walkthrough in database after save")
     
     logger.info(f"[update_step] Step {step_id}: Successfully saved to database")
     return steps[step_index]
@@ -1594,22 +1379,10 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
 
     steps = walkthrough.get("steps", [])
     step_map = {s["id"]: s for s in steps if "id" in s}
-    
-    # CRITICAL: Deep copy steps to avoid mutating the original step_map
-    # This ensures we don't accidentally modify the source data
-    import copy
-    step_map_copy = {sid: copy.deepcopy(step) for sid, step in step_map.items()}
-    
-    # CRITICAL: Log all step media_url values before reordering to track what we're working with
-    logger.info(f"[reorder_steps] Before reorder - Step media_url values:")
-    for sid, step in step_map_copy.items():
-        logger.info(f"[reorder_steps]   Step {sid}: media_url={step.get('media_url')}, media_type={step.get('media_type')}")
-    
     # Only allow reordering of existing step ids
-    ordered = [step_map_copy[sid] for sid in body.step_ids if sid in step_map_copy]
+    ordered = [step_map[sid] for sid in body.step_ids if sid in step_map]
     
     # CRITICAL: Ensure all steps have blocks array before reordering with proper structure
-    # CRITICAL: Also preserve media_url and media_type fields - NEVER overwrite existing values
     for step in ordered:
         if "blocks" not in step or step["blocks"] is None:
             step["blocks"] = []
@@ -1626,23 +1399,11 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
                     block["type"] = "text"
                 if "id" not in block:
                     block["id"] = str(uuid.uuid4())
-        
-        # CRITICAL: Only set media_url/media_type to None if they're completely missing
-        # DO NOT overwrite existing values (even if they're None - preserve the existing None)
-        # This prevents losing media_url during reordering
-        if "media_url" not in step:
-            step["media_url"] = None
-        if "media_type" not in step:
-            step["media_type"] = None
-        
-        # Log to track media_url preservation during reorder
-        logger.info(f"[reorder_steps] Step {step.get('id')}: media_url={step.get('media_url')}, media_type={step.get('media_type')}")
     
     if len(ordered) != len(steps):
         # If mismatch, keep any missing steps at the end (stable)
-        missing = [copy.deepcopy(s) for s in steps if s.get("id") not in set(body.step_ids)]
+        missing = [s for s in steps if s.get("id") not in set(body.step_ids)]
         # CRITICAL: Ensure missing steps also have blocks array with proper structure
-        # CRITICAL: Preserve media_url and media_type for missing steps too
         for step in missing:
             if "blocks" not in step or step["blocks"] is None:
                 step["blocks"] = []
@@ -1657,34 +1418,17 @@ async def reorder_steps(workspace_id: str, walkthrough_id: str, body: StepsReord
                         block["type"] = "text"
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
-            
-            # Preserve media_url and media_type for missing steps
-            if "media_url" not in step:
-                step["media_url"] = None
-            if "media_type" not in step:
-                step["media_type"] = None
-            
-            logger.info(f"[reorder_steps] Missing step {step.get('id')}: media_url={step.get('media_url')}, media_type={step.get('media_type')}")
-        
+        ordered.extend(missing)
         ordered.extend(missing)
 
-    # Update order fields ONLY - preserve all other fields
+    # Update order fields
     for idx, s in enumerate(ordered):
         s["order"] = idx
-    
-    # CRITICAL: Log all step media_url values after reordering to verify preservation
-    logger.info(f"[reorder_steps] After reorder - Step media_url values:")
-    for s in ordered:
-        logger.info(f"[reorder_steps]   Step {s.get('id')}: media_url={s.get('media_url')}, media_type={s.get('media_type')}")
 
-    # CRITICAL: Use $set with only the steps array to preserve all step fields
-    # This ensures media_url, media_type, and all other fields are preserved
     await db.walkthroughs.update_one(
         {"id": walkthrough_id, "workspace_id": workspace_id},
         {"$set": {"steps": ordered, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
-    
-    logger.info(f"[reorder_steps] Successfully reordered {len(ordered)} steps")
     return {"message": "Steps reordered"}
 
 # Public Portal Routes
@@ -1705,8 +1449,6 @@ async def get_portal(slug: str):
         workspace["portal_links"] = None
     if "portal_phone" not in workspace:
         workspace["portal_phone"] = None
-    if "portal_working_days" not in workspace:
-        workspace["portal_working_days"] = None
     if "portal_working_hours" not in workspace:
         workspace["portal_working_hours"] = None
     if "portal_whatsapp" not in workspace:
@@ -1846,7 +1588,6 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
 # Media Upload Route
 @api_router.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
-    logger = logging.getLogger(__name__)
     file_extension = Path(file.filename).suffix.lower()
     file_id = str(uuid.uuid4())
     
@@ -1866,13 +1607,7 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
     elif file_extension in ['.pdf', '.doc', '.docx', '.txt']:
         resource_type = "raw"
     
-    # CRITICAL: If Cloudinary is configured, we MUST use it - never fall back to local storage
-    # Local storage is ephemeral and files will be lost on redeployment
-    logger = logging.getLogger(__name__)
-    
-    # CRITICAL: Verify Cloudinary configuration before attempting upload
     if USE_CLOUDINARY:
-        logger.info(f"[upload_file] Cloudinary configured, uploading file: {file.filename} ({file_size} bytes, type: {resource_type})")
         # Upload to Cloudinary (persistent storage)
         try:
             # Prepare upload parameters with optimization
@@ -1893,20 +1628,23 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
                     "fetch_format": "auto"
                 })
             elif resource_type == "video":
-                # Video optimization: lighter settings for faster loading
-                # Let Cloudinary optimize automatically without strict bitrate limits
+                # Video optimization: auto format, quality, and size limits
                 upload_params.update({
                     "format": "auto",  # Auto MP4/WebM when supported
                     "quality": "auto:good",  # Good quality with auto optimization
                     "fetch_format": "auto",
-                    "video_codec": "auto"  # Auto codec selection
-                    # Removed bitrate limits for faster delivery - Cloudinary will optimize automatically
+                    "video_codec": "auto",  # Auto codec selection
+                    "bit_rate": "1m",  # Limit bitrate for smaller files
+                    "max_video_bitrate": 1000000,  # 1Mbps max
                 })
-                # Don't force eager conversion for GIFs - let Cloudinary serve optimized format on-demand
-                # This reduces initial upload time and allows Cloudinary to cache optimized versions
+                # For GIFs uploaded as video, add specific optimizations
+                if file_extension == '.gif':
+                    upload_params.update({
+                        "eager": "f_mp4",  # Generate MP4 version immediately
+                        "eager_async": False
+                    })
             
             # Upload file to Cloudinary
-            logger.info(f"[upload_file] Uploading to Cloudinary: {file_id} ({resource_type})")
             upload_result = cloudinary.uploader.upload(
                 file_content,
                 **upload_params
@@ -1914,10 +1652,6 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
             
             # Return Cloudinary URL
             secure_url = upload_result.get('secure_url') or upload_result.get('url')
-            if not secure_url:
-                raise ValueError("Cloudinary upload succeeded but no URL returned")
-            
-            logger.info(f"[upload_file] Successfully uploaded to Cloudinary: {secure_url}")
             return {
                 "url": secure_url,
                 "public_id": upload_result.get('public_id'),
@@ -1927,122 +1661,61 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
                 "bytes": upload_result.get('bytes')
             }
         except Exception as e:
-            logger.error(f"[upload_file] Cloudinary upload failed: {str(e)}", exc_info=True)
-            # CRITICAL: Only fallback to local storage if Cloudinary is truly unavailable
-            # If Cloudinary is configured, we should NOT fall back - this causes data loss
-            if USE_CLOUDINARY:
-                # Cloudinary is configured but upload failed - this is a critical error
-                # Don't silently fall back, raise the error so user knows
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"File upload to Cloudinary failed: {str(e)}. Please try again."
-                )
-            # Cloudinary not configured - fallback to local storage is OK (development only)
-            logger.warning("[upload_file] Cloudinary not configured, falling back to local storage (WARNING: files will be lost on redeployment)")
-    else:
-        # Cloudinary is NOT configured - warn but allow local storage for development
-        logger.warning(f"[upload_file] Cloudinary NOT configured (USE_CLOUDINARY={USE_CLOUDINARY}). Files will be stored locally and LOST on redeployment!")
-        logger.warning(f"[upload_file] Cloudinary config check: CLOUDINARY_CLOUD_NAME={'SET' if CLOUDINARY_CLOUD_NAME else 'NOT SET'}, CLOUDINARY_API_KEY={'SET' if CLOUDINARY_API_KEY else 'NOT SET'}, CLOUDINARY_API_SECRET={'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
+            logging.error(f"Cloudinary upload failed: {str(e)}")
+            # Fallback to local storage if Cloudinary fails
+            logging.warning("Falling back to local storage")
     
-    # Fallback: Local storage (ONLY for development when Cloudinary is NOT configured)
-    # CRITICAL: This should NEVER happen if Cloudinary is configured (see error above)
-    logger.warning(f"[upload_file] Using local storage fallback for file: {file_id}{file_extension}")
+    # Fallback: Local storage (for development or if Cloudinary fails)
     file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
     with file_path.open("wb") as buffer:
         buffer.write(file_content)
     
     # Return relative URL for local storage
-    local_url = f"/api/media/{file_id}{file_extension}"
-    logger.warning(f"[upload_file] WARNING: File stored locally at {local_url} - this will be LOST on redeployment!")
-    return {"url": local_url}
+    return {"url": f"/api/media/{file_id}{file_extension}"}
 
 # Media serving route (fallback for local storage)
 # Note: If using Cloudinary, files are served directly from Cloudinary CDN
 # This route is only used for local storage fallback
 @api_router.get("/media/{filename}")
 async def get_media(filename: str):
-    logger = logging.getLogger(__name__)
-    
     if USE_CLOUDINARY:
         # If Cloudinary is configured, try to serve from Cloudinary
         # This is a fallback - normally Cloudinary URLs are used directly
         try:
-            # CRITICAL: Remove extension to get public_id
-            public_id = filename.rsplit('.', 1)[0]  # e.g., "e16eaeac-2956-4735-80da-418a00b5c8a3"
-            # CRITICAL: Files are stored in "guide2026" folder, so include folder in public_id
-            public_id_with_folder = f"guide2026/{public_id}"
-            
-            # Try with folder first (most common case)
-            try:
-                resource = cloudinary.api.resource(public_id_with_folder, resource_type='auto')
-                # Get the secure URL from Cloudinary
-                secure_url = resource.get('secure_url') or resource.get('url')
-                if secure_url:
-                    logger.info(f"[get_media] Found file in Cloudinary with folder: {public_id_with_folder}, redirecting to: {secure_url}")
-                    # Use 307 (Temporary Redirect) to preserve method and ensure browser follows redirect
-                    from fastapi.responses import RedirectResponse
-                    return RedirectResponse(url=secure_url, status_code=307)
-                else:
-                    logger.warning(f"[get_media] Cloudinary resource found but no URL: {public_id_with_folder}")
-            except cloudinary.exceptions.NotFound:
-                logger.warning(f"[get_media] File not found in Cloudinary with folder: {public_id_with_folder}")
-                raise  # Re-raise to try without folder
-            except (cloudinary.exceptions.NotFound, Exception) as e1:
-                # If not found with folder, try without folder (backward compatibility)
-                logger.warning(f"[get_media] Cloudinary lookup with folder failed for {public_id_with_folder}, trying without folder: {e1}")
-                try:
-                    resource = cloudinary.api.resource(public_id, resource_type='auto')
-                    secure_url = resource.get('secure_url') or resource.get('url')
-                    if secure_url:
-                        logger.info(f"[get_media] Found file in Cloudinary without folder: {public_id}, redirecting to: {secure_url}")
-                        from fastapi.responses import RedirectResponse
-                        return RedirectResponse(url=secure_url, status_code=307)
-                    else:
-                        logger.warning(f"[get_media] Cloudinary resource found but no URL: {public_id}")
-                except (cloudinary.exceptions.NotFound, Exception) as e2:
-                    logger.warning(f"[get_media] Cloudinary lookup without folder also failed for {public_id}: {e2}")
-                    # Fall through to local storage
-        except Exception as e:
-            # If Cloudinary lookup fails completely, try local storage
-            logger.warning(f"[get_media] Cloudinary media lookup failed: {e}")
+            public_id = filename.rsplit('.', 1)[0]  # Remove extension
+            resource = cloudinary.api.resource(public_id)
+            # Redirect to Cloudinary URL
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=resource.get('secure_url') or resource.get('url'))
+        except Exception:
+            # If not found in Cloudinary, try local storage
             pass
     
     # Local storage fallback
     file_path = UPLOAD_DIR / filename
     if not file_path.exists():
-        logger.error(f"[get_media] File not found in local storage: {filename}")
-        raise HTTPException(status_code=404, detail=f"File not found: {filename}")
-    logger.info(f"[get_media] Serving file from local storage: {filename}")
+        raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
 
 # Health check endpoint (no auth required)
 # Available at both /health and /api/health for flexibility
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring and load balancers - must be fast"""
-    # Don't check database here - just return immediately
-    # This ensures Render's health check doesn't timeout
-    return JSONResponse(
-        content={
-            "status": "healthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "cloudinary_configured": USE_CLOUDINARY
-        },
-        status_code=200
-    )
+    """Health check endpoint for monitoring and load balancers"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "cloudinary_configured": USE_CLOUDINARY
+    }
 
 @api_router.get("/health")
 async def health_check_api():
-    """Health check endpoint under /api prefix - must be fast"""
-    # Don't check database here - just return immediately
-    return JSONResponse(
-        content={
-            "status": "healthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "cloudinary_configured": USE_CLOUDINARY
-        },
-        status_code=200
-    )
+    """Health check endpoint under /api prefix"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "cloudinary_configured": USE_CLOUDINARY
+    }
 
 # CORS - MUST be added BEFORE router to handle preflight requests
 # IMPORTANT: If allow_credentials=True, you cannot use allow_origins=["*"].
@@ -2169,18 +1842,6 @@ async def global_exception_handler(request: Request, exc: Exception):
             "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
         }
     )
-
-@app.on_event("startup")
-async def startup_db_client():
-    """Verify MongoDB connection on startup (non-blocking)"""
-    try:
-        # Ping the database to verify connection (with timeout)
-        await client.admin.command('ping')
-        logger.info("MongoDB connection verified successfully")
-    except Exception as e:
-        logger.warning(f"MongoDB connection check failed (will retry on first request): {e}")
-        # Don't raise - let the app start and retry on first request
-        # This prevents deployment timeouts
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
