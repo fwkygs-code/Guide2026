@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Lightbulb, Video, CheckSquare, AlertCircle, Image, FileText, Link as LinkIcon, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const BuildingTips = () => {
+  const { t } = useTranslation();
   const tips = [
     {
       icon: <Video className="w-5 h-5" />,
@@ -79,7 +81,7 @@ const BuildingTips = () => {
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline mt-2 inline-block"
                     >
-                      Learn more →
+                      {t('builder.learnMore')} →
                     </a>
                   )}
                 </div>

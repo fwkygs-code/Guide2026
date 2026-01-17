@@ -163,7 +163,7 @@ const LeftSidebar = ({ walkthrough, categories, onUpdate, onAddStep, onStepClick
                     }}
                     className="h-8"
                   >
-                    Remove
+                    {t('common.delete')}
                   </Button>
                 </div>
               ) : null}

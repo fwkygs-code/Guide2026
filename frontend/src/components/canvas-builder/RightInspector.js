@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2, Upload, Link as LinkIcon, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, onUpdateBlock, workspaceId, walkthroughId, stepId, onUpgrade }) => {
+  const { t } = useTranslation();
   const [mediaUrl, setMediaUrl] = useState('');
   const [newProblem, setNewProblem] = useState({ title: '', explanation: '' });
   const { canUploadFile } = useQuota(workspaceId);
@@ -155,14 +157,14 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
     return (
       <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
         <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Step Settings</h3>
-          <p className="text-xs text-slate-500">Configure this step</p>
+          <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.stepSettings')}</h3>
+          <p className="text-xs text-slate-500">{t('builder.configureStep')}</p>
         </div>
 
         <div className="p-6 space-y-6">
           {/* Navigation */}
           <div>
-            <Label className="text-xs text-slate-500 mb-2">Navigation Type</Label>
+            <Label className="text-xs text-slate-500 mb-2">{t('builder.navigationType')}</Label>
             <Select
               value={currentStep.navigation_type || 'next_prev'}
               onValueChange={(value) => onUpdate({ navigation_type: value })}
@@ -171,9 +173,9 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="next_prev">Next / Previous</SelectItem>
-                <SelectItem value="checkoff">Check-off Required</SelectItem>
-                <SelectItem value="auto">Auto Advance</SelectItem>
+                <SelectItem value="next_prev">{t('builder.nextPrevious')}</SelectItem>
+                <SelectItem value="checkoff">{t('builder.checkoffRequired')}</SelectItem>
+                <SelectItem value="auto">{t('builder.autoAdvance')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -187,7 +189,7 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             data-testid="delete-step-button"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            Delete Step
+            {t('builder.deleteStep')}
           </Button>
         </div>
       </div>
@@ -199,13 +201,13 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
     return (
       <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full" style={{ maxHeight: '100%', height: '100%' }}>
         <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Media</h3>
-          <p className="text-xs text-slate-500">Replace or remove media</p>
+          <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.media')}</h3>
+          <p className="text-xs text-slate-500">{t('builder.replaceOrRemoveMedia')}</p>
         </div>
 
         <div className="p-6 space-y-6">
           <div>
-            <Label className="mb-2">Upload New</Label>
+            <Label className="mb-2">{t('builder.uploadNew')}</Label>
             <Input
               type="file"
               accept="image/*,video/*,.gif"
@@ -217,10 +219,10 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
             />
           </div>
 
-          <div className="text-center text-xs text-slate-500">or</div>
+          <div className="text-center text-xs text-slate-500">{t('common.or')}</div>
 
           <div>
-            <Label className="mb-2">URL</Label>
+            <Label className="mb-2">{t('builder.url')}</Label>
             <div className="flex gap-2">
               <Input
                 value={mediaUrl}
@@ -252,18 +254,18 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
     return (
       <div className="w-80 border-l border-slate-200 bg-white overflow-y-auto h-full">
         <div className="p-6 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Content</h3>
-          <p className="text-xs text-slate-500">Text formatting options</p>
+          <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('builder.content')}</h3>
+          <p className="text-xs text-slate-500">{t('builder.textFormattingOptions')}</p>
         </div>
 
         <div className="p-6 space-y-4">
           <p className="text-sm text-slate-600">
-            Edit text directly in the canvas. Use keyboard shortcuts:
+            {t('builder.editTextDirectly')}
           </p>
           <div className="space-y-2 text-xs text-slate-500">
-            <div><kbd className="px-2 py-1 bg-gray-100/80 backdrop-blur-sm rounded-lg">Ctrl+B</kbd> Bold</div>
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded">Ctrl+I</kbd> Italic</div>
-            <div><kbd className="px-2 py-1 bg-slate-100 rounded">Ctrl+U</kbd> Underline</div>
+            <div><kbd className="px-2 py-1 bg-gray-100/80 backdrop-blur-sm rounded-lg">Ctrl+B</kbd> {t('builder.bold')}</div>
+            <div><kbd className="px-2 py-1 bg-slate-100 rounded">Ctrl+I</kbd> {t('builder.italic')}</div>
+            <div><kbd className="px-2 py-1 bg-slate-100 rounded">Ctrl+U</kbd> {t('builder.underline')}</div>
           </div>
 
           <div className="pt-4 border-t">
@@ -318,23 +320,23 @@ const RightInspector = ({ selectedElement, currentStep, onUpdate, onDeleteStep, 
 
           {/* Add New Problem */}
           <div className="space-y-3">
-            <Label className="text-xs">Add New Problem</Label>
+            <Label className="text-xs">{t('builder.addNewProblem')}</Label>
             <Input
               value={newProblem.title}
               onChange={(e) => setNewProblem({ ...newProblem, title: e.target.value })}
-              placeholder="Problem title"
+              placeholder={t('builder.problemTitle')}
               className="text-sm"
             />
             <Textarea
               value={newProblem.explanation}
               onChange={(e) => setNewProblem({ ...newProblem, explanation: e.target.value })}
-              placeholder="Solution or explanation"
+              placeholder={t('builder.problemExplanation')}
               rows={3}
               className="text-sm"
             />
             <Button size="sm" onClick={addProblem} className="w-full">
               <Plus className="w-4 h-4 mr-2" />
-              Add Problem
+              {t('builder.addProblem')}
             </Button>
           </div>
         </div>
