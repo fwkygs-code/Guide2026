@@ -45,30 +45,30 @@ const SortableStepItem = ({ step, index, currentStepIndex, onStepClick, onDelete
       >
         <GripVertical className={`w-4 h-4 ${currentStepIndex === index ? 'text-white' : 'text-slate-400'}`} />
       </div>
-              <div className="text-xs font-medium mb-1">Step {index + 1}</div>
-              <div
-                className="text-sm font-semibold max-w-[140px] text-center line-clamp-2"
-                title={step.title}
-              >
-                {step.title}
-              </div>
+      <div className="text-xs font-medium mb-1">Step {index + 1}</div>
+      <div
+        className="text-sm font-semibold max-w-[140px] text-center line-clamp-2"
+        title={step.title}
+      >
+        {step.title}
+      </div>
 
-              {currentStepIndex === index && (
-                <motion.div
-                  layoutId="activeIndicator"
-                  className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-primary rounded-full"
-                />
-              )}
+      {currentStepIndex === index && (
+        <motion.div
+          layoutId="activeIndicator"
+          className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-primary rounded-full"
+        />
+      )}
 
-              {selectMode && (
-                <div className="absolute -top-2 -left-2 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center pointer-events-none">
-                  {selectedIds.has(step.id) ? (
-                    <CheckSquare className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Square className="w-4 h-4 text-slate-400" />
-                  )}
-                </div>
-              )}
+      {selectMode && (
+        <div className="absolute -top-2 -left-2 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center pointer-events-none">
+          {selectedIds.has(step.id) ? (
+            <CheckSquare className="w-4 h-4 text-primary" />
+          ) : (
+            <Square className="w-4 h-4 text-slate-400" />
+          )}
+        </div>
+      )}
 
       {onDeleteStep && (
         <button
