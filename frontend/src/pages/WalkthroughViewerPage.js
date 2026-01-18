@@ -879,6 +879,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           <p className="text-gray-700 relative z-10">{block.data?.explanation}</p>
                         </div>
                       )}
+                      {block.type === 'carousel' && block.data?.slides && block.data.slides.length > 0 && (
+                        <CarouselViewer slides={block.data.slides} />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1159,6 +1162,206 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// Carousel Viewer Component (for end users)
+const CarouselViewer = ({ slides }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
+
+  // Helper functions (defined in parent component scope)
+  const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
+  
+  const optimizeCloudinaryUrl = (url, isVideo = false) => {
+    if (!isCloudinary(url)) return url;
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      const hasVersion = /\/v\d+\//.test(path);
+      const hasTransformations = path.match(/\/[a-z_]+:/);
+      
+      if (hasTransformations) return url;
+      
+      if (isVideo) {
+        const transformations = 'q_auto:good,f_auto,vc_auto,br_1m';
+        if (path.includes('/video/upload/')) {
+          if (hasVersion) {
+            const newPath = path.replace(/(\/video\/upload\/)(v\d+\/)/, `$1${transformations}/$2`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          } else {
+            const newPath = path.replace('/video/upload/', `/video/upload/${transformations}/`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          }
+        }
+      } else {
+        const transformations = 'q_auto:good,f_auto';
+        if (path.includes('/image/upload/')) {
+          if (hasVersion) {
+            const newPath = path.replace(/(\/image\/upload\/)(v\d+\/)/, `$1${transformations}/$2`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          } else {
+            const newPath = path.replace('/image/upload/', `/image/upload/${transformations}/`);
+            return `${urlObj.protocol}//${urlObj.host}${newPath}${urlObj.search}`;
+          }
+        }
+      }
+      return url;
+    } catch (e) {
+      return url;
+    }
+  };
+
+  const normalizeImageUrl = (url) => {
+    if (!url) return null;
+    if (/^https?:\/\//i.test(url)) return url;
+    const rawBase = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
+    const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+    if (url.startsWith('/api/') || url.startsWith('/media/')) {
+      return `${API_BASE.replace(/\/$/, '')}${url}`;
+    }
+    if (url.startsWith('/')) {
+      return `${API_BASE.replace(/\/$/, '')}${url}`;
+    }
+    return url;
+  };
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    }
+    if (isRightSwipe) {
+      setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+    }
+  };
+
+  const goToSlide = (index) => {
+    setCurrentIndex(index);
+  };
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  };
+
+  if (!slides || slides.length === 0) return null;
+
+  const currentSlide = slides[currentIndex];
+  const imageUrl = currentSlide?.url ? normalizeImageUrl(currentSlide.url) : null;
+
+  return (
+    <div className="relative">
+      <div
+        className="relative aspect-video bg-slate-100 rounded-lg overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Navigation Arrows */}
+        {slides.length > 1 && (
+          <>
+            <button
+              onClick={goToPrevious}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="w-5 h-5 text-slate-700" />
+            </button>
+            <button
+              onClick={goToNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="w-5 h-5 text-slate-700" />
+            </button>
+          </>
+        )}
+
+        {/* Slide Content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="w-full h-full"
+          >
+            {imageUrl ? (
+              <>
+                {currentSlide.media_type === 'video' ? (
+                  <video
+                    src={isCloudinary(imageUrl) ? optimizeCloudinaryUrl(imageUrl, true) : imageUrl}
+                    controls
+                    className="w-full h-full object-contain"
+                    autoPlay={false}
+                  />
+                ) : (
+                  <img
+                    src={isCloudinary(imageUrl) ? optimizeCloudinaryUrl(imageUrl, false) : imageUrl}
+                    alt={`Slide ${currentIndex + 1}`}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+                {currentSlide.caption && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white p-4">
+                    <div 
+                      className="prose prose-invert max-w-none text-sm"
+                      dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                <p className="text-sm">No media for this slide</p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Dots Indicator */}
+        {slides.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => goToSlide(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === currentIndex ? 'bg-white w-6' : 'bg-white/60 hover:bg-white/80'
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

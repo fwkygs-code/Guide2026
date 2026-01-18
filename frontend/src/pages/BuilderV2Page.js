@@ -1142,6 +1142,7 @@ const BlockRenderer = ({
             walkthroughId={walkthroughId}
             stepId={stepId}
             onMediaUpload={onMediaUpload}
+            canUploadFile={canUploadFile}
           />
         </div>
       </div>
@@ -1150,7 +1151,7 @@ const BlockRenderer = ({
 };
 
 // Block Content Renderer
-const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, stepId, onMediaUpload }) => {
+const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, stepId, onMediaUpload, canUploadFile }) => {
   // Initialize guards for editors (hooks must be at top level)
   const [headingInitialized, setHeadingInitialized] = useState(false);
   const [textInitialized, setTextInitialized] = useState(false);
@@ -1325,13 +1326,328 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
         <CarouselBlockEditor
           block={block}
           onUpdate={onUpdate}
-          onMediaUpload={onMediaUpload}
+          workspaceId={workspaceId}
+          canUploadFile={canUploadFile}
         />
       );
 
     default:
       return <div className="text-slate-400 text-sm">Unknown block type: {block.type}</div>;
   }
+};
+
+// Carousel Block Editor Component
+const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [uploadingSlide, setUploadingSlide] = useState(null);
+  const slides = block.data?.slides || [];
+  const MAX_SLIDES = 20; // Enforce max slides per block
+
+  const addSlide = () => {
+    if (slides.length >= MAX_SLIDES) {
+      toast.error(`Maximum ${MAX_SLIDES} slides allowed per carousel`);
+      return;
+    }
+    const newSlide = {
+      slide_id: `slide-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      file_id: null,
+      url: '',
+      media_type: 'image', // image, video, gif
+      caption: ''
+    };
+    onUpdate({ data: { ...block.data, slides: [...slides, newSlide] } });
+    setActiveIndex(slides.length);
+  };
+
+  const removeSlide = (slideIndex) => {
+    if (slides.length <= 1) {
+      toast.error('Carousel must have at least one slide');
+      return;
+    }
+    const newSlides = slides.filter((_, i) => i !== slideIndex);
+    onUpdate({ data: { ...block.data, slides: newSlides } });
+    if (activeIndex >= newSlides.length) {
+      setActiveIndex(Math.max(0, newSlides.length - 1));
+    }
+  };
+
+  const updateSlide = (slideIndex, updates) => {
+    const newSlides = [...slides];
+    newSlides[slideIndex] = { ...newSlides[slideIndex], ...updates };
+    onUpdate({ data: { ...block.data, slides: newSlides } });
+  };
+
+  const handleSlideUpload = async (file, slideIndex) => {
+    try {
+      setUploadingSlide(slideIndex);
+      const slide = slides[slideIndex];
+      if (!slide) return;
+
+      // Check quota
+      const quotaCheck = canUploadFile(file.size);
+      if (!quotaCheck.allowed) {
+        toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
+        return;
+      }
+
+      // Upload file via API
+      const idempotencyKey = `carousel-slide-${block.id}-${slide.slide_id}-${file.name}-${Date.now()}`;
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'block_image', // Use block_image for carousel slides
+        referenceId: `${block.id}-${slide.slide_id}`
+      });
+      
+      if (response.data.status !== 'active' && response.data.status !== 'existing') {
+        toast.error(`Upload not completed (status: ${response.data.status}). Please try again.`);
+        return;
+      }
+      
+      if (!response.data.url) {
+        toast.error('Upload succeeded but no URL returned.');
+        return;
+      }
+      
+      const uploadedUrl = response.data.url;
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : normalizeImageUrl(uploadedUrl);
+      
+      // Determine media type
+      const fileType = file.type.split('/')[0];
+      const fileName = file.name.toLowerCase();
+      let mediaType = 'image';
+      if (fileType === 'video' || fileName.endsWith('.mp4') || fileName.endsWith('.webm')) {
+        mediaType = 'video';
+      } else if (fileName.endsWith('.gif')) {
+        mediaType = 'gif';
+      }
+      
+      updateSlide(slideIndex, {
+        url: fullUrl,
+        file_id: response.data.file_id,
+        media_type: mediaType
+      });
+      
+      toast.success('Slide uploaded!');
+    } catch (error) {
+      console.error('Slide upload error:', error);
+      if (error.response?.status === 402) {
+        toast.error('Storage quota exceeded. Please upgrade your plan.');
+      } else {
+        toast.error(error.response?.data?.detail || 'Failed to upload slide');
+      }
+    } finally {
+      setUploadingSlide(null);
+    }
+  };
+
+  if (slides.length === 0) {
+    return (
+      <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
+        <p className="text-sm text-slate-500 mb-4">No slides yet. Add your first slide to start.</p>
+        <Button onClick={addSlide} size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Slide
+        </Button>
+      </div>
+    );
+  }
+
+  const currentSlide = slides[activeIndex];
+
+  return (
+    <div className="space-y-4">
+      {/* Carousel Display */}
+      <div className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+        {/* Navigation Arrows */}
+        {slides.length > 1 && (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="w-5 h-5 text-slate-700" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="w-5 h-5 text-slate-700" />
+            </button>
+          </>
+        )}
+
+        {/* Slide Content */}
+        <div className="aspect-video relative bg-slate-100">
+          {currentSlide?.url ? (
+            <>
+              {currentSlide.media_type === 'video' ? (
+                <video
+                  src={normalizeImageUrl(currentSlide.url)}
+                  controls
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img
+                  src={normalizeImageUrl(currentSlide.url)}
+                  alt={`Slide ${activeIndex + 1}`}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              )}
+              {currentSlide.caption && (
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-3 text-sm">
+                  {currentSlide.caption}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-400">
+              <div className="text-center">
+                <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No media for this slide</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dots Indicator */}
+        {slides.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveIndex(idx);
+                }}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === activeIndex ? 'bg-primary w-6' : 'bg-white/60 hover:bg-white/80'
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Slide Controls */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-slate-600">
+            Slide {activeIndex + 1} of {slides.length}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm(`Remove slide ${activeIndex + 1}?`)) {
+                  removeSlide(activeIndex);
+                }
+              }}
+              disabled={slides.length <= 1}
+            >
+              <X className="w-4 h-4 mr-1" />
+              Remove
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                addSlide();
+              }}
+              disabled={slides.length >= MAX_SLIDES}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Slide
+            </Button>
+          </div>
+        </div>
+
+        {/* Current Slide Editor */}
+        {currentSlide && (
+          <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-white">
+            <div>
+              <Label className="text-xs text-slate-500 mb-1.5 block">Media</Label>
+              {currentSlide.url ? (
+                <div className="space-y-2">
+                  <div className="text-xs text-slate-600">Current: {currentSlide.media_type}</div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateSlide(activeIndex, { url: '', file_id: null });
+                    }}
+                  >
+                    Remove Media
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                      <Input
+                        type="file"
+                        accept="image/*,video/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleSlideUpload(file, activeIndex);
+                          e.target.value = '';
+                        }}
+                        disabled={uploadingSlide === activeIndex}
+                        className="text-sm"
+                      />
+                      {uploadingSlide === activeIndex && (
+                        <div className="text-xs text-slate-500">Uploading...</div>
+                      )}
+                  <p className="text-xs text-slate-500">or</p>
+                  <Input
+                    placeholder="Paste media URL"
+                    onBlur={(e) => {
+                      if (e.target.value) {
+                        const url = normalizeImageUrl(e.target.value);
+                        const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('video');
+                        updateSlide(activeIndex, {
+                          url,
+                          media_type: isVideo ? 'video' : 'image'
+                        });
+                      }
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs text-slate-500 mb-1.5 block">Caption (Optional)</Label>
+              <Textarea
+                value={currentSlide.caption || ''}
+                onChange={(e) => updateSlide(activeIndex, { caption: e.target.value })}
+                placeholder="Add caption for this slide..."
+                rows={2}
+                className="text-sm"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // Inspector Panel Component - Never crashes, always resilient
@@ -1549,6 +1865,18 @@ const InspectorPanel = ({
                 />
               </div>
             </>
+          )}
+
+          {selectedBlock.type === BLOCK_TYPES.CAROUSEL && (
+            <div>
+              <Label className="text-xs text-slate-500 mb-1.5 block">Carousel Slides</Label>
+              <div className="text-sm text-slate-600">
+                {selectedBlock.data?.slides?.length || 0} slide(s)
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Edit slides in the canvas. Maximum 20 slides per carousel.
+              </p>
+            </div>
           )}
         </div>
       </div>

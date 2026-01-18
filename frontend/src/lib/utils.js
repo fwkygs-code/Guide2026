@@ -65,15 +65,24 @@ export function normalizeImageUrlsInObject(obj) {
     }
   });
   
-  // CRITICAL: Special handling for blocks array - normalize URLs in block.data.url
+  // CRITICAL: Special handling for blocks array - normalize URLs in block.data.url and carousel slides
   if (normalized.steps && Array.isArray(normalized.steps)) {
     normalized.steps = normalized.steps.map(step => {
       if (step.blocks && Array.isArray(step.blocks)) {
         step.blocks = step.blocks.map(block => {
           if (block && block.data) {
-            // Normalize URL in block.data.url
+            // Normalize URL in block.data.url (for image/video blocks)
             if (block.data.url) {
               block.data.url = normalizeImageUrl(block.data.url);
+            }
+            // Normalize carousel slides URLs
+            if (block.type === 'carousel' && block.data.slides && Array.isArray(block.data.slides)) {
+              block.data.slides = block.data.slides.map(slide => {
+                if (slide && slide.url) {
+                  slide.url = normalizeImageUrl(slide.url);
+                }
+                return slide;
+              });
             }
             // Recursively normalize other fields in block.data
             block.data = normalizeImageUrlsInObject(block.data);

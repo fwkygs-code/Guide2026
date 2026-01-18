@@ -10,7 +10,8 @@ export const BLOCK_TYPES = {
   SPACER: 'spacer',
   PROBLEM: 'problem',
   COLUMNS: 'columns',
-  HTML: 'html'
+  HTML: 'html',
+  CAROUSEL: 'carousel'
 };
 
 export const createBlock = (type, data = {}) => {
@@ -60,6 +61,9 @@ export const createBlock = (type, data = {}) => {
     },
     [BLOCK_TYPES.HTML]: {
       content: ''
+    },
+    [BLOCK_TYPES.CAROUSEL]: {
+      slides: [] // Array of { slide_id, file_id, url, media_type, caption }
     }
   };
 
@@ -102,7 +106,8 @@ export const getBlockIcon = (type) => {
     spacer: '⬜',
     problem: '❗',
     columns: '📊',
-    html: '💻'
+    html: '💻',
+    carousel: '🎠'
   };
   return icons[type] || '📦';
 };
@@ -119,7 +124,8 @@ export const getBlockLabel = (type) => {
     spacer: 'Spacer',
     problem: 'Problem',
     columns: 'Columns',
-    html: 'HTML'
+    html: 'HTML',
+    carousel: 'Carousel'
   };
   return labels[type] || type;
 };
