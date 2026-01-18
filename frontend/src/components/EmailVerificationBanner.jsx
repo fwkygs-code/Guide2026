@@ -42,12 +42,12 @@ const EmailVerificationBanner = ({ user, onVerify }) => {
   };
 
   return (
-    <Alert className="mb-6 border-amber-200 bg-amber-50">
-      <AlertCircle className="h-4 w-4 text-amber-600" />
-      <AlertTitle className="text-amber-900 font-semibold">
+    <Alert className="mb-6 border-blue-200 bg-blue-50">
+      <AlertCircle className="h-4 w-4 text-blue-600" />
+      <AlertTitle className="text-blue-900 font-semibold">
         Email Verification Required
       </AlertTitle>
-      <AlertDescription className="text-amber-800 mt-2">
+      <AlertDescription className="text-blue-800 mt-2">
         <p className="mb-3">
           Please verify your email address to unlock Pro features and upgrade your plan. 
           Check your inbox for the verification email.
@@ -58,7 +58,7 @@ const EmailVerificationBanner = ({ user, onVerify }) => {
             variant="outline"
             onClick={handleResend}
             disabled={resending}
-            className="border-amber-300 text-amber-900 hover:bg-amber-100"
+            className="border-blue-300 text-blue-900 hover:bg-blue-100"
           >
             {resending ? (
               <>
@@ -76,7 +76,7 @@ const EmailVerificationBanner = ({ user, onVerify }) => {
             size="sm"
             variant="ghost"
             onClick={() => setDismissed(true)}
-            className="text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+            className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
           >
             <X className="w-4 h-4" />
           </Button>

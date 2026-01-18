@@ -17,7 +17,6 @@ import QuotaDisplay from '../components/QuotaDisplay';
 import OverQuotaBanner from '../components/OverQuotaBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
-import EmailVerificationBanner from '../components/EmailVerificationBanner';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -118,7 +117,6 @@ const DashboardPage = () => {
   return (
     <DashboardLayout backgroundUrl={dashboardBackground}>
       <div className="p-8">
-        <EmailVerificationBanner user={user} />
         <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
         <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
         

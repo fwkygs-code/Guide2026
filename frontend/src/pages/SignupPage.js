@@ -194,7 +194,7 @@ const SignupPage = () => {
         });
       }
       
-      // Automatically navigate to dashboard (Free plan is assigned automatically)
+      // Redirect to email verification page (unverified users blocked from dashboard)
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.response?.data?.detail || t('toast.signupFailed'));

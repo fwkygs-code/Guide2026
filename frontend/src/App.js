@@ -22,6 +22,7 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import BillingPolicyPage from './pages/BillingPolicyPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import EmailVerificationRequiredPage from './pages/EmailVerificationRequiredPage';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -34,7 +35,18 @@ const PrivateRoute = ({ children }) => {
     );
   }
   
-  return user ? children : <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  // Block unverified users from accessing dashboard
+  // Users with active PayPal subscriptions are grandfathered (backend handles this)
+  // Frontend blocks all unverified users - backend will allow PayPal subscribers
+  if (!user.email_verified) {
+    return <EmailVerificationRequiredPage />;
+  }
+  
+  return children;
 };
 
 // Component to handle direction changes
