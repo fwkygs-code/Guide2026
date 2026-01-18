@@ -192,13 +192,8 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                             const status = response.data.status;
                             let message = response.data.message;
                             
-                            if (status === 'pending_cancellation') {
-                              message = 'Cancellation request recorded. Your subscription will be cancelled when it becomes active. You will continue to have Pro access until the end of your billing period.';
-                            } else if (status === 'cancellation_scheduled') {
-                              message = 'Cancellation request recorded. Your subscription will remain active until the end of your billing period, then automatically cancel. You will continue to have Pro access until then.';
-                            } else {
-                              message = response.data.message || 'Subscription cancellation requested. You will continue to have Pro access until the end of your current billing period.';
-                            }
+                            // Use backend message which includes all necessary information
+                            message = response.data.message || 'Subscription cancellation requested. You will continue to have Pro access until the end of your current billing period.';
                             
                             toast.success(message);
                             // Refresh quota to update subscription status
@@ -221,19 +216,23 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     </Button>
                     {hasCancelledSubscription && (
                       <p className="text-xs text-slate-500 text-center mt-2">
-                        Your subscription will remain active until the end of your billing period, then automatically cancel.
+                        Your subscription will remain active until the end of your billing period, then automatically cancel. No further charges will occur.
                       </p>
                     )}
+                    {/* Optional: "Manage via PayPal" link for users with PayPal accounts */}
+                    {/* Note: Card-only (guest) users may not have PayPal accounts, so this is optional */}
                     <Button
                       className="w-full"
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        // Alternative: Open PayPal subscription management page
+                        // Optional: Open PayPal subscription management page
+                        // Note: This may not work for card-only (guest checkout) users
+                        // but is harmless to show as an option
                         window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
                       }}
                     >
-                      Manage via PayPal
+                      Manage via PayPal (optional)
                     </Button>
                   </div>
                 ) : (

@@ -3091,13 +3091,18 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     if subscription and subscription_dict:
         cancel_at_period_end = subscription_dict.get('cancel_at_period_end', False)
     
-    return {
+    # Build response with all required fields for UI
+    # API Contract: Returns everything needed for subscription management UI
+    response_data = {
         "plan": plan.model_dump(),
         "subscription": subscription_dict,
         "trial_period_end": trial_period_end,
         "next_billing_date": next_billing_date,
         "current_period_end": current_period_end,
         "cancel_at_period_end": cancel_at_period_end,
+        # Additional fields for convenience (derived from subscription)
+        "subscription_status": subscription_dict.get('status') if subscription_dict else None,
+        "provider": subscription_dict.get('provider') if subscription_dict else None,
         "quota": {
             "storage_used_bytes": storage_used,
             "storage_allowed_bytes": storage_allowed,
@@ -3111,6 +3116,8 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
             "over_quota": storage_used > storage_allowed
         }
     }
+    
+    return response_data
 
 # Trial & Subscription Models
 # NOTE: start-trial endpoint removed - trials now only start after PayPal subscription activation
@@ -3126,29 +3133,51 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
     Cancel user's PayPal subscription.
     
     CRITICAL RULES:
+    - Works for PayPal account subscriptions AND card-only (guest) subscriptions
     - PENDING subscriptions: Cannot cancel via API, set cancel_at_period_end=True
     - ACTIVE subscriptions: Attempt API cancellation, fallback to cancel_at_period_end
+    - CANCELLED subscriptions: Idempotent (already cancelled, return success)
     - User keeps Pro access until EXPIRED webhook is received
     - Never downgrade user here - only EXPIRED webhook can downgrade
+    - Never throw errors to user - always return success with appropriate message
+    
+    IMPORTANT: Card-only (guest checkout) subscriptions:
+    - Are real subscriptions that auto-renew via PayPal
+    - Can be cancelled from website (this endpoint)
+    - PayPal API cancellation may fail for guest subscriptions
+    - Fallback to cancel_at_period_end ensures cancellation works for all users
     """
-    # Get user's subscription (ACTIVE or PENDING)
+    # Get user's subscription (ACTIVE, PENDING, or CANCELLED)
     subscription = await get_user_subscription(current_user.id)
     
     if not subscription:
-        raise HTTPException(
-            status_code=404,
-            detail="No active subscription found"
-        )
+        # No subscription found - return success (idempotent)
+        return JSONResponse({
+            "success": True,
+            "message": "No active subscription found.",
+            "status": "no_subscription"
+        })
     
     if subscription.provider != "paypal":
-        raise HTTPException(
-            status_code=400,
-            detail="This endpoint only handles PayPal subscriptions"
-        )
+        # Not a PayPal subscription - return success (idempotent)
+        return JSONResponse({
+            "success": True,
+            "message": "This subscription is not managed through PayPal.",
+            "status": "not_paypal"
+        })
     
     # CRITICAL: PENDING subscriptions cannot be cancelled via PayPal API
-    # Set cancel intent flag instead
+    # (PENDING means payment not yet confirmed, API may not accept cancellation)
+    # Set cancel intent flag - subscription will be cancelled when it becomes ACTIVE
     if subscription.status == SubscriptionStatus.PENDING:
+        # Check if already marked for cancellation (idempotent)
+        if subscription.cancel_at_period_end:
+            return JSONResponse({
+                "success": True,
+                "message": "Cancellation already scheduled. Your subscription will be cancelled when it becomes active.",
+                "status": "already_cancelled"
+            })
+        
         # Mark subscription for cancellation at period end
         await db.subscriptions.update_one(
             {"id": subscription.id},
@@ -3167,12 +3196,41 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
             "status": "pending_cancellation"
         })
     
-    # For ACTIVE subscriptions, attempt PayPal API cancellation
-    if subscription.status != SubscriptionStatus.ACTIVE:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot cancel subscription with status: {subscription.status}. Only ACTIVE or PENDING subscriptions can be cancelled."
+    # CRITICAL: CANCELLED subscriptions - idempotent (already cancelled)
+    if subscription.status == SubscriptionStatus.CANCELLED:
+        # Check if already marked for cancellation
+        if subscription.cancel_at_period_end:
+            return JSONResponse({
+                "success": True,
+                "message": "Your subscription is already scheduled for cancellation. You will continue to have Pro access until the end of your billing period.",
+                "status": "already_cancelled"
+            })
+        
+        # Subscription is CANCELLED but cancel_at_period_end not set - set it for consistency
+        await db.subscriptions.update_one(
+            {"id": subscription.id},
+            {
+                "$set": {
+                    "cancel_at_period_end": True,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
         )
+        return JSONResponse({
+            "success": True,
+            "message": "Your subscription is already cancelled. You will continue to have Pro access until the end of your billing period.",
+            "status": "already_cancelled"
+        })
+    
+    # For ACTIVE subscriptions, attempt PayPal API cancellation
+    # Note: This may fail for card-only (guest) subscriptions, but we have a fallback
+    if subscription.status != SubscriptionStatus.ACTIVE:
+        # EXPIRED subscriptions - return success (idempotent)
+        return JSONResponse({
+            "success": True,
+            "message": "This subscription has already expired.",
+            "status": "expired"
+        })
     
     paypal_subscription_id = subscription.provider_subscription_id
     if not paypal_subscription_id:
@@ -3233,11 +3291,11 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                         }
                     )
                     
-                    return JSONResponse({
-                        "success": True,
-                        "message": "Cancellation request recorded. Your subscription will remain active until the end of your billing period, then automatically cancel. You will continue to have Pro access until then.",
-                        "status": "cancellation_scheduled"
-                    })
+        return JSONResponse({
+            "success": True,
+            "message": "Cancellation request recorded. Your subscription will remain active until the end of your billing period, then automatically cancel. You will continue to have Pro access until then. No further charges will occur.",
+            "status": "cancellation_scheduled"
+        })
     
     except Exception as e:
         error_message = str(e)
@@ -3752,6 +3810,13 @@ async def paypal_webhook(
         elif event_type == "BILLING.SUBSCRIPTION.CANCELLED":
             # Subscription cancelled - mark as CANCELLED but do NOT downgrade immediately
             # User keeps Pro access until EXPIRED (end of billing period)
+            #
+            # IMPORTANT: This applies to ALL subscription types:
+            # - PayPal account subscriptions
+            # - Card-only (guest checkout) subscriptions
+            # Both types can be cancelled, and both keep access until billing period ends
+            #
+            # GUARD: Never downgrade here - downgrade only on EXPIRED webhook
             paypal_subscription_id = resource.get('id')
             if not paypal_subscription_id:
                 logging.error("PayPal webhook: BILLING.SUBSCRIPTION.CANCELLED missing subscription ID")
@@ -3834,6 +3899,13 @@ async def paypal_webhook(
                 
                 # CRITICAL: EXPIRED is the ONLY webhook that downgrades user to Free
                 # This happens after billing period ends (trial or regular billing)
+                # 
+                # IMPORTANT: This applies to ALL subscription types:
+                # - PayPal account subscriptions
+                # - Card-only (guest checkout) subscriptions
+                # Both types auto-renew via PayPal until cancelled, and both downgrade on EXPIRED
+                #
+                # GUARD: Only downgrade here - never downgrade on CANCELLED, SUSPENDED, or PAYMENT FAILED
                 free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
                 if free_plan:
                     await db.users.update_one(
@@ -3847,6 +3919,9 @@ async def paypal_webhook(
                 logging.info(f"PayPal subscription expired - user downgraded to Free: user={subscription['user_id']}, subscription={subscription['id']}")
         
         elif event_type in ["PAYMENT.SALE.DENIED", "PAYMENT.SALE.FAILED"]:
+            # Payment failed/denied - log warning but do NOT downgrade
+            # PayPal will send EXPIRED webhook when subscription actually expires
+            # GUARD: Never downgrade on payment failure - downgrade only on EXPIRED
             # Payment failed - log warning
             # CRITICAL: Do NOT downgrade user here - PayPal will send EXPIRED webhook when subscription actually expires
             # User keeps Pro access until EXPIRED webhook is received

@@ -127,7 +127,7 @@ const BillingInfo = () => {
                 <div className="text-sm font-medium text-orange-900">Cancellation Scheduled</div>
                 <div className="text-xs text-orange-700 mt-1">
                   Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
-                  After that, your account will be downgraded to the Free plan.
+                  After that, your account will be downgraded to the Free plan. No further charges will occur.
                 </div>
               </div>
             </div>
