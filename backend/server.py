@@ -3314,7 +3314,7 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
         
         return JSONResponse({
             "success": True,
-            "message": "Cancellation request recorded. Your subscription will remain active until the end of your billing period. You will continue to have Pro access until then.",
+            "message": "Cancellation request recorded. Your subscription will remain active until the end of your billing period, then automatically cancel. You will continue to have Pro access until then. No further charges will occur.",
             "status": "cancellation_scheduled"
         })
 
