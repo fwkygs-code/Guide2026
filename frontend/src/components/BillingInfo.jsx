@@ -43,7 +43,7 @@ const BillingInfo = () => {
     if (status === 'active') {
       return <Badge className="bg-green-500"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge>;
     } else if (status === 'pending') {
-      return <Badge className="bg-yellow-500">Pending Activation</Badge>;
+      return <Badge className="bg-blue-500">Pending Activation</Badge>;
     } else if (status === 'cancelled') {
       return <Badge className="bg-orange-500">Cancelled</Badge>;
     }
@@ -151,12 +151,12 @@ const BillingInfo = () => {
 
         {/* Pending Activation */}
         {subscription.status === 'pending' && (
-          <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-yellow-900">Activating your subscription…</div>
-                <div className="text-xs text-yellow-700 mt-1">
+                <div className="text-sm font-medium text-blue-900">Activating your subscription…</div>
+                <div className="text-xs text-blue-700 mt-1">
                   This may take up to 1 minute. You can continue using the app.
                 </div>
               </div>
