@@ -181,9 +181,9 @@ const BuilderV2Page = () => {
 
   // Debounced save for step updates
   const saveStepDebounced = useRef(null);
-  const currentStep = walkthrough.steps[currentStepIndex] || null;
   
   useEffect(() => {
+    const currentStep = walkthrough.steps[currentStepIndex] || null;
     if (saveStepDebounced.current) {
       clearTimeout(saveStepDebounced.current);
     }
