@@ -168,7 +168,7 @@ const BuilderV2Page = () => {
   };
 
   // Update current step - canonical function for all step updates
-  const updateCurrentStep = React.useCallback((updates) => {
+  const updateCurrentStep = useCallback((updates) => {
     if (!walkthrough.steps || walkthrough.steps.length === 0) return;
     if (currentStepIndex < 0 || currentStepIndex >= walkthrough.steps.length) return;
     
@@ -180,7 +180,9 @@ const BuilderV2Page = () => {
   }, [walkthrough.steps, currentStepIndex]);
 
   // Debounced save for step updates
-  const saveStepDebounced = React.useRef(null);
+  const saveStepDebounced = useRef(null);
+  const currentStep = walkthrough.steps[currentStepIndex] || null;
+  
   useEffect(() => {
     if (saveStepDebounced.current) {
       clearTimeout(saveStepDebounced.current);
@@ -205,7 +207,7 @@ const BuilderV2Page = () => {
         clearTimeout(saveStepDebounced.current);
       }
     };
-  }, [currentStep, walkthroughId, workspaceId]);
+  }, [walkthrough.steps, currentStepIndex, walkthroughId, workspaceId]);
 
   // Add block at index - index-safe with validation
   const addBlock = useCallback((blockType, insertAfterIndex) => {
@@ -360,6 +362,12 @@ const BuilderV2Page = () => {
     }
   };
 
+  // Compute derived state
+  const currentStep = walkthrough.steps[currentStepIndex] || null;
+  const selectedBlock = currentStep?.blocks?.find(b => b.id === selectedBlockId) || null;
+  const blocks = currentStep?.blocks || [];
+  const blockItems = blocks.map(b => b.id);
+
   if (loading) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-50">
@@ -367,11 +375,6 @@ const BuilderV2Page = () => {
       </div>
     );
   }
-
-  const currentStep = walkthrough.steps[currentStepIndex] || null;
-  const selectedBlock = currentStep?.blocks?.find(b => b.id === selectedBlockId) || null;
-  const blocks = currentStep?.blocks || [];
-  const blockItems = blocks.map(b => b.id);
 
   return (
     <div className="w-screen h-screen flex flex-col bg-slate-50 overflow-hidden">
@@ -543,7 +546,7 @@ const BuilderV2Page = () => {
 
 // Step Navigator Component
 const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDeleteStep, workspaceId, walkthroughId }) => {
-  const [hoveredIndex, setHoveredIndex] = React.useState(null);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
   return (
     <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
@@ -709,9 +712,9 @@ const CanvasStage = ({
 
 // Step Title Editor with guards
 const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
-  const [isInitialized, setIsInitialized] = React.useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isStepLoaded && !isInitialized) {
       // Small delay to ensure editor is fully hydrated
       const timer = setTimeout(() => {
