@@ -1280,7 +1280,7 @@ const CarouselViewer = ({ slides }) => {
   const imageUrl = currentSlide?.url ? normalizeImageUrl(currentSlide.url) : null;
 
   return (
-    <div className="relative">
+    <div className="space-y-3">
       <div
         className="relative aspect-video bg-slate-100 rounded-lg overflow-hidden"
         onTouchStart={onTouchStart}
@@ -1336,14 +1336,6 @@ const CarouselViewer = ({ slides }) => {
                     }}
                   />
                 )}
-                {currentSlide.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 p-4 pb-6">
-                    <div 
-                      className="prose prose-invert prose-sm max-w-none bg-black/30 backdrop-blur-md rounded-lg px-4 py-3 border border-white/30 shadow-lg"
-                      dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
-                    />
-                  </div>
-                )}
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -1369,6 +1361,16 @@ const CarouselViewer = ({ slides }) => {
           </div>
         )}
       </div>
+      
+      {/* Caption below image */}
+      {currentSlide.caption && (
+        <div className="px-2">
+          <div 
+            className="prose prose-sm max-w-none bg-transparent text-slate-700 rounded-lg px-4 py-3"
+            dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
+          />
+        </div>
+      )}
     </div>
   );
 };

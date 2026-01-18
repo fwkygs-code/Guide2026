@@ -11,7 +11,6 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import WalkthroughsPage from './pages/WalkthroughsPage';
-import CanvasBuilderPage from './pages/CanvasBuilderPage';
 import BuilderV2Page from './pages/BuilderV2Page';
 import CategoriesPage from './pages/CategoriesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -68,10 +67,8 @@ const AppContent = () => {
           <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/walkthroughs" element={<PrivateRoute><WalkthroughsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceId/walkthroughs/new" element={<PrivateRoute><CanvasBuilderPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceId/walkthroughs/:walkthroughId/edit" element={<PrivateRoute><CanvasBuilderPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceId/builder-v2/new" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceId/builder-v2/:walkthroughId" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceId/walkthroughs/new" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceId/walkthroughs/:walkthroughId/edit" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/categories" element={<PrivateRoute><CategoriesPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />

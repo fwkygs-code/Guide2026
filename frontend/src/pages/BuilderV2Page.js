@@ -152,7 +152,7 @@ const BuilderV2Page = () => {
       } else {
         const response = await api.createWalkthrough(workspaceId, walkthroughData);
         finalWalkthroughId = response.data.id;
-        navigate(`/workspace/${workspaceId}/builder-v2/${finalWalkthroughId}`.replace(/\/+/g, '/'), { replace: true });
+        navigate(`/workspace/${workspaceId}/walkthroughs/${finalWalkthroughId}/edit`.replace(/\/+/g, '/'), { replace: true });
         toast.success('Walkthrough created');
       }
 
@@ -193,14 +193,6 @@ const BuilderV2Page = () => {
     }
   };
 
-  // Switch to classic builder
-  const switchToClassic = () => {
-    if (walkthroughId) {
-      navigate(`/workspace/${workspaceId}/walkthroughs/${walkthroughId}/edit`.replace(/\/+/g, '/'));
-    } else {
-      navigate(`/workspace/${workspaceId}/walkthroughs/new`.replace(/\/+/g, '/'));
-    }
-  };
 
   // Handle setup form submission - create walkthrough with metadata
   const handleSetupComplete = async () => {
@@ -236,7 +228,7 @@ const BuilderV2Page = () => {
       setSetupComplete(true);
       
       // Navigate to the new walkthrough
-      navigate(`/workspace/${workspaceId}/builder-v2/${newWalkthroughId}`.replace(/\/+/g, '/'), { replace: true });
+      navigate(`/workspace/${workspaceId}/walkthroughs/${newWalkthroughId}/edit`.replace(/\/+/g, '/'), { replace: true });
       toast.success('Walkthrough created! Start adding steps.');
     } catch (error) {
       console.error('Failed to create walkthrough:', error);
@@ -1548,7 +1540,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
   return (
     <div className="space-y-4">
       {/* Carousel Display */}
-      <div className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+      <div className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 space-y-0">
         {/* Navigation Arrows */}
         {slides.length > 1 && (
           <>
@@ -1595,14 +1587,6 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                   }}
                 />
               )}
-              {currentSlide.caption && (
-                <div className="absolute bottom-0 left-0 right-0 p-3 pb-4 pointer-events-none">
-                  <div 
-                    className="prose prose-invert prose-sm max-w-none pointer-events-auto bg-black/30 backdrop-blur-md rounded-lg px-4 py-3 border border-white/30 shadow-lg"
-                    dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
-                  />
-                </div>
-              )}
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -1613,6 +1597,16 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
             </div>
           )}
         </div>
+        
+        {/* Caption below image */}
+        {currentSlide?.caption && (
+          <div className="px-2 mt-2">
+            <div 
+              className="prose prose-sm max-w-none bg-transparent text-slate-700 rounded-lg px-4 py-3"
+              dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
+            />
+          </div>
+        )}
 
         {/* Dots Indicator */}
         {slides.length > 1 && (
