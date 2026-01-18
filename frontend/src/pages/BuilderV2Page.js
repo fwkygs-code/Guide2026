@@ -87,7 +87,7 @@ const BuilderV2Page = () => {
           }
         } catch (error) {
           toast.error('Failed to load walkthrough');
-          navigate(`/workspace/${workspaceId}/walkthroughs`);
+          navigate(`/workspace/${workspaceId}/walkthroughs`.replace(/\/+/g, '/'));
         } finally {
           setLoading(false);
         }
@@ -119,7 +119,7 @@ const BuilderV2Page = () => {
       } else {
         const response = await api.createWalkthrough(workspaceId, walkthroughData);
         finalWalkthroughId = response.data.id;
-        navigate(`/workspace/${workspaceId}/builder-v2/${finalWalkthroughId}`, { replace: true });
+        navigate(`/workspace/${workspaceId}/builder-v2/${finalWalkthroughId}`.replace(/\/+/g, '/'), { replace: true });
         toast.success('Walkthrough created');
       }
 
@@ -161,9 +161,9 @@ const BuilderV2Page = () => {
   // Switch to classic builder
   const switchToClassic = () => {
     if (walkthroughId) {
-      navigate(`/workspace/${workspaceId}/walkthroughs/${walkthroughId}/edit`);
+      navigate(`/workspace/${workspaceId}/walkthroughs/${walkthroughId}/edit`.replace(/\/+/g, '/'));
     } else {
-      navigate(`/workspace/${workspaceId}/walkthroughs/new`);
+      navigate(`/workspace/${workspaceId}/walkthroughs/new`.replace(/\/+/g, '/'));
     }
   };
 
