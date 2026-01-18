@@ -133,6 +133,7 @@ export const api = {
   getUserPlan: () => axios.get(`${API}/users/me/plan`),
   getWorkspaceQuota: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/quota`),
   changePlan: (planName) => axios.put(`${API}/users/me/plan`, null, { params: { plan_name: planName } }),
+  createCheckoutSession: () => axios.post(`${API}/subscriptions/create-checkout`),
   getPlans: () => axios.get(`${API}/plans`),
   
   // File Management

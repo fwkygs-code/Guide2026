@@ -93,6 +93,26 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       return;
     }
     
+    // Pro plan goes through Stripe Checkout
+    if (planName === 'pro') {
+      setSelecting(true);
+      try {
+        const response = await api.createCheckoutSession();
+        if (response.data?.checkout_url) {
+          // Redirect to Stripe Checkout
+          window.location.href = response.data.checkout_url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
+      } catch (error) {
+        console.error('Failed to create checkout session:', error);
+        toast.error(error.response?.data?.detail || 'Failed to start checkout. Please try again.');
+        setSelecting(false);
+      }
+      return;
+    }
+    
+    // Free plan uses local API
     setSelecting(true);
     try {
       // Call API to change plan

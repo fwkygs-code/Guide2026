@@ -19,6 +19,7 @@ import shutil
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import stripe
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -76,6 +77,21 @@ cloudinary.config(
 )
 logging.info("Cloudinary configured for persistent file storage")
 
+# Stripe Configuration
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+STRIPE_PRICE_ID_PRO = os.environ.get('STRIPE_PRICE_ID_PRO')  # Price ID for Pro plan monthly subscription
+
+# Stripe is optional - only configure if keys are present (for Stripe-based subscriptions)
+USE_STRIPE = all([STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID_PRO])
+
+if USE_STRIPE:
+    stripe.api_key = STRIPE_SECRET_KEY
+    logging.info("Stripe configured for subscription management")
+else:
+    logging.info("Stripe not configured - using local subscription system only")
+
 # Enums
 class UserRole(str, Enum):
     OWNER = "owner"
@@ -130,6 +146,8 @@ class User(BaseModel):
     name: str
     subscription_id: Optional[str] = None
     plan_id: Optional[str] = None  # Denormalized for performance
+    stripe_customer_id: Optional[str] = None  # Stripe customer ID
+    stripe_subscription_id: Optional[str] = None  # Active Stripe subscription ID
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class WorkspaceCreate(BaseModel):
@@ -413,11 +431,47 @@ async def get_user_plan(user_id: str) -> Optional[Plan]:
     return Plan(**plan) if plan else None
 
 async def get_user_subscription(user_id: str) -> Optional[Subscription]:
-    """Get user's active subscription."""
+    """
+    Get user's active subscription.
+    For Stripe subscriptions, checks trial_ends_at and subscription_status to determine if access is valid.
+    Subscription is considered active if:
+    - Local subscription: status == ACTIVE
+    - Stripe subscription: subscription_status in ['trialing', 'active'] OR trial_ends_at is in the future
+    """
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         return None
     
+    # Check for Stripe subscription first (if stripe_subscription_id exists)
+    stripe_subscription_id = user.get('stripe_subscription_id')
+    if stripe_subscription_id:
+        subscription = await db.subscriptions.find_one(
+            {"stripe_subscription_id": stripe_subscription_id},
+            {"_id": 0}
+        )
+        if subscription:
+            # Check if Stripe subscription is valid (trialing, active, or trial not expired)
+            stripe_status = subscription.get('subscription_status')
+            trial_ends_at_str = subscription.get('trial_ends_at')
+            
+            # If subscription status is active or trialing, it's valid
+            if stripe_status in ['trialing', 'active']:
+                return Subscription(**subscription)
+            
+            # If trial_ends_at is in the future, subscription is valid (trial ongoing)
+            if trial_ends_at_str:
+                try:
+                    trial_ends_at = datetime.fromisoformat(trial_ends_at_str.replace('Z', '+00:00'))
+                    if trial_ends_at > datetime.now(timezone.utc):
+                        return Subscription(**subscription)
+                except (ValueError, AttributeError) as e:
+                    logging.warning(f"Invalid trial_ends_at format for subscription {subscription.get('id')}: {trial_ends_at_str}")
+            
+            # If subscription status is past_due, canceled, etc., return None (no active subscription)
+            logging.info(f"Stripe subscription {stripe_subscription_id} is not active (status: {stripe_status})")
+            return None
+    
+    # Fall back to local subscription
     subscription_id = user.get('subscription_id')
     if not subscription_id:
         return None
@@ -2726,11 +2780,19 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
     - Allows downgrades even if user is over new plan's quota (read-only mode for uploads)
     - Blocks downgrades if user exceeds new plan's workspace/walkthrough/category limits
     - Never auto-deletes user files
+    - Pro plan must be subscribed via Stripe (not through this endpoint)
     """
     # Validate plan name
     plan = await db.plans.find_one({"name": plan_name}, {"_id": 0})
     if not plan:
         raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
+    
+    # Pro plan must go through Stripe Checkout, not this endpoint
+    if plan_name == "pro" and USE_STRIPE:
+        raise HTTPException(
+            status_code=400,
+            detail="Pro plan subscriptions must be created through Stripe Checkout. Use /api/subscriptions/create-checkout instead."
+        )
     
     # Check if plan is public (unless user is admin)
     if not plan.get('is_public', False) and plan_name != 'free':
@@ -3291,6 +3353,396 @@ async def global_exception_handler(request: Request, exc: Exception):
             "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
         }
     )
+
+# ============================================================================
+# STRIPE SUBSCRIPTION ENDPOINTS
+# ============================================================================
+
+@api_router.post("/subscriptions/create-checkout")
+async def create_checkout_session(current_user: User = Depends(get_current_user)):
+    """
+    Create Stripe Checkout Session for Pro plan with 14-day free trial.
+    Requires Stripe to be configured. Returns checkout URL for redirect.
+    """
+    if not USE_STRIPE:
+        raise HTTPException(
+            status_code=503,
+            detail="Stripe is not configured. Please contact support."
+        )
+    
+    # Only allow Pro plan signup via Stripe (Free and Enterprise use local system)
+    plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Pro plan not found")
+    
+    try:
+        # Get or create Stripe Customer
+        stripe_customer_id = current_user.stripe_customer_id
+        if not stripe_customer_id:
+            # Create new Stripe customer
+            customer = stripe.Customer.create(
+                email=current_user.email,
+                name=current_user.name,
+                metadata={
+                    "user_id": current_user.id,
+                    "app": "guide2026"
+                }
+            )
+            stripe_customer_id = customer.id
+            
+            # Update user with Stripe customer ID
+            await db.users.update_one(
+                {"id": current_user.id},
+                {"$set": {"stripe_customer_id": stripe_customer_id}}
+            )
+            logging.info(f"Created Stripe customer {stripe_customer_id} for user {current_user.id}")
+        else:
+            # Verify customer exists in Stripe
+            try:
+                stripe.Customer.retrieve(stripe_customer_id)
+            except stripe.error.InvalidRequestError:
+                # Customer doesn't exist, create new one
+                customer = stripe.Customer.create(
+                    email=current_user.email,
+                    name=current_user.name,
+                    metadata={
+                        "user_id": current_user.id,
+                        "app": "guide2026"
+                    }
+                )
+                stripe_customer_id = customer.id
+                await db.users.update_one(
+                    {"id": current_user.id},
+                    {"$set": {"stripe_customer_id": stripe_customer_id}}
+                )
+                logging.info(f"Recreated Stripe customer {stripe_customer_id} for user {current_user.id}")
+        
+        # Determine success/cancel URLs from frontend origin
+        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+        success_url = f"{frontend_url}/dashboard?checkout=success"
+        cancel_url = f"{frontend_url}/dashboard?checkout=cancel"
+        
+        # Create Checkout Session with 14-day trial
+        checkout_session = stripe.checkout.Session.create(
+            customer=stripe_customer_id,
+            payment_method_types=["card"],
+            mode="subscription",
+            line_items=[{
+                "price": STRIPE_PRICE_ID_PRO,
+                "quantity": 1,
+            }],
+            subscription_data={
+                "trial_period_days": 14,
+                "metadata": {
+                    "user_id": current_user.id,
+                    "plan_name": "pro"
+                }
+            },
+            payment_method_collection="always",  # Collect payment method upfront
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "user_id": current_user.id,
+                "plan_name": "pro"
+            }
+        )
+        
+        logging.info(f"Created Stripe checkout session {checkout_session.id} for user {current_user.id}")
+        
+        return {
+            "checkout_url": checkout_session.url,
+            "session_id": checkout_session.id
+        }
+    
+    except stripe.error.StripeError as e:
+        logging.error(f"Stripe error creating checkout session for user {current_user.id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create checkout session: {str(e)}"
+        )
+    except Exception as e:
+        logging.error(f"Unexpected error creating checkout session for user {current_user.id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create checkout session"
+        )
+
+@api_router.post("/webhooks/stripe")
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: str = Header(None, alias="stripe-signature")
+):
+    """
+    Handle Stripe webhook events.
+    Webhooks are the single source of truth for subscription state.
+    All subscription state changes must come through webhooks, not frontend.
+    """
+    if not USE_STRIPE:
+        raise HTTPException(status_code=503, detail="Stripe is not configured")
+    
+    if not stripe_signature:
+        logging.warning("Stripe webhook called without signature header")
+        raise HTTPException(status_code=400, detail="Missing stripe-signature header")
+    
+    body = await request.body()
+    
+    try:
+        # Verify webhook signature
+        event = stripe.Webhook.construct_event(
+            body,
+            stripe_signature,
+            STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        logging.error(f"Invalid webhook payload: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid webhook payload")
+    except stripe.error.SignatureVerificationError as e:
+        logging.error(f"Webhook signature verification failed: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    
+    event_type = event['type']
+    event_data = event['data']['object']
+    
+    logging.info(f"Received Stripe webhook: {event_type} (id: {event.get('id')})")
+    
+    try:
+        # Handle different event types
+        if event_type == 'checkout.session.completed':
+            await handle_checkout_session_completed(event_data)
+        elif event_type == 'customer.subscription.created':
+            await handle_subscription_created(event_data)
+        elif event_type == 'customer.subscription.updated':
+            await handle_subscription_updated(event_data)
+        elif event_type == 'customer.subscription.deleted':
+            await handle_subscription_deleted(event_data)
+        elif event_type == 'invoice.payment_failed':
+            await handle_invoice_payment_failed(event_data)
+        else:
+            logging.info(f"Unhandled webhook event type: {event_type}")
+        
+        return {"status": "success"}
+    
+    except Exception as e:
+        logging.error(f"Error processing webhook {event_type}: {str(e)}", exc_info=True)
+        # Return 200 to Stripe to prevent retries for our errors
+        # But log the error for investigation
+        return {"status": "error", "message": str(e)}
+
+async def handle_checkout_session_completed(session: dict):
+    """Handle checkout.session.completed webhook."""
+    user_id = session.get('metadata', {}).get('user_id')
+    if not user_id:
+        logging.warning(f"checkout.session.completed missing user_id in metadata: {session.get('id')}")
+        return
+    
+    # Session is completed, subscription will be created separately
+    # Just log it - subscription.created will handle the actual state update
+    logging.info(f"Checkout session completed for user {user_id}: {session.get('id')}")
+
+async def handle_subscription_created(subscription: dict):
+    """Handle customer.subscription.created webhook - trial starts here."""
+    customer_id = subscription.get('customer')
+    subscription_id = subscription.get('id')
+    user_id = subscription.get('metadata', {}).get('user_id')
+    
+    if not customer_id or not subscription_id:
+        logging.warning(f"subscription.created missing required fields: {subscription.get('id')}")
+        return
+    
+    # Find user by Stripe customer ID
+    user = None
+    if user_id:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    
+    if not user:
+        user = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0})
+    
+    if not user:
+        logging.error(f"Could not find user for Stripe customer {customer_id} or user_id {user_id}")
+        return
+    
+    user_id = user['id']
+    
+    # Get Pro plan
+    pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+    if not pro_plan:
+        logging.error("Pro plan not found in database")
+        return
+    
+    # Calculate trial end date (14 days from now)
+    trial_end_timestamp = subscription.get('trial_end')
+    trial_ends_at = None
+    if trial_end_timestamp:
+        trial_ends_at = datetime.fromtimestamp(trial_end_timestamp, tz=timezone.utc)
+    
+    # Get or create subscription record
+    existing_sub = await db.subscriptions.find_one({"user_id": user_id, "stripe_subscription_id": subscription_id}, {"_id": 0})
+    
+    if existing_sub:
+        # Update existing subscription
+        await db.subscriptions.update_one(
+            {"id": existing_sub['id']},
+            {"$set": {
+                "plan_id": pro_plan['id'],
+                "stripe_subscription_id": subscription_id,
+                "status": SubscriptionStatus.ACTIVE,
+                "trial_ends_at": trial_ends_at.isoformat() if trial_ends_at else None,
+                "subscription_status": subscription.get('status'),  # 'trialing', 'active', etc.
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logging.info(f"Updated subscription for user {user_id} (Stripe sub: {subscription_id})")
+    else:
+        # Create new subscription record
+        new_sub = Subscription(
+            user_id=user_id,
+            plan_id=pro_plan['id'],
+            status=SubscriptionStatus.ACTIVE,
+            stripe_subscription_id=subscription_id,
+            trial_ends_at=trial_ends_at,
+            subscription_status=subscription.get('status')
+        )
+        sub_dict = new_sub.model_dump()
+        sub_dict['created_at'] = sub_dict['created_at'].isoformat()
+        sub_dict['updated_at'] = sub_dict['updated_at'].isoformat()
+        if sub_dict.get('trial_ends_at'):
+            sub_dict['trial_ends_at'] = sub_dict['trial_ends_at'].isoformat()
+        await db.subscriptions.insert_one(sub_dict)
+        logging.info(f"Created subscription for user {user_id} (Stripe sub: {subscription_id})")
+    
+    # Update user record
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "stripe_subscription_id": subscription_id,
+            "plan_id": pro_plan['id'],
+            "subscription_id": existing_sub['id'] if existing_sub else new_sub.id
+        }}
+    )
+    
+    logging.info(f"Subscription created for user {user_id}: trial_ends_at={trial_ends_at}")
+
+async def handle_subscription_updated(subscription: dict):
+    """Handle customer.subscription.updated webhook - status changes, trial ends, etc."""
+    subscription_id = subscription.get('id')
+    status = subscription.get('status')
+    customer_id = subscription.get('customer')
+    
+    if not subscription_id:
+        return
+    
+    # Find subscription by Stripe subscription ID
+    sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
+    if not sub:
+        logging.warning(f"Subscription updated but not found in DB: {subscription_id}")
+        return
+    
+    user_id = sub['user_id']
+    
+    # Update trial end date if it changed
+    trial_end_timestamp = subscription.get('trial_end')
+    trial_ends_at = None
+    if trial_end_timestamp:
+        trial_ends_at = datetime.fromtimestamp(trial_end_timestamp, tz=timezone.utc)
+    
+    # Map Stripe status to our status
+    our_status = SubscriptionStatus.ACTIVE
+    if status in ['canceled', 'unpaid']:
+        our_status = SubscriptionStatus.CANCELLED
+    elif status in ['past_due']:
+        our_status = SubscriptionStatus.EXPIRED
+    
+    # Update subscription
+    update_data = {
+        "subscription_status": status,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if trial_ends_at:
+        update_data["trial_ends_at"] = trial_ends_at.isoformat()
+    
+    if status == 'canceled':
+        update_data["cancelled_at"] = datetime.now(timezone.utc).isoformat()
+        update_data["status"] = SubscriptionStatus.CANCELLED
+    elif status == 'active':
+        update_data["status"] = SubscriptionStatus.ACTIVE
+    
+    await db.subscriptions.update_one(
+        {"id": sub['id']},
+        {"$set": update_data}
+    )
+    
+    # If subscription is canceled, update user to Free plan
+    if status == 'canceled':
+        free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+        if free_plan:
+            await db.users.update_one(
+                {"id": user_id},
+                {"$set": {
+                    "plan_id": free_plan['id'],
+                    "stripe_subscription_id": None
+                }}
+            )
+    
+    logging.info(f"Subscription updated for user {user_id}: status={status}, trial_ends_at={trial_ends_at}")
+
+async def handle_subscription_deleted(subscription: dict):
+    """Handle customer.subscription.deleted webhook."""
+    subscription_id = subscription.get('id')
+    
+    if not subscription_id:
+        return
+    
+    # Find and update subscription
+    sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
+    if not sub:
+        logging.warning(f"Subscription deleted but not found in DB: {subscription_id}")
+        return
+    
+    user_id = sub['user_id']
+    
+    # Mark subscription as cancelled
+    await db.subscriptions.update_one(
+        {"id": sub['id']},
+        {"$set": {
+            "status": SubscriptionStatus.CANCELLED,
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "subscription_status": "canceled",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Revert user to Free plan
+    free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+    if free_plan:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "plan_id": free_plan['id'],
+                "stripe_subscription_id": None
+            }}
+        )
+    
+    logging.info(f"Subscription deleted for user {user_id}: {subscription_id}")
+
+async def handle_invoice_payment_failed(invoice: dict):
+    """Handle invoice.payment_failed webhook."""
+    subscription_id = invoice.get('subscription')
+    customer_id = invoice.get('customer')
+    
+    if not subscription_id:
+        return
+    
+    # Find subscription
+    sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
+    if not sub:
+        logging.warning(f"Payment failed for subscription not found in DB: {subscription_id}")
+        return
+    
+    user_id = sub['user_id']
+    
+    # Log payment failure - subscription will be updated by subscription.updated webhook
+    logging.warning(f"Payment failed for user {user_id} subscription {subscription_id}")
 
 @app.on_event("startup")
 async def startup_event():
