@@ -1412,169 +1412,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
   }
 };
 
-// Carousel Caption Editor Component (uses HTML to preserve formatting)
-const CarouselCaptionEditor = ({ content, onChange, placeholder }) => {
-  const [showToolbar, setShowToolbar] = useState(false);
-  
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: false,
-        bulletList: false,
-        orderedList: false,
-        blockquote: false,
-        codeBlock: false,
-        horizontalRule: false,
-      }),
-      Underline,
-      TextStyle,
-      Color,
-      FontSize,
-      TextAlign.configure({
-        types: ['paragraph'],
-      }),
-      Placeholder.configure({
-        placeholder,
-        showOnlyWhenEditable: true,
-      }),
-    ],
-    content: content || '',
-    onUpdate: ({ editor }) => {
-      // Save HTML to preserve formatting
-      onChange(editor.getHTML());
-    },
-    onFocus: () => {
-      setShowToolbar(true);
-    },
-    onBlur: ({ event }) => {
-      // Delay hiding toolbar to allow button clicks
-      setTimeout(() => {
-        setShowToolbar(false);
-      }, 200);
-    },
-    editorProps: {
-      attributes: {
-        class: 'focus:outline-none text-sm min-h-[60px] border border-slate-200 rounded px-3 py-2 prose prose-sm max-w-none',
-      },
-    },
-  });
-
-  useEffect(() => {
-    if (!editor) return;
-    const current = editor.getHTML();
-    if ((content || '') !== current) {
-      editor.commands.setContent(content || '', false);
-    }
-  }, [content, editor]);
-
-  if (!editor) return null;
-
-  return (
-    <div className="relative">
-      {showToolbar && (
-        <div className="absolute z-[100] left-1/2 transform -translate-x-1/2 top-[-44px] flex items-center gap-1 bg-slate-900 rounded-lg p-1 shadow-xl">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              editor.chain().focus().toggleBold().run();
-            }}
-            className={`h-7 w-7 p-0 ${editor.isActive('bold') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <Bold className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              editor.chain().focus().toggleItalic().run();
-            }}
-            className={`h-7 w-7 p-0 ${editor.isActive('italic') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <Italic className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              editor.chain().focus().toggleUnderline().run();
-            }}
-            className={`h-7 w-7 p-0 ${editor.isActive('underline') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <UnderlineIcon className="w-3.5 h-3.5" />
-          </Button>
-          <div className="w-px h-5 bg-slate-700 mx-0.5" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              editor.chain().focus().setTextAlign('left').run();
-            }}
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <AlignLeft className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              editor.chain().focus().setTextAlign('center').run();
-            }}
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <AlignCenter className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              editor.chain().focus().setTextAlign('right').run();
-            }}
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <AlignRight className="w-3.5 h-3.5" />
-          </Button>
-          <div className="w-px h-5 bg-slate-700 mx-0.5" />
-          <div className="flex items-center gap-0.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                const currentSize = editor.getAttributes('textStyle').fontSize || '16';
-                const sizes = ['12', '14', '16', '18', '20', '24', '28', '32'];
-                const currentIndex = sizes.indexOf(String(currentSize));
-                const nextIndex = (currentIndex + 1) % sizes.length;
-                editor.chain().focus().setFontSize(`${sizes[nextIndex]}px`).run();
-              }}
-              className="h-7 px-2 text-white hover:bg-slate-700 text-xs"
-              title="Font Size"
-            >
-              <Type className="w-3 h-3 mr-1" />
-              <span className="text-[10px]">
-                {editor.getAttributes('textStyle').fontSize ? `${editor.getAttributes('textStyle').fontSize}px` : '16px'}
-              </span>
-            </Button>
-          </div>
-        </div>
-      )}
-      <EditorContent editor={editor} />
-    </div>
-  );
-};
+// CarouselCaptionEditor removed - now using InlineRichEditor directly for consistency
 
 // Carousel Block Editor Component
 const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) => {
@@ -1878,10 +1716,15 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
 
             <div>
               <Label className="text-xs text-slate-500 mb-1.5 block">Caption (Optional)</Label>
-              <CarouselCaptionEditor
+              <InlineRichEditor
                 content={currentSlide.caption || ''}
                 onChange={(html) => updateSlide(activeIndex, { caption: html })}
                 placeholder="Add caption for this slide..."
+                isRTL={false}
+                textSize="text-sm"
+                isBold={false}
+                align="left"
+                className=""
               />
             </div>
           </div>
@@ -1904,32 +1747,8 @@ const InspectorPanel = ({
   onMediaUpload,
   canUploadFile
 }) => {
-  // Block settings
-  if (selectedBlock && selectedBlock.id && onBlockUpdate && onBlockDelete) {
-    return (
-      <div className="w-80 flex-shrink-0 border-l border-slate-200 bg-white overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Block Settings</h2>
-          {onBlockDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (window.confirm('Delete this block?')) {
-                  onBlockDelete(selectedBlock.id);
-                }
-              }}
-              className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div>
-            <Label className="text-xs text-slate-500 mb-1.5 block">Block Type</Label>
-            <div className="text-sm font-medium text-slate-900">{getBlockLabel(selectedBlock.type)}</div>
-          </div>
+  // Always show Building Tips panel (never show Block Settings)
+  // Block settings removed per user request - keep tips panel visible
 
           {selectedBlock.type === BLOCK_TYPES.HEADING && (
             <div>
