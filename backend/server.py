@@ -24,6 +24,10 @@ import hmac
 import hashlib
 import base64
 import aiohttp
+import secrets
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -58,6 +62,16 @@ PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID')
 PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET')
 PAYPAL_WEBHOOK_ID = os.environ.get('PAYPAL_WEBHOOK_ID')  # Webhook ID from PayPal dashboard
 PAYPAL_API_BASE = os.environ.get('PAYPAL_API_BASE', 'https://api-m.paypal.com')  # Use api-m.sandbox.paypal.com for sandbox
+
+# Email Configuration (SMTP/SendGrid compatible)
+SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.resend.com')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+SMTP_USER = os.environ.get('SMTP_USER')  # Can be 'apikey' for SendGrid or email for Resend
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # API key or password
+SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL', 'noreply@guide2026.com')
+SMTP_FROM_NAME = os.environ.get('SMTP_FROM_NAME', 'Guide2026')
+EMAIL_VERIFICATION_EXPIRY_HOURS = 24
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://guide2026-frontend.onrender.com')
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
 # IMPORTANT: Sandbox vs Production behavior differences:
 # - Sandbox may NOT open PayPal UI on cancellation (PayPal sandbox limitation)
@@ -127,6 +141,9 @@ class SubscriptionStatus(str, Enum):
     EXPIRED = "expired"
     PENDING = "pending"  # Subscription created but not yet activated
 
+# Note: Subscription status values are stored as lowercase strings in MongoDB
+# Use "active", "pending", "cancelled", "expired" in queries, not enum values
+
 class FileStatus(str, Enum):
     PENDING = "pending"
     ACTIVE = "active"
@@ -151,6 +168,9 @@ class User(BaseModel):
     subscription_id: Optional[str] = None
     plan_id: Optional[str] = None  # Denormalized for performance
     trial_ends_at: Optional[datetime] = None  # App-level Pro trial end date (14 days from start)
+    email_verified: bool = False  # Email verification status
+    email_verification_token: Optional[str] = None  # Hashed verification token
+    email_verification_expires_at: Optional[datetime] = None  # Token expiration
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class WorkspaceCreate(BaseModel):
@@ -354,6 +374,135 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def generate_verification_token() -> str:
+    """Generate a cryptographically secure random token."""
+    return secrets.token_urlsafe(32)
+
+def hash_verification_token(token: str) -> str:
+    """Hash verification token for storage (similar to password hashing)."""
+    return bcrypt.hashpw(token.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_verification_token(token: str, hashed: str) -> bool:
+    """Verify a verification token against its hash."""
+    try:
+        return bcrypt.checkpw(token.encode('utf-8'), hashed.encode('utf-8'))
+    except Exception:
+        return False
+
+async def send_verification_email(email: str, name: str, token: str) -> bool:
+    """
+    Send verification email via SMTP.
+    Compatible with SendGrid, Resend, and other SMTP services.
+    Returns True on success, False on failure.
+    """
+    if not SMTP_USER or not SMTP_PASSWORD:
+        logging.warning("SMTP not configured - skipping email send")
+        return False
+    
+    try:
+        verification_url = f"{FRONTEND_URL}/verify-email?token={token}"
+        expiry_hours = EMAIL_VERIFICATION_EXPIRY_HOURS
+        
+        # Create email message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Verify your email address'
+        msg['From'] = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
+        msg['To'] = email
+        
+        # Plain text version
+        text_content = f"""Hi {name},
+
+Please verify your email address by clicking the link below:
+
+{verification_url}
+
+This link will expire in {expiry_hours} hours.
+
+If you didn't create an account, you can safely ignore this email.
+
+Best regards,
+{SMTP_FROM_NAME}
+"""
+        
+        # HTML version
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .button {{ display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Hi {name},</h2>
+        <p>Please verify your email address by clicking the button below:</p>
+        <a href="{verification_url}" class="button">Verify Email</a>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="word-break: break-all;">{verification_url}</p>
+        <p style="color: #666; font-size: 14px;">This link will expire in {expiry_hours} hours.</p>
+        <p>If you didn't create an account, you can safely ignore this email.</p>
+        <div class="footer">
+            <p>Best regards,<br>{SMTP_FROM_NAME}</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        msg.attach(MIMEText(text_content, 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        # Send email via SMTP
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+        
+        logging.info(f"Verification email sent to {email}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to send verification email to {email}: {str(e)}")
+        return False
+
+async def require_email_verified(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to require email verification for protected endpoints.
+    Users with active PayPal subscriptions are grandfathered as verified.
+    """
+    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check explicit email verification
+    if user_doc.get('email_verified', False):
+        return current_user
+    
+    # Grandfather existing paid users - check if they have active/pending PayPal subscription
+    subscription_id = user_doc.get('subscription_id')
+    if subscription_id:
+        subscription = await db.subscriptions.find_one(
+            {
+                "id": subscription_id,
+                "status": {"$in": ["active", "pending"]},
+                "provider": "paypal"
+            },
+            {"_id": 0}
+        )
+        if subscription:
+            # User has active/pending PayPal subscription - allow access
+            logging.info(f"User {current_user.id} has active PayPal subscription - allowing access without email verification")
+            return current_user
+    
+    # User not verified and no active subscription
+    raise HTTPException(
+        status_code=403,
+        detail="Email verification required. Please verify your email address to access Pro features."
+    )
 
 def sanitize_public_walkthrough(w: dict) -> dict:
     """Remove sensitive/private fields from walkthrough docs returned to the public portal."""
@@ -851,13 +1000,23 @@ async def signup(user_data: UserCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Generate verification token
+    verification_token = generate_verification_token()
+    token_hash = hash_verification_token(verification_token)
+    token_expires_at = datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_EXPIRY_HOURS)
+    
     user = User(
         email=user_data.email,
-        name=user_data.name
+        name=user_data.name,
+        email_verified=False,
+        email_verification_token=token_hash,
+        email_verification_expires_at=token_expires_at
     )
     user_dict = user.model_dump()
     user_dict['password'] = hash_password(user_data.password)
     user_dict['created_at'] = user_dict['created_at'].isoformat()
+    if user_dict.get('email_verification_expires_at'):
+        user_dict['email_verification_expires_at'] = user_dict['email_verification_expires_at'].isoformat()
     
     await db.users.insert_one(user_dict)
     
@@ -867,6 +1026,11 @@ async def signup(user_data: UserCreate):
     # Automatically assign Free plan to new users
     await assign_free_plan_to_user(user.id)
     
+    # Send verification email (non-blocking - don't fail signup if email fails)
+    email_sent = await send_verification_email(user_data.email, user_data.name, verification_token)
+    if not email_sent:
+        logging.warning(f"Failed to send verification email to {user_data.email}, but signup succeeded")
+    
     # Refresh user data to include plan_id
     user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
     if user_doc:
@@ -874,7 +1038,7 @@ async def signup(user_data: UserCreate):
     
     token = create_token(user.id)
     
-    return {"user": user, "token": token}
+    return {"user": user, "token": token, "email_verification_sent": email_sent}
 
 @api_router.post("/auth/login")
 async def login(login_data: UserLogin):
@@ -886,6 +1050,124 @@ async def login(login_data: UserLogin):
     token = create_token(user.id)
     
     return {"user": user, "token": token}
+
+@api_router.get("/auth/verify-email")
+async def verify_email(token: str = Query(..., description="Email verification token")):
+    """
+    Verify user email address using verification token.
+    Token is single-use and must not be expired.
+    """
+    if not token:
+        raise HTTPException(status_code=400, detail="Verification token is required")
+    
+    # Find user with this verification token
+    # We need to check all users and verify the token against the hash
+    users_cursor = db.users.find(
+        {
+            "email_verified": False,
+            "email_verification_token": {"$ne": None},
+            "email_verification_expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+        },
+        {"_id": 0}
+    )
+    
+    verified_user = None
+    async for user_doc in users_cursor:
+        stored_hash = user_doc.get('email_verification_token')
+        if stored_hash and verify_verification_token(token, stored_hash):
+            verified_user = user_doc
+            break
+    
+    if not verified_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired verification token. Please request a new verification email."
+        )
+    
+    # Mark email as verified and clear verification token fields
+    await db.users.update_one(
+        {"id": verified_user['id']},
+        {
+            "$set": {
+                "email_verified": True,
+                "email_verification_token": None,
+                "email_verification_expires_at": None
+            }
+        }
+    )
+    
+    logging.info(f"Email verified for user {verified_user['id']} ({verified_user['email']})")
+    
+    return {
+        "success": True,
+        "message": "Email verified successfully. You can now access Pro features.",
+        "email": verified_user['email']
+    }
+
+@api_router.post("/auth/resend-verification")
+async def resend_verification_email(current_user: User = Depends(get_current_user)):
+    """
+    Resend verification email.
+    Rate-limited to prevent abuse (one email per 5 minutes per user).
+    """
+    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if already verified
+    if user_doc.get('email_verified', False):
+        raise HTTPException(status_code=400, detail="Email is already verified")
+    
+    # Rate limiting: Check last verification email sent time (stored in token expiry)
+    # If token was generated less than 5 minutes ago, reject
+    last_token_time = user_doc.get('email_verification_expires_at')
+    if last_token_time:
+        try:
+            expires_at = datetime.fromisoformat(last_token_time.replace('Z', '+00:00'))
+            token_age = expires_at - timedelta(hours=EMAIL_VERIFICATION_EXPIRY_HOURS)
+            min_interval = datetime.now(timezone.utc) - timedelta(minutes=5)
+            if token_age > min_interval:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Please wait before requesting another verification email. Try again in a few minutes."
+                )
+        except Exception:
+            pass  # If parsing fails, allow resend
+    
+    # Generate new verification token
+    verification_token = generate_verification_token()
+    token_hash = hash_verification_token(verification_token)
+    token_expires_at = datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_EXPIRY_HOURS)
+    
+    # Update user with new token
+    await db.users.update_one(
+        {"id": current_user.id},
+        {
+            "$set": {
+                "email_verification_token": token_hash,
+                "email_verification_expires_at": token_expires_at.isoformat()
+            }
+        }
+    )
+    
+    # Send verification email
+    email_sent = await send_verification_email(
+        current_user.email,
+        current_user.name,
+        verification_token
+    )
+    
+    if not email_sent:
+        logging.warning(f"Failed to send verification email to {current_user.email}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send verification email. Please try again later or contact support."
+        )
+    
+    return {
+        "success": True,
+        "message": "Verification email sent. Please check your inbox."
+    }
 
 @api_router.get("/auth/me", response_model=User)
 async def get_me(current_user: User = Depends(get_current_user)):
@@ -3763,7 +4045,7 @@ class PayPalAuditLog(BaseModel):
 @api_router.post("/billing/paypal/subscribe")
 async def subscribe_paypal(
     request: PayPalSubscribeRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_email_verified)
 ):
     """
     Create a PayPal subscription record.

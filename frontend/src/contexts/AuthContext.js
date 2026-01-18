@@ -223,8 +223,14 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
+  const refreshUser = async () => {
+    if (token) {
+      await fetchUser();
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
