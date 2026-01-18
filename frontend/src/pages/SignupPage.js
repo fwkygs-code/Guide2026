@@ -178,8 +178,21 @@ const SignupPage = () => {
     setLoading(true);
     
     try {
-      await signup(email, password, name);
-      toast.success(t('toast.accountCreated'));
+      const result = await signup(email, password, name);
+      const emailSent = result?.email_verification_sent;
+      
+      if (emailSent) {
+        toast.success('Account created! Please check your email to verify your account.', {
+          duration: 6000
+        });
+      } else {
+        toast.success('Account created successfully!', {
+          duration: 4000
+        });
+        toast.info('Email verification email could not be sent. You can resend it from the dashboard.', {
+          duration: 6000
+        });
+      }
       
       // Automatically navigate to dashboard (Free plan is assigned automatically)
       navigate('/dashboard');

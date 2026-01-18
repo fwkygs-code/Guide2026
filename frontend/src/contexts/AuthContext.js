@@ -197,6 +197,7 @@ export const AuthProvider = ({ children }) => {
       const data = response.data || {};
       const token = data.token || data.access_token || data.jwt;
       const user = data.user;
+      const email_verification_sent = data.email_verification_sent;
       if (!token) {
         throw new Error('Signup succeeded but no token was returned (check API base URL/env vars).');
       }
@@ -206,7 +207,7 @@ export const AuthProvider = ({ children }) => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Don't fetch user again - we already have it from signup response
       setLoading(false);
-      return { user };
+      return { user, email_verification_sent };
     } catch (error) {
       // Re-throw with better error message
       if (error.message === 'Signup request timeout') {
