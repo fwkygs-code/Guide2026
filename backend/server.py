@@ -472,41 +472,6 @@ Best regards,
         logging.error(f"Failed to send verification email to {email}: {str(e)}")
         return False
 
-async def require_email_verified(current_user: User = Depends(get_current_user)) -> User:
-    """
-    Dependency to require email verification for protected endpoints.
-    Users with active PayPal subscriptions are grandfathered as verified.
-    """
-    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
-    if not user_doc:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Check explicit email verification
-    if user_doc.get('email_verified', False):
-        return current_user
-    
-    # Grandfather existing paid users - check if they have active/pending PayPal subscription
-    subscription_id = user_doc.get('subscription_id')
-    if subscription_id:
-        subscription = await db.subscriptions.find_one(
-            {
-                "id": subscription_id,
-                "status": {"$in": ["active", "pending"]},
-                "provider": "paypal"
-            },
-            {"_id": 0}
-        )
-        if subscription:
-            # User has active/pending PayPal subscription - allow access
-            logging.info(f"User {current_user.id} has active PayPal subscription - allowing access without email verification")
-            return current_user
-    
-    # User not verified and no active subscription
-    raise HTTPException(
-        status_code=403,
-        detail="Email verification required. Please verify your email address to access Pro features."
-    )
-
 def sanitize_public_walkthrough(w: dict) -> dict:
     """Remove sensitive/private fields from walkthrough docs returned to the public portal."""
     if not w:
@@ -551,6 +516,41 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return User(**user)
+
+async def require_email_verified(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to require email verification for protected endpoints.
+    Users with active PayPal subscriptions are grandfathered as verified.
+    """
+    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check explicit email verification
+    if user_doc.get('email_verified', False):
+        return current_user
+    
+    # Grandfather existing paid users - check if they have active/pending PayPal subscription
+    subscription_id = user_doc.get('subscription_id')
+    if subscription_id:
+        subscription = await db.subscriptions.find_one(
+            {
+                "id": subscription_id,
+                "status": {"$in": ["active", "pending"]},
+                "provider": "paypal"
+            },
+            {"_id": 0}
+        )
+        if subscription:
+            # User has active/pending PayPal subscription - allow access
+            logging.info(f"User {current_user.id} has active PayPal subscription - allowing access without email verification")
+            return current_user
+    
+    # User not verified and no active subscription
+    raise HTTPException(
+        status_code=403,
+        detail="Email verification required. Please verify your email address to access Pro features."
+    )
 
 async def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))):
     """Optional authentication - returns user if token provided, None otherwise."""
