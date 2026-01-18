@@ -845,13 +845,20 @@ async def signup(user_data: UserCreate):
     
     await db.users.insert_one(user_dict)
     
-    # Initialize plans (but don't auto-assign - user will choose)
+    # Initialize plans
     await initialize_default_plans()
-    # Note: Plan will be assigned when user selects one via plan selection modal
+    
+    # Automatically assign Free plan to new users
+    await assign_free_plan_to_user(user.id)
+    
+    # Refresh user data to include plan_id
+    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+    if user_doc:
+        user = User(**{k: v for k, v in user_doc.items() if k != 'password'})
     
     token = create_token(user.id)
     
-    return {"user": user, "token": token, "plan_selection_required": True}
+    return {"user": user, "token": token}
 
 @api_router.post("/auth/login")
 async def login(login_data: UserLogin):

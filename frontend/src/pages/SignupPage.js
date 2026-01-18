@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
-import PlanSelectionModal from '../components/PlanSelectionModal';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const SignupPage = () => {
@@ -21,7 +20,6 @@ const SignupPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking'); // 'checking', 'ready', 'sleeping', 'error'
-  const [showPlanSelection, setShowPlanSelection] = useState(false);
   const statusRef = useRef('checking');
   const { signup } = useAuth();
   const { getSizeClass } = useTextSize();
@@ -180,15 +178,11 @@ const SignupPage = () => {
     setLoading(true);
     
     try {
-      const result = await signup(email, password, name);
+      await signup(email, password, name);
       toast.success(t('toast.accountCreated'));
       
-      // Show plan selection modal if plan selection is required
-      if (result?.plan_selection_required) {
-        setShowPlanSelection(true);
-      } else {
-        navigate('/dashboard');
-      }
+      // Automatically navigate to dashboard (Free plan is assigned automatically)
+      navigate('/dashboard');
     } catch (error) {
       toast.error(error.response?.data?.detail || t('toast.signupFailed'));
     } finally {
@@ -196,10 +190,6 @@ const SignupPage = () => {
     }
   };
 
-  const handlePlanSelected = (planName) => {
-    // Plan has been selected, navigate to dashboard
-    navigate('/dashboard');
-  };
 
   return (
     <div 
@@ -374,13 +364,6 @@ const SignupPage = () => {
         </div>
       </motion.div>
 
-      {/* Plan Selection Modal */}
-      <PlanSelectionModal
-        open={showPlanSelection}
-        onOpenChange={setShowPlanSelection}
-        onPlanSelected={handlePlanSelected}
-        isSignup={true}
-      />
     </div>
   );
 };
