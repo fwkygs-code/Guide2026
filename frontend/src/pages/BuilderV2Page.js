@@ -35,7 +35,7 @@ const BuilderV2Page = () => {
   const { t } = useTranslation();
   const { workspaceId, walkthroughId } = useParams();
   const navigate = useNavigate();
-  const isEditing = !!walkthroughId;
+  const isEditing = !!walkthroughId && walkthroughId !== 'new';
   const { canUploadFile } = useQuota(workspaceId);
 
   // Core state
