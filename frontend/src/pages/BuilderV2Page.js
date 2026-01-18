@@ -22,6 +22,14 @@ import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import Placeholder from '@tiptap/extension-placeholder';
+import Underline from '@tiptap/extension-underline';
+import { Bold, Italic, Underline as UnderlineIcon } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 
 /**
@@ -1385,6 +1393,109 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
   }
 };
 
+// Carousel Caption Editor Component (uses HTML to preserve formatting)
+const CarouselCaptionEditor = ({ content, onChange, placeholder }) => {
+  const [showToolbar, setShowToolbar] = useState(false);
+  
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: false,
+        bulletList: false,
+        orderedList: false,
+        blockquote: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
+      Underline,
+      TextStyle,
+      Color,
+      TextAlign.configure({
+        types: ['paragraph'],
+      }),
+      Placeholder.configure({
+        placeholder,
+        showOnlyWhenEditable: true,
+      }),
+    ],
+    content: content || '',
+    onUpdate: ({ editor }) => {
+      // Save HTML to preserve formatting
+      onChange(editor.getHTML());
+    },
+    onFocus: () => {
+      setShowToolbar(true);
+    },
+    onBlur: ({ event }) => {
+      // Delay hiding toolbar to allow button clicks
+      setTimeout(() => {
+        setShowToolbar(false);
+      }, 200);
+    },
+    editorProps: {
+      attributes: {
+        class: 'focus:outline-none text-sm min-h-[60px] border border-slate-200 rounded px-3 py-2 prose prose-sm max-w-none',
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.getHTML();
+    if ((content || '') !== current) {
+      editor.commands.setContent(content || '', false);
+    }
+  }, [content, editor]);
+
+  if (!editor) return null;
+
+  return (
+    <div className="relative">
+      {showToolbar && (
+        <div className="absolute z-[100] left-1/2 transform -translate-x-1/2 top-[-44px] flex items-center gap-1 bg-slate-900 rounded-lg p-1 shadow-xl">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().toggleBold().run();
+            }}
+            className={`h-7 w-7 p-0 ${editor.isActive('bold') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+          >
+            <Bold className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().toggleItalic().run();
+            }}
+            className={`h-7 w-7 p-0 ${editor.isActive('italic') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+          >
+            <Italic className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().toggleUnderline().run();
+            }}
+            className={`h-7 w-7 p-0 ${editor.isActive('underline') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+          >
+            <UnderlineIcon className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      )}
+      <EditorContent editor={editor} />
+    </div>
+  );
+};
+
 // Carousel Block Editor Component
 const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -1557,8 +1668,11 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                 />
               )}
               {currentSlide.caption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-3 text-sm">
-                  {currentSlide.caption}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent text-white p-3 pb-4 text-sm pointer-events-none">
+                  <div 
+                    className="prose prose-invert prose-sm max-w-none pointer-events-auto"
+                    dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
+                  />
                 </div>
               )}
             </>
@@ -1684,11 +1798,10 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
 
             <div>
               <Label className="text-xs text-slate-500 mb-1.5 block">Caption (Optional)</Label>
-              <InlineRichEditor
+              <CarouselCaptionEditor
                 content={currentSlide.caption || ''}
-                onChange={(content) => updateSlide(activeIndex, { caption: content })}
+                onChange={(html) => updateSlide(activeIndex, { caption: html })}
                 placeholder="Add caption for this slide..."
-                className="text-sm min-h-[60px] border border-slate-200 rounded px-3 py-2"
               />
             </div>
           </div>

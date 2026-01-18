@@ -1330,9 +1330,9 @@ const CarouselViewer = ({ slides }) => {
                   />
                 )}
                 {currentSlide.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white p-4">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent text-white p-4 pb-6">
                     <div 
-                      className="prose prose-invert max-w-none text-sm"
+                      className="prose prose-invert prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
                     />
                   </div>

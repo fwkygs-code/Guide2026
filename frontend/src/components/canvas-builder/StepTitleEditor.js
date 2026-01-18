@@ -31,8 +31,14 @@ const StepTitleEditor = ({ title, onChange, isRTL = false }) => {
       content: []
     },
     onUpdate: ({ editor }) => {
-      // Preserve spaces (including trailing spaces) better than editor.getText()
+      // Save HTML to preserve alignment and formatting
+      const html = editor.getHTML();
+      // Extract text for backward compatibility, but ensure center alignment is always applied
       const text = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n', '\0');
+      // Force center alignment on every update
+      if (!editor.isActive({ textAlign: 'center' })) {
+        editor.chain().setTextAlign('center').run();
+      }
       onChange(text);
     },
     editorProps: {
@@ -45,11 +51,23 @@ const StepTitleEditor = ({ title, onChange, isRTL = false }) => {
 
   // Ensure center alignment persists on mount and when title changes
   useEffect(() => {
-    if (editor) {
-      // Set center alignment if not already set
-      if (!editor.isActive({ textAlign: 'center' })) {
-        editor.chain().setTextAlign('center').run();
+    if (editor && title !== undefined) {
+      // Update content and force center alignment
+      const currentText = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n', '\0');
+      if (currentText !== title) {
+        // Set content with center alignment attribute
+        editor.commands.setContent({
+          type: 'heading',
+          attrs: { level: 2, textAlign: 'center' },
+          content: title ? [{ type: 'text', text: title }] : []
+        }, false);
       }
+      // Always ensure center alignment is applied
+      setTimeout(() => {
+        if (editor && !editor.isActive({ textAlign: 'center' })) {
+          editor.chain().setTextAlign('center').run();
+        }
+      }, 0);
     }
   }, [editor, title]);
 
