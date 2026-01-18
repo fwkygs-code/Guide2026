@@ -795,6 +795,7 @@ const BuilderV2Page = () => {
             blockPickerOpen={blockPickerOpen}
             onBlockPickerOpen={setBlockPickerOpen}
             isStepLoaded={!loading && !!currentStep}
+            canUploadFile={canUploadFile}
           />
         </div>
 
@@ -898,7 +899,8 @@ const CanvasStage = ({
   onMediaUpload,
   blockPickerOpen,
   onBlockPickerOpen,
-  isStepLoaded
+  isStepLoaded,
+  canUploadFile
 }) => {
   if (!currentStep) {
     return (
@@ -956,6 +958,7 @@ const CanvasStage = ({
                         walkthroughId={walkthroughId}
                         stepId={stepId}
                         onMediaUpload={onMediaUpload}
+                        canUploadFile={canUploadFile}
                       />
                       <AddBlockButton
                         insertAfterIndex={index}
@@ -1102,7 +1105,8 @@ const BlockRenderer = ({
   workspaceId,
   walkthroughId,
   stepId,
-  onMediaUpload
+  onMediaUpload,
+  canUploadFile
 }) => {
   const {
     attributes,
