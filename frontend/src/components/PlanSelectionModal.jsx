@@ -95,10 +95,14 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     
     setSelecting(true);
     try {
-      // For Pro plan, start 14-day trial (no PayPal subscription required initially)
+      // CRITICAL: Pro plan requires PayPal subscription first - no trial without payment approval
       if (planName === 'pro') {
-        await api.startTrial();
-        toast.success('Pro trial started! You have 14 days to try Pro features. Subscribe via PayPal before trial ends to continue.');
+        toast.error('Pro plan requires PayPal subscription. After creating your account, go to Dashboard and click "Upgrade to Pro" to subscribe via PayPal. The 14-day trial starts after PayPal approves your payment.');
+        onOpenChange(false);
+        if (onPlanSelected) {
+          onPlanSelected('free'); // Default to free plan
+        }
+        return;
       } else {
         // For Free plan, use changePlan endpoint
         await api.changePlan(planName);
