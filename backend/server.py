@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form, Body
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -5268,6 +5269,66 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Exception handler for HTTPException to ensure CORS headers are always sent
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Ensure CORS headers are sent on HTTPException responses (400, 401, 403, 404, etc.)"""
+    # Get CORS origins from environment
+    raw_cors_origins = os.environ.get("CORS_ORIGINS", "*")
+    cors_origins = [o.strip() for o in raw_cors_origins.split(",") if o.strip()]
+    allow_all_origins = "*" in cors_origins
+    origin = request.headers.get("origin")
+    
+    # Determine allowed origin
+    if allow_all_origins:
+        allowed_origin = "*"
+    elif origin and origin in cors_origins:
+        allowed_origin = origin
+    else:
+        allowed_origin = cors_origins[0] if cors_origins else "*"
+    
+    # Return error response with CORS headers
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers={
+            "Access-Control-Allow-Origin": allowed_origin,
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
+        }
+    )
+
+# Exception handler for RequestValidationError to ensure CORS headers on validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Ensure CORS headers are sent on validation error responses (422)"""
+    # Get CORS origins from environment
+    raw_cors_origins = os.environ.get("CORS_ORIGINS", "*")
+    cors_origins = [o.strip() for o in raw_cors_origins.split(",") if o.strip()]
+    allow_all_origins = "*" in cors_origins
+    origin = request.headers.get("origin")
+    
+    # Determine allowed origin
+    if allow_all_origins:
+        allowed_origin = "*"
+    elif origin and origin in cors_origins:
+        allowed_origin = origin
+    else:
+        allowed_origin = cors_origins[0] if cors_origins else "*"
+    
+    # Return validation error response with CORS headers
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body},
+        headers={
+            "Access-Control-Allow-Origin": allowed_origin,
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
+        }
+    )
 
 # Exception handler to ensure CORS headers are always sent, even on errors
 @app.exception_handler(Exception)
