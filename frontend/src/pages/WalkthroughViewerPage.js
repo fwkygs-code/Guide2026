@@ -47,6 +47,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [portalPassword, setPortalPassword] = useState('');
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   
   // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
   const isGif = (url, mediaType = null) => {
@@ -479,11 +480,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
             </div>
             <div className="flex items-center gap-2">
               {isLoggedIn && (
-                <Link to="/dashboard" data-testid="back-to-dashboard-link">
-                  <Button variant="outline" size="sm">
-                    Admin Dashboard
-                  </Button>
-                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAdminDialogOpen(true)}
+                  data-testid="back-to-dashboard-link"
+                >
+                  Admin Dashboard
+                </Button>
               )}
 
               {!isLoggedIn && (
@@ -1167,6 +1171,36 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Dashboard Dialog */}
+      <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Admin Dashboard</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-slate-600">
+              You are currently viewing the walkthrough. Would you like to go to the Admin Dashboard to manage your workspace?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setAdminDialogOpen(false)}
+              >
+                Stay Here
+              </Button>
+              <Button
+                onClick={() => {
+                  setAdminDialogOpen(false);
+                  navigate('/dashboard');
+                }}
+              >
+                Go to Dashboard
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

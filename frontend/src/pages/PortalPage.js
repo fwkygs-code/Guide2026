@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, FolderOpen, Search, Lock, ChevronRight, Phone, Clock, MessageCircle, HelpCircle, X } from 'lucide-react';
@@ -23,6 +23,7 @@ const API = `${API_BASE.replace(/\/$/, '')}/api`;
 const PortalPage = ({ isEmbedded = false }) => {
   const { t, i18n } = useTranslation();
   const { slug } = useParams();
+  const navigate = useNavigate();
   const [portal, setPortal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +31,7 @@ const PortalPage = ({ isEmbedded = false }) => {
   const [helpChatOpen, setHelpChatOpen] = useState(false);
   const [categorySelectOpen, setCategorySelectOpen] = useState(false);
   const [selectedCategoryForChat, setSelectedCategoryForChat] = useState(null);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const isLoggedIn = !!localStorage.getItem('token');
   
   // Detect if we're in an iframe
@@ -141,33 +143,33 @@ const PortalPage = ({ isEmbedded = false }) => {
       {/* Header - Hide in iframe mode */}
       {!inIframe && (
       <header className="glass border-b border-slate-200/50 sticky top-0 z-50 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           {/* Top Row: Logo, Name, and Action Buttons */}
-          <div className="flex items-center justify-between gap-6 mb-3">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-between gap-3 sm:gap-6 mb-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
               {workspace.logo ? (
-                <img src={normalizeImageUrl(workspace.logo)} alt={workspace.name} className="w-10 h-10 rounded-lg object-cover" />
+                <img src={normalizeImageUrl(workspace.logo)} alt={workspace.name} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0" />
               ) : (
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0"
                   style={{ backgroundColor: primaryColor }}
                 >
                   {workspace.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className="min-w-0">
-                <h1 className="text-xl font-heading font-bold text-slate-900 truncate">{workspace.name}</h1>
-                <p className="text-sm text-slate-600">Knowledge Base</p>
+              <div className="min-w-0 flex-shrink">
+                <h1 className="text-base sm:text-xl font-heading font-bold text-slate-900 truncate">{workspace.name}</h1>
+                <p className="text-xs sm:text-sm text-slate-600">Knowledge Base</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {/* Language Switcher */}
               <LanguageSwitcher />
               
-              {/* Portal External Links */}
+              {/* Portal External Links - Hide on mobile if too many */}
               {workspace.portal_links && workspace.portal_links.length > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2">
                   {workspace.portal_links.map((link, index) => (
                     link.label && link.url && (
                       <a
@@ -175,7 +177,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105"
+                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all hover:scale-105"
                         style={{
                           backgroundColor: primaryColor,
                           color: 'white',
@@ -190,40 +192,45 @@ const PortalPage = ({ isEmbedded = false }) => {
               )}
 
               {isLoggedIn && (
-                <Link to="/dashboard" data-testid="back-to-dashboard-link">
-                  <Button variant="outline" size="sm">
-                    Admin Dashboard
-                  </Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setAdminDialogOpen(true)}
+                  data-testid="back-to-dashboard-link"
+                  className="text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  <span className="hidden sm:inline">Admin Dashboard</span>
+                  <span className="sm:hidden">Admin</span>
+                </Button>
               )}
             </div>
           </div>
 
-          {/* Bottom Row: Contact Information */}
+          {/* Bottom Row: Contact Information - Responsive */}
           {(workspace.portal_phone || workspace.portal_working_hours || workspace.portal_whatsapp) && (
-            <div className="flex items-center gap-6 flex-wrap text-sm text-slate-600 border-t border-slate-200/50 pt-3">
+            <div className="flex items-center gap-4 sm:gap-6 flex-wrap text-xs sm:text-sm text-slate-600 border-t border-slate-200/50 pt-3">
               {workspace.portal_phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" style={{ color: primaryColor }} />
-                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-slate-900 transition-colors">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
+                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-slate-900 transition-colors truncate">
                     {workspace.portal_phone}
                   </a>
                 </div>
               )}
               {workspace.portal_working_hours && (
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" style={{ color: primaryColor }} />
-                  <span>{workspace.portal_working_hours}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
+                  <span className="truncate">{workspace.portal_working_hours}</span>
                 </div>
               )}
               {workspace.portal_whatsapp && (
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" style={{ color: primaryColor }} />
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
                   <a 
                     href={workspace.portal_whatsapp} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="hover:text-slate-900 transition-colors"
+                    className="hover:text-slate-900 transition-colors truncate"
                   >
                     {t('portal.whatsapp')}
                   </a>
@@ -674,6 +681,36 @@ const PortalPage = ({ isEmbedded = false }) => {
           </div>
         </footer>
       )}
+
+      {/* Admin Dashboard Dialog */}
+      <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Admin Dashboard</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-slate-600">
+              You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setAdminDialogOpen(false)}
+              >
+                Stay in Portal
+              </Button>
+              <Button
+                onClick={() => {
+                  setAdminDialogOpen(false);
+                  navigate('/dashboard');
+                }}
+              >
+                Go to Dashboard
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
