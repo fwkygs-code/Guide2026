@@ -130,7 +130,7 @@ const BillingInfo = () => {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-orange-900">Cancellation Scheduled</div>
+                <div className="text-sm font-medium text-orange-900">Subscription Cancelled</div>
                 <div className="text-xs text-orange-700 mt-1">
                   Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
                   After that, your account will be downgraded to the Free plan. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.
@@ -244,13 +244,6 @@ const BillingInfo = () => {
           <div className="pt-4 border-t border-slate-200">
             {cancel_at_period_end ? (
               <div className="space-y-2">
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  disabled
-                >
-                  Cancellation Scheduled
-                </Button>
                 {paypal_verified_status === 'CANCELLED' ? (
                   <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-start gap-2">

@@ -3640,6 +3640,22 @@ class ProcessedWebhookEvent(BaseModel):
     subscription_id: Optional[str] = None  # Our subscription ID if applicable
     # TTL: Events older than 90 days are eligible for cleanup (managed by MongoDB TTL index or periodic cleanup)
 
+# PayPal Audit Log (for forensic-grade logging of all PayPal interactions)
+class PayPalAuditLog(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None
+    subscription_id: Optional[str] = None
+    action: str  # create_subscription, activate, verify_activation, trial_start, renewal_check, cancel_request, cancel_verify, suspend, expire, reconcile
+    paypal_endpoint: str  # e.g., "/v1/billing/subscriptions/{id}"
+    http_method: str  # GET, POST, etc.
+    http_status_code: Optional[int] = None
+    paypal_status: Optional[str] = None  # ACTIVE, PENDING, CANCELLED, EXPIRED, SUSPENDED, UNKNOWN
+    raw_paypal_response: Optional[Dict[str, Any]] = None  # Full PayPal API response (JSON)
+    verified: bool = False  # Whether PayPal confirmed the action
+    source: str  # api_call, webhook, reconciliation
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 @api_router.post("/billing/paypal/subscribe")
 async def subscribe_paypal(
     request: PayPalSubscribeRequest,
@@ -3759,6 +3775,53 @@ async def get_paypal_access_token() -> Optional[str]:
     except Exception as e:
         logging.error(f"Error getting PayPal access token: {str(e)}")
         return None
+
+async def log_paypal_action(
+    action: str,
+    paypal_endpoint: str,
+    http_method: str,
+    source: str,
+    user_id: Optional[str] = None,
+    subscription_id: Optional[str] = None,
+    http_status_code: Optional[int] = None,
+    paypal_status: Optional[str] = None,
+    raw_paypal_response: Optional[Dict[str, Any]] = None,
+    verified: bool = False
+) -> str:
+    """
+    Forensic-grade audit logging for all PayPal interactions.
+    Logs MUST be immutable (append-only).
+    
+    This is the single source of truth for PayPal payment actions.
+    All PayPal API calls, webhooks, and reconciliations must call this function.
+    """
+    audit_log = PayPalAuditLog(
+        user_id=user_id,
+        subscription_id=subscription_id,
+        action=action,
+        paypal_endpoint=paypal_endpoint,
+        http_method=http_method,
+        http_status_code=http_status_code,
+        paypal_status=paypal_status,
+        raw_paypal_response=raw_paypal_response,
+        verified=verified,
+        source=source
+    )
+    
+    audit_log_dict = audit_log.model_dump()
+    audit_log_dict['created_at'] = audit_log_dict['created_at'].isoformat()
+    
+    # Store raw_paypal_response as JSON string for efficient storage
+    # MongoDB can handle dict directly, but we'll keep it as dict for queryability
+    if audit_log_dict.get('raw_paypal_response'):
+        # Ensure it's JSON-serializable (already a dict)
+        pass
+    
+    await db.paypal_audit_logs.insert_one(audit_log_dict)
+    
+    logging.info(f"[PayPal Audit] {action} | {source} | {http_method} {paypal_endpoint} | Status: {http_status_code} | PayPal Status: {paypal_status} | Verified: {verified} | User: {user_id} | Subscription: {subscription_id}")
+    
+    return audit_log.id
 
 async def get_paypal_subscription_details(paypal_subscription_id: str) -> Optional[Dict[str, Any]]:
     """

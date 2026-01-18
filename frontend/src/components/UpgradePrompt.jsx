@@ -183,13 +183,6 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   <div className="space-y-2">
                     {hasCancelledSubscription ? (
                       <div className="space-y-2">
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          disabled
-                        >
-                          Cancellation Scheduled
-                        </Button>
                         <p className="text-xs text-slate-500 text-center">
                           Your subscription will remain active until the end of your billing period, then automatically cancel. No further charges will occur after that date unless you re-subscribe. Final billing status is determined by PayPal.
                         </p>
