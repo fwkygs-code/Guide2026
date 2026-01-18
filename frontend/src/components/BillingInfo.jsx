@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Calendar, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
 const BillingInfo = () => {
   const { t } = useTranslation();
-  const { quotaData } = useQuota();
+  const { quotaData, refreshQuota } = useQuota();
+  const [isCancelling, setIsCancelling] = useState(false);
 
   if (!quotaData) {
     return null;
@@ -161,6 +165,51 @@ const BillingInfo = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Cancel Subscription Button */}
+        {subscription && (subscription.status === 'active' || subscription.status === 'pending' || subscription.status === 'cancelled') && (
+          <div className="pt-4 border-t border-slate-200">
+            {cancel_at_period_end ? (
+              <div className="space-y-2">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  disabled
+                >
+                  Cancellation Scheduled
+                </Button>
+                <p className="text-xs text-slate-500 text-center">
+                  Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. No further charges will occur.
+                </p>
+              </div>
+            ) : (
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={async () => {
+                  setIsCancelling(true);
+                  try {
+                    const response = await api.cancelPayPalSubscription();
+                    if (response.data && response.data.success) {
+                      toast.success(response.data.message || 'Subscription cancellation requested. You will continue to have Pro access until the end of your current billing period.');
+                      if (refreshQuota) {
+                        await refreshQuota();
+                      }
+                    }
+                  } catch (error) {
+                    const errorMessage = error.response?.data?.detail || 'Failed to process cancellation request. Please try again or contact support.';
+                    toast.error(errorMessage);
+                  } finally {
+                    setIsCancelling(false);
+                  }
+                }}
+                disabled={isCancelling}
+              >
+                {isCancelling ? 'Processing...' : 'Cancel Subscription'}
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
