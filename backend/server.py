@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form, Body
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form, Body, BackgroundTasks
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -74,6 +74,7 @@ SMTP_USER = os.environ.get('SMTP_USER')  # Can be 'apikey' for SendGrid or email
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # API key or password
 SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL', 'noreply@guide2026.com')
 SMTP_FROM_NAME = os.environ.get('SMTP_FROM_NAME', 'Guide2026')
+SMTP_TIMEOUT = 10  # SMTP connection timeout in seconds (prevents worker blocking)
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://guide2026-frontend.onrender.com')
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
@@ -394,15 +395,17 @@ def verify_verification_token(token: str, hashed: str) -> bool:
     except Exception:
         return False
 
-async def send_verification_email(email: str, name: str, token: str) -> bool:
+async def send_verification_email_background(user_id: str, email: str, name: str, token: str):
     """
-    Send verification email via SMTP.
+    Background task to send verification email via SMTP.
+    Non-blocking - runs after HTTP response is sent.
     Compatible with SendGrid, Resend, and other SMTP services.
-    Returns True on success, False on failure.
     """
+    logging.info(f"[EMAIL][START] user_id={user_id} email={email}")
+    
     if not SMTP_USER or not SMTP_PASSWORD:
-        logging.warning("SMTP not configured - skipping email send")
-        return False
+        logging.warning(f"[EMAIL][FAILED] user_id={user_id} error=SMTP not configured")
+        return
     
     try:
         verification_url = f"{FRONTEND_URL}/verify-email?token={token}"
@@ -461,17 +464,22 @@ Best regards,
         msg.attach(MIMEText(text_content, 'plain'))
         msg.attach(MIMEText(html_content, 'html'))
         
-        # Send email via SMTP
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        # Send email via SMTP with timeout to prevent blocking
+        import socket
+        socket.setdefaulttimeout(SMTP_TIMEOUT)
+        
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
         
-        logging.info(f"Verification email sent to {email}")
-        return True
+        logging.info(f"[EMAIL][SUCCESS] user_id={user_id} email={email}")
+    except socket.timeout:
+        logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=SMTP connection timeout ({SMTP_TIMEOUT}s)")
+    except smtplib.SMTPException as e:
+        logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=SMTP error: {str(e)}")
     except Exception as e:
-        logging.error(f"Failed to send verification email to {email}: {str(e)}")
-        return False
+        logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error={str(e)}", exc_info=True)
 
 def sanitize_public_walkthrough(w: dict) -> dict:
     """Remove sensitive/private fields from walkthrough docs returned to the public portal."""
@@ -999,7 +1007,7 @@ async def assign_free_plan_to_user(user_id: str):
 
 # Auth Routes
 @api_router.post("/auth/signup")
-async def signup(user_data: UserCreate):
+async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -1030,10 +1038,15 @@ async def signup(user_data: UserCreate):
     # Automatically assign Free plan to new users
     await assign_free_plan_to_user(user.id)
     
-    # Send verification email (non-blocking - don't fail signup if email fails)
-    email_sent = await send_verification_email(user_data.email, user_data.name, verification_token)
-    if not email_sent:
-        logging.warning(f"Failed to send verification email to {user_data.email}, but signup succeeded")
+    # Schedule verification email sending as background task (non-blocking)
+    # Email will be sent after HTTP response is returned - never blocks signup
+    background_tasks.add_task(
+        send_verification_email_background,
+        user.id,
+        user_data.email,
+        user_data.name,
+        verification_token
+    )
     
     # Refresh user data to include plan_id
     user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
@@ -1052,7 +1065,9 @@ async def signup(user_data: UserCreate):
     token = create_token(user.id)
     
     # Use model_dump to ensure proper JSON serialization
-    return {"user": user.model_dump(mode='json'), "token": token, "email_verification_sent": email_sent}
+    # Note: email_verification_sent is always True here since email is sent in background
+    # Actual email send status is logged but doesn't affect response
+    return {"user": user.model_dump(mode='json'), "token": token, "email_verification_sent": True}
 
 @api_router.post("/auth/login")
 async def login(login_data: UserLogin):
@@ -1119,7 +1134,10 @@ async def verify_email(token: str = Query(..., description="Email verification t
     }
 
 @api_router.post("/auth/resend-verification")
-async def resend_verification_email(current_user: User = Depends(get_current_user)):
+async def resend_verification_email(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
     """
     Resend verification email.
     Rate-limited to prevent abuse (one email per 5 minutes per user).
@@ -1164,32 +1182,20 @@ async def resend_verification_email(current_user: User = Depends(get_current_use
         }
     )
     
-    # Send verification email (non-blocking - don't fail if email service is down)
-    try:
-        email_sent = await send_verification_email(
-            current_user.email,
-            current_user.name,
-            verification_token
-        )
-        
-        if not email_sent:
-            logging.warning(f"Failed to send verification email to {current_user.email}")
-            # Don't raise exception - just return a warning message
-            return {
-                "success": False,
-                "message": "Verification token has been updated, but email could not be sent. Please check your email configuration or try again later."
-            }
-    except Exception as e:
-        logging.error(f"Error sending verification email to {current_user.email}: {e}", exc_info=True)
-        # Don't fail the request - token was already updated
-        return {
-            "success": False,
-            "message": "Verification token has been updated, but email could not be sent due to a server error. Please try again later."
-        }
+    # Schedule verification email sending as background task (non-blocking)
+    # Email will be sent after HTTP response is returned - never blocks the request
+    background_tasks.add_task(
+        send_verification_email_background,
+        current_user.id,
+        current_user.email,
+        current_user.name,
+        verification_token
+    )
     
+    # Return immediately - email sending happens in background
     return {
         "success": True,
-        "message": "Verification email sent. Please check your inbox."
+        "message": "Verification email will be sent shortly. Please check your inbox."
     }
 
 @api_router.get("/auth/me", response_model=User)
