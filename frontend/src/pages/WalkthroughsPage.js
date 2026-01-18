@@ -161,6 +161,15 @@ const WalkthroughsPage = () => {
               {t('workspace.archive')}
             </Button>
             <Button
+              variant="outline"
+              onClick={() => navigate(`/workspace/${workspaceId}/builder-v2/new`)}
+              data-testid="create-walkthrough-v2-button"
+              title="New Builder V2 (Clean & Stable)"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New (V2)
+            </Button>
+            <Button
               onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/new`)}
               data-testid="create-walkthrough-button"
             >
