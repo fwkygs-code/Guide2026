@@ -21,6 +21,7 @@ import { BLOCK_TYPES, createBlock, getBlockLabel, getBlockIcon } from '../utils/
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useQuota } from '../hooks/useQuota';
 
 /**
@@ -668,6 +669,8 @@ const BuilderV2Page = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <div className="h-6 w-px bg-slate-200" />
           <Button variant="ghost" size="sm" disabled title="Undo (coming soon)">
             <Undo2 className="w-4 h-4" />
           </Button>
@@ -1093,7 +1096,14 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
           <Plus className="w-4 h-4 text-slate-400" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 bg-white border-slate-200 z-50" side="bottom" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent 
+        className="w-64 p-2 bg-white border-slate-200 z-50" 
+        side="bottom" 
+        align="start" 
+        sideOffset={5}
+        collisionPadding={10}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="grid grid-cols-2 gap-2">
           {blockTypes.map((type) => (
             <button
