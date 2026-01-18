@@ -57,7 +57,7 @@ const BillingInfo = () => {
   const isInTrial = trial_period_end && new Date(trial_period_end) > new Date();
 
   return (
-    <Card>
+    <Card className="bg-white border-slate-200">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">
