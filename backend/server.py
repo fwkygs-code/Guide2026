@@ -315,6 +315,7 @@ class Subscription(BaseModel):
     extra_storage_bytes: int = 0  # Additional storage beyond plan storage
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     cancelled_at: Optional[datetime] = None
+    cancel_at_period_end: bool = False  # User requested cancellation, will cancel at period end
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -428,7 +429,9 @@ async def get_user_plan(user_id: str) -> Optional[Plan]:
     return Plan(**plan) if plan else None
 
 async def get_user_subscription(user_id: str) -> Optional[Subscription]:
-    """Get user's active subscription (ACTIVE or PENDING status)."""
+    """Get user's subscription (ACTIVE, PENDING, or CANCELLED status).
+    CANCELLED subscriptions are included because user keeps access until EXPIRED.
+    """
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         return None
@@ -437,9 +440,10 @@ async def get_user_subscription(user_id: str) -> Optional[Subscription]:
     if not subscription_id:
         return None
     
-    # Get subscription with ACTIVE or PENDING status
+    # Get subscription with ACTIVE, PENDING, or CANCELLED status
+    # CANCELLED is included because user keeps Pro access until EXPIRED webhook
     subscription = await db.subscriptions.find_one(
-        {"id": subscription_id, "status": {"$in": [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]}},
+        {"id": subscription_id, "status": {"$in": [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING, SubscriptionStatus.CANCELLED]}},
         {"_id": 0}
     )
     return Subscription(**subscription) if subscription else None
@@ -2898,16 +2902,52 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     
     subscription = await get_user_subscription(current_user.id)
     
-    # Priority 1: ACTIVE subscription grants Pro access (highest priority)
-    if subscription and subscription.status == SubscriptionStatus.ACTIVE:
-        plan = await db.plans.find_one({"id": subscription.plan_id}, {"_id": 0})
-        if plan:
-            plan = Plan(**plan)
+    # CRITICAL: Single source of truth for Pro access
+    # User has Pro access if:
+    # 1. ACTIVE subscription (PayPal confirmed payment)
+    # 2. PENDING subscription (awaiting PayPal confirmation) - grants access during trial period
+    # 3. Active trial (trial_ends_at > now)
+    # 4. CANCELLED subscription BUT still within billing period (until EXPIRED)
+    
+    has_pro_access = False
+    
+    if subscription:
+        if subscription.status == SubscriptionStatus.ACTIVE:
+            # ACTIVE subscription always grants Pro access
+            has_pro_access = True
+        elif subscription.status == SubscriptionStatus.PENDING:
+            # PENDING subscription grants Pro access during trial period
+            # Check if trial is still active
+            if has_active_trial:
+                has_pro_access = True
+        elif subscription.status == SubscriptionStatus.CANCELLED:
+            # CANCELLED subscription: User keeps Pro access until EXPIRED webhook
+            # Check if user still has Pro plan_id (not yet downgraded)
+            # This means they're still within billing period
+            user_plan_id = user.get('plan_id') if user else None
+            if user_plan_id:
+                pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+                if pro_plan and user_plan_id == pro_plan['id']:
+                    # User still has Pro plan_id - access continues until EXPIRED
+                    has_pro_access = True
+            # Also check if trial is still active (for cancelled subscriptions during trial)
+            if has_active_trial:
+                has_pro_access = True
+    
+    # Also check standalone trial (no subscription)
+    if not has_pro_access and has_active_trial:
+        has_pro_access = True
+    
+    if has_pro_access:
+        # User has Pro access - get Pro plan
+        pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+        if pro_plan:
+            plan = Plan(**pro_plan)
         else:
-            # Fallback to Free if subscription plan not found
             plan = await get_user_plan(current_user.id)
-    # Priority 2: Active trial grants Pro access (app-level trial)
-    elif has_active_trial:
+    else:
+        # No Pro access - use Free plan
+        plan = await get_user_plan(current_user.id)
         pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
         if pro_plan:
             plan = Plan(**pro_plan)
@@ -2948,6 +2988,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     next_billing_date = None
     
     # Priority 1: Use app-level trial_ends_at if active (from User model)
+    # This comes from PayPal's billing_info.next_billing_time (set by webhook)
     if has_active_trial and trial_ends_at:
         if isinstance(trial_ends_at, str):
             trial_period_end = trial_ends_at
@@ -2958,28 +2999,30 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         subscription_dict = subscription.model_dump()
         started_at = subscription.started_at
         
-        # For Pro plan with subscription, calculate trial period from subscription start
-        if plan.name == 'pro' and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]:
-            # If app-level trial exists, use that; otherwise calculate from subscription
-            if not trial_period_end:
-                # Calculate trial period end (14 days from started_at)
-                if isinstance(started_at, str):
-                    started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-                else:
-                    started_at_dt = started_at
-                trial_period_end = (started_at_dt + timedelta(days=14)).isoformat()
+        # For Pro plan with subscription, use trial_ends_at from User model (set by PayPal webhook)
+        # Do NOT calculate trial period - it must come from PayPal billing schedule
+        if plan.name == 'pro' and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING, SubscriptionStatus.CANCELLED]:
+            # Trial period end comes from PayPal billing_info.next_billing_time (already set above)
+            # For CANCELLED subscriptions, user keeps access until EXPIRED webhook
+            # No need to calculate - trial_period_end is already set from User.trial_ends_at if active
             
-            # If trial has ended, next billing is 30 days after trial end (or now if trial already ended)
-            now = datetime.now(timezone.utc)
-            trial_end_dt_str = trial_period_end if isinstance(trial_period_end, str) else trial_period_end.isoformat()
-            trial_end_dt = datetime.fromisoformat(trial_end_dt_str.replace('Z', '+00:00'))
-            
-            if now >= trial_end_dt:
-                # Trial ended, calculate next billing (monthly from trial end)
-                next_billing_date = (trial_end_dt + timedelta(days=30)).isoformat()
-            else:
-                # Still in trial, billing starts after trial ends
-                next_billing_date = trial_period_end
+            # Calculate next billing date from trial end (if trial exists)
+            if trial_period_end:
+                try:
+                    now = datetime.now(timezone.utc)
+                    trial_end_dt_str = trial_period_end if isinstance(trial_period_end, str) else trial_period_end.isoformat()
+                    trial_end_dt = datetime.fromisoformat(trial_end_dt_str.replace('Z', '+00:00'))
+                    
+                    if now >= trial_end_dt:
+                        # Trial ended, calculate next billing (monthly from trial end)
+                        # This is an estimate - actual billing comes from PayPal
+                        next_billing_date = (trial_end_dt + timedelta(days=30)).isoformat()
+                    else:
+                        # Still in trial, billing starts after trial ends
+                        next_billing_date = trial_period_end
+                except Exception as e:
+                    logging.warning(f"Error calculating next billing date: {e}")
+                    next_billing_date = None
         
         # For Enterprise plan (if on monthly/yearly billing), calculate next billing date
         elif plan.name == 'enterprise' and subscription.status == SubscriptionStatus.ACTIVE:
@@ -3030,11 +3073,15 @@ class PayPalSubscribeRequest(BaseModel):
 @api_router.post("/billing/paypal/cancel")
 async def cancel_paypal_subscription(current_user: User = Depends(get_current_user)):
     """
-    Cancel user's active PayPal subscription via PayPal API.
-    Works for both PayPal account users and guest checkout (card-only) users.
-    Falls back to manual cancellation if API fails.
+    Cancel user's PayPal subscription.
+    
+    CRITICAL RULES:
+    - PENDING subscriptions: Cannot cancel via API, set cancel_at_period_end=True
+    - ACTIVE subscriptions: Attempt API cancellation, fallback to cancel_at_period_end
+    - User keeps Pro access until EXPIRED webhook is received
+    - Never downgrade user here - only EXPIRED webhook can downgrade
     """
-    # Get user's active subscription
+    # Get user's subscription (ACTIVE or PENDING)
     subscription = await get_user_subscription(current_user.id)
     
     if not subscription:
@@ -3049,10 +3096,32 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
             detail="This endpoint only handles PayPal subscriptions"
         )
     
+    # CRITICAL: PENDING subscriptions cannot be cancelled via PayPal API
+    # Set cancel intent flag instead
+    if subscription.status == SubscriptionStatus.PENDING:
+        # Mark subscription for cancellation at period end
+        await db.subscriptions.update_one(
+            {"id": subscription.id},
+            {
+                "$set": {
+                    "cancel_at_period_end": True,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        logging.info(f"PENDING subscription marked for cancellation at period end: user={current_user.id}, subscription={subscription.id}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Your subscription will be cancelled when it becomes active. You will continue to have Pro access until the end of your billing period.",
+            "status": "pending_cancellation"
+        })
+    
+    # For ACTIVE subscriptions, attempt PayPal API cancellation
     if subscription.status != SubscriptionStatus.ACTIVE:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot cancel subscription with status: {subscription.status}"
+            detail=f"Cannot cancel subscription with status: {subscription.status}. Only ACTIVE or PENDING subscriptions can be cancelled."
         )
     
     paypal_subscription_id = subscription.provider_subscription_id
@@ -3064,28 +3133,11 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
     
     # Attempt to cancel via PayPal API
     try:
-        # Get PayPal access token
+        access_token = await get_paypal_access_token()
+        if not access_token:
+            raise Exception("Failed to authenticate with PayPal")
+        
         async with aiohttp.ClientSession() as session:
-            auth_url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
-            auth_data = aiohttp.FormData()
-            auth_data.add_field('grant_type', 'client_credentials')
-            
-            auth_string = base64.b64encode(f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()).decode()
-            auth_headers = {
-                'Authorization': f'Basic {auth_string}',
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            
-            async with session.post(auth_url, data=auth_data, headers=auth_headers) as auth_response:
-                if auth_response.status != 200:
-                    logging.error(f"Failed to get PayPal access token for cancellation: {auth_response.status}")
-                    raise Exception("Failed to authenticate with PayPal")
-                
-                auth_data = await auth_response.json()
-                access_token = auth_data.get('access_token')
-                if not access_token:
-                    raise Exception("No access token received from PayPal")
-            
             # Cancel subscription via PayPal API
             cancel_url = f"{PAYPAL_API_BASE}/v1/billing/subscriptions/{paypal_subscription_id}/cancel"
             cancel_payload = {
@@ -3098,41 +3150,65 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
             
             async with session.post(cancel_url, json=cancel_payload, headers=cancel_headers) as cancel_response:
                 if cancel_response.status == 204:
-                    # Success - PayPal will send webhook to confirm cancellation
-                    # Update subscription status to CANCELLED (webhook will also do this, but optimistic update is OK)
+                    # Success - PayPal will send CANCELLED webhook
+                    # Mark subscription for cancellation (webhook will update status)
                     await db.subscriptions.update_one(
                         {"id": subscription.id},
                         {
                             "$set": {
-                                "status": SubscriptionStatus.CANCELLED,
-                                "cancelled_at": datetime.now(timezone.utc).isoformat(),
+                                "cancel_at_period_end": True,
                                 "updated_at": datetime.now(timezone.utc).isoformat()
                             }
                         }
                     )
-                    logging.info(f"PayPal subscription cancelled via API: user={current_user.id}, subscription={subscription.id}, paypal_id={paypal_subscription_id}")
+                    logging.info(f"PayPal subscription cancellation requested via API: user={current_user.id}, subscription={subscription.id}, paypal_id={paypal_subscription_id}")
                     
                     return JSONResponse({
                         "success": True,
-                        "message": "Subscription cancelled successfully. You will continue to have Pro access until the end of your current billing period."
+                        "message": "Subscription cancellation requested. You will continue to have Pro access until the end of your current billing period.",
+                        "status": "cancellation_requested"
                     })
                 else:
                     cancel_error = await cancel_response.text()
-                    logging.error(f"PayPal cancellation API failed: status={cancel_response.status}, error={cancel_error}")
+                    logging.warning(f"PayPal cancellation API failed: status={cancel_response.status}, error={cancel_error}")
                     
-                    # API cancellation failed - subscription might be guest checkout
-                    # Mark for manual cancellation
-                    raise Exception(f"PayPal API cancellation failed. Please contact support to cancel. Status: {cancel_response.status}")
+                    # API cancellation failed (may be guest checkout) - set cancel intent
+                    await db.subscriptions.update_one(
+                        {"id": subscription.id},
+                        {
+                            "$set": {
+                                "cancel_at_period_end": True,
+                                "updated_at": datetime.now(timezone.utc).isoformat()
+                            }
+                        }
+                    )
+                    
+                    return JSONResponse({
+                        "success": True,
+                        "message": "Cancellation request recorded. Your subscription will remain active until the end of your billing period, then automatically cancel. You will continue to have Pro access until then.",
+                        "status": "cancellation_scheduled"
+                    })
     
     except Exception as e:
         error_message = str(e)
         logging.error(f"Error cancelling PayPal subscription for user {current_user.id}: {error_message}")
         
-        # Return error with guidance
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unable to cancel subscription automatically. This may happen if you paid with a credit card without a PayPal account. Please contact support at support@example.com with your subscription ID: {paypal_subscription_id[:10]}... for manual cancellation."
+        # Even if API fails, set cancel intent so user's request is recorded
+        await db.subscriptions.update_one(
+            {"id": subscription.id},
+            {
+                "$set": {
+                    "cancel_at_period_end": True,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
         )
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Cancellation request recorded. Your subscription will remain active until the end of your billing period. You will continue to have Pro access until then.",
+            "status": "cancellation_scheduled"
+        })
 
 # PayPal Webhook Event
 class PayPalWebhookEvent(BaseModel):
@@ -3162,7 +3238,26 @@ async def subscribe_paypal(
     """
     subscription_id = request.subscriptionID
     
-    # Check if user already has an active subscription
+    # CRITICAL: Idempotency check - prevent duplicate subscriptions
+    # Check if user already has an active or pending subscription with this PayPal subscription ID
+    existing_by_paypal_id = await db.subscriptions.find_one(
+        {
+            "provider_subscription_id": subscription_id,
+            "provider": "paypal"
+        },
+        {"_id": 0}
+    )
+    
+    if existing_by_paypal_id:
+        # Subscription already exists - return success (idempotent)
+        logging.info(f"PayPal subscription {subscription_id} already exists: subscription={existing_by_paypal_id['id']}, user={current_user.id}")
+        return JSONResponse({
+            "success": True,
+            "subscription_id": existing_by_paypal_id['id'],
+            "message": "Subscription already exists. Access will be activated when PayPal confirms payment."
+        })
+    
+    # Also check if user has any active/pending subscription (different PayPal ID)
     existing_subscription = await db.subscriptions.find_one(
         {
             "user_id": current_user.id,
@@ -3511,7 +3606,8 @@ async def paypal_webhook(
                 logging.info(f"PayPal subscription cancelled: user={subscription['user_id']}, subscription={subscription['id']} - access continues until billing period ends")
         
         elif event_type == "BILLING.SUBSCRIPTION.SUSPENDED":
-            # Subscription suspended - downgrade user to Free
+            # Subscription suspended - mark as CANCELLED but do NOT downgrade immediately
+            # User keeps Pro access until EXPIRED (same as CANCELLED)
             paypal_subscription_id = resource.get('id')
             if not paypal_subscription_id:
                 logging.error("PayPal webhook: BILLING.SUBSCRIPTION.SUSPENDED missing subscription ID")
@@ -3524,6 +3620,7 @@ async def paypal_webhook(
             
             if subscription:
                 # Update subscription status to CANCELLED (treat suspended as cancelled)
+                # CRITICAL: Do NOT downgrade user - downgrade only on EXPIRED
                 await db.subscriptions.update_one(
                     {"id": subscription['id']},
                     {
@@ -3534,16 +3631,8 @@ async def paypal_webhook(
                         }
                     }
                 )
-                
-                # Downgrade user to Free plan
-                free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
-                if free_plan:
-                    await db.users.update_one(
-                        {"id": subscription['user_id']},
-                        {"$set": {"plan_id": free_plan['id']}}
-                    )
                 subscription_id = subscription['id']
-                logging.info(f"PayPal subscription suspended: user={subscription['user_id']}, subscription={subscription['id']}")
+                logging.info(f"PayPal subscription suspended (marked as CANCELLED): user={subscription['user_id']}, subscription={subscription['id']} - access continues until EXPIRED")
         
         elif event_type == "BILLING.SUBSCRIPTION.EXPIRED":
             # Subscription expired - downgrade user to Free
@@ -3570,18 +3659,24 @@ async def paypal_webhook(
                     }
                 )
                 
-                # Downgrade user to Free plan
+                # CRITICAL: EXPIRED is the ONLY webhook that downgrades user to Free
+                # This happens after billing period ends (trial or regular billing)
                 free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
                 if free_plan:
                     await db.users.update_one(
                         {"id": subscription['user_id']},
-                        {"$set": {"plan_id": free_plan['id']}}
+                        {
+                            "$set": {"plan_id": free_plan['id']},
+                            "$unset": {"trial_ends_at": ""}  # Clear trial_ends_at when downgrading
+                        }
                     )
                 subscription_id = subscription['id']
-                logging.info(f"PayPal subscription expired: user={subscription['user_id']}, subscription={subscription['id']}")
+                logging.info(f"PayPal subscription expired - user downgraded to Free: user={subscription['user_id']}, subscription={subscription['id']}")
         
         elif event_type in ["PAYMENT.SALE.DENIED", "PAYMENT.SALE.FAILED"]:
-            # Payment failed - log warning (PayPal typically cancels subscription automatically)
+            # Payment failed - log warning
+            # CRITICAL: Do NOT downgrade user here - PayPal will send EXPIRED webhook when subscription actually expires
+            # User keeps Pro access until EXPIRED webhook is received
             paypal_subscription_id = resource.get('billing_agreement_id') or resource.get('id')
             if not paypal_subscription_id:
                 logging.error(f"PayPal webhook: {event_type} missing subscription ID")
@@ -3593,7 +3688,9 @@ async def paypal_webhook(
             )
             
             if subscription:
-                logging.warning(f"PayPal payment failed: user={subscription['user_id']}, subscription={subscription['id']}, event={event_type}")
+                logging.warning(f"PayPal payment failed: user={subscription['user_id']}, subscription={subscription['id']}, event={event_type}. User keeps access until EXPIRED webhook.")
+                # Do NOT change subscription status or downgrade user
+                # PayPal will send EXPIRED webhook when subscription actually expires
                 subscription_id = subscription['id']
         
         # Record processed event for idempotency

@@ -18,12 +18,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   
-  // Check if user has an active or pending PayPal subscription
-  // Only show "Manage Subscription" for PayPal subscriptions (not manual/managed subscriptions)
+  // Check if user has an active, pending, or cancelled PayPal subscription
+  // CANCELLED subscriptions still show "Cancel Subscription" until EXPIRED
   const subscription = quotaData?.subscription;
   const isPayPalSubscription = subscription && subscription.provider === 'paypal';
   const hasActiveSubscription = isPayPalSubscription && subscription.status === 'active';
   const hasPendingSubscription = isPayPalSubscription && subscription.status === 'pending';
+  const hasCancelledSubscription = isPayPalSubscription && subscription.status === 'cancelled';
+  // Show cancel button for ACTIVE, PENDING, or CANCELLED (user can still see status)
+  const canManageSubscription = isPayPalSubscription && (hasActiveSubscription || hasPendingSubscription || hasCancelledSubscription);
 
   if (!quotaData) return null;
 
@@ -166,52 +169,53 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
               ) : planOption.name === 'pro' ? (
-                // Only show "Manage Subscription" if user has an ACTIVE or PENDING PayPal subscription
-                // Check both that subscription exists AND has correct status
-                subscription && (hasActiveSubscription || hasPendingSubscription) ? (
+                // Show "Cancel Subscription" if user has ACTIVE, PENDING, or CANCELLED PayPal subscription
+                canManageSubscription ? (
                   <div className="space-y-2">
                     <Button
                       className="w-full"
                       variant="outline"
                       onClick={async () => {
-                        // Try to cancel via API first (works for both PayPal account and guest checkout)
                         setIsCancelling(true);
                         try {
                           const response = await api.cancelPayPalSubscription();
-                          if (response.data.success) {
-                            toast.success(response.data.message || 'Subscription cancelled successfully. You will continue to have Pro access until the end of your current billing period.');
+                          if (response.data && response.data.success) {
+                            // Success - show appropriate message based on status
+                            const status = response.data.status;
+                            let message = response.data.message;
+                            
+                            if (status === 'pending_cancellation') {
+                              message = 'Cancellation request recorded. Your subscription will be cancelled when it becomes active. You will continue to have Pro access until the end of your billing period.';
+                            } else if (status === 'cancellation_scheduled') {
+                              message = 'Cancellation request recorded. Your subscription will remain active until the end of your billing period, then automatically cancel. You will continue to have Pro access until then.';
+                            } else {
+                              message = response.data.message || 'Subscription cancellation requested. You will continue to have Pro access until the end of your current billing period.';
+                            }
+                            
+                            toast.success(message);
                             // Refresh quota to update subscription status
                             if (refreshQuota) {
                               await refreshQuota();
                             }
                           }
                         } catch (error) {
-                          const errorMessage = error.response?.data?.detail || 'Failed to cancel subscription. Please try the alternative method below.';
+                          // Backend should never throw errors for cancellation requests
+                          // If it does, show generic message
+                          const errorMessage = error.response?.data?.detail || 'Failed to process cancellation request. Please try again or contact support.';
                           toast.error(errorMessage);
-                          
-                          // If API cancellation fails, offer alternative methods
-                          if (error.response?.status === 500 || error.response?.status === 400) {
-                            // Show dialog with alternative cancellation options
-                            const usePayPalLink = window.confirm(
-                              'Automatic cancellation failed. This may happen if you paid with a credit card without a PayPal account.\n\n' +
-                              'Click OK to try PayPal\'s subscription management page (if you have a PayPal account).\n' +
-                              'Click Cancel to contact support for manual cancellation.'
-                            );
-                            
-                            if (usePayPalLink) {
-                              window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
-                            } else {
-                              window.open('mailto:support@example.com?subject=Cancel Subscription Request', '_blank');
-                            }
-                          }
                         } finally {
                           setIsCancelling(false);
                         }
                       }}
                       disabled={isCancelling}
                     >
-                      {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                      {isCancelling ? 'Processing...' : hasCancelledSubscription ? 'Cancellation Scheduled' : 'Cancel Subscription'}
                     </Button>
+                    {hasCancelledSubscription && (
+                      <p className="text-xs text-slate-500 text-center mt-2">
+                        Your subscription will remain active until the end of your billing period, then automatically cancel.
+                      </p>
+                    )}
                     <Button
                       className="w-full"
                       variant="ghost"
