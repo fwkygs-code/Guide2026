@@ -949,8 +949,9 @@ const CanvasStage = ({
           <SortableContext items={blockItems} strategy={verticalListSortingStrategy}>
             <div className="space-y-8">
               {/* Step Title */}
-              {onStepUpdate && (
+              {onStepUpdate && currentStep && currentStep.id && (
                 <StepTitleEditor
+                  key={currentStep.id}
                   title={currentStep.title || ''}
                   onChange={(title) => {
                     if (onStepUpdate && isStepLoaded) {
@@ -1021,18 +1022,20 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
   }, [isStepLoaded, isInitialized]);
 
   // Convert plain text title to HTML with center alignment if needed
+  // Reset htmlContent when title prop changes (for different steps)
   useEffect(() => {
-    if (title && !htmlContent) {
+    // Always update htmlContent when title changes (don't check htmlContent state)
+    if (title) {
       // If title is plain text, wrap it in a paragraph with center alignment
       if (!title.includes('<') && !title.includes('>')) {
         setHtmlContent(`<p style="text-align: center;">${title}</p>`);
       } else {
         setHtmlContent(title);
       }
-    } else if (!title) {
+    } else {
       setHtmlContent('<p style="text-align: center;"></p>');
     }
-  }, [title, htmlContent]);
+  }, [title]); // Only depend on title - reset when it changes
 
   const handleChange = useCallback((html) => {
     if (isInitialized && isStepLoaded && onChange) {
