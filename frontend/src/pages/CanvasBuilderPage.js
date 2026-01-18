@@ -1221,63 +1221,81 @@ const CanvasBuilderPage = () => {
           </div>
         </div>
 
-        {/* Timeline */}
-        <div className="relative border-b border-slate-200">
-          {stepTimelineVisible && (
-            <div className="pr-12">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
-                onDragCancel={handleDragCancel}
-              >
-                <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={horizontalListSortingStrategy}>
-                  <StepTimeline
-                    steps={walkthrough.steps}
-                    currentStepIndex={currentStepIndex}
-                    onStepClick={setCurrentStepIndex}
-                    onDeleteStep={deleteStep}
-                    selectMode={selectStepsMode}
-                    selectedIds={selectedStepIds}
-                    onToggleSelect={toggleStepSelected}
-                    overStepId={overStepId}
-                    activeStepId={activeStepId}
-                    insertAfterIndex={insertAfterIndex}
-                  />
-                </SortableContext>
-                <DragOverlay>
-                  {activeStepId ? (() => {
-                    const step = walkthrough.steps.find(s => s.id === activeStepId);
-                    const stepIndex = walkthrough.steps.findIndex(s => s.id === activeStepId);
-                    if (!step) return null;
-                    return (
-                      <div className="flex flex-col items-center justify-center p-4 rounded-xl min-w-[180px] bg-primary text-white shadow-lg scale-105">
-                        <div className="text-xs font-medium mb-1">Step {stepIndex + 1}</div>
-                        <div className="text-sm font-semibold max-w-[140px] text-center line-clamp-2">
-                          {step.title}
-                        </div>
-                      </div>
-                    );
-                  })() : null}
-                </DragOverlay>
-              </DndContext>
-            </div>
+        {/* Timeline and Main Editor Area - Vertical Resizable */}
+        <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
+          {/* Timeline */}
+          {stepTimelineVisible ? (
+            <>
+              <ResizablePanel defaultSize={15} minSize={10} maxSize={30}>
+                <div className="relative border-b border-slate-200 h-full overflow-y-auto">
+                  <div className="pr-12">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDragEnd={handleDragEnd}
+                      onDragCancel={handleDragCancel}
+                    >
+                      <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={horizontalListSortingStrategy}>
+                        <StepTimeline
+                          steps={walkthrough.steps}
+                          currentStepIndex={currentStepIndex}
+                          onStepClick={setCurrentStepIndex}
+                          onDeleteStep={deleteStep}
+                          selectMode={selectStepsMode}
+                          selectedIds={selectedStepIds}
+                          onToggleSelect={toggleStepSelected}
+                          overStepId={overStepId}
+                          activeStepId={activeStepId}
+                          insertAfterIndex={insertAfterIndex}
+                        />
+                      </SortableContext>
+                      <DragOverlay>
+                        {activeStepId ? (() => {
+                          const step = walkthrough.steps.find(s => s.id === activeStepId);
+                          const stepIndex = walkthrough.steps.findIndex(s => s.id === activeStepId);
+                          if (!step) return null;
+                          return (
+                            <div className="flex flex-col items-center justify-center p-4 rounded-xl min-w-[180px] bg-primary text-white shadow-lg scale-105">
+                              <div className="text-xs font-medium mb-1">Step {stepIndex + 1}</div>
+                              <div className="text-sm font-semibold max-w-[140px] text-center line-clamp-2">
+                                {step.title}
+                              </div>
+                            </div>
+                          );
+                        })() : null}
+                      </DragOverlay>
+                    </DndContext>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                    onClick={() => setStepTimelineVisible(!stepTimelineVisible)}
+                    title="Hide steps timeline"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </Button>
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors cursor-row-resize" />
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+              onClick={() => setStepTimelineVisible(!stepTimelineVisible)}
+              title="Show steps timeline"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-2 right-2 z-50 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
-            onClick={() => setStepTimelineVisible(!stepTimelineVisible)}
-            title={stepTimelineVisible ? "Hide steps timeline" : "Show steps timeline"}
-          >
-            {stepTimelineVisible ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </Button>
-        </div>
 
-        {/* Main Editor Area */}
-        <div className="flex-1 overflow-hidden relative" style={{ minHeight: 0, height: '100%' }}>
+          {/* Main Editor Area */}
+          <ResizablePanel defaultSize={stepTimelineVisible ? 85 : 100} minSize={70}>
+            <div className="overflow-hidden relative h-full" style={{ minHeight: 0 }}>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1536,7 +1554,9 @@ const CanvasBuilderPage = () => {
               ) : null}
             </DragOverlay>
           </DndContext>
-        </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       <Dialog open={showVersions} onOpenChange={setShowVersions}>
