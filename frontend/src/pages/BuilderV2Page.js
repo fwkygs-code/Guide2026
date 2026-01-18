@@ -703,9 +703,6 @@ const BuilderV2Page = () => {
               Publish
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={switchToClassic}>
-            Classic Builder
-          </Button>
         </div>
       </div>
 
