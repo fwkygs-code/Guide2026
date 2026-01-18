@@ -318,6 +318,8 @@ class Subscription(BaseModel):
     cancel_at_period_end: bool = False  # User requested cancellation, will cancel at period end
     paypal_verified_status: Optional[str] = None  # PayPal API verified status: "ACTIVE", "CANCELLED", "UNKNOWN"
     last_verified_at: Optional[datetime] = None  # Last time PayPal status was verified via API
+    cancellation_requested_at: Optional[datetime] = None  # When user requested cancellation (for receipt)
+    effective_end_date: Optional[datetime] = None  # When subscription access ends (for cancellation receipt)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -2981,6 +2983,45 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # RUNTIME INVARIANT VALIDATION (log-only, never crash)
+    # These checks ensure system state consistency and help detect bugs
+    if subscription and subscription.provider == 'paypal':
+        user_plan_id = user.get('plan_id') if user else None
+        pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+        free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+        
+        # INVARIANT 1: User cannot be FREE while PayPal status is ACTIVE
+        if subscription.paypal_verified_status == 'ACTIVE' and user_plan_id and free_plan and user_plan_id == free_plan['id']:
+            logging.critical(
+                f"INVARIANT VIOLATION: User {current_user.id} has FREE plan but PayPal subscription status is ACTIVE. "
+                f"subscription_id={subscription.id}, paypal_subscription_id={subscription.provider_subscription_id}, "
+                f"paypal_verified_status={subscription.paypal_verified_status}"
+            )
+        
+        # INVARIANT 2: User cannot be PRO if PayPal status is EXPIRED
+        if subscription.paypal_verified_status == 'CANCELLED' and subscription.status == SubscriptionStatus.EXPIRED and user_plan_id and pro_plan and user_plan_id == pro_plan['id']:
+            # This is actually OK - user keeps access until EXPIRED webhook processes
+            # But log if EXPIRED webhook hasn't processed yet
+            pass  # Not a violation - EXPIRED webhook will downgrade
+        
+        # INVARIANT 3: Cancellation cannot be marked CONFIRMED unless PayPal confirms
+        if subscription.status == SubscriptionStatus.CANCELLED and subscription.paypal_verified_status not in ['CANCELLED', 'UNKNOWN']:
+            logging.critical(
+                f"INVARIANT VIOLATION: Subscription {subscription.id} marked CANCELLED but paypal_verified_status={subscription.paypal_verified_status}. "
+                f"user_id={current_user.id}, paypal_subscription_id={subscription.provider_subscription_id}"
+            )
+        
+        # INVARIANT 4: Downgrade may occur ONLY on BILLING.SUBSCRIPTION.EXPIRED webhook
+        # This is verified by code review - only EXPIRED webhook downgrades (line 4040-4059)
+        # Log if user is FREE but subscription is not EXPIRED
+        if user_plan_id and free_plan and user_plan_id == free_plan['id']:
+            if subscription.status not in [SubscriptionStatus.EXPIRED]:
+                logging.warning(
+                    f"User {current_user.id} has FREE plan but subscription status is {subscription.status}. "
+                    f"This may be expected if subscription was never created or was manually downgraded."
+                )
+    
     storage_used = await get_user_storage_usage(current_user.id)
     storage_allowed = await get_user_allowed_storage(current_user.id)
     workspace_count = await get_workspace_count(current_user.id)
@@ -3096,6 +3137,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     # Get PayPal verified status and last verification timestamp
     paypal_verified_status = None
     last_verified_at = None
+    cancellation_receipt = None
     if subscription and subscription_dict:
         paypal_verified_status = subscription_dict.get('paypal_verified_status')
         last_verified_at_str = subscription_dict.get('last_verified_at')
@@ -3107,6 +3149,15 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
                     last_verified_at = last_verified_at_str.isoformat() if hasattr(last_verified_at_str, 'isoformat') else str(last_verified_at_str)
             except Exception:
                 last_verified_at = None
+        
+        # Get cancellation receipt if cancellation was requested
+        if subscription_dict.get('cancellation_requested_at'):
+            cancellation_receipt = {
+                "cancellation_requested_at": subscription_dict.get('cancellation_requested_at'),
+                "provider_subscription_id": subscription_dict.get('provider_subscription_id'),
+                "provider": subscription_dict.get('provider', 'paypal'),
+                "effective_end_date": subscription_dict.get('effective_end_date')
+            }
     
     # Build response with all required fields for UI
     # API Contract: Returns everything needed for subscription management UI
@@ -3122,6 +3173,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         "provider": subscription_dict.get('provider') if subscription_dict else None,
         "paypal_verified_status": paypal_verified_status,  # PayPal API verified status: "ACTIVE", "CANCELLED", "UNKNOWN"
         "last_verified_at": last_verified_at,  # ISO timestamp of last PayPal API verification
+        "cancellation_receipt": cancellation_receipt,  # Cancellation receipt if cancellation was requested
         "quota": {
             "storage_used_bytes": storage_used,
             "storage_allowed_bytes": storage_allowed,
@@ -3198,12 +3250,24 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
             })
         
         # Mark subscription for cancellation at period end
+        # Store cancellation receipt
+        now = datetime.now(timezone.utc)
+        effective_end_dt = None
+        # For PENDING, effective_end_date is when subscription becomes active + billing period
+        # Estimate from now + 30 days (will be updated when subscription activates)
+        try:
+            effective_end_dt = now + timedelta(days=30)
+        except Exception:
+            pass
+        
         await db.subscriptions.update_one(
             {"id": subscription.id},
             {
                 "$set": {
                     "cancel_at_period_end": True,
-                    "updated_at": datetime.now(timezone.utc).isoformat()
+                    "cancellation_requested_at": now.isoformat(),  # Receipt: when cancellation was requested
+                    "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else None,  # Receipt: when access ends (estimate)
+                    "updated_at": now.isoformat()
                 }
             }
         )
@@ -3211,8 +3275,14 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
         
         return JSONResponse({
             "success": True,
-            "message": "Your subscription will be cancelled when it becomes active. You will continue to have Pro access until the end of your billing period.",
-            "status": "pending_cancellation"
+            "message": "Your subscription will be cancelled when it becomes active. You will continue to have Pro access until the end of your billing period. Final billing status is determined by PayPal.",
+            "status": "pending_cancellation",
+            "cancellation_receipt": {
+                "cancellation_requested_at": now.isoformat(),
+                "provider_subscription_id": subscription.provider_subscription_id,
+                "provider": "paypal",
+                "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else None
+            }
         })
     
     # CRITICAL: CANCELLED subscriptions - idempotent (already cancelled)
@@ -3330,6 +3400,17 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                             # CRITICAL: Only update local status if PayPal confirms CANCELLED
                             if paypal_verified_status == 'CANCELLED':
                                 # PayPal confirmed cancellation - update local subscription
+                                # Store cancellation receipt: cancellation_requested_at, effective_end_date
+                                effective_end_dt = None
+                                if current_period_end:
+                                    try:
+                                        if isinstance(current_period_end, str):
+                                            effective_end_dt = datetime.fromisoformat(current_period_end.replace('Z', '+00:00'))
+                                        else:
+                                            effective_end_dt = current_period_end
+                                    except Exception:
+                                        pass
+                                
                                 await db.subscriptions.update_one(
                                     {"id": subscription.id},
                                     {
@@ -3339,21 +3420,48 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                                             "paypal_verified_status": "CANCELLED",
                                             "last_verified_at": now.isoformat(),
                                             "cancelled_at": now.isoformat(),
+                                            "cancellation_requested_at": now.isoformat(),  # Receipt: when cancellation was requested
+                                            "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else None,  # Receipt: when access ends
                                             "updated_at": now.isoformat()
                                         }
                                     }
                                 )
                                 logging.info(f"PayPal confirmed cancellation - subscription updated to CANCELLED: user={current_user.id}, subscription={subscription.id}")
                                 
+                                # Format date for user message
+                                period_end_str = current_period_end if current_period_end else 'the end of your billing period'
+                                if effective_end_dt:
+                                    try:
+                                        period_end_str = effective_end_dt.strftime('%B %d, %Y')
+                                    except Exception:
+                                        period_end_str = current_period_end if current_period_end else 'the end of your billing period'
+                                
                                 return JSONResponse({
                                     "success": True,
-                                    "message": f"Subscription cancelled. PayPal has confirmed the cancellation. No further charges will occur. You will keep Pro access until {current_period_end or 'the end of your billing period'}.",
+                                    "message": f"Subscription cancelled. PayPal has confirmed the cancellation. No further charges will occur after {period_end_str}. Final billing status is determined by PayPal.",
                                     "status": "cancelled_confirmed",
-                                    "paypal_verified": True
+                                    "paypal_verified": True,
+                                    "cancellation_receipt": {
+                                        "cancellation_requested_at": now.isoformat(),
+                                        "provider_subscription_id": paypal_subscription_id,
+                                        "provider": "paypal",
+                                        "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else current_period_end
+                                    }
                                 })
                             else:
                                 # PayPal accepted cancellation but status not yet CANCELLED
                                 # This can happen for card-only subscriptions or pending cancellation
+                                # Store cancellation receipt even if not yet confirmed
+                                effective_end_dt = None
+                                if current_period_end:
+                                    try:
+                                        if isinstance(current_period_end, str):
+                                            effective_end_dt = datetime.fromisoformat(current_period_end.replace('Z', '+00:00'))
+                                        else:
+                                            effective_end_dt = current_period_end
+                                    except Exception:
+                                        pass
+                                
                                 await db.subscriptions.update_one(
                                     {"id": subscription.id},
                                     {
@@ -3361,20 +3469,46 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                                             "cancel_at_period_end": True,
                                             "paypal_verified_status": paypal_verified_status,
                                             "last_verified_at": now.isoformat(),
+                                            "cancellation_requested_at": now.isoformat(),  # Receipt: when cancellation was requested
+                                            "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else None,  # Receipt: when access ends
                                             "updated_at": now.isoformat()
                                         }
                                     }
                                 )
                                 
+                                # Format date for user message
+                                period_end_str = current_period_end if current_period_end else 'the end of your billing period'
+                                if effective_end_dt:
+                                    try:
+                                        period_end_str = effective_end_dt.strftime('%B %d, %Y')
+                                    except Exception:
+                                        period_end_str = current_period_end if current_period_end else 'the end of your billing period'
+                                
                                 return JSONResponse({
                                     "success": True,
-                                    "message": "Cancellation request sent. PayPal confirmation pending. Your access remains active until the end of the period. No further charges will occur after confirmation.",
+                                    "message": f"Cancellation request sent. PayPal confirmation pending. Your access remains active until {period_end_str}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.",
                                     "status": "cancellation_pending",
-                                    "paypal_verified": False
+                                    "paypal_verified": False,
+                                    "cancellation_receipt": {
+                                        "cancellation_requested_at": now.isoformat(),
+                                        "provider_subscription_id": paypal_subscription_id,
+                                        "provider": "paypal",
+                                        "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else current_period_end
+                                    }
                                 })
                         else:
                             # Could not verify PayPal status - don't assume cancellation succeeded
                             logging.warning(f"Could not verify PayPal status after cancellation: status={verify_response.status}, subscription={subscription.id}")
+                            effective_end_dt = None
+                            if current_period_end:
+                                try:
+                                    if isinstance(current_period_end, str):
+                                        effective_end_dt = datetime.fromisoformat(current_period_end.replace('Z', '+00:00'))
+                                    else:
+                                        effective_end_dt = current_period_end
+                                except Exception:
+                                    pass
+                            
                             await db.subscriptions.update_one(
                                 {"id": subscription.id},
                                 {
@@ -3382,6 +3516,8 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                                         "cancel_at_period_end": True,
                                         "paypal_verified_status": "UNKNOWN",
                                         "last_verified_at": now.isoformat(),
+                                        "cancellation_requested_at": now.isoformat(),  # Receipt: when cancellation was requested
+                                        "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else None,  # Receipt: when access ends
                                         "updated_at": now.isoformat()
                                     }
                                 }
@@ -3389,9 +3525,15 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                             
                             return JSONResponse({
                                 "success": True,
-                                "message": "Cancellation request sent. PayPal confirmation pending. Your access remains active until the end of the period.",
+                                "message": f"Cancellation request sent. PayPal confirmation pending. Your access remains active until {current_period_end or 'the end of your billing period'}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.",
                                 "status": "cancellation_pending",
-                                "paypal_verified": False
+                                "paypal_verified": False,
+                                "cancellation_receipt": {
+                                    "cancellation_requested_at": now.isoformat(),
+                                    "provider_subscription_id": paypal_subscription_id,
+                                    "provider": "paypal",
+                                    "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else current_period_end
+                                }
                             })
                 else:
                     # PayPal API returned non-204 status - cancellation request not accepted
@@ -3400,6 +3542,16 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                     
                     # Fallback: Set cancel intent but don't mark as CANCELLED (PayPal didn't confirm)
                     now = datetime.now(timezone.utc)
+                    effective_end_dt = None
+                    if current_period_end:
+                        try:
+                            if isinstance(current_period_end, str):
+                                effective_end_dt = datetime.fromisoformat(current_period_end.replace('Z', '+00:00'))
+                            else:
+                                effective_end_dt = current_period_end
+                        except Exception:
+                            pass
+                    
                     await db.subscriptions.update_one(
                         {"id": subscription.id},
                         {
@@ -3407,6 +3559,8 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                                 "cancel_at_period_end": True,
                                 "paypal_verified_status": "UNKNOWN",
                                 "last_verified_at": now.isoformat(),
+                                "cancellation_requested_at": now.isoformat(),  # Receipt: when cancellation was requested
+                                "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else None,  # Receipt: when access ends
                                 "updated_at": now.isoformat()
                             }
                         }
@@ -3414,9 +3568,15 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                     
                     return JSONResponse({
                         "success": True,
-                        "message": "Cancellation request sent. PayPal confirmation pending. Your access remains active until the end of the period. No further charges will occur after confirmation.",
+                        "message": f"Cancellation request sent. PayPal confirmation pending. Your access remains active until {current_period_end or 'the end of your billing period'}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.",
                         "status": "cancellation_pending",
-                        "paypal_verified": False
+                        "paypal_verified": False,
+                        "cancellation_receipt": {
+                            "cancellation_requested_at": now.isoformat(),
+                            "provider_subscription_id": paypal_subscription_id,
+                            "provider": "paypal",
+                            "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else current_period_end
+                        }
                     })
     
     except Exception as e:
@@ -3426,6 +3586,16 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
         # API call failed - set cancel intent but mark verification as UNKNOWN
         # Never assume cancellation succeeded without PayPal confirmation
         now = datetime.now(timezone.utc)
+        effective_end_dt = None
+        if current_period_end:
+            try:
+                if isinstance(current_period_end, str):
+                    effective_end_dt = datetime.fromisoformat(current_period_end.replace('Z', '+00:00'))
+                else:
+                    effective_end_dt = current_period_end
+            except Exception:
+                pass
+        
         await db.subscriptions.update_one(
             {"id": subscription.id},
             {
@@ -3433,6 +3603,8 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                     "cancel_at_period_end": True,
                     "paypal_verified_status": "UNKNOWN",
                     "last_verified_at": now.isoformat(),
+                    "cancellation_requested_at": now.isoformat(),  # Receipt: when cancellation was requested
+                    "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else None,  # Receipt: when access ends
                     "updated_at": now.isoformat()
                 }
             }
@@ -3440,9 +3612,15 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
         
         return JSONResponse({
             "success": True,
-            "message": "Cancellation request sent. PayPal confirmation pending. Your access remains active until the end of the period. No further charges will occur after confirmation.",
+            "message": f"Cancellation request sent. PayPal confirmation pending. Your access remains active until {current_period_end or 'the end of your billing period'}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.",
             "status": "cancellation_pending",
-            "paypal_verified": False
+            "paypal_verified": False,
+            "cancellation_receipt": {
+                "cancellation_requested_at": now.isoformat(),
+                "provider_subscription_id": paypal_subscription_id,
+                "provider": "paypal",
+                "effective_end_date": effective_end_dt.isoformat() if effective_end_dt else current_period_end
+            }
         })
 
 # PayPal Webhook Event

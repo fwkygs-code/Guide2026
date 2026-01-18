@@ -19,7 +19,7 @@ const BillingInfo = () => {
     return null;
   }
 
-  const { plan, subscription, trial_period_end, current_period_end, cancel_at_period_end, paypal_verified_status, last_verified_at } = quotaData;
+  const { plan, subscription, trial_period_end, current_period_end, cancel_at_period_end, paypal_verified_status, last_verified_at, cancellation_receipt } = quotaData;
   const hasSubscription = subscription && subscription.provider === 'paypal';
   const isProPlan = plan.name === 'pro';
 
@@ -101,7 +101,7 @@ const BillingInfo = () => {
                   Your trial ends on {formatDate(trial_period_end)}
                 </div>
                 <div className="text-xs text-blue-600 mt-1">
-                  After the trial, you'll be charged $19.90/month
+                  After the trial, billing will occur at $19.90/month as determined by PayPal.
                 </div>
               </div>
             </div>
@@ -133,7 +133,7 @@ const BillingInfo = () => {
                 <div className="text-sm font-medium text-orange-900">Cancellation Scheduled</div>
                 <div className="text-xs text-orange-700 mt-1">
                   Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
-                  After that, your account will be downgraded to the Free plan. No further charges will occur.
+                  After that, your account will be downgraded to the Free plan. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.
                 </div>
               </div>
             </div>
@@ -148,7 +148,7 @@ const BillingInfo = () => {
               <div className="flex-1">
                 <div className="text-sm font-medium text-green-900">Subscription Active</div>
                 <div className="text-xs text-green-700 mt-1">
-                  Your Pro subscription is active and will automatically renew.
+                  Your Pro subscription is active. Renewal is managed by PayPal according to your subscription terms.
                 </div>
               </div>
             </div>
@@ -163,10 +163,19 @@ const BillingInfo = () => {
               <div className="flex-1">
                 <div className="text-sm font-medium text-blue-900">Activating your subscription…</div>
                 <div className="text-xs text-blue-700 mt-1">
-                  This may take up to 1 minute. You can continue using the app.
+                  PayPal is processing your subscription. This may take up to 1 minute. You can continue using the app.
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Card-Only Disclaimer */}
+        {hasSubscription && (
+          <div className="p-2 bg-slate-50 rounded border border-slate-200">
+            <p className="text-xs text-slate-600">
+              Payments made without a PayPal account are still managed by PayPal and renew automatically unless cancelled.
+            </p>
           </div>
         )}
 
@@ -182,6 +191,49 @@ const BillingInfo = () => {
                 <span className="text-xs text-slate-500">
                   Last verified: {formatDate(last_verified_at)}
                 </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Cancellation Receipt */}
+        {cancellation_receipt && (
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="text-sm font-medium text-slate-900 mb-2">Cancellation Receipt</div>
+            <div className="text-xs text-slate-600 space-y-1">
+              <div>Requested: {cancellation_receipt.cancellation_requested_at ? formatDate(cancellation_receipt.cancellation_requested_at) : 'N/A'}</div>
+              <div>Provider: {cancellation_receipt.provider?.toUpperCase() || 'PayPal'}</div>
+              {cancellation_receipt.effective_end_date && (
+                <div>Effective end date: {formatDate(cancellation_receipt.effective_end_date)}</div>
+              )}
+              {cancellation_receipt.provider_subscription_id && (
+                <div className="font-mono text-xs break-all">Subscription ID: {cancellation_receipt.provider_subscription_id}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Card-Only Disclaimer */}
+        {hasSubscription && (
+          <div className="p-2 bg-slate-50 rounded border border-slate-200">
+            <p className="text-xs text-slate-600">
+              Payments made without a PayPal account are still managed by PayPal and renew automatically unless cancelled.
+            </p>
+          </div>
+        )}
+
+        {/* Cancellation Receipt */}
+        {cancellation_receipt && (
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="text-sm font-medium text-slate-900 mb-2">Cancellation Receipt</div>
+            <div className="text-xs text-slate-600 space-y-1">
+              <div>Requested: {cancellation_receipt.cancellation_requested_at ? formatDate(cancellation_receipt.cancellation_requested_at) : 'N/A'}</div>
+              <div>Provider: {cancellation_receipt.provider?.toUpperCase() || 'PayPal'}</div>
+              {cancellation_receipt.effective_end_date && (
+                <div>Effective end date: {formatDate(cancellation_receipt.effective_end_date)}</div>
+              )}
+              {cancellation_receipt.provider_subscription_id && (
+                <div className="font-mono text-xs">Subscription ID: {cancellation_receipt.provider_subscription_id}</div>
               )}
             </div>
           </div>
@@ -206,7 +258,7 @@ const BillingInfo = () => {
                       <div className="flex-1">
                         <div className="text-sm font-medium text-green-900">Subscription cancelled</div>
                         <div className="text-xs text-green-700 mt-1">
-                          PayPal has confirmed the cancellation. No further charges will occur.
+                          PayPal has confirmed the cancellation. No further charges will occur after {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
                           {current_period_end && ` Pro access until ${formatDate(current_period_end)}.`}
                         </div>
                       </div>
@@ -219,14 +271,14 @@ const BillingInfo = () => {
                       <div className="flex-1">
                         <div className="text-sm font-medium text-blue-900">Cancellation pending confirmation</div>
                         <div className="text-xs text-blue-700 mt-1">
-                          PayPal is processing the cancellation. Your access remains active until the end of the period.
+                          PayPal is processing the cancellation. Your access remains active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. Final billing status is determined by PayPal.
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <p className="text-xs text-slate-500 text-center">
-                    Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. No further charges will occur.
+                    Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.
                   </p>
                 )}
               </div>
@@ -247,8 +299,17 @@ const BillingInfo = () => {
                     <DialogHeader>
                       <DialogTitle>Cancel subscription?</DialogTitle>
                       <DialogDescription>
-                        You will keep Pro access until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.<br/>
-                        No further charges will occur.
+                        <div className="space-y-2">
+                          <p>
+                            You will keep Pro access until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
+                          </p>
+                          <p className="font-medium">
+                            No further charges will occur after this date unless you re-subscribe.
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Final billing status is determined by PayPal.
+                          </p>
+                        </div>
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -273,14 +334,14 @@ const BillingInfo = () => {
                                 toast.success(
                                   <div>
                                     <div className="font-medium">Subscription cancelled</div>
-                                    <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur.</div>
+                                    <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur. Final billing status is determined by PayPal.</div>
                                   </div>
                                 );
                               } else {
                                 toast.success(
                                   <div>
                                     <div className="font-medium">Cancellation pending confirmation</div>
-                                    <div className="text-sm">PayPal is processing the cancellation. Your access remains active until the end of the period.</div>
+                                    <div className="text-sm">PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal.</div>
                                   </div>
                                 );
                               }

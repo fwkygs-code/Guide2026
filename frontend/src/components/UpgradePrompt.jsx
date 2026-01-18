@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, Info } from 'lucide-react';
@@ -17,6 +17,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const [showPayPal, setShowPayPal] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Check if user has an active, pending, or cancelled PayPal subscription
   // CANCELLED subscriptions still show "Cancel Subscription" until EXPIRED
@@ -180,44 +181,106 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 // Show "Cancel Subscription" if user has ACTIVE, PENDING, or CANCELLED PayPal subscription
                 canManageSubscription ? (
                   <div className="space-y-2">
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={async () => {
-                        setIsCancelling(true);
-                        try {
-                          const response = await api.cancelPayPalSubscription();
-                          if (response.data && response.data.success) {
-                            // Success - show appropriate message based on status
-                            const status = response.data.status;
-                            let message = response.data.message;
-                            
-                            // Use backend message which includes all necessary information
-                            message = response.data.message || 'Subscription cancellation requested. You will continue to have Pro access until the end of your current billing period.';
-                            
-                            toast.success(message);
-                            // Refresh quota to update subscription status
-                            if (refreshQuota) {
-                              await refreshQuota();
-                            }
-                          }
-                        } catch (error) {
-                          // Backend should never throw errors for cancellation requests
-                          // If it does, show generic message
-                          const errorMessage = error.response?.data?.detail || 'Failed to process cancellation request. Please try again or contact support.';
-                          toast.error(errorMessage);
-                        } finally {
-                          setIsCancelling(false);
-                        }
-                      }}
-                      disabled={isCancelling}
-                    >
-                      {isCancelling ? 'Processing...' : hasCancelledSubscription ? 'Cancellation Scheduled' : 'Cancel Subscription'}
-                    </Button>
-                    {hasCancelledSubscription && (
-                      <p className="text-xs text-slate-500 text-center mt-2">
-                        Your subscription will remain active until the end of your billing period, then automatically cancel. No further charges will occur.
-                      </p>
+                    {hasCancelledSubscription ? (
+                      <div className="space-y-2">
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          disabled
+                        >
+                          Cancellation Scheduled
+                        </Button>
+                        <p className="text-xs text-slate-500 text-center">
+                          Your subscription will remain active until the end of your billing period, then automatically cancel. No further charges will occur after that date unless you re-subscribe. Final billing status is determined by PayPal.
+                        </p>
+                        <p className="text-xs text-slate-400 text-center mt-1 italic">
+                          Payments made without a PayPal account are still managed by PayPal and renew automatically unless cancelled.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() => setShowCancelDialog(true)}
+                          disabled={isCancelling}
+                        >
+                          {isCancelling ? 'Processing...' : 'Cancel Subscription'}
+                        </Button>
+                        
+                        {/* Cancellation Confirmation Dialog */}
+                        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Cancel subscription?</DialogTitle>
+                              <DialogDescription>
+                                <div className="space-y-2">
+                                  <p>
+                                    You will keep Pro access until {quotaData?.current_period_end ? new Date(quotaData.current_period_end).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'the end of your billing period'}.
+                                  </p>
+                                  <p className="font-medium">
+                                    No further charges will occur after this date unless you re-subscribe.
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    Final billing status is determined by PayPal.
+                                  </p>
+                                </div>
+                              </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowCancelDialog(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={async () => {
+                                  setShowCancelDialog(false);
+                                  setIsCancelling(true);
+                                  try {
+                                    const response = await api.cancelPayPalSubscription();
+                                    if (response.data && response.data.success) {
+                                      const status = response.data.status;
+                                      const paypalVerified = response.data.paypal_verified;
+                                      
+                                      // Show different messages based on PayPal verification
+                                      if (status === 'cancelled_confirmed' && paypalVerified) {
+                                        toast.success(
+                                          <div>
+                                            <div className="font-medium">Subscription cancelled</div>
+                                            <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur. Final billing status is determined by PayPal.</div>
+                                          </div>
+                                        );
+                                      } else {
+                                        toast.success(
+                                          <div>
+                                            <div className="font-medium">Cancellation pending confirmation</div>
+                                            <div className="text-sm">PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal.</div>
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      // Refresh quota to update subscription status and lock UI
+                                      if (refreshQuota) {
+                                        await refreshQuota();
+                                      }
+                                    }
+                                  } catch (error) {
+                                    const errorMessage = error.response?.data?.detail || 'Failed to process cancellation request. Please try again or contact support.';
+                                    toast.error(errorMessage);
+                                  } finally {
+                                    setIsCancelling(false);
+                                  }
+                                }}
+                                disabled={isCancelling}
+                              >
+                                {isCancelling ? 'Processing...' : 'Confirm cancellation'}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </>
                     )}
                     {/* Optional: "Manage via PayPal" link for users with PayPal accounts */}
                     {/* Note: Card-only (guest) users may not have PayPal accounts, so this is optional */}
