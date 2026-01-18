@@ -2902,6 +2902,25 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     
     subscription = await get_user_subscription(current_user.id)
     
+    # RECONCILIATION: Check PENDING subscriptions with PayPal API
+    # This handles missed or delayed webhooks safely
+    if subscription and subscription.status == SubscriptionStatus.PENDING:
+        reconciled_subscription = await reconcile_pending_subscription(subscription)
+        if reconciled_subscription:
+            # Subscription was reconciled to ACTIVE - use updated subscription
+            subscription = reconciled_subscription
+            # Re-fetch user to get updated trial_ends_at
+            user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+            if user and user.get('trial_ends_at'):
+                trial_ends_at = user.get('trial_ends_at')
+                # Recalculate has_active_trial if trial_ends_at was updated
+                if isinstance(trial_ends_at, str):
+                    trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
+                else:
+                    trial_end_dt = trial_ends_at
+                now = datetime.now(timezone.utc)
+                has_active_trial = trial_end_dt > now
+    
     # CRITICAL: Single source of truth for Pro access
     # User has Pro access if:
     # 1. ACTIVE subscription (PayPal confirmed payment)
@@ -3405,6 +3424,105 @@ async def get_paypal_subscription_details(paypal_subscription_id: str) -> Option
     except Exception as e:
         logging.error(f"Error fetching PayPal subscription details: {str(e)}")
         return None
+
+async def reconcile_pending_subscription(subscription: Subscription) -> Optional[Subscription]:
+    """
+    Reconcile PENDING subscription with PayPal API.
+    If PayPal status is ACTIVE, update local subscription to ACTIVE.
+    
+    Rules:
+    - Only reconciles PENDING subscriptions
+    - Idempotent (safe to call multiple times)
+    - Fails silently if PayPal API unavailable
+    - Never downgrades
+    - Returns updated subscription if reconciled, None otherwise
+    """
+    # Only reconcile PENDING subscriptions
+    if subscription.status != SubscriptionStatus.PENDING:
+        return None
+    
+    # Only reconcile PayPal subscriptions
+    if subscription.provider != 'paypal':
+        return None
+    
+    # Must have PayPal subscription ID
+    if not subscription.provider_subscription_id:
+        logging.warning(f"Cannot reconcile subscription {subscription.id}: missing provider_subscription_id")
+        return None
+    
+    try:
+        # Fetch subscription details from PayPal
+        paypal_details = await get_paypal_subscription_details(subscription.provider_subscription_id)
+        if not paypal_details:
+            # PayPal API unavailable or subscription not found - fail silently
+            logging.warning(f"PayPal reconciliation: Could not fetch details for subscription {subscription.id} (PayPal ID: {subscription.provider_subscription_id})")
+            return None
+        
+        # Check PayPal subscription status
+        paypal_status = paypal_details.get('status', '').upper()
+        
+        # If PayPal says ACTIVE, update local subscription
+        if paypal_status == 'ACTIVE':
+            logging.info(f"PayPal reconciliation: Subscription {subscription.id} is ACTIVE in PayPal, updating local status")
+            
+            # Get trial end date from PayPal billing schedule
+            trial_ends_at = None
+            billing_info = paypal_details.get('billing_info')
+            if billing_info and billing_info.get('next_billing_time'):
+                trial_ends_at = billing_info['next_billing_time']
+            
+            # Get Pro plan
+            pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+            if not pro_plan:
+                logging.error(f"PayPal reconciliation: Pro plan not found, cannot upgrade subscription {subscription.id}")
+                return None
+            
+            # Update subscription status to ACTIVE
+            update_data = {
+                "status": SubscriptionStatus.ACTIVE,
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Ensure subscription plan_id is Pro (safety check)
+            if subscription.plan_id != pro_plan['id']:
+                update_data["plan_id"] = pro_plan['id']
+                logging.warning(f"PayPal reconciliation: Subscription {subscription.id} plan_id mismatch, correcting to Pro")
+            
+            await db.subscriptions.update_one(
+                {"id": subscription.id},
+                {"$set": update_data}
+            )
+            
+            # Upgrade user to Pro plan
+            user_update_data = {
+                "plan_id": pro_plan['id']
+            }
+            if trial_ends_at:
+                user_update_data["trial_ends_at"] = trial_ends_at
+            
+            await db.users.update_one(
+                {"id": subscription.user_id},
+                {"$set": user_update_data}
+            )
+            
+            logging.info(f"PayPal reconciliation: Subscription {subscription.id} reconciled to ACTIVE, user {subscription.user_id} upgraded to Pro")
+            
+            # Return updated subscription object
+            updated_sub = await db.subscriptions.find_one({"id": subscription.id}, {"_id": 0})
+            if updated_sub:
+                return Subscription(**updated_sub)
+        else:
+            # PayPal status is not ACTIVE - leave as PENDING
+            logging.debug(f"PayPal reconciliation: Subscription {subscription.id} status in PayPal is {paypal_status}, leaving as PENDING")
+            return None
+            
+    except Exception as e:
+        # Fail silently on errors (PayPal API might be temporarily unavailable)
+        logging.error(f"PayPal reconciliation error for subscription {subscription.id}: {str(e)}")
+        return None
+    
+    return None
 
 async def verify_paypal_webhook_signature(
     webhook_id: str,

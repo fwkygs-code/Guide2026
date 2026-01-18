@@ -155,9 +155,9 @@ const BillingInfo = () => {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-yellow-900">Activation Pending</div>
+                <div className="text-sm font-medium text-yellow-900">Activating your subscription…</div>
                 <div className="text-xs text-yellow-700 mt-1">
-                  Your subscription is being processed. Pro access will be activated shortly.
+                  This may take up to 1 minute. You can continue using the app.
                 </div>
               </div>
             </div>
