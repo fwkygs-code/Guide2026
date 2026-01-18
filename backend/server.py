@@ -65,7 +65,10 @@ PAYPAL_API_BASE = os.environ.get('PAYPAL_API_BASE', 'https://api-m.paypal.com') 
 
 # Email Configuration (SMTP/SendGrid compatible)
 SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.resend.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+try:
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+except (ValueError, TypeError):
+    SMTP_PORT = 587  # Default to 587 if invalid
 SMTP_USER = os.environ.get('SMTP_USER')  # Can be 'apikey' for SendGrid or email for Resend
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # API key or password
 SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL', 'noreply@guide2026.com')
