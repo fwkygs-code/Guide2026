@@ -20,6 +20,7 @@ import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
 import { BLOCK_TYPES, createBlock, getBlockLabel, getBlockIcon } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
+import BuildingTips from '../components/canvas-builder/BuildingTips';
 import { useQuota } from '../hooks/useQuota';
 
 /**
@@ -640,7 +641,7 @@ const BuilderV2Page = () => {
   }
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-slate-50 overflow-hidden">
+    <div className="w-screen h-screen flex flex-col bg-slate-50 overflow-hidden" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh' }}>
       {/* Zone 1: Top Command Bar (Fixed Height) */}
       <div className="h-14 flex-shrink-0 border-b border-slate-200 bg-white flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
@@ -1070,7 +1071,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
           <Plus className="w-4 h-4 text-slate-400" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 bg-white border-slate-200" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent className="w-64 p-2 bg-white border-slate-200 z-50" side="bottom" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="grid grid-cols-2 gap-2">
           {blockTypes.map((type) => (
             <button
@@ -1651,12 +1652,11 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
 
             <div>
               <Label className="text-xs text-slate-500 mb-1.5 block">Caption (Optional)</Label>
-              <Textarea
-                value={currentSlide.caption || ''}
-                onChange={(e) => updateSlide(activeIndex, { caption: e.target.value })}
+              <InlineRichEditor
+                content={currentSlide.caption || ''}
+                onChange={(content) => updateSlide(activeIndex, { caption: content })}
                 placeholder="Add caption for this slide..."
-                rows={2}
-                className="text-sm"
+                className="text-sm min-h-[60px] border border-slate-200 rounded px-3 py-2"
               />
             </div>
           </div>
@@ -1899,29 +1899,9 @@ const InspectorPanel = ({
     );
   }
 
-  // Step settings (no block selected)
+  // Step settings (no block selected) - Show Tips instead
   if (currentStep && currentStep.id && onStepUpdate) {
-    return (
-      <div className="w-80 flex-shrink-0 border-l border-slate-200 bg-white overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-200">
-          <h2 className="text-sm font-semibold text-slate-900">Step Settings</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div>
-            <Label className="text-xs text-slate-500 mb-1.5 block">Step Title</Label>
-            <Input
-              value={currentStep.title || ''}
-              onChange={(e) => {
-                if (onStepUpdate) {
-                  onStepUpdate({ title: e.target.value });
-                }
-              }}
-              placeholder="Step title"
-            />
-          </div>
-        </div>
-      </div>
-    );
+    return <BuildingTips />;
   }
 
   return (

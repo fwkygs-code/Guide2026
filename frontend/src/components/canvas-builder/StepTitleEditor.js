@@ -21,10 +21,14 @@ const StepTitleEditor = ({ title, onChange, isRTL = false }) => {
         showOnlyCurrent: true,
       }),
     ],
-    content: {
+    content: title ? {
       type: 'heading',
       attrs: { level: 2, textAlign: 'center' },
-      content: title ? [{ type: 'text', text: title }] : []
+      content: [{ type: 'text', text: title }]
+    } : {
+      type: 'heading',
+      attrs: { level: 2, textAlign: 'center' },
+      content: []
     },
     onUpdate: ({ editor }) => {
       // Preserve spaces (including trailing spaces) better than editor.getText()
@@ -39,12 +43,15 @@ const StepTitleEditor = ({ title, onChange, isRTL = false }) => {
     },
   });
 
-  // Ensure center alignment persists
+  // Ensure center alignment persists on mount and when title changes
   useEffect(() => {
-    if (editor && !editor.isActive({ textAlign: 'center' })) {
-      editor.chain().focus().setTextAlign('center').run();
+    if (editor) {
+      // Set center alignment if not already set
+      if (!editor.isActive({ textAlign: 'center' })) {
+        editor.chain().setTextAlign('center').run();
+      }
     }
-  }, [editor]);
+  }, [editor, title]);
 
   if (!editor) {
     return null;
