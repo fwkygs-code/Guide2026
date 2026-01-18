@@ -275,8 +275,8 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
           <div className="mt-6 p-4 bg-slate-50 rounded-lg">
             <p className="text-sm text-slate-600">
               <strong>Note:</strong> You can start with the Free plan and upgrade anytime. 
-              Pro plan includes a <strong>14-day free trial</strong> with no credit card required. 
-              Subscribe via PayPal before trial ends to continue Pro access.
+              Pro plan includes a <strong>14-day free trial</strong> that starts after PayPal approves your subscription payment. 
+              Subscribe via PayPal to begin your trial.
             </p>
           </div>
         )}

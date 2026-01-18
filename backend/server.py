@@ -2752,51 +2752,12 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
     if not plan:
         raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
     
-    # CRITICAL: For Pro plan, check if user wants to start trial or needs subscription
-    # This endpoint now allows starting Pro trial (14 days) without PayPal subscription
-    # PayPal subscription is required after trial expires
+    # CRITICAL: Pro plan requires PayPal subscription - no trial without payment approval
     if plan_name == 'pro':
-        # Check if user already has an active trial
-        user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
-        trial_ends_at = user.get('trial_ends_at') if user else None
-        
-        if trial_ends_at:
-            try:
-                if isinstance(trial_ends_at, str):
-                    trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
-                else:
-                    trial_end_dt = trial_ends_at
-                now = datetime.now(timezone.utc)
-                if trial_end_dt > now:
-                    # User already has active trial
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"You already have an active Pro trial until {trial_ends_at}. Subscribe via PayPal before trial ends to continue Pro access."
-                    )
-            except Exception:
-                pass
-        
-        # Check if user has active PayPal subscription
-        subscription = await get_user_subscription(current_user.id)
-        if subscription and subscription.status == SubscriptionStatus.ACTIVE:
-            # User already has active subscription - update plan_id only
-            pass
-        else:
-            # Start 14-day trial - no PayPal subscription required
-            trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
-            await db.users.update_one(
-                {"id": current_user.id},
-                {"$set": {
-                    "trial_ends_at": trial_ends_at,
-                    "plan_id": plan['id']
-                }}
-            )
-            logging.info(f"User {current_user.id} started Pro trial (ends at {trial_ends_at})")
-            return {
-                "message": f"Pro trial started! You have 14 days to try Pro features. Subscribe via PayPal before trial ends to continue.",
-                "plan": plan,
-                "trial_ends_at": trial_ends_at
-            }
+        raise HTTPException(
+            status_code=400,
+            detail="Pro plan requires PayPal subscription. Please use the 'Upgrade to Pro' button to subscribe via PayPal. The 14-day trial starts after PayPal approves your payment."
+        )
     
     # Check if plan is public (unless user is admin)
     if not plan.get('is_public', False) and plan_name != 'free':
@@ -3052,61 +3013,8 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     }
 
 # Trial & Subscription Models
-@api_router.post("/users/me/start-trial")
-async def start_pro_trial(current_user: User = Depends(get_current_user)):
-    """Start a 14-day Pro trial. No PayPal subscription required.
-    After trial expires, user must subscribe via PayPal to continue Pro access.
-    """
-    # Check if user already has an active trial
-    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
-    trial_ends_at = user.get('trial_ends_at') if user else None
-    
-    if trial_ends_at:
-        try:
-            if isinstance(trial_ends_at, str):
-                trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
-            else:
-                trial_end_dt = trial_ends_at
-            now = datetime.now(timezone.utc)
-            if trial_end_dt > now:
-                # User already has active trial
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"You already have an active Pro trial until {trial_ends_at}"
-                )
-        except Exception:
-            pass
-    
-    # Check if user already has active PayPal subscription
-    subscription = await get_user_subscription(current_user.id)
-    if subscription and subscription.status == SubscriptionStatus.ACTIVE:
-        raise HTTPException(
-            status_code=400,
-            detail="You already have an active Pro subscription. No trial needed."
-        )
-    
-    # Get Pro plan
-    pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
-    if not pro_plan:
-        raise HTTPException(status_code=404, detail="Pro plan not found")
-    
-    # Start 14-day trial
-    trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
-    await db.users.update_one(
-        {"id": current_user.id},
-        {"$set": {
-            "trial_ends_at": trial_ends_at,
-            "plan_id": pro_plan['id']
-        }}
-    )
-    
-    logging.info(f"User {current_user.id} started Pro trial (ends at {trial_ends_at})")
-    
-    return {
-        "message": "Pro trial started! You have 14 days to try Pro features. Subscribe via PayPal before trial ends to continue.",
-        "trial_ends_at": trial_ends_at,
-        "plan": pro_plan
-    }
+# NOTE: start-trial endpoint removed - trials now only start after PayPal subscription activation
+# The 14-day trial is automatically set when BILLING.SUBSCRIPTION.ACTIVATED webhook is received
 
 # PayPal Subscription Models
 class PayPalSubscribeRequest(BaseModel):
@@ -3471,11 +3379,18 @@ async def paypal_webhook(
                 )
                 
                 # Upgrade user to Pro plan (ONLY place this happens)
-                # Clear trial_ends_at since subscription now takes priority
+                # Set 14-day trial period starting from subscription activation
+                trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
                 await db.users.update_one(
                     {"id": subscription['user_id']},
-                    {"$set": {"plan_id": subscription['plan_id']}, "$unset": {"trial_ends_at": ""}}
+                    {
+                        "$set": {
+                            "plan_id": subscription['plan_id'],
+                            "trial_ends_at": trial_ends_at
+                        }
+                    }
                 )
+                logging.info(f"Pro subscription activated with 14-day trial: user={subscription['user_id']}, trial_ends_at={trial_ends_at}")
                 subscription_id = subscription['id']
                 logging.info(f"PayPal subscription activated: user={subscription['user_id']}, subscription={subscription['id']}")
             else:

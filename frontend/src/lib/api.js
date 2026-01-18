@@ -133,7 +133,6 @@ export const api = {
   getUserPlan: () => axios.get(`${API}/users/me/plan`),
   getWorkspaceQuota: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/quota`),
   changePlan: (planName) => axios.put(`${API}/users/me/plan`, null, { params: { plan_name: planName } }),
-  startTrial: () => axios.post(`${API}/users/me/start-trial`),
   getPlans: () => axios.get(`${API}/plans`),
   
   // PayPal Subscriptions
