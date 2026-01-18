@@ -288,32 +288,34 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
             setIsSubscribing(false);
           }
         }}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle>Subscribe to Pro Plan</DialogTitle>
               <DialogDescription>
                 Complete your subscription to unlock Pro features. Your subscription will be activated automatically.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <PayPalSubscription
-                onSuccess={async (subscriptionID) => {
-                  setShowPayPal(false);
-                  setIsSubscribing(false);
-                  // Refresh quota to get updated plan status
-                  if (refreshQuota) {
-                    await refreshQuota();
-                  }
-                  onOpenChange(false);
-                }}
-                onCancel={() => {
-                  setShowPayPal(false);
-                  setIsSubscribing(false);
-                }}
-                isSubscribing={isSubscribing}
-                setIsSubscribing={setIsSubscribing}
-              />
-            </div>
+            {showPayPal && (
+              <div className="py-4">
+                <PayPalSubscription
+                  onSuccess={async (subscriptionID) => {
+                    setShowPayPal(false);
+                    setIsSubscribing(false);
+                    // Refresh quota to get updated plan status
+                    if (refreshQuota) {
+                      await refreshQuota();
+                    }
+                    onOpenChange(false);
+                  }}
+                  onCancel={() => {
+                    setShowPayPal(false);
+                    setIsSubscribing(false);
+                  }}
+                  isSubscribing={isSubscribing}
+                  setIsSubscribing={setIsSubscribing}
+                />
+              </div>
+            )}
             <div className="text-xs text-slate-500 mt-4 space-y-2 text-center">
               <p>
                 Payments are processed by PayPal. By subscribing, you agree to our{' '}
