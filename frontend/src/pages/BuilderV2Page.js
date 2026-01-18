@@ -1117,6 +1117,13 @@ const BlockRenderer = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    if (window.confirm('Delete this block?')) {
+      onDelete();
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -1144,6 +1151,16 @@ const BlockRenderer = ({
             canUploadFile={canUploadFile}
           />
         </div>
+        {onDelete && (
+          <button
+            onClick={handleDelete}
+            className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+            title="Delete block"
+            aria-label="Delete block"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );
