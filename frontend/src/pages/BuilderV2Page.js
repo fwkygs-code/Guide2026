@@ -4,13 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical } from 'lucide-react';
+import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
@@ -53,6 +55,17 @@ const BuilderV2Page = () => {
   const [loading, setLoading] = useState(isEditing);
   const [blockPickerOpen, setBlockPickerOpen] = useState(null); // Track which "+" button opened it
   const [activeBlockId, setActiveBlockId] = useState(null);
+  
+  // Setup form state for new walkthroughs
+  const [setupComplete, setSetupComplete] = useState(isEditing); // If editing, setup is already complete
+  const [categories, setCategories] = useState([]);
+  const [setupData, setSetupData] = useState({
+    title: '',
+    description: '',
+    icon_url: '',
+    category_ids: []
+  });
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -61,8 +74,19 @@ const BuilderV2Page = () => {
     })
   );
 
-  // Load walkthrough if editing
+  // Load categories and walkthrough if editing
   useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await api.getCategories(workspaceId);
+        setCategories(normalizeImageUrlsInObject(response.data));
+      } catch (error) {
+        console.error('Failed to load categories');
+      }
+    };
+    
+    loadCategories();
+    
     if (isEditing && walkthroughId) {
       const loadWalkthrough = async () => {
         try {
@@ -82,6 +106,12 @@ const BuilderV2Page = () => {
             }));
           }
           setWalkthrough(normalized);
+          setSetupData({
+            title: normalized.title || '',
+            description: normalized.description || '',
+            icon_url: normalized.icon_url || '',
+            category_ids: normalized.category_ids || []
+          });
           if (normalized.steps && normalized.steps.length > 0) {
             setCurrentStepIndex(0);
           }
@@ -164,6 +194,94 @@ const BuilderV2Page = () => {
       navigate(`/workspace/${workspaceId}/walkthroughs/${walkthroughId}/edit`.replace(/\/+/g, '/'));
     } else {
       navigate(`/workspace/${workspaceId}/walkthroughs/new`.replace(/\/+/g, '/'));
+    }
+  };
+
+  // Handle setup form submission - create walkthrough with metadata
+  const handleSetupComplete = async () => {
+    if (!setupData.title || !setupData.title.trim()) {
+      toast.error('Please enter a walkthrough name');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Create walkthrough with metadata
+      const walkthroughData = {
+        title: setupData.title.trim(),
+        description: setupData.description || '',
+        category_ids: setupData.category_ids || [],
+        icon_url: setupData.icon_url || null,
+        status: 'draft',
+        privacy: 'public',
+        navigation_type: 'next_prev',
+        navigation_placement: 'bottom'
+      };
+
+      const response = await api.createWalkthrough(workspaceId, walkthroughData);
+      const newWalkthroughId = response.data.id;
+      
+      // Update local state
+      setWalkthrough({
+        ...walkthroughData,
+        id: newWalkthroughId,
+        steps: []
+      });
+      setSetupComplete(true);
+      
+      // Navigate to the new walkthrough
+      navigate(`/workspace/${workspaceId}/builder-v2/${newWalkthroughId}`.replace(/\/+/g, '/'), { replace: true });
+      toast.success('Walkthrough created! Start adding steps.');
+    } catch (error) {
+      console.error('Failed to create walkthrough:', error);
+      toast.error(error.response?.data?.detail || 'Failed to create walkthrough');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle icon upload for setup form
+  const handleSetupIconUpload = async (file) => {
+    try {
+      setUploadingIcon(true);
+      
+      const quotaCheck = canUploadFile(file.size);
+      if (!quotaCheck.allowed) {
+        toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
+        return;
+      }
+      
+      const idempotencyKey = `setup-icon-${Date.now()}-${file.name}`;
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'walkthrough_icon',
+        referenceId: 'setup'
+      });
+      
+      if (response.data.status !== 'active' && response.data.status !== 'existing') {
+        toast.error(`Upload not completed (status: ${response.data.status}). Please try again.`);
+        return;
+      }
+      
+      if (!response.data.url) {
+        toast.error('Upload succeeded but no URL returned.');
+        return;
+      }
+      
+      const uploadedUrl = response.data.url;
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : normalizeImageUrl(uploadedUrl);
+      
+      setSetupData(prev => ({ ...prev, icon_url: fullUrl }));
+      toast.success('Icon uploaded!');
+    } catch (error) {
+      console.error('Icon upload error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to upload icon');
+    } finally {
+      setUploadingIcon(false);
     }
   };
 
@@ -372,6 +490,152 @@ const BuilderV2Page = () => {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show setup form for new walkthroughs before allowing step creation
+  if (!setupComplete && !isEditing) {
+    const parentCategories = categories.filter(c => !c.parent_id);
+    
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-slate-50 p-8">
+        <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8">
+          <Dialog open={true} onOpenChange={() => {}}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-2xl">Create New Walkthrough</DialogTitle>
+                <DialogDescription>
+                  Set up your walkthrough before adding steps
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Walkthrough Name */}
+                <div>
+                  <Label htmlFor="title" className="text-sm font-medium text-slate-900 mb-2 block">
+                    Walkthrough Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="title"
+                    value={setupData.title}
+                    onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter walkthrough name"
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <Label htmlFor="description" className="text-sm font-medium text-slate-900 mb-2 block">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={setupData.description}
+                    onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter description (optional)"
+                    rows={3}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Icon/Photo */}
+                <div>
+                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
+                    Icon/Photo <span className="text-slate-500 font-normal">(Optional)</span>
+                  </Label>
+                  {setupData.icon_url ? (
+                    <div className="space-y-2">
+                      <img
+                        src={normalizeImageUrl(setupData.icon_url)}
+                        alt="Icon preview"
+                        className="w-24 h-24 rounded-lg object-cover border border-slate-200"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSetupData(prev => ({ ...prev, icon_url: '' }))}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleSetupIconUpload(file);
+                          e.target.value = '';
+                        }}
+                        disabled={uploadingIcon}
+                        className="w-full"
+                      />
+                      <p className="text-sm text-slate-500">or</p>
+                      <Input
+                        placeholder="Enter image URL"
+                        value={setupData.icon_url}
+                        onChange={(e) => setSetupData(prev => ({ ...prev, icon_url: e.target.value }))}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Categories */}
+                <div>
+                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
+                    Categories
+                  </Label>
+                  {parentCategories.length === 0 ? (
+                    <p className="text-sm text-slate-500">No categories available. Create categories in the Categories page.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                      {parentCategories.map((category) => (
+                        <div key={category.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`cat-${category.id}`}
+                            checked={setupData.category_ids.includes(category.id)}
+                            onCheckedChange={(checked) => {
+                              setSetupData(prev => ({
+                                ...prev,
+                                category_ids: checked
+                                  ? [...prev.category_ids, category.id]
+                                  : prev.category_ids.filter(id => id !== category.id)
+                              }));
+                            }}
+                          />
+                          <Label htmlFor={`cat-${category.id}`} className="text-sm cursor-pointer">
+                            {category.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs`.replace(/\/+/g, '/'))}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSetupComplete}
+                    disabled={!setupData.title?.trim() || loading || uploadingIcon}
+                    className="flex-1"
+                  >
+                    {loading ? 'Creating...' : 'Create Walkthrough'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     );
   }

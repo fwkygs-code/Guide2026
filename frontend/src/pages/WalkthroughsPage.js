@@ -2,18 +2,20 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy } from 'lucide-react';
+import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy, Settings, Upload, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrlsInObject, normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useQuota } from '../hooks/useQuota';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const WalkthroughsPage = () => {
   const { t } = useTranslation();
@@ -24,6 +26,15 @@ const WalkthroughsPage = () => {
   const [loading, setLoading] = useState(true);
   const [workspace, setWorkspace] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [editingWalkthrough, setEditingWalkthrough] = useState(null);
+  const [editSettings, setEditSettings] = useState({
+    title: '',
+    description: '',
+    icon_url: '',
+    category_ids: []
+  });
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -116,6 +127,92 @@ const WalkthroughsPage = () => {
       } catch (error) {
         toast.error(t('archive.failedToLoad'));
       }
+    }
+  };
+
+  const { canUploadFile } = useQuota(workspaceId);
+  const parentCategories = useMemo(() => categories.filter(c => !c.parent_id), [categories]);
+
+  const handleOpenSettings = (walkthrough) => {
+    setEditingWalkthrough(walkthrough);
+    setEditSettings({
+      title: walkthrough.title || '',
+      description: walkthrough.description || '',
+      icon_url: walkthrough.icon_url || '',
+      category_ids: walkthrough.category_ids || []
+    });
+    setSettingsDialogOpen(true);
+  };
+
+  const handleSaveSettings = async () => {
+    if (!editingWalkthrough || !editSettings.title?.trim()) {
+      toast.error('Please enter a walkthrough name');
+      return;
+    }
+
+    try {
+      await api.updateWalkthrough(workspaceId, editingWalkthrough.id, {
+        title: editSettings.title.trim(),
+        description: editSettings.description || '',
+        category_ids: editSettings.category_ids || [],
+        icon_url: editSettings.icon_url || null
+      });
+      
+      // Update local state
+      setWalkthroughs(walkthroughs.map(w => 
+        w.id === editingWalkthrough.id 
+          ? { ...w, ...editSettings }
+          : w
+      ));
+      
+      setSettingsDialogOpen(false);
+      setEditingWalkthrough(null);
+      toast.success('Settings updated!');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update settings');
+    }
+  };
+
+  const handleSettingsIconUpload = async (file) => {
+    try {
+      setUploadingIcon(true);
+      
+      const quotaCheck = canUploadFile(file.size);
+      if (!quotaCheck.allowed) {
+        toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
+        return;
+      }
+      
+      const idempotencyKey = `walkthrough-icon-${editingWalkthrough.id}-${file.name}-${Date.now()}`;
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'walkthrough_icon',
+        referenceId: editingWalkthrough.id
+      });
+      
+      if (response.data.status !== 'active' && response.data.status !== 'existing') {
+        toast.error(`Upload not completed (status: ${response.data.status}). Please try again.`);
+        return;
+      }
+      
+      if (!response.data.url) {
+        toast.error('Upload succeeded but no URL returned.');
+        return;
+      }
+      
+      const uploadedUrl = response.data.url;
+      const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
+        ? uploadedUrl
+        : normalizeImageUrl(uploadedUrl);
+      
+      setEditSettings(prev => ({ ...prev, icon_url: fullUrl }));
+      toast.success('Icon uploaded!');
+    } catch (error) {
+      console.error('Icon upload error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to upload icon');
+    } finally {
+      setUploadingIcon(false);
     }
   };
 
@@ -305,6 +402,15 @@ const WalkthroughsPage = () => {
 
                         <div className="flex gap-2">
                           <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenSettings(walkthrough)}
+                            title="Edit Settings"
+                            className="px-2"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                          <Button
                             variant="outline"
                             size="sm"
                             className="flex-1"
@@ -363,6 +469,147 @@ const WalkthroughsPage = () => {
             </Button>
           </div>
         )}
+
+        {/* Settings Edit Dialog */}
+        <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Walkthrough Settings</DialogTitle>
+              <DialogDescription>
+                Update walkthrough name, description, icon, and categories
+              </DialogDescription>
+            </DialogHeader>
+
+            {editingWalkthrough && (
+              <div className="space-y-6 mt-4">
+                {/* Walkthrough Name */}
+                <div>
+                  <Label htmlFor="edit-title" className="text-sm font-medium text-slate-900 mb-2 block">
+                    Walkthrough Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-title"
+                    value={editSettings.title}
+                    onChange={(e) => setEditSettings(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter walkthrough name"
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <Label htmlFor="edit-description" className="text-sm font-medium text-slate-900 mb-2 block">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editSettings.description}
+                    onChange={(e) => setEditSettings(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter description (optional)"
+                    rows={3}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Icon/Photo */}
+                <div>
+                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
+                    Icon/Photo <span className="text-slate-500 font-normal">(Optional)</span>
+                  </Label>
+                  {editSettings.icon_url ? (
+                    <div className="space-y-2">
+                      <img
+                        src={normalizeImageUrl(editSettings.icon_url)}
+                        alt="Icon preview"
+                        className="w-24 h-24 rounded-lg object-cover border border-slate-200"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditSettings(prev => ({ ...prev, icon_url: '' }))}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleSettingsIconUpload(file);
+                          e.target.value = '';
+                        }}
+                        disabled={uploadingIcon}
+                        className="w-full"
+                      />
+                      <p className="text-sm text-slate-500">or</p>
+                      <Input
+                        placeholder="Enter image URL"
+                        value={editSettings.icon_url}
+                        onChange={(e) => setEditSettings(prev => ({ ...prev, icon_url: e.target.value }))}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Categories */}
+                <div>
+                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
+                    Categories
+                  </Label>
+                  {parentCategories.length === 0 ? (
+                    <p className="text-sm text-slate-500">No categories available. Create categories in the Categories page.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                      {parentCategories.map((category) => (
+                        <div key={category.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`edit-cat-${category.id}`}
+                            checked={editSettings.category_ids.includes(category.id)}
+                            onCheckedChange={(checked) => {
+                              setEditSettings(prev => ({
+                                ...prev,
+                                category_ids: checked
+                                  ? [...prev.category_ids, category.id]
+                                  : prev.category_ids.filter(id => id !== category.id)
+                              }));
+                            }}
+                          />
+                          <Label htmlFor={`edit-cat-${category.id}`} className="text-sm cursor-pointer">
+                            {category.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSettingsDialogOpen(false);
+                      setEditingWalkthrough(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveSettings}
+                    disabled={!editSettings.title?.trim() || uploadingIcon}
+                    className="flex-1"
+                  >
+                    Save Settings
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
