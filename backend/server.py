@@ -26,9 +26,7 @@ import hashlib
 import base64
 import aiohttp
 import secrets
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -64,18 +62,11 @@ PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET')
 PAYPAL_WEBHOOK_ID = os.environ.get('PAYPAL_WEBHOOK_ID')  # Webhook ID from PayPal dashboard
 PAYPAL_API_BASE = os.environ.get('PAYPAL_API_BASE', 'https://api-m.paypal.com')  # Use api-m.sandbox.paypal.com for sandbox
 
-# Email Configuration (SMTP/SendGrid compatible)
-SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.resend.com')
-try:
-    SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
-except (ValueError, TypeError):
-    SMTP_PORT = 587  # Default to 587 if invalid
-SMTP_USER = os.environ.get('SMTP_USER')  # Can be 'apikey' for SendGrid or email for Resend
-SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # API key or password
-SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL', 'noreply@guide2026.com')
-SMTP_FROM_NAME = os.environ.get('SMTP_FROM_NAME', 'Guide2026')
-SMTP_TIMEOUT = 10  # SMTP connection timeout in seconds (prevents worker blocking)
+# Email Configuration (Resend HTTP API only)
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL')
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
+RESEND_API_URL = "https://api.resend.com/emails"
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://guide2026-frontend.onrender.com')
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
 # IMPORTANT: Sandbox vs Production behavior differences:
@@ -104,6 +95,25 @@ if not USE_CLOUDINARY:
     )
     logging.error(error_msg)
     raise RuntimeError("Cloudinary configuration is required. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.")
+
+# Email provider validation - Resend HTTP API is REQUIRED, SMTP is DISABLED
+if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
+    error_msg = (
+        "=" * 80 + "\n"
+        "CRITICAL ERROR: Resend email configuration is missing!\n"
+        "Resend HTTP API is REQUIRED for email sending. SMTP is DISABLED.\n\n"
+        "Please set the following environment variables:\n"
+        "  - RESEND_API_KEY (get from https://resend.com/api-keys)\n"
+        "  - RESEND_FROM_EMAIL (must be verified in Resend)\n\n"
+        "=" * 80
+    )
+    logging.error(error_msg)
+    raise RuntimeError("Resend email configuration is required. Please set RESEND_API_KEY and RESEND_FROM_EMAIL environment variables.")
+
+logging.info("[EMAIL] Resend email provider active")
+logging.info(f"[EMAIL] RESEND_API_KEY configured: {bool(RESEND_API_KEY)}")
+logging.info(f"[EMAIL] RESEND_FROM_EMAIL: {RESEND_FROM_EMAIL}")
+logging.info("[EMAIL] SMTP disabled")
 
 # Configure Cloudinary
 cloudinary.config(
@@ -395,41 +405,41 @@ def verify_verification_token(token: str, hashed: str) -> bool:
     except Exception:
         return False
 
-async def send_verification_email_background(user_id: str, email: str, name: str, token: str):
+def send_verification_email(email: str, verify_url: str, name: Optional[str] = None) -> bool:
     """
-    Background task to send verification email via SMTP.
-    Non-blocking - runs after HTTP response is sent.
-    Compatible with SendGrid, Resend, and other SMTP services.
-    """
-    logging.info(f"[EMAIL][START] user_id={user_id} email={email}")
+    Send verification email via Resend HTTP API.
+    Never raises exceptions - returns True on success, False on failure.
+    This function is called from background tasks, so exceptions would be lost.
     
-    if not SMTP_USER or not SMTP_PASSWORD:
-        logging.warning(f"[EMAIL][FAILED] user_id={user_id} error=SMTP not configured")
-        return
+    Args:
+        email: Recipient email address
+        verify_url: Full verification URL with token
+        name: Optional recipient name (defaults to email username if not provided)
+    """
+    if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
+        logging.warning(f"[EMAIL][FAILED] email={email} error=Resend not configured")
+        return False
     
     try:
-        verification_url = f"{FRONTEND_URL}/verify-email?token={token}"
         expiry_hours = EMAIL_VERIFICATION_EXPIRY_HOURS
         
-        # Create email message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = 'Verify your email address'
-        msg['From'] = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
-        msg['To'] = email
+        # Use provided name or extract from email for personalization
+        if not name:
+            name = email.split('@')[0].replace('.', ' ').title()
         
         # Plain text version
         text_content = f"""Hi {name},
 
 Please verify your email address by clicking the link below:
 
-{verification_url}
+{verify_url}
 
 This link will expire in {expiry_hours} hours.
 
 If you didn't create an account, you can safely ignore this email.
 
 Best regards,
-{SMTP_FROM_NAME}
+Guide2026
 """
         
         # HTML version
@@ -448,38 +458,91 @@ Best regards,
     <div class="container">
         <h2>Hi {name},</h2>
         <p>Please verify your email address by clicking the button below:</p>
-        <a href="{verification_url}" class="button">Verify Email</a>
+        <a href="{verify_url}" class="button">Verify Email</a>
         <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all;">{verification_url}</p>
+        <p style="word-break: break-all;">{verify_url}</p>
         <p style="color: #666; font-size: 14px;">This link will expire in {expiry_hours} hours.</p>
         <p>If you didn't create an account, you can safely ignore this email.</p>
         <div class="footer">
-            <p>Best regards,<br>{SMTP_FROM_NAME}</p>
+            <p>Best regards,<br>Guide2026</p>
         </div>
     </div>
 </body>
 </html>
 """
         
-        msg.attach(MIMEText(text_content, 'plain'))
-        msg.attach(MIMEText(html_content, 'html'))
+        # Send email via Resend HTTP API
+        headers = {
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json"
+        }
         
-        # Send email via SMTP with timeout to prevent blocking
-        import socket
-        socket.setdefaulttimeout(SMTP_TIMEOUT)
+        payload = {
+            "from": RESEND_FROM_EMAIL,
+            "to": [email],
+            "subject": "Verify your email address",
+            "text": text_content,
+            "html": html_content
+        }
         
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        logging.info(f"[EMAIL][REQUEST] Resend API call for email={email} from={RESEND_FROM_EMAIL}")
+        response = requests.post(RESEND_API_URL, json=payload, headers=headers, timeout=10)
         
-        logging.info(f"[EMAIL][SUCCESS] user_id={user_id} email={email}")
-    except socket.timeout:
-        logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=SMTP connection timeout ({SMTP_TIMEOUT}s)")
-    except smtplib.SMTPException as e:
-        logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=SMTP error: {str(e)}")
+        if response.status_code == 200:
+            response_data = response.json()
+            resend_id = response_data.get('id', 'unknown')
+            logging.info(f"[EMAIL][SUCCESS] email={email} resend_id={resend_id}")
+            return True
+        else:
+            # Try to parse error response
+            try:
+                error_data = response.json()
+                error_detail = error_data.get('message', str(error_data))
+            except:
+                error_detail = response.text or f"HTTP {response.status_code}"
+            
+            logging.error(f"[EMAIL][FAILED] email={email} status={response.status_code} error={error_detail} from={RESEND_FROM_EMAIL}")
+            return False
+            
+    except requests.exceptions.Timeout:
+        logging.error(f"[EMAIL][FAILED] email={email} error=Resend API timeout (10s)")
+        return False
+    except requests.exceptions.RequestException as e:
+        logging.error(f"[EMAIL][FAILED] email={email} error=Resend API request error: {str(e)}")
+        return False
     except Exception as e:
-        logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error={str(e)}", exc_info=True)
+        logging.error(f"[EMAIL][FAILED] email={email} error={str(e)}", exc_info=True)
+        return False
+
+async def send_verification_email_background(user_id: str, email: str, name: str, token: str):
+    """
+    Background task to send verification email via Resend HTTP API.
+    Non-blocking - runs after HTTP response is sent.
+    """
+    try:
+        logging.info(f"[EMAIL][START] user_id={user_id} email={email} name={name}")
+        
+        # Verify configuration before attempting send
+        if not RESEND_API_KEY:
+            logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=RESEND_API_KEY not configured")
+            return
+        
+        if not RESEND_FROM_EMAIL:
+            logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=RESEND_FROM_EMAIL not configured")
+            return
+        
+        verification_url = f"{FRONTEND_URL}/verify-email?token={token}"
+        logging.info(f"[EMAIL][URL] user_id={user_id} verification_url={verification_url}")
+        
+        # Call the Resend email function (sync, but in background task)
+        success = send_verification_email(email, verification_url, name=name)
+        
+        if success:
+            logging.info(f"[EMAIL][SUCCESS] user_id={user_id} email={email}")
+        else:
+            logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=Email send failed (check logs above)")
+    except Exception as e:
+        logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=Background task exception: {str(e)}", exc_info=True)
 
 def sanitize_public_walkthrough(w: dict) -> dict:
     """Remove sensitive/private fields from walkthrough docs returned to the public portal."""
@@ -1040,13 +1103,18 @@ async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
     
     # Schedule verification email sending as background task (non-blocking)
     # Email will be sent after HTTP response is returned - never blocks signup
-    background_tasks.add_task(
-        send_verification_email_background,
-        user.id,
-        user_data.email,
-        user_data.name,
-        verification_token
-    )
+    logging.info(f"[SIGNUP] Scheduling email background task for user_id={user.id} email={user_data.email}")
+    try:
+        background_tasks.add_task(
+            send_verification_email_background,
+            user.id,
+            user_data.email,
+            user_data.name,
+            verification_token
+        )
+        logging.info(f"[SIGNUP] Background task scheduled successfully for user_id={user.id}")
+    except Exception as e:
+        logging.error(f"[SIGNUP] Failed to schedule background task for user_id={user.id}: {str(e)}", exc_info=True)
     
     # Refresh user data to include plan_id
     user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
@@ -5387,6 +5455,161 @@ async def global_exception_handler(request: Request, exc: Exception):
             "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
         }
     )
+
+# Admin-only email diagnostic endpoint
+@api_router.get("/admin/email/config")
+async def get_email_config(current_user: User = Depends(get_current_user)):
+    """
+    Get email configuration status (for debugging).
+    Shows what's configured without exposing sensitive data.
+    """
+    return {
+        "resend_configured": bool(RESEND_API_KEY and RESEND_FROM_EMAIL),
+        "resend_api_key_set": bool(RESEND_API_KEY),
+        "resend_from_email": RESEND_FROM_EMAIL,
+        "resend_api_url": RESEND_API_URL,
+        "frontend_url": FRONTEND_URL,
+        "smtp_disabled": True
+    }
+
+# Admin-only email test endpoint
+@api_router.post("/admin/email/test")
+async def test_email(
+    email: str = Body(..., description="Email address to send test email to"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Send a test email via Resend HTTP API.
+    Admin-only endpoint for testing email configuration without creating users.
+    Returns detailed Resend API response for debugging.
+    """
+    # TODO: Add admin role check when admin system is implemented
+    # For now, any authenticated user can test email
+    
+    logging.info(f"[EMAIL][TEST] Admin test email requested by user_id={current_user.id} to={email}")
+    
+    # Check configuration
+    if not RESEND_API_KEY:
+        return {
+            "success": False,
+            "error": "RESEND_API_KEY not configured",
+            "email": email,
+            "config_check": {
+                "RESEND_API_KEY": "missing",
+                "RESEND_FROM_EMAIL": RESEND_FROM_EMAIL or "missing"
+            }
+        }
+    
+    if not RESEND_FROM_EMAIL:
+        return {
+            "success": False,
+            "error": "RESEND_FROM_EMAIL not configured",
+            "email": email,
+            "config_check": {
+                "RESEND_API_KEY": "configured",
+                "RESEND_FROM_EMAIL": "missing"
+            }
+        }
+    
+    # Create a test verification URL (won't work, but shows the format)
+    test_url = f"{FRONTEND_URL}/verify-email?token=TEST_TOKEN"
+    
+    # Send test email and capture detailed response
+    try:
+        expiry_hours = EMAIL_VERIFICATION_EXPIRY_HOURS
+        name = email.split('@')[0].replace('.', ' ').title()
+        
+        text_content = f"""Hi {name},
+
+This is a test email from Guide2026.
+
+Verification URL: {test_url}
+
+This link will expire in {expiry_hours} hours.
+
+Best regards,
+Guide2026
+"""
+        
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .button {{ display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Hi {name},</h2>
+        <p>This is a test email from Guide2026.</p>
+        <a href="{test_url}" class="button">Test Verification Link</a>
+        <p style="word-break: break-all;">{test_url}</p>
+    </div>
+</body>
+</html>
+"""
+        
+        headers = {
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "from": RESEND_FROM_EMAIL,
+            "to": [email],
+            "subject": "Test Email - Guide2026",
+            "text": text_content,
+            "html": html_content
+        }
+        
+        logging.info(f"[EMAIL][TEST][REQUEST] Resend API call for email={email} from={RESEND_FROM_EMAIL}")
+        response = requests.post(RESEND_API_URL, json=payload, headers=headers, timeout=10)
+        
+        response_data = {}
+        try:
+            response_data = response.json()
+        except:
+            response_data = {"raw_response": response.text}
+        
+        if response.status_code == 200:
+            resend_id = response_data.get('id', 'unknown')
+            logging.info(f"[EMAIL][TEST][SUCCESS] email={email} resend_id={resend_id}")
+            return {
+                "success": True,
+                "message": "Test email sent successfully",
+                "email": email,
+                "resend_id": resend_id,
+                "resend_response": response_data
+            }
+        else:
+            error_detail = response_data.get('message', response.text) or f"HTTP {response.status_code}"
+            logging.error(f"[EMAIL][TEST][FAILED] email={email} status={response.status_code} error={error_detail}")
+            return {
+                "success": False,
+                "error": f"Resend API error: {error_detail}",
+                "email": email,
+                "status_code": response.status_code,
+                "resend_response": response_data,
+                "from_email": RESEND_FROM_EMAIL
+            }
+            
+    except requests.exceptions.Timeout:
+        logging.error(f"[EMAIL][TEST][FAILED] email={email} error=Resend API timeout (10s)")
+        return {
+            "success": False,
+            "error": "Resend API timeout (10s)",
+            "email": email
+        }
+    except Exception as e:
+        logging.error(f"[EMAIL][TEST][FAILED] email={email} error={str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "email": email
+        }
 
 # Admin-only PayPal verification endpoints (read-only, for disputes and audits)
 @api_router.get("/admin/paypal/audit/{subscription_id}")
