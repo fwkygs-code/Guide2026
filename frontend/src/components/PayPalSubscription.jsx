@@ -27,6 +27,11 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
       return;
     }
     
+    // Prevent double initialization
+    if (paypalButtons) {
+      return;
+    }
+    
     // Load script if not already loaded
     if (!paypalScriptLoaded.current) {
       // Check if script already exists in DOM (from previous mount)
@@ -57,32 +62,28 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
         paypalScriptLoaded.current = false;
       };
       document.body.appendChild(script);
+      // CRITICAL: Never remove script - it must persist
     } else if (window.paypal && paypalButtonContainerRef.current && !paypalButtons) {
       // Script already loaded, initialize buttons
       initializePayPalButtons();
     }
     
-    // Cleanup: Don't remove script on unmount (it can be reused), but clear buttons
+    // CRITICAL: No cleanup on unmount - PayPal SDK manages its own DOM
+    // Removing cleanup prevents removeChild errors
     return () => {
-      if (paypalButtons) {
-        try {
-          paypalButtons.close();
-        } catch (e) {
-          // Ignore errors
-        }
-        setPaypalButtons(null);
-      }
+      // Do nothing - let PayPal SDK manage its own lifecycle
     };
   }, [paypalButtons]);
 
   const initializePayPalButtons = () => {
+    // CRITICAL: Prevent double initialization
     if (!window.paypal || !paypalButtonContainerRef.current || paypalButtons) {
       return;
     }
 
     try {
-      // Clear container before rendering
-      if (paypalButtonContainerRef.current) {
+      // Clear container before rendering (only if empty)
+      if (paypalButtonContainerRef.current && paypalButtonContainerRef.current.children.length === 0) {
         paypalButtonContainerRef.current.innerHTML = '';
       }
       
@@ -134,9 +135,13 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
         }
       });
 
-      if (paypalButtonContainerRef.current) {
+      // CRITICAL: Only render if container still exists and buttons not already set
+      if (paypalButtonContainerRef.current && !paypalButtons) {
         buttons.render(paypalButtonContainerRef.current).then(() => {
-          setPaypalButtons(buttons);
+          // Only set if still not initialized (prevent race conditions)
+          if (!paypalButtons) {
+            setPaypalButtons(buttons);
+          }
         }).catch((err) => {
           console.error('PayPal button render error:', err);
           toast.error('Failed to render PayPal button. Please refresh the page.');

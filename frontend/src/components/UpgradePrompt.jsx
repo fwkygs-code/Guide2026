@@ -283,9 +283,12 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
 
         {/* PayPal Subscription Dialog */}
         <Dialog open={showPayPal} onOpenChange={(open) => {
-          setShowPayPal(open);
-          if (!open) {
-            setIsSubscribing(false);
+          // Only allow closing if not currently subscribing
+          if (!isSubscribing) {
+            setShowPayPal(open);
+            if (!open) {
+              setIsSubscribing(false);
+            }
           }
         }}>
           <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -295,27 +298,28 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 Complete your subscription to unlock Pro features. Your subscription will be activated automatically.
               </DialogDescription>
             </DialogHeader>
-            {showPayPal && (
-              <div className="py-4">
-                <PayPalSubscription
-                  onSuccess={async (subscriptionID) => {
-                    setShowPayPal(false);
-                    setIsSubscribing(false);
-                    // Refresh quota to get updated plan status
-                    if (refreshQuota) {
-                      await refreshQuota();
-                    }
-                    onOpenChange(false);
-                  }}
-                  onCancel={() => {
-                    setShowPayPal(false);
-                    setIsSubscribing(false);
-                  }}
-                  isSubscribing={isSubscribing}
-                  setIsSubscribing={setIsSubscribing}
-                />
-              </div>
-            )}
+            {/* CRITICAL: Keep PayPal component mounted - use visibility instead of conditional rendering */}
+            <div className="py-4" style={{ display: showPayPal ? 'block' : 'none' }}>
+              <PayPalSubscription
+                onSuccess={async (subscriptionID) => {
+                  // DO NOT unmount component or close dialog immediately
+                  // Let user close manually after seeing success message
+                  setIsSubscribing(false);
+                  // Refresh quota in background (don't wait for it)
+                  if (refreshQuota) {
+                    refreshQuota().catch(err => console.error('Quota refresh error:', err));
+                  }
+                  // Show success and let user close dialog manually
+                  // DO NOT call setShowPayPal(false) or onOpenChange(false) here
+                }}
+                onCancel={() => {
+                  setIsSubscribing(false);
+                  // Allow user to close dialog manually
+                }}
+                isSubscribing={isSubscribing}
+                setIsSubscribing={setIsSubscribing}
+              />
+            </div>
             <div className="text-xs text-slate-500 mt-4 space-y-2 text-center">
               <p>
                 Payments are processed by PayPal. By subscribing, you agree to our{' '}
