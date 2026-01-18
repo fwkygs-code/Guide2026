@@ -2741,11 +2741,22 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
     - Allows downgrades even if user is over new plan's quota (read-only mode for uploads)
     - Blocks downgrades if user exceeds new plan's workspace/walkthrough/category limits
     - Never auto-deletes user files
+    
+    CRITICAL: For Pro plan, users must subscribe via PayPal. This endpoint only allows:
+    - Free plan selection (downgrade from any plan)
+    - Enterprise plan (contact-based, handled separately)
     """
     # Validate plan name
     plan = await db.plans.find_one({"name": plan_name}, {"_id": 0})
     if not plan:
         raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
+    
+    # CRITICAL: Block Pro plan selection - users must subscribe via PayPal
+    if plan_name == 'pro':
+        raise HTTPException(
+            status_code=400,
+            detail="Pro plan requires PayPal subscription. Please use the 'Upgrade to Pro' button to subscribe via PayPal."
+        )
     
     # Check if plan is public (unless user is admin)
     if not plan.get('is_public', False) and plan_name != 'free':

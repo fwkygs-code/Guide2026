@@ -93,9 +93,19 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       return;
     }
     
+    // CRITICAL: Pro plan requires PayPal subscription - cannot be selected during signup
+    if (planName === 'pro') {
+      toast.error('Pro plan requires PayPal subscription. After creating your account, go to Dashboard and click "Upgrade to Pro" to subscribe via PayPal.');
+      onOpenChange(false);
+      if (onPlanSelected) {
+        onPlanSelected('free'); // Default to free plan
+      }
+      return;
+    }
+    
     setSelecting(true);
     try {
-      // Call API to change plan
+      // Call API to change plan (only works for Free plan now - Pro blocked in backend)
       await api.changePlan(planName);
       toast.success(`Successfully selected ${plans.find(p => p.name === planName)?.displayName} plan!`);
       if (onPlanSelected) {
@@ -106,7 +116,16 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       window.location.reload();
     } catch (error) {
       console.error('Failed to select plan:', error);
-      toast.error(error.response?.data?.detail || 'Failed to select plan. Please try again.');
+      const errorMessage = error.response?.data?.detail || 'Failed to select plan. Please try again.';
+      toast.error(errorMessage);
+      
+      // If Pro plan blocked, default to free and close modal
+      if (error.response?.status === 400 && errorMessage.includes('PayPal subscription')) {
+        if (onPlanSelected) {
+          onPlanSelected('free');
+        }
+        onOpenChange(false);
+      }
     } finally {
       setSelecting(false);
     }

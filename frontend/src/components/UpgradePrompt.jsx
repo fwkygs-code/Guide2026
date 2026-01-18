@@ -15,11 +15,12 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const [showPayPal, setShowPayPal] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   
-  // Check if user has an active or pending subscription
-  // Only show "Manage Subscription" if subscription exists AND is active or pending
+  // Check if user has an active or pending PayPal subscription
+  // Only show "Manage Subscription" for PayPal subscriptions (not manual/managed subscriptions)
   const subscription = quotaData?.subscription;
-  const hasActiveSubscription = subscription && subscription.status === 'active';
-  const hasPendingSubscription = subscription && subscription.status === 'pending';
+  const isPayPalSubscription = subscription && subscription.provider === 'paypal';
+  const hasActiveSubscription = isPayPalSubscription && subscription.status === 'active';
+  const hasPendingSubscription = isPayPalSubscription && subscription.status === 'pending';
 
   if (!quotaData) return null;
 
