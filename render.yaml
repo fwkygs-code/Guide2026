@@ -26,6 +26,21 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      # Email Configuration (SMTP - Resend/SendGrid compatible)
+      - key: SMTP_HOST
+        value: "smtp.resend.com"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        value: "onboarding@resend.dev"
+      - key: SMTP_FROM_NAME
+        value: "Guide2026"
+      - key: FRONTEND_URL
+        value: "https://guide2026-frontend.onrender.com"
 
   # Service 2: Frontend (Static Site)
   - type: web
