@@ -6,8 +6,9 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
-import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FontSize } from '@/lib/fontSize';
 
 function getEditorPlainText(editor) {
   // Preserve spaces (including trailing) better than HTML/textContent which can drop/collapse them.
@@ -50,7 +51,8 @@ const InlineRichEditor = ({
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
-      onChange(getEditorPlainText(editor));
+      // Save HTML to preserve formatting (bold, italic, underline, alignment, font size)
+      onChange(editor.getHTML());
     },
     onFocus: () => {
       setShowToolbar(true);
@@ -73,12 +75,21 @@ const InlineRichEditor = ({
   React.useEffect(() => {
     if (!editor) return;
 
-    const current = getEditorPlainText(editor);
-    if ((content || '') !== current) {
-      // Preserve whitespace when syncing controlled value back into editor
-      editor.commands.setContent(content || '', false, { preserveWhitespace: 'full' });
+    const current = editor.getHTML();
+    // If content is HTML, use it directly; otherwise treat as plain text
+    const contentToSet = (content || '').trim();
+    if (contentToSet && contentToSet !== current) {
+      // If content looks like HTML (contains tags), use it as-is
+      // Otherwise, set as plain text
+      if (contentToSet.startsWith('<') || contentToSet.includes('<')) {
+        editor.commands.setContent(contentToSet, false);
+      } else {
+        editor.commands.setContent(contentToSet, false);
+      }
+    } else if (!contentToSet && current) {
+      editor.commands.setContent('', false);
     }
-  }, [content]);
+  }, [content, editor]);
 
   if (!editor) {
     return null;
@@ -162,6 +173,29 @@ const InlineRichEditor = ({
           >
             <AlignRight className="w-3.5 h-3.5" />
           </Button>
+          <div className="w-px h-5 bg-slate-700 mx-0.5" />
+          <div className="flex items-center gap-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const currentSize = editor.getAttributes('textStyle').fontSize || '16px';
+                const sizes = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px'];
+                const currentIndex = sizes.indexOf(currentSize);
+                const nextIndex = (currentIndex + 1) % sizes.length;
+                editor.chain().focus().setFontSize(sizes[nextIndex]).run();
+              }}
+              className="h-7 px-2 text-white hover:bg-slate-700 text-xs"
+              title="Font Size"
+            >
+              <Type className="w-3 h-3 mr-1" />
+              <span className="text-[10px]">
+                {editor.getAttributes('textStyle').fontSize || '16px'}
+              </span>
+            </Button>
+          </div>
         </div>
       )}
 

@@ -20,7 +20,6 @@ import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
 import { BLOCK_TYPES, createBlock, getBlockLabel, getBlockIcon } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
-import StepTitleEditorComponent from '../components/canvas-builder/StepTitleEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -30,7 +29,8 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
-import { Bold, Italic, Underline as UnderlineIcon } from 'lucide-react';
+import { FontSize } from '@/lib/fontSize';
+import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 
 /**
@@ -1015,10 +1015,10 @@ const CanvasStage = ({
   );
 };
 
-// Step Title Editor with guards
-// StepTitleEditor wrapper - uses the actual StepTitleEditor component with center alignment
+// Step Title Editor - uses InlineRichEditor with center alignment persistence
 const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [htmlContent, setHtmlContent] = useState(null);
 
   useEffect(() => {
     if (isStepLoaded && !isInitialized) {
@@ -1029,9 +1029,28 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
     }
   }, [isStepLoaded, isInitialized]);
 
-  const handleChange = useCallback((content) => {
+  // Convert plain text title to HTML with center alignment if needed
+  useEffect(() => {
+    if (title && !htmlContent) {
+      // If title is plain text, wrap it in a paragraph with center alignment
+      if (!title.includes('<') && !title.includes('>')) {
+        setHtmlContent(`<p style="text-align: center;">${title}</p>`);
+      } else {
+        setHtmlContent(title);
+      }
+    } else if (!title) {
+      setHtmlContent('<p style="text-align: center;"></p>');
+    }
+  }, [title, htmlContent]);
+
+  const handleChange = useCallback((html) => {
     if (isInitialized && isStepLoaded && onChange) {
-      onChange(content);
+      setHtmlContent(html);
+      // Extract plain text for backward compatibility with backend
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const plainText = tempDiv.textContent || tempDiv.innerText || '';
+      onChange(plainText);
     }
   }, [isInitialized, isStepLoaded, onChange]);
 
@@ -1041,10 +1060,15 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
   }
 
   return (
-    <StepTitleEditorComponent
-      title={title || ''}
+    <InlineRichEditor
+      content={htmlContent || (title ? `<p style="text-align: center;">${title}</p>` : '<p style="text-align: center;"></p>')}
       onChange={handleChange}
+      placeholder="Step title..."
       isRTL={false}
+      textSize="text-3xl"
+      isBold={true}
+      align="center"
+      className="text-slate-900 font-heading"
     />
   );
 };
@@ -1101,22 +1125,22 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
         </button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-64 p-2 bg-white border-slate-200 z-[100]" 
+        className="w-56 p-1.5 bg-white border-slate-200 z-[100] max-h-[400px] overflow-y-auto" 
         align="start" 
         sideOffset={8}
         collisionPadding={{ top: 16, bottom: 16, left: 16, right: 16 }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {blockTypes.map((type) => (
             <button
               key={type}
-              className="p-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="p-2 rounded-md border border-slate-200 hover:border-primary hover:bg-primary/5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
               onClick={() => handleAdd(type)}
               type="button"
             >
-              <div className="text-2xl mb-1">{getBlockIcon(type)}</div>
-              <div className="text-sm font-medium text-slate-900">{getBlockLabel(type)}</div>
+              <div className="text-xl mb-0.5">{getBlockIcon(type)}</div>
+              <div className="text-xs font-medium text-slate-900 leading-tight">{getBlockLabel(type)}</div>
             </button>
           ))}
         </div>
@@ -1405,6 +1429,7 @@ const CarouselCaptionEditor = ({ content, onChange, placeholder }) => {
       Underline,
       TextStyle,
       Color,
+      FontSize,
       TextAlign.configure({
         types: ['paragraph'],
       }),
@@ -1484,6 +1509,66 @@ const CarouselCaptionEditor = ({ content, onChange, placeholder }) => {
           >
             <UnderlineIcon className="w-3.5 h-3.5" />
           </Button>
+          <div className="w-px h-5 bg-slate-700 mx-0.5" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().setTextAlign('left').run();
+            }}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+          >
+            <AlignLeft className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().setTextAlign('center').run();
+            }}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+          >
+            <AlignCenter className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().setTextAlign('right').run();
+            }}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+          >
+            <AlignRight className="w-3.5 h-3.5" />
+          </Button>
+          <div className="w-px h-5 bg-slate-700 mx-0.5" />
+          <div className="flex items-center gap-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const currentSize = editor.getAttributes('textStyle').fontSize || '16px';
+                const sizes = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px'];
+                const currentIndex = sizes.indexOf(currentSize);
+                const nextIndex = (currentIndex + 1) % sizes.length;
+                editor.chain().focus().setFontSize(sizes[nextIndex]).run();
+              }}
+              className="h-7 px-2 text-white hover:bg-slate-700 text-xs"
+              title="Font Size"
+            >
+              <Type className="w-3 h-3 mr-1" />
+              <span className="text-[10px]">
+                {editor.getAttributes('textStyle').fontSize || '16px'}
+              </span>
+            </Button>
+          </div>
         </div>
       )}
       <EditorContent editor={editor} />
