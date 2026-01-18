@@ -166,16 +166,30 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 // Only show "Manage Subscription" if user has an ACTIVE or PENDING PayPal subscription
                 // Check both that subscription exists AND has correct status
                 subscription && (hasActiveSubscription || hasPendingSubscription) ? (
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => {
-                      // Redirect to PayPal's official subscription management page
-                      window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
-                    }}
-                  >
-                    Manage Subscription
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => {
+                        // For users with PayPal account: redirect to PayPal's subscription management page
+                        // For guest checkout/card-only users: provide alternative cancellation path
+                        window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
+                      }}
+                    >
+                      Manage Subscription
+                    </Button>
+                    <Button
+                      className="w-full"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // If user doesn't have PayPal account (card-only payment), show contact support option
+                        window.open('mailto:support@example.com?subject=Cancel Subscription Request', '_blank');
+                      }}
+                    >
+                      Need Help Cancelling?
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     className="w-full"
@@ -302,15 +316,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
             <div className="py-4" style={{ display: showPayPal ? 'block' : 'none' }}>
               <PayPalSubscription
                 onSuccess={async (subscriptionID) => {
-                  // DO NOT unmount component or close dialog immediately
-                  // Let user close manually after seeing success message
+                  // Close modal after payment success
                   setIsSubscribing(false);
-                  // Refresh quota in background (don't wait for it)
+                  setShowPayPal(false);
+                  // Refresh quota in background
                   if (refreshQuota) {
-                    refreshQuota().catch(err => console.error('Quota refresh error:', err));
+                    await refreshQuota();
                   }
-                  // Show success and let user close dialog manually
-                  // DO NOT call setShowPayPal(false) or onOpenChange(false) here
+                  // Close parent dialog and redirect to dashboard
+                  onOpenChange(false);
                 }}
                 onCancel={() => {
                   setIsSubscribing(false);

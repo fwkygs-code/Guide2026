@@ -93,21 +93,18 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       return;
     }
     
-    // CRITICAL: Pro plan requires PayPal subscription - cannot be selected during signup
-    if (planName === 'pro') {
-      toast.error('Pro plan requires PayPal subscription. After creating your account, go to Dashboard and click "Upgrade to Pro" to subscribe via PayPal.');
-      onOpenChange(false);
-      if (onPlanSelected) {
-        onPlanSelected('free'); // Default to free plan
-      }
-      return;
-    }
-    
     setSelecting(true);
     try {
-      // Call API to change plan (only works for Free plan now - Pro blocked in backend)
-      await api.changePlan(planName);
-      toast.success(`Successfully selected ${plans.find(p => p.name === planName)?.displayName} plan!`);
+      // For Pro plan, start 14-day trial (no PayPal subscription required initially)
+      if (planName === 'pro') {
+        await api.startTrial();
+        toast.success('Pro trial started! You have 14 days to try Pro features. Subscribe via PayPal before trial ends to continue.');
+      } else {
+        // For Free plan, use changePlan endpoint
+        await api.changePlan(planName);
+        toast.success(`Successfully selected ${plans.find(p => p.name === planName)?.displayName} plan!`);
+      }
+      
       if (onPlanSelected) {
         onPlanSelected(planName);
       }
@@ -118,14 +115,6 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       console.error('Failed to select plan:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to select plan. Please try again.';
       toast.error(errorMessage);
-      
-      // If Pro plan blocked, default to free and close modal
-      if (error.response?.status === 400 && errorMessage.includes('PayPal subscription')) {
-        if (onPlanSelected) {
-          onPlanSelected('free');
-        }
-        onOpenChange(false);
-      }
     } finally {
       setSelecting(false);
     }
@@ -286,7 +275,8 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
           <div className="mt-6 p-4 bg-slate-50 rounded-lg">
             <p className="text-sm text-slate-600">
               <strong>Note:</strong> You can start with the Free plan and upgrade anytime. 
-              Pro plan includes a 14-day free trial with no credit card required.
+              Pro plan includes a <strong>14-day free trial</strong> with no credit card required. 
+              Subscribe via PayPal before trial ends to continue Pro access.
             </p>
           </div>
         )}

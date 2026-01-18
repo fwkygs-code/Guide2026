@@ -14,6 +14,7 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
   const paypalButtonContainerRef = useRef(null);
   const paypalScriptLoaded = useRef(false);
   const [paypalButtons, setPaypalButtons] = useState(null);
+  const [paymentCompleted, setPaymentCompleted] = useState(false); // Track if payment was completed
 
   useEffect(() => {
     // Load PayPal SDK script
@@ -101,6 +102,10 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
           });
         },
         onApprove: async function(data, actions) {
+          // CRITICAL: Mark payment as completed immediately to prevent duplicate clicks
+          setPaymentCompleted(true);
+          setIsSubscribing(true);
+          
           try {
             const subscriptionID = data.subscriptionID;
             
@@ -109,15 +114,20 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
             
             if (response.data && response.data.success) {
               toast.success('Subscription created successfully! Your Pro access will be activated shortly.');
-              if (onSuccess) {
-                onSuccess(subscriptionID);
-              }
+              // Close modal and refresh after short delay to show success message
+              setTimeout(() => {
+                if (onSuccess) {
+                  onSuccess(subscriptionID);
+                }
+              }, 1500);
             } else {
               toast.error('Subscription created but failed to activate. Please contact support.');
+              setPaymentCompleted(false); // Allow retry on error
             }
           } catch (error) {
             console.error('PayPal subscription approval error:', error);
             toast.error(error.response?.data?.detail || 'Failed to activate subscription. Please contact support.');
+            setPaymentCompleted(false); // Allow retry on error
           } finally {
             setIsSubscribing(false);
           }
@@ -155,19 +165,32 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
 
   return (
     <div className="w-full">
-      <div 
-        id="paypal-button-container" 
-        ref={paypalButtonContainerRef}
-        className="w-full min-h-[200px] flex items-center justify-center"
-      >
-        {!paypalScriptLoaded.current && (
-          <div className="text-slate-500 text-sm">Loading PayPal...</div>
-        )}
-      </div>
-      {isSubscribing && (
-        <p className="text-xs text-slate-500 mt-2 text-center">
-          Processing subscription...
-        </p>
+      {paymentCompleted ? (
+        <div className="w-full min-h-[200px] flex items-center justify-center flex-col space-y-2">
+          <div className="text-green-600 text-sm font-medium">✓ Subscription submitted successfully!</div>
+          <div className="text-xs text-slate-500 text-center">
+            Your Pro access will be activated shortly.<br/>
+            Please wait for webhook confirmation.
+          </div>
+        </div>
+      ) : (
+        <>
+          <div 
+            id="paypal-button-container" 
+            ref={paypalButtonContainerRef}
+            className="w-full min-h-[200px] flex items-center justify-center"
+            style={{ pointerEvents: isSubscribing ? 'none' : 'auto', opacity: isSubscribing ? 0.6 : 1 }}
+          >
+            {!paypalScriptLoaded.current && (
+              <div className="text-slate-500 text-sm">Loading PayPal...</div>
+            )}
+          </div>
+          {isSubscribing && (
+            <p className="text-xs text-slate-500 mt-2 text-center">
+              Processing subscription...
+            </p>
+          )}
+        </>
       )}
     </div>
   );

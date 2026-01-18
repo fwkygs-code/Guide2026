@@ -142,6 +142,7 @@ class User(BaseModel):
     name: str
     subscription_id: Optional[str] = None
     plan_id: Optional[str] = None  # Denormalized for performance
+    trial_ends_at: Optional[datetime] = None  # App-level Pro trial end date (14 days from start)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class WorkspaceCreate(BaseModel):
@@ -2751,12 +2752,51 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
     if not plan:
         raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
     
-    # CRITICAL: Block Pro plan selection - users must subscribe via PayPal
+    # CRITICAL: For Pro plan, check if user wants to start trial or needs subscription
+    # This endpoint now allows starting Pro trial (14 days) without PayPal subscription
+    # PayPal subscription is required after trial expires
     if plan_name == 'pro':
-        raise HTTPException(
-            status_code=400,
-            detail="Pro plan requires PayPal subscription. Please use the 'Upgrade to Pro' button to subscribe via PayPal."
-        )
+        # Check if user already has an active trial
+        user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+        trial_ends_at = user.get('trial_ends_at') if user else None
+        
+        if trial_ends_at:
+            try:
+                if isinstance(trial_ends_at, str):
+                    trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
+                else:
+                    trial_end_dt = trial_ends_at
+                now = datetime.now(timezone.utc)
+                if trial_end_dt > now:
+                    # User already has active trial
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"You already have an active Pro trial until {trial_ends_at}. Subscribe via PayPal before trial ends to continue Pro access."
+                    )
+            except Exception:
+                pass
+        
+        # Check if user has active PayPal subscription
+        subscription = await get_user_subscription(current_user.id)
+        if subscription and subscription.status == SubscriptionStatus.ACTIVE:
+            # User already has active subscription - update plan_id only
+            pass
+        else:
+            # Start 14-day trial - no PayPal subscription required
+            trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+            await db.users.update_one(
+                {"id": current_user.id},
+                {"$set": {
+                    "trial_ends_at": trial_ends_at,
+                    "plan_id": plan['id']
+                }}
+            )
+            logging.info(f"User {current_user.id} started Pro trial (ends at {trial_ends_at})")
+            return {
+                "message": f"Pro trial started! You have 14 days to try Pro features. Subscribe via PayPal before trial ends to continue.",
+                "plan": plan,
+                "trial_ends_at": trial_ends_at
+            }
     
     # Check if plan is public (unless user is admin)
     if not plan.get('is_public', False) and plan_name != 'free':
@@ -2865,15 +2905,32 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
 @api_router.get("/users/me/plan")
 async def get_user_plan_endpoint(current_user: User = Depends(get_current_user)):
     """Get user's current plan and quota information.
-    Plan access is determined by subscription status:
-    - ACTIVE subscription → Pro plan access
-    - PENDING subscription → Pro plan access (awaiting payment confirmation)
-    - CANCELLED/EXPIRED or no subscription → Free plan
+    Plan access priority (in order):
+    1. ACTIVE subscription → Pro plan access (PayPal subscription)
+    2. Active trial (trial_ends_at > now) → Pro plan access (14-day app trial)
+    3. PENDING subscription → Free plan (awaiting payment confirmation)
+    4. CANCELLED/EXPIRED or no subscription → Free plan
     """
+    # Check for active trial first (app-level trial, no PayPal required)
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    trial_ends_at = user.get('trial_ends_at') if user else None
+    has_active_trial = False
+    
+    if trial_ends_at:
+        try:
+            if isinstance(trial_ends_at, str):
+                trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
+            else:
+                trial_end_dt = trial_ends_at
+            now = datetime.now(timezone.utc)
+            has_active_trial = trial_end_dt > now
+        except Exception as e:
+            logging.warning(f"Error parsing trial_ends_at for user {current_user.id}: {e}")
+            has_active_trial = False
+    
     subscription = await get_user_subscription(current_user.id)
     
-    # CRITICAL: Only ACTIVE subscriptions grant Pro access
-    # PENDING = waiting state, no access granted
+    # Priority 1: ACTIVE subscription grants Pro access (highest priority)
     if subscription and subscription.status == SubscriptionStatus.ACTIVE:
         plan = await db.plans.find_one({"id": subscription.plan_id}, {"_id": 0})
         if plan:
@@ -2881,8 +2938,15 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         else:
             # Fallback to Free if subscription plan not found
             plan = await get_user_plan(current_user.id)
+    # Priority 2: Active trial grants Pro access (app-level trial)
+    elif has_active_trial:
+        pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+        if pro_plan:
+            plan = Plan(**pro_plan)
+        else:
+            plan = await get_user_plan(current_user.id)
     else:
-        # No active subscription - use Free plan
+        # No active subscription or trial - use Free plan
         plan = await get_user_plan(current_user.id)
     
     if not plan:
@@ -2915,22 +2979,32 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     trial_period_end = None
     next_billing_date = None
     
+    # Priority 1: Use app-level trial_ends_at if active (from User model)
+    if has_active_trial and trial_ends_at:
+        if isinstance(trial_ends_at, str):
+            trial_period_end = trial_ends_at
+        else:
+            trial_period_end = trial_ends_at.isoformat()
+    
     if subscription:
         subscription_dict = subscription.model_dump()
         started_at = subscription.started_at
         
-        # For Pro plan, trial period is 14 days from started_at
+        # For Pro plan with subscription, calculate trial period from subscription start
         if plan.name == 'pro' and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]:
-            # Calculate trial period end (14 days from started_at)
-            if isinstance(started_at, str):
-                started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-            else:
-                started_at_dt = started_at
-            trial_period_end = (started_at_dt + timedelta(days=14)).isoformat()
+            # If app-level trial exists, use that; otherwise calculate from subscription
+            if not trial_period_end:
+                # Calculate trial period end (14 days from started_at)
+                if isinstance(started_at, str):
+                    started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+                else:
+                    started_at_dt = started_at
+                trial_period_end = (started_at_dt + timedelta(days=14)).isoformat()
             
             # If trial has ended, next billing is 30 days after trial end (or now if trial already ended)
             now = datetime.now(timezone.utc)
-            trial_end_dt = datetime.fromisoformat(trial_period_end.replace('Z', '+00:00'))
+            trial_end_dt_str = trial_period_end if isinstance(trial_period_end, str) else trial_period_end.isoformat()
+            trial_end_dt = datetime.fromisoformat(trial_end_dt_str.replace('Z', '+00:00'))
             
             if now >= trial_end_dt:
                 # Trial ended, calculate next billing (monthly from trial end)
@@ -2975,6 +3049,63 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
             "categories_limit": plan.max_categories,
             "over_quota": storage_used > storage_allowed
         }
+    }
+
+# Trial & Subscription Models
+@api_router.post("/users/me/start-trial")
+async def start_pro_trial(current_user: User = Depends(get_current_user)):
+    """Start a 14-day Pro trial. No PayPal subscription required.
+    After trial expires, user must subscribe via PayPal to continue Pro access.
+    """
+    # Check if user already has an active trial
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    trial_ends_at = user.get('trial_ends_at') if user else None
+    
+    if trial_ends_at:
+        try:
+            if isinstance(trial_ends_at, str):
+                trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
+            else:
+                trial_end_dt = trial_ends_at
+            now = datetime.now(timezone.utc)
+            if trial_end_dt > now:
+                # User already has active trial
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"You already have an active Pro trial until {trial_ends_at}"
+                )
+        except Exception:
+            pass
+    
+    # Check if user already has active PayPal subscription
+    subscription = await get_user_subscription(current_user.id)
+    if subscription and subscription.status == SubscriptionStatus.ACTIVE:
+        raise HTTPException(
+            status_code=400,
+            detail="You already have an active Pro subscription. No trial needed."
+        )
+    
+    # Get Pro plan
+    pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+    if not pro_plan:
+        raise HTTPException(status_code=404, detail="Pro plan not found")
+    
+    # Start 14-day trial
+    trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {
+            "trial_ends_at": trial_ends_at,
+            "plan_id": pro_plan['id']
+        }}
+    )
+    
+    logging.info(f"User {current_user.id} started Pro trial (ends at {trial_ends_at})")
+    
+    return {
+        "message": "Pro trial started! You have 14 days to try Pro features. Subscribe via PayPal before trial ends to continue.",
+        "trial_ends_at": trial_ends_at,
+        "plan": pro_plan
     }
 
 # PayPal Subscription Models
@@ -3233,9 +3364,10 @@ async def paypal_webhook(
                 )
                 
                 # Upgrade user to Pro plan (ONLY place this happens)
+                # Clear trial_ends_at since subscription now takes priority
                 await db.users.update_one(
                     {"id": subscription['user_id']},
-                    {"$set": {"plan_id": subscription['plan_id']}}
+                    {"$set": {"plan_id": subscription['plan_id']}, "$unset": {"trial_ends_at": ""}}
                 )
                 subscription_id = subscription['id']
                 logging.info(f"PayPal subscription activated: user={subscription['user_id']}, subscription={subscription['id']}")
