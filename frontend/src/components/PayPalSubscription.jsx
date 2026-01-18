@@ -2,8 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 
-const PAYPAL_CLIENT_ID = 'Aef4Z-40p5sSZC8dQAiTs9mXUNuJFsI72CDQrJHpNGEGN4fLWLwOujuYZ-n3zZgiSv9_XxLc-i3dfpdo';
-const PAYPAL_PLAN_ID = 'P-96597808B1860013DNFWI6KI';
+// PayPal configuration from environment variables
+const PAYPAL_CLIENT_ID = process.env.REACT_APP_PAYPAL_CLIENT_ID || '';
+const PAYPAL_PLAN_ID = process.env.REACT_APP_PAYPAL_PLAN_ID || 'P-96597808B1860013DNFWI6KI';
+
+if (!PAYPAL_CLIENT_ID) {
+  console.error('REACT_APP_PAYPAL_CLIENT_ID environment variable is not set');
+}
 
 const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribing }) => {
   const paypalButtonContainerRef = useRef(null);
@@ -12,6 +17,11 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
 
   useEffect(() => {
     // Load PayPal SDK script
+    if (!PAYPAL_CLIENT_ID) {
+      toast.error('PayPal is not configured. Please contact support.');
+      return;
+    }
+    
     if (!paypalScriptLoaded.current && paypalButtonContainerRef.current) {
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&vault=true&intent=subscription`;

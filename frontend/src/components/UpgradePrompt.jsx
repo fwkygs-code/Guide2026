@@ -9,9 +9,15 @@ import PayPalSubscription from './PayPalSubscription';
 
 const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }) => {
   const { t } = useTranslation();
-  const { quotaData } = useQuota(workspaceId);
+  const { quotaData, refreshQuota } = useQuota(workspaceId);
   const [mediaCapacityDialogOpen, setMediaCapacityDialogOpen] = useState(false);
   const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
+  const [showPayPal, setShowPayPal] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  
+  // Check if user has an active or pending subscription
+  const hasActiveSubscription = quotaData?.subscription?.status === 'active';
+  const hasPendingSubscription = quotaData?.subscription?.status === 'pending';
 
   if (!quotaData) return null;
 
@@ -154,15 +160,28 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
               ) : planOption.name === 'pro' ? (
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setShowPayPal(true);
-                  }}
-                  disabled={isSubscribing}
-                >
-                  {isSubscribing ? 'Processing...' : t('upgrade.select')}
-                </Button>
+                hasActiveSubscription || hasPendingSubscription ? (
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => {
+                      // TODO: Implement "Manage subscription" - redirect to PayPal or show subscription details
+                      window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
+                    }}
+                  >
+                    Manage Subscription
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setShowPayPal(true);
+                    }}
+                    disabled={isSubscribing}
+                  >
+                    {isSubscribing ? 'Processing...' : t('upgrade.select')}
+                  </Button>
+                )
               ) : (
                 <Button
                   className="w-full"

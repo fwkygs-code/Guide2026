@@ -53,6 +53,12 @@ CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
 CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
 CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
 
+# PayPal Configuration
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID')
+PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET')
+PAYPAL_WEBHOOK_ID = os.environ.get('PAYPAL_WEBHOOK_ID')  # Webhook ID from PayPal dashboard
+PAYPAL_API_BASE = os.environ.get('PAYPAL_API_BASE', 'https://api-m.paypal.com')  # Use api-m.sandbox.paypal.com for sandbox
+
 USE_CLOUDINARY = all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
 
 if not USE_CLOUDINARY:
@@ -2855,9 +2861,9 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     """
     subscription = await get_user_subscription(current_user.id)
     
-    # If user has an ACTIVE or PENDING subscription, use that plan
-    # Otherwise, default to Free plan
-    if subscription and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]:
+    # CRITICAL: Only ACTIVE subscriptions grant Pro access
+    # PENDING = waiting state, no access granted
+    if subscription and subscription.status == SubscriptionStatus.ACTIVE:
         plan = await db.plans.find_one({"id": subscription.plan_id}, {"_id": 0})
         if plan:
             plan = Plan(**plan)
@@ -2971,6 +2977,15 @@ class PayPalWebhookEvent(BaseModel):
     id: str
     create_time: str
 
+# Processed Webhook Event (for idempotency)
+class ProcessedWebhookEvent(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    paypal_event_id: str  # PayPal's event ID
+    event_type: str
+    processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    subscription_id: Optional[str] = None  # Our subscription ID if applicable
+
 @api_router.post("/billing/paypal/subscribe")
 async def subscribe_paypal(
     request: PayPalSubscribeRequest,
@@ -3004,6 +3019,7 @@ async def subscribe_paypal(
         raise HTTPException(status_code=500, detail="Pro plan not found")
     
     # Create subscription record with PENDING status
+    # CRITICAL: Do NOT upgrade user to Pro here - only webhook can do that
     subscription = Subscription(
         user_id=current_user.id,
         plan_id=pro_plan['id'],
@@ -3019,13 +3035,13 @@ async def subscribe_paypal(
     
     await db.subscriptions.insert_one(subscription_dict)
     
-    # Update user record
+    # Store subscription_id reference only - do NOT upgrade plan
     await db.users.update_one(
         {"id": current_user.id},
         {
             "$set": {
-                "subscription_id": subscription.id,
-                "plan_id": pro_plan['id']
+                "subscription_id": subscription.id
+                # NOTE: plan_id is NOT updated here - only webhook can upgrade
             }
         }
     )
@@ -3037,6 +3053,83 @@ async def subscribe_paypal(
         "subscription_id": subscription.id,
         "message": "Subscription created. Access will be activated when PayPal confirms payment."
     })
+
+async def verify_paypal_webhook_signature(
+    webhook_id: str,
+    transmission_id: str,
+    cert_url: str,
+    auth_algo: str,
+    transmission_sig: str,
+    transmission_time: str,
+    webhook_body: bytes
+) -> bool:
+    """
+    Verify PayPal webhook signature using PayPal's verify-webhook-signature API.
+    Returns True if verification succeeds, False otherwise.
+    """
+    if not all([PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, webhook_id]):
+        logging.error("PayPal credentials not configured - cannot verify webhook signature")
+        return False
+    
+    try:
+        # Get PayPal access token
+        async with aiohttp.ClientSession() as session:
+            # Get OAuth token
+            auth_url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
+            auth_data = aiohttp.FormData()
+            auth_data.add_field('grant_type', 'client_credentials')
+            
+            auth_string = base64.b64encode(f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()).decode()
+            auth_headers = {
+                'Authorization': f'Basic {auth_string}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            async with session.post(auth_url, data=auth_data, headers=auth_headers) as auth_response:
+                if auth_response.status != 200:
+                    logging.error(f"Failed to get PayPal access token: {auth_response.status}")
+                    return False
+                auth_data = await auth_response.json()
+                access_token = auth_data.get('access_token')
+                if not access_token:
+                    logging.error("No access token in PayPal auth response")
+                    return False
+            
+            # Verify webhook signature
+            verify_url = f"{PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature"
+            verify_payload = {
+                "auth_algo": auth_algo,
+                "cert_url": cert_url,
+                "transmission_id": transmission_id,
+                "transmission_sig": transmission_sig,
+                "transmission_time": transmission_time,
+                "webhook_id": webhook_id,
+                "webhook_event": json.loads(webhook_body.decode('utf-8'))
+            }
+            
+            verify_headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            async with session.post(verify_url, json=verify_payload, headers=verify_headers) as verify_response:
+                if verify_response.status != 200:
+                    logging.error(f"PayPal webhook verification failed: {verify_response.status}")
+                    return False
+                
+                verify_result = await verify_response.json()
+                verification_status = verify_result.get('verification_status')
+                
+                if verification_status == 'SUCCESS':
+                    logging.info("PayPal webhook signature verified successfully")
+                    return True
+                else:
+                    logging.error(f"PayPal webhook signature verification failed: {verification_status}")
+                    return False
+    
+    except Exception as e:
+        logging.error(f"Error verifying PayPal webhook signature: {str(e)}", exc_info=True)
+        return False
 
 @api_router.post("/billing/paypal/webhook")
 async def paypal_webhook(
@@ -3056,18 +3149,53 @@ async def paypal_webhook(
         webhook_data = json.loads(body)
         
         event_type = webhook_data.get('event_type')
+        event_id = webhook_data.get('id')
         resource = webhook_data.get('resource', {})
         
-        logging.info(f"PayPal webhook received: event_type={event_type}, resource_id={resource.get('id')}")
+        if not event_id:
+            logging.error("PayPal webhook missing event ID")
+            return JSONResponse({"status": "error", "message": "Missing event ID"}, status_code=400)
+        
+        # Idempotency check - ignore duplicate events
+        existing_event = await db.processed_webhook_events.find_one(
+            {"paypal_event_id": event_id},
+            {"_id": 0}
+        )
+        if existing_event:
+            logging.info(f"PayPal webhook event already processed: {event_id}")
+            return JSONResponse({"status": "success", "message": "Event already processed"})
+        
+        logging.info(f"PayPal webhook received: event_type={event_type}, event_id={event_id}, resource_id={resource.get('id')}")
         
         # Verify webhook signature (CRITICAL for security)
-        # Note: In production, you should verify the signature using PayPal's webhook verification API
-        # For now, we'll log and process, but in production you MUST verify signatures
-        # PayPal provides a verification endpoint: https://api-m.paypal.com/v1/notifications/verify-webhook-signature
+        if not all([paypal_transmission_id, paypal_cert_url, paypal_auth_algo, paypal_transmission_sig, paypal_transmission_time]):
+            logging.error("PayPal webhook missing required headers for signature verification")
+            return JSONResponse({"status": "error", "message": "Missing webhook headers"}, status_code=400)
+        
+        if not PAYPAL_WEBHOOK_ID:
+            logging.error("PAYPAL_WEBHOOK_ID not configured - cannot verify webhook")
+            return JSONResponse({"status": "error", "message": "Webhook not configured"}, status_code=500)
+        
+        signature_valid = await verify_paypal_webhook_signature(
+            webhook_id=PAYPAL_WEBHOOK_ID,
+            transmission_id=paypal_transmission_id,
+            cert_url=paypal_cert_url,
+            auth_algo=paypal_auth_algo,
+            transmission_sig=paypal_transmission_sig,
+            transmission_time=paypal_transmission_time,
+            webhook_body=body
+        )
+        
+        if not signature_valid:
+            logging.error(f"PayPal webhook signature verification failed for event {event_id}")
+            return JSONResponse({"status": "error", "message": "Invalid webhook signature"}, status_code=401)
         
         # Process webhook events
+        subscription_id = None
+        
         if event_type == "BILLING.SUBSCRIPTION.ACTIVATED":
             # Subscription activated - upgrade user to Pro
+            # CRITICAL: This is the ONLY place where user gets upgraded to Pro
             paypal_subscription_id = resource.get('id')
             if not paypal_subscription_id:
                 logging.error("PayPal webhook: BILLING.SUBSCRIPTION.ACTIVATED missing subscription ID")
@@ -3092,14 +3220,13 @@ async def paypal_webhook(
                     }
                 )
                 
-                # Update user plan
-                user = await db.users.find_one({"id": subscription['user_id']}, {"_id": 0})
-                if user:
-                    await db.users.update_one(
-                        {"id": subscription['user_id']},
-                        {"$set": {"plan_id": subscription['plan_id']}}
-                    )
-                    logging.info(f"PayPal subscription activated: user={subscription['user_id']}, subscription={subscription['id']}")
+                # Upgrade user to Pro plan (ONLY place this happens)
+                await db.users.update_one(
+                    {"id": subscription['user_id']},
+                    {"$set": {"plan_id": subscription['plan_id']}}
+                )
+                subscription_id = subscription['id']
+                logging.info(f"PayPal subscription activated: user={subscription['user_id']}, subscription={subscription['id']}")
             else:
                 logging.warning(f"PayPal webhook: Subscription not found for PayPal ID: {paypal_subscription_id}")
         
@@ -3128,17 +3255,88 @@ async def paypal_webhook(
                     }
                 )
                 
-                # Get Free plan
+                # Downgrade user to Free plan
                 free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
                 if free_plan:
                     await db.users.update_one(
                         {"id": subscription['user_id']},
                         {"$set": {"plan_id": free_plan['id']}}
                     )
-                    logging.info(f"PayPal subscription cancelled: user={subscription['user_id']}, subscription={subscription['id']}")
+                subscription_id = subscription['id']
+                logging.info(f"PayPal subscription cancelled: user={subscription['user_id']}, subscription={subscription['id']}")
+        
+        elif event_type == "BILLING.SUBSCRIPTION.SUSPENDED":
+            # Subscription suspended - downgrade user to Free
+            paypal_subscription_id = resource.get('id')
+            if not paypal_subscription_id:
+                logging.error("PayPal webhook: BILLING.SUBSCRIPTION.SUSPENDED missing subscription ID")
+                return JSONResponse({"status": "error", "message": "Missing subscription ID"})
+            
+            subscription = await db.subscriptions.find_one(
+                {"provider_subscription_id": paypal_subscription_id, "provider": "paypal"},
+                {"_id": 0}
+            )
+            
+            if subscription:
+                # Update subscription status to CANCELLED (treat suspended as cancelled)
+                await db.subscriptions.update_one(
+                    {"id": subscription['id']},
+                    {
+                        "$set": {
+                            "status": SubscriptionStatus.CANCELLED,
+                            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                )
+                
+                # Downgrade user to Free plan
+                free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+                if free_plan:
+                    await db.users.update_one(
+                        {"id": subscription['user_id']},
+                        {"$set": {"plan_id": free_plan['id']}}
+                    )
+                subscription_id = subscription['id']
+                logging.info(f"PayPal subscription suspended: user={subscription['user_id']}, subscription={subscription['id']}")
+        
+        elif event_type == "BILLING.SUBSCRIPTION.EXPIRED":
+            # Subscription expired - downgrade user to Free
+            paypal_subscription_id = resource.get('id')
+            if not paypal_subscription_id:
+                logging.error("PayPal webhook: BILLING.SUBSCRIPTION.EXPIRED missing subscription ID")
+                return JSONResponse({"status": "error", "message": "Missing subscription ID"})
+            
+            subscription = await db.subscriptions.find_one(
+                {"provider_subscription_id": paypal_subscription_id, "provider": "paypal"},
+                {"_id": 0}
+            )
+            
+            if subscription:
+                # Update subscription status to EXPIRED
+                await db.subscriptions.update_one(
+                    {"id": subscription['id']},
+                    {
+                        "$set": {
+                            "status": SubscriptionStatus.EXPIRED,
+                            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                )
+                
+                # Downgrade user to Free plan
+                free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+                if free_plan:
+                    await db.users.update_one(
+                        {"id": subscription['user_id']},
+                        {"$set": {"plan_id": free_plan['id']}}
+                    )
+                subscription_id = subscription['id']
+                logging.info(f"PayPal subscription expired: user={subscription['user_id']}, subscription={subscription['id']}")
         
         elif event_type in ["PAYMENT.SALE.DENIED", "PAYMENT.SALE.FAILED"]:
-            # Payment failed - suspend Pro access
+            # Payment failed - log warning (PayPal typically cancels subscription automatically)
             paypal_subscription_id = resource.get('billing_agreement_id') or resource.get('id')
             if not paypal_subscription_id:
                 logging.error(f"PayPal webhook: {event_type} missing subscription ID")
@@ -3149,12 +3347,19 @@ async def paypal_webhook(
                 {"_id": 0}
             )
             
-            if subscription and subscription.get('status') == SubscriptionStatus.ACTIVE:
-                # Suspend subscription (keep record but mark as inactive)
-                # User keeps access until billing period ends, but mark for monitoring
+            if subscription:
                 logging.warning(f"PayPal payment failed: user={subscription['user_id']}, subscription={subscription['id']}, event={event_type}")
-                # Note: PayPal typically cancels subscription automatically on payment failure
-                # This is just for logging/monitoring
+                subscription_id = subscription['id']
+        
+        # Record processed event for idempotency
+        processed_event = ProcessedWebhookEvent(
+            paypal_event_id=event_id,
+            event_type=event_type,
+            subscription_id=subscription_id
+        )
+        processed_event_dict = processed_event.model_dump()
+        processed_event_dict['processed_at'] = processed_event_dict['processed_at'].isoformat()
+        await db.processed_webhook_events.insert_one(processed_event_dict)
         
         return JSONResponse({"status": "success"})
     
