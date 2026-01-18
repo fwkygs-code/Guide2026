@@ -1,47 +1,36 @@
 import { Extension } from '@tiptap/core';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { TextStyle } from '@tiptap/extension-text-style';
 
-export const FontSize = Extension.create({
-  name: 'fontSize',
-
-  addOptions() {
+export const FontSize = TextStyle.extend({
+  addAttributes() {
     return {
-      types: ['textStyle'],
-    };
-  },
-
-  addGlobalAttributes() {
-    return [
-      {
-        types: this.options.types,
-        attributes: {
-          fontSize: {
-            default: null,
-            parseHTML: element => element.style.fontSize || null,
-            renderHTML: attributes => {
-              if (!attributes.fontSize) {
-                return {};
-              }
-              return {
-                style: `font-size: ${attributes.fontSize}`,
-              };
-            },
-          },
+      ...this.parent?.(),
+      fontSize: {
+        default: null,
+        parseHTML: element => element.style.fontSize?.replace('px', '') || null,
+        renderHTML: attributes => {
+          if (!attributes.fontSize) {
+            return {};
+          }
+          return {
+            style: `font-size: ${attributes.fontSize}px`,
+          };
         },
       },
-    ];
+    };
   },
 
   addCommands() {
     return {
+      ...this.parent?.(),
       setFontSize: (fontSize) => ({ chain }) => {
         return chain()
-          .setMark('textStyle', { fontSize })
+          .setMark(this.name, { fontSize: fontSize.replace('px', '') })
           .run();
       },
       unsetFontSize: () => ({ chain }) => {
         return chain()
-          .setMark('textStyle', { fontSize: null })
+          .setMark(this.name, { fontSize: null })
           .removeEmptyTextStyle()
           .run();
       },

@@ -1554,18 +1554,18 @@ const CarouselCaptionEditor = ({ content, onChange, placeholder }) => {
               size="sm"
               onMouseDown={(e) => {
                 e.preventDefault();
-                const currentSize = editor.getAttributes('textStyle').fontSize || '16px';
-                const sizes = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px'];
-                const currentIndex = sizes.indexOf(currentSize);
+                const currentSize = editor.getAttributes('textStyle').fontSize || '16';
+                const sizes = ['12', '14', '16', '18', '20', '24', '28', '32'];
+                const currentIndex = sizes.indexOf(String(currentSize));
                 const nextIndex = (currentIndex + 1) % sizes.length;
-                editor.chain().focus().setFontSize(sizes[nextIndex]).run();
+                editor.chain().focus().setFontSize(`${sizes[nextIndex]}px`).run();
               }}
               className="h-7 px-2 text-white hover:bg-slate-700 text-xs"
               title="Font Size"
             >
               <Type className="w-3 h-3 mr-1" />
               <span className="text-[10px]">
-                {editor.getAttributes('textStyle').fontSize || '16px'}
+                {editor.getAttributes('textStyle').fontSize ? `${editor.getAttributes('textStyle').fontSize}px` : '16px'}
               </span>
             </Button>
           </div>
