@@ -2948,14 +2948,6 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     else:
         # No Pro access - use Free plan
         plan = await get_user_plan(current_user.id)
-        pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
-        if pro_plan:
-            plan = Plan(**pro_plan)
-        else:
-            plan = await get_user_plan(current_user.id)
-    else:
-        # No active subscription or trial - use Free plan
-        plan = await get_user_plan(current_user.id)
     
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
