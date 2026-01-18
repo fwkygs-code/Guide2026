@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, Info } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 import PayPalSubscription from './PayPalSubscription';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
 const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }) => {
   const { t } = useTranslation();
@@ -14,6 +16,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
   const [showPayPal, setShowPayPal] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   
   // Check if user has an active or pending PayPal subscription
   // Only show "Manage Subscription" for PayPal subscriptions (not manual/managed subscriptions)
@@ -170,24 +173,55 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     <Button
                       className="w-full"
                       variant="outline"
-                      onClick={() => {
-                        // For users with PayPal account: redirect to PayPal's subscription management page
-                        // For guest checkout/card-only users: provide alternative cancellation path
-                        window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
+                      onClick={async () => {
+                        // Try to cancel via API first (works for both PayPal account and guest checkout)
+                        setIsCancelling(true);
+                        try {
+                          const response = await api.cancelPayPalSubscription();
+                          if (response.data.success) {
+                            toast.success(response.data.message || 'Subscription cancelled successfully. You will continue to have Pro access until the end of your current billing period.');
+                            // Refresh quota to update subscription status
+                            if (refreshQuota) {
+                              await refreshQuota();
+                            }
+                          }
+                        } catch (error) {
+                          const errorMessage = error.response?.data?.detail || 'Failed to cancel subscription. Please try the alternative method below.';
+                          toast.error(errorMessage);
+                          
+                          // If API cancellation fails, offer alternative methods
+                          if (error.response?.status === 500 || error.response?.status === 400) {
+                            // Show dialog with alternative cancellation options
+                            const usePayPalLink = window.confirm(
+                              'Automatic cancellation failed. This may happen if you paid with a credit card without a PayPal account.\n\n' +
+                              'Click OK to try PayPal\'s subscription management page (if you have a PayPal account).\n' +
+                              'Click Cancel to contact support for manual cancellation.'
+                            );
+                            
+                            if (usePayPalLink) {
+                              window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
+                            } else {
+                              window.open('mailto:support@example.com?subject=Cancel Subscription Request', '_blank');
+                            }
+                          }
+                        } finally {
+                          setIsCancelling(false);
+                        }
                       }}
+                      disabled={isCancelling}
                     >
-                      Manage Subscription
+                      {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
                     </Button>
                     <Button
                       className="w-full"
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        // If user doesn't have PayPal account (card-only payment), show contact support option
-                        window.open('mailto:support@example.com?subject=Cancel Subscription Request', '_blank');
+                        // Alternative: Open PayPal subscription management page
+                        window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
                       }}
                     >
-                      Need Help Cancelling?
+                      Manage via PayPal
                     </Button>
                   </div>
                 ) : (

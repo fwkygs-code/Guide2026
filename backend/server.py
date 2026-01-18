@@ -3112,6 +3112,113 @@ async def start_pro_trial(current_user: User = Depends(get_current_user)):
 class PayPalSubscribeRequest(BaseModel):
     subscriptionID: str
 
+@api_router.post("/billing/paypal/cancel")
+async def cancel_paypal_subscription(current_user: User = Depends(get_current_user)):
+    """
+    Cancel user's active PayPal subscription via PayPal API.
+    Works for both PayPal account users and guest checkout (card-only) users.
+    Falls back to manual cancellation if API fails.
+    """
+    # Get user's active subscription
+    subscription = await get_user_subscription(current_user.id)
+    
+    if not subscription:
+        raise HTTPException(
+            status_code=404,
+            detail="No active subscription found"
+        )
+    
+    if subscription.provider != "paypal":
+        raise HTTPException(
+            status_code=400,
+            detail="This endpoint only handles PayPal subscriptions"
+        )
+    
+    if subscription.status != SubscriptionStatus.ACTIVE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot cancel subscription with status: {subscription.status}"
+        )
+    
+    paypal_subscription_id = subscription.provider_subscription_id
+    if not paypal_subscription_id:
+        raise HTTPException(
+            status_code=400,
+            detail="PayPal subscription ID not found"
+        )
+    
+    # Attempt to cancel via PayPal API
+    try:
+        # Get PayPal access token
+        async with aiohttp.ClientSession() as session:
+            auth_url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
+            auth_data = aiohttp.FormData()
+            auth_data.add_field('grant_type', 'client_credentials')
+            
+            auth_string = base64.b64encode(f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()).decode()
+            auth_headers = {
+                'Authorization': f'Basic {auth_string}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            async with session.post(auth_url, data=auth_data, headers=auth_headers) as auth_response:
+                if auth_response.status != 200:
+                    logging.error(f"Failed to get PayPal access token for cancellation: {auth_response.status}")
+                    raise Exception("Failed to authenticate with PayPal")
+                
+                auth_data = await auth_response.json()
+                access_token = auth_data.get('access_token')
+                if not access_token:
+                    raise Exception("No access token received from PayPal")
+            
+            # Cancel subscription via PayPal API
+            cancel_url = f"{PAYPAL_API_BASE}/v1/billing/subscriptions/{paypal_subscription_id}/cancel"
+            cancel_payload = {
+                "reason": "User requested cancellation"
+            }
+            cancel_headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            async with session.post(cancel_url, json=cancel_payload, headers=cancel_headers) as cancel_response:
+                if cancel_response.status == 204:
+                    # Success - PayPal will send webhook to confirm cancellation
+                    # Update subscription status to CANCELLED (webhook will also do this, but optimistic update is OK)
+                    await db.subscriptions.update_one(
+                        {"id": subscription.id},
+                        {
+                            "$set": {
+                                "status": SubscriptionStatus.CANCELLED,
+                                "cancelled_at": datetime.now(timezone.utc).isoformat(),
+                                "updated_at": datetime.now(timezone.utc).isoformat()
+                            }
+                        }
+                    )
+                    logging.info(f"PayPal subscription cancelled via API: user={current_user.id}, subscription={subscription.id}, paypal_id={paypal_subscription_id}")
+                    
+                    return JSONResponse({
+                        "success": True,
+                        "message": "Subscription cancelled successfully. You will continue to have Pro access until the end of your current billing period."
+                    })
+                else:
+                    cancel_error = await cancel_response.text()
+                    logging.error(f"PayPal cancellation API failed: status={cancel_response.status}, error={cancel_error}")
+                    
+                    # API cancellation failed - subscription might be guest checkout
+                    # Mark for manual cancellation
+                    raise Exception(f"PayPal API cancellation failed. Please contact support to cancel. Status: {cancel_response.status}")
+    
+    except Exception as e:
+        error_message = str(e)
+        logging.error(f"Error cancelling PayPal subscription for user {current_user.id}: {error_message}")
+        
+        # Return error with guidance
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to cancel subscription automatically. This may happen if you paid with a credit card without a PayPal account. Please contact support at support@example.com with your subscription ID: {paypal_subscription_id[:10]}... for manual cancellation."
+        )
+
 # PayPal Webhook Event
 class PayPalWebhookEvent(BaseModel):
     event_type: str

@@ -138,6 +138,7 @@ export const api = {
   
   // PayPal Subscriptions
   subscribePayPal: (data) => axios.post(`${API}/billing/paypal/subscribe`, data),
+  cancelPayPalSubscription: () => axios.post(`${API}/billing/paypal/cancel`),
   
   // File Management
   deleteFile: (fileId) => axios.delete(`${API}/files/${fileId}`)
