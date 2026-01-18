@@ -278,13 +278,22 @@ code {
 }
 
 /* Inline Rich Editor Styles */
+.inline-rich-editor {
+  display: block;
+  width: 100%;
+}
+
 .inline-rich-editor .ProseMirror {
   min-height: auto;
   padding: 0;
+  display: block;
+  width: 100%;
 }
 
 .inline-rich-editor .ProseMirror p {
   margin: 0;
+  line-height: 1.5;
+  display: block;
 }
 
 .inline-rich-editor .ProseMirror:focus {
