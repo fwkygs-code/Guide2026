@@ -504,17 +504,13 @@ const BuilderV2Page = () => {
     
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-50 p-8">
-        <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8">
-          <Dialog open={true} onOpenChange={() => {}}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl">Create New Walkthrough</DialogTitle>
-                <DialogDescription>
-                  Set up your walkthrough before adding steps
-                </DialogDescription>
-              </DialogHeader>
+        <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8 max-h-[90vh] overflow-y-auto">
+          <div className="space-y-2 mb-6">
+            <h2 className="text-2xl font-semibold text-slate-900">Create New Walkthrough</h2>
+            <p className="text-sm text-slate-500">Set up your walkthrough before adding steps</p>
+          </div>
 
-              <div className="space-y-6 mt-4">
+          <div className="space-y-6">
                 {/* Walkthrough Name */}
                 <div>
                   <Label htmlFor="title" className="text-sm font-medium text-slate-900 mb-2 block">
@@ -636,9 +632,7 @@ const BuilderV2Page = () => {
                     {loading ? 'Creating...' : 'Create Walkthrough'}
                   </Button>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          </div>
         </div>
       </div>
     );
