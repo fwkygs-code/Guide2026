@@ -3514,6 +3514,23 @@ async def paypal_webhook(
             )
             
             if subscription:
+                logging.info(f"PayPal webhook: Found subscription for PayPal ID {paypal_subscription_id}: subscription_id={subscription['id']}, user_id={subscription['user_id']}, plan_id={subscription['plan_id']}")
+                
+                # Verify subscription plan_id is Pro plan
+                pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+                if not pro_plan:
+                    logging.error(f"Pro plan not found in database - cannot upgrade user")
+                    return JSONResponse({"status": "error", "message": "Pro plan not found"})
+                
+                # Ensure subscription plan_id is Pro (fix if incorrect)
+                if subscription['plan_id'] != pro_plan['id']:
+                    logging.warning(f"Subscription plan_id {subscription['plan_id']} does not match Pro plan {pro_plan['id']} - updating to Pro plan")
+                    await db.subscriptions.update_one(
+                        {"id": subscription['id']},
+                        {"$set": {"plan_id": pro_plan['id']}}
+                    )
+                    subscription['plan_id'] = pro_plan['id']  # Update local variable
+                
                 # Fetch subscription details from PayPal to get actual billing schedule
                 paypal_subscription_details = await get_paypal_subscription_details(paypal_subscription_id)
                 
@@ -3556,17 +3573,19 @@ async def paypal_webhook(
                 )
                 
                 # Upgrade user to Pro plan (ONLY place this happens)
-                # Set trial_ends_at from PayPal's billing schedule (not hardcoded)
+                # CRITICAL: Use pro_plan['id'] directly to ensure it's correct
                 update_data = {
-                    "plan_id": subscription['plan_id']
+                    "plan_id": pro_plan['id']
                 }
                 if trial_ends_at:
                     update_data["trial_ends_at"] = trial_ends_at
                 
-                await db.users.update_one(
+                result = await db.users.update_one(
                     {"id": subscription['user_id']},
                     {"$set": update_data}
                 )
+                
+                logging.info(f"User {subscription['user_id']} upgraded to Pro plan: plan_id={pro_plan['id']}, trial_ends_at={trial_ends_at}, update_result={result.modified_count}")
                 
                 if trial_ends_at:
                     logging.info(f"Pro subscription activated with trial ending at {trial_ends_at} (from PayPal billing_info.next_billing_time): user={subscription['user_id']}")
@@ -3575,7 +3594,12 @@ async def paypal_webhook(
                 subscription_id = subscription['id']
                 logging.info(f"PayPal subscription activated: user={subscription['user_id']}, subscription={subscription['id']}")
             else:
-                logging.warning(f"PayPal webhook: Subscription not found for PayPal ID: {paypal_subscription_id}")
+                # Log all PayPal subscriptions to help debug
+                all_paypal_subs = await db.subscriptions.find(
+                    {"provider": "paypal"},
+                    {"provider_subscription_id": 1, "user_id": 1, "status": 1, "_id": 0}
+                ).to_list(20)
+                logging.error(f"PayPal webhook: Subscription not found for PayPal ID: {paypal_subscription_id}. Available PayPal subscriptions: {all_paypal_subs}")
         
         elif event_type == "BILLING.SUBSCRIPTION.CANCELLED":
             # Subscription cancelled - mark as CANCELLED but do NOT downgrade immediately
