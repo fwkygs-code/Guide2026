@@ -42,7 +42,7 @@ const InlineRichEditor = ({
       TextStyle,
       Color,
       FontSize.configure({
-        types: ['textStyle'],
+        types: ['textStyle', 'heading'], // Allow fontSize in textStyle marks and heading nodes
       }),
       TextAlign.configure({
         types: ['paragraph'],
