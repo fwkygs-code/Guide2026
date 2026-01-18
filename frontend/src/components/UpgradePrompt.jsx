@@ -16,8 +16,10 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const [isSubscribing, setIsSubscribing] = useState(false);
   
   // Check if user has an active or pending subscription
-  const hasActiveSubscription = quotaData?.subscription?.status === 'active';
-  const hasPendingSubscription = quotaData?.subscription?.status === 'pending';
+  // Only show "Manage Subscription" if subscription exists AND is active or pending
+  const subscription = quotaData?.subscription;
+  const hasActiveSubscription = subscription && subscription.status === 'active';
+  const hasPendingSubscription = subscription && subscription.status === 'pending';
 
   if (!quotaData) return null;
 
@@ -160,7 +162,9 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
               ) : planOption.name === 'pro' ? (
-                hasActiveSubscription || hasPendingSubscription ? (
+                // Only show "Manage Subscription" if user has an ACTIVE or PENDING PayPal subscription
+                // Check both that subscription exists AND has correct status
+                subscription && (hasActiveSubscription || hasPendingSubscription) ? (
                   <Button
                     className="w-full"
                     variant="outline"
