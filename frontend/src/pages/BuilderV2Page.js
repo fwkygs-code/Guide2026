@@ -686,6 +686,28 @@ const BuilderV2Page = () => {
             <Save className="w-4 h-4 mr-2" />
             {t('common.save')}
           </Button>
+          {walkthroughId && walkthroughId !== 'new' && (
+            <Button 
+              size="sm" 
+              onClick={async () => {
+                try {
+                  setIsSaving(true);
+                  await api.updateWalkthrough(workspaceId, walkthroughId, { ...walkthrough, status: 'published' });
+                  setWalkthrough(prev => ({ ...prev, status: 'published' }));
+                  toast.success('Walkthrough published!');
+                } catch (error) {
+                  console.error('Failed to publish:', error);
+                  toast.error(error.response?.data?.detail || 'Failed to publish walkthrough');
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              disabled={isSaving}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Publish
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={switchToClassic}>
             Classic Builder
           </Button>
