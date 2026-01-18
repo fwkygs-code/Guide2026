@@ -22,15 +22,6 @@ import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import TextAlign from '@tiptap/extension-text-align';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
-import Placeholder from '@tiptap/extension-placeholder';
-import Underline from '@tiptap/extension-underline';
-import { FontSize } from '@/lib/fontSize';
-import { Bold, Italic, Underline as UnderlineIcon } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 
 /**
