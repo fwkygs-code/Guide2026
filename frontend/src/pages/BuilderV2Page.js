@@ -1101,7 +1101,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
         </button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-64 p-2 bg-white border-slate-200 z-50" 
+        className="w-64 p-2 bg-white border-slate-200 z-[100]" 
         align="start" 
         sideOffset={8}
         collisionPadding={{ top: 16, bottom: 16, left: 16, right: 16 }}
