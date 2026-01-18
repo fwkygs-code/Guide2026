@@ -100,16 +100,58 @@ const BuilderV2Page = () => {
   const saveWalkthrough = async () => {
     try {
       setIsSaving(true);
+      
+      // Save walkthrough metadata
+      const walkthroughData = {
+        title: walkthrough.title || '',
+        description: walkthrough.description || '',
+        privacy: walkthrough.privacy || 'public',
+        category_ids: walkthrough.category_ids || [],
+        navigation_type: walkthrough.navigation_type || 'next_prev',
+        navigation_placement: walkthrough.navigation_placement || 'bottom',
+        status: walkthrough.status || 'draft',
+      };
+
+      let finalWalkthroughId = walkthroughId;
+
       if (isEditing) {
-        await api.updateWalkthrough(workspaceId, walkthroughId, walkthrough);
+        await api.updateWalkthrough(workspaceId, walkthroughId, walkthroughData);
       } else {
-        const response = await api.createWalkthrough(workspaceId, walkthrough);
-        navigate(`/workspace/${workspaceId}/builder-v2/${response.data.id}`, { replace: true });
+        const response = await api.createWalkthrough(workspaceId, walkthroughData);
+        finalWalkthroughId = response.data.id;
+        navigate(`/workspace/${workspaceId}/builder-v2/${finalWalkthroughId}`, { replace: true });
         toast.success('Walkthrough created');
       }
+
+      // Save all steps with their blocks
+      if (finalWalkthroughId && walkthrough.steps) {
+        for (const step of walkthrough.steps) {
+          const stepData = {
+            title: step.title || '',
+            blocks: step.blocks || [],
+            navigation_type: step.navigation_type || 'next_prev',
+            order: step.order || 0,
+          };
+
+          if (step.id && !step.id.startsWith('step-')) {
+            // Existing step - update via API
+            await api.updateStep(workspaceId, finalWalkthroughId, step.id, stepData);
+          } else {
+            // New step - create via API
+            const response = await api.addStep(workspaceId, finalWalkthroughId, stepData);
+            // Update local step with returned ID
+            const newSteps = walkthrough.steps.map(s =>
+              s.id === step.id ? { ...s, id: response.data.id } : s
+            );
+            setWalkthrough({ ...walkthrough, steps: newSteps });
+          }
+        }
+      }
+
       setLastSaved(new Date());
       toast.success(t('builder.saved'));
     } catch (error) {
+      console.error('Save error:', error);
       toast.error('Failed to save walkthrough');
     } finally {
       setIsSaving(false);
@@ -334,7 +376,27 @@ const BuilderV2Page = () => {
             };
             setWalkthrough({ ...walkthrough, steps: [...walkthrough.steps, newStep] });
             setCurrentStepIndex(walkthrough.steps.length);
+            setSelectedBlockId(null);
           }}
+          onDeleteStep={(stepIndex) => {
+            if (walkthrough.steps.length <= 1) {
+              toast.error('Cannot delete the last step');
+              return;
+            }
+            const stepToDelete = walkthrough.steps[stepIndex];
+            if (stepToDelete.id && !stepToDelete.id.startsWith('step-')) {
+              // Delete via API if it exists in backend
+              api.deleteStep(workspaceId, walkthroughId, stepToDelete.id).catch(console.error);
+            }
+            const newSteps = walkthrough.steps.filter((_, i) => i !== stepIndex);
+            setWalkthrough({ ...walkthrough, steps: newSteps });
+            if (currentStepIndex >= newSteps.length) {
+              setCurrentStepIndex(Math.max(0, newSteps.length - 1));
+            }
+            setSelectedBlockId(null);
+          }}
+          workspaceId={workspaceId}
+          walkthroughId={walkthroughId}
         />
 
         {/* Zone 3: Canvas Stage (Center - ONLY Scrollable Area) */}
@@ -368,6 +430,7 @@ const BuilderV2Page = () => {
           currentStep={currentStep}
           onStepUpdate={updateCurrentStep}
           onBlockUpdate={updateBlock}
+          onBlockDelete={deleteBlock}
           workspaceId={workspaceId}
           walkthroughId={walkthroughId}
           stepId={currentStep?.id}
@@ -380,7 +443,8 @@ const BuilderV2Page = () => {
 };
 
 // Step Navigator Component
-const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep }) => {
+const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDeleteStep, workspaceId, walkthroughId }) => {
+  const [hoveredIndex, setHoveredIndex] = React.useState(null);
   return (
     <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
@@ -399,10 +463,12 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep }) => {
             {steps.map((step, index) => (
               <div
                 key={step.id || index}
-                className={`p-3 cursor-pointer hover:bg-slate-50 transition-colors ${
+                className={`p-3 cursor-pointer hover:bg-slate-50 transition-colors group relative ${
                   currentStepIndex === index ? 'bg-slate-100 border-l-2 border-primary' : ''
                 }`}
                 onClick={() => onStepClick(index)}
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
               >
                 <div className="flex items-start gap-2">
                   <span className="text-xs font-medium text-slate-500 w-6 flex-shrink-0">
@@ -413,6 +479,20 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep }) => {
                       {step.title || `Step ${index + 1}`}
                     </div>
                   </div>
+                  {onDeleteStep && steps.length > 1 && hoveredIndex === index && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Delete step ${index + 1}?`)) {
+                          onDeleteStep(index);
+                        }
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1"
+                      title="Delete step"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -797,6 +877,7 @@ const InspectorPanel = ({
   currentStep,
   onStepUpdate,
   onBlockUpdate,
+  onBlockDelete,
   workspaceId,
   walkthroughId,
   stepId,
@@ -806,23 +887,204 @@ const InspectorPanel = ({
   if (selectedBlock) {
     return (
       <div className="w-80 flex-shrink-0 border-l border-slate-200 bg-white overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-200">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Block Settings</h2>
+          {onBlockDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (window.confirm('Delete this block?')) {
+                  onBlockDelete(selectedBlock.id);
+                }
+              }}
+              className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div>
             <Label className="text-xs text-slate-500 mb-1.5 block">Block Type</Label>
             <div className="text-sm font-medium text-slate-900">{getBlockLabel(selectedBlock.type)}</div>
           </div>
-          {selectedBlock.type === BLOCK_TYPES.IMAGE && (
+
+          {selectedBlock.type === BLOCK_TYPES.HEADING && (
             <div>
-              <Label className="text-xs text-slate-500 mb-1.5 block">Image URL</Label>
+              <Label className="text-xs text-slate-500 mb-1.5 block">Heading Level</Label>
+              <Select
+                value={String(selectedBlock.data?.level || 2)}
+                onValueChange={(value) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, level: parseInt(value) } })}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">H1</SelectItem>
+                  <SelectItem value="2">H2</SelectItem>
+                  <SelectItem value="3">H3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {selectedBlock.type === BLOCK_TYPES.IMAGE && (
+            <>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Image URL</Label>
+                <Input
+                  value={selectedBlock.data?.url || ''}
+                  onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, url: e.target.value } })}
+                  placeholder="Image URL"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Alt Text</Label>
+                <Input
+                  value={selectedBlock.data?.alt || ''}
+                  onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, alt: e.target.value } })}
+                  placeholder="Alt text for accessibility"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Caption</Label>
+                <Input
+                  value={selectedBlock.data?.caption || ''}
+                  onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, caption: e.target.value } })}
+                  placeholder="Image caption"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Upload Image</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      onMediaUpload(e.target.files[0], selectedBlock.id);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="h-9"
+                />
+              </div>
+            </>
+          )}
+
+          {selectedBlock.type === BLOCK_TYPES.VIDEO && (
+            <>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Video URL</Label>
+                <Input
+                  value={selectedBlock.data?.url || ''}
+                  onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, url: e.target.value } })}
+                  placeholder="Video URL or YouTube link"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Video Type</Label>
+                <Select
+                  value={selectedBlock.data?.type || 'url'}
+                  onValueChange={(value) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, type: value } })}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="url">Direct URL</SelectItem>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Upload Video</Label>
+                <Input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      onMediaUpload(e.target.files[0], selectedBlock.id);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="h-9"
+                />
+              </div>
+            </>
+          )}
+
+          {selectedBlock.type === BLOCK_TYPES.BUTTON && (
+            <>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Button Text</Label>
+                <Input
+                  value={selectedBlock.data?.text || ''}
+                  onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, text: e.target.value } })}
+                  placeholder="Button text"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Action</Label>
+                <Select
+                  value={selectedBlock.data?.action || 'next'}
+                  onValueChange={(value) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, action: value } })}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="next">Next Step</SelectItem>
+                    <SelectItem value="link">External Link</SelectItem>
+                    <SelectItem value="check">Check Off</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedBlock.data?.action === 'link' && (
+                <div>
+                  <Label className="text-xs text-slate-500 mb-1.5 block">Link URL</Label>
+                  <Input
+                    value={selectedBlock.data?.url || ''}
+                    onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, url: e.target.value } })}
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {selectedBlock.type === BLOCK_TYPES.SPACER && (
+            <div>
+              <Label className="text-xs text-slate-500 mb-1.5 block">Height (px)</Label>
               <Input
-                value={selectedBlock.data?.url || ''}
-                onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, url: e.target.value } })}
-                placeholder="Image URL"
+                type="number"
+                value={selectedBlock.data?.height || 32}
+                onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, height: parseInt(e.target.value) || 32 } })}
+                min="0"
               />
             </div>
+          )}
+
+          {selectedBlock.type === BLOCK_TYPES.PROBLEM && (
+            <>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Problem Title</Label>
+                <Input
+                  value={selectedBlock.data?.title || ''}
+                  onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, title: e.target.value } })}
+                  placeholder="Problem title"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1.5 block">Explanation</Label>
+                <Textarea
+                  value={selectedBlock.data?.explanation || ''}
+                  onChange={(e) => onBlockUpdate(selectedBlock.id, { data: { ...selectedBlock.data, explanation: e.target.value } })}
+                  placeholder="Problem explanation"
+                  rows={4}
+                />
+              </div>
+            </>
           )}
         </div>
       </div>
