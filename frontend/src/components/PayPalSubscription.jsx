@@ -68,6 +68,12 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
               onSuccess(subscription.id);
             }
           }, 1000);
+          
+          // Auto-refresh page after toast message disappears (typically 4-5 seconds)
+          // This ensures all UI components reflect the new Pro status
+          setTimeout(() => {
+            window.location.reload();
+          }, 5000);
         }
         // If still PENDING, continue polling (no action needed)
       } catch (error) {
