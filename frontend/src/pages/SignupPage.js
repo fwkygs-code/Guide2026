@@ -351,6 +351,20 @@ const SignupPage = () => {
             </Button>
           </form>
 
+          <div className="mt-6 text-center text-xs text-slate-400 space-y-2">
+            <p>
+              By creating an account, you agree to our{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Terms of Service
+              </Link>
+              {' '}and{' '}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
+
           <div className="mt-6 text-center text-sm text-slate-300">
             Already have an account?{' '}
             <Link to="/login" className="text-primary font-medium hover:text-primary/80 hover:underline transition-colors" data-testid="signup-login-link">

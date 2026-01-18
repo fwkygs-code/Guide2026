@@ -165,7 +165,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     className="w-full"
                     variant="outline"
                     onClick={() => {
-                      // TODO: Implement "Manage subscription" - redirect to PayPal or show subscription details
+                      // Redirect to PayPal's official subscription management page
                       window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
                     }}
                   >
@@ -309,9 +309,18 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 setIsSubscribing={setIsSubscribing}
               />
             </div>
-            <p className="text-xs text-slate-500 mt-4 text-center">
-              By subscribing, you agree to PayPal's terms. Your subscription will renew automatically.
-            </p>
+            <div className="text-xs text-slate-500 mt-4 space-y-2 text-center">
+              <p>
+                Payments are processed by PayPal. By subscribing, you agree to our{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a>
+                {' '}and{' '}
+                <a href="/billing-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Billing Policy</a>.
+              </p>
+              <p>
+                Your subscription will automatically renew unless cancelled through your PayPal account. 
+                Invoices and receipts are sent by PayPal.
+              </p>
+            </div>
           </DialogContent>
         </Dialog>
 

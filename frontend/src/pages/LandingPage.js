@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
@@ -156,12 +157,23 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-300 py-12 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center gap-2 mb-6">
             <BookOpen className="w-6 h-6 text-primary" />
             <span className="text-xl font-heading font-bold text-white">InterGuide</span>
           </div>
-          <p>{t('landing.copyright')}</p>
+          <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
+            <Link to="/terms" className="text-slate-300 hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <Link to="/privacy" className="text-slate-300 hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/billing-policy" className="text-slate-300 hover:text-white transition-colors">
+              Subscription & Billing Policy
+            </Link>
+          </div>
+          <p className="text-center">{t('landing.copyright')}</p>
         </div>
       </footer>
     </div>

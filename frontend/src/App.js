@@ -19,6 +19,9 @@ import SettingsPage from './pages/SettingsPage';
 import PortalPage from './pages/PortalPage';
 import WalkthroughViewerPage from './pages/WalkthroughViewerPage';
 import ArchivePage from './pages/ArchivePage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import BillingPolicyPage from './pages/BillingPolicyPage';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -54,6 +57,9 @@ const AppContent = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/billing-policy" element={<BillingPolicyPage />} />
           <Route path="/portal/:slug" element={<PortalPage />} />
           <Route path="/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage />} />
           <Route path="/embed/portal/:slug" element={<PortalPage isEmbedded={true} />} />
