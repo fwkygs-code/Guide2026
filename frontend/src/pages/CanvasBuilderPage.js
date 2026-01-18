@@ -17,6 +17,7 @@ import LiveCanvas from '../components/canvas-builder/LiveCanvas';
 import RightInspector from '../components/canvas-builder/RightInspector';
 import StepTimeline from '../components/canvas-builder/StepTimeline';
 import PreviewMode from '../components/canvas-builder/PreviewMode';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 const CanvasBuilderPage = () => {
   const { t, i18n } = useTranslation();
@@ -1276,7 +1277,7 @@ const CanvasBuilderPage = () => {
         </div>
 
         {/* Main Editor Area */}
-        <div className={`flex-1 flex overflow-hidden relative ${isRTL ? 'flex-row-reverse' : ''}`} style={{ minHeight: 0, height: '100%' }}>
+        <div className="flex-1 overflow-hidden relative" style={{ minHeight: 0, height: '100%' }}>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1284,33 +1285,132 @@ const CanvasBuilderPage = () => {
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={(walkthrough.steps || []).map((s) => s.id)} strategy={verticalListSortingStrategy}>
-            {/* Left Sidebar */}
-            {leftPanelVisible ? (
-              <div className="relative h-full flex-shrink-0">
-                <div className="hidden lg:block h-full">
-                  <LeftSidebar
+            {/* Mobile button to show left panel */}
+            {!leftPanelVisible && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden fixed left-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
+                onClick={() => setLeftPanelVisible(true)}
+                title="Show walkthrough settings"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            )}
+            
+            {/* Mobile button to show right panel */}
+            {!rightPanelVisible && selectedElement && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden fixed right-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
+                onClick={() => setRightPanelVisible(true)}
+                title="Show element settings"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            )}
+            
+            {/* Desktop: Resizable panels */}
+            <div className="hidden lg:block h-full">
+              <ResizablePanelGroup direction="horizontal" className={`h-full ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {/* Left Sidebar */}
+                {leftPanelVisible ? (
+                  <>
+                    <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+                      <div className="relative h-full">
+                        <LeftSidebar
+                          walkthrough={walkthrough}
+                          categories={categories}
+                          onUpdate={setWalkthrough}
+                          onAddStep={addStep}
+                          onStepClick={setCurrentStepIndex}
+                          onDeleteStep={deleteStep}
+                          currentStepIndex={currentStepIndex}
+                          workspaceId={workspaceId}
+                          onUpgrade={(reason) => setUpgradePromptOpen(true)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-left-10' : '-right-10'}`}
+                          onClick={() => setLeftPanelVisible(false)}
+                          title="Hide walkthrough settings"
+                        >
+                          {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </ResizablePanel>
+                    <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors cursor-col-resize" />
+                  </>
+                ) : null}
+                
+                {/* Live Canvas */}
+                <ResizablePanel defaultSize={leftPanelVisible && rightPanelVisible ? 60 : leftPanelVisible || rightPanelVisible ? 80 : 100} minSize={40}>
+                  <LiveCanvas
                     walkthrough={walkthrough}
-                    categories={categories}
-                    onUpdate={setWalkthrough}
-                    onAddStep={addStep}
-                    onStepClick={setCurrentStepIndex}
-                    onDeleteStep={deleteStep}
                     currentStepIndex={currentStepIndex}
+                    selectedElement={selectedElement}
+                    onSelectElement={setSelectedElement}
+                    onUpdateStep={updateStep}
                     workspaceId={workspaceId}
+                    walkthroughId={walkthroughId}
                     onUpgrade={(reason) => setUpgradePromptOpen(true)}
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-left-10' : '-right-10'}`}
-                    onClick={() => setLeftPanelVisible(false)}
-                    title="Hide walkthrough settings"
-                  >
-                    {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-                  </Button>
-                </div>
-                {/* Mobile overlay */}
-                <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setLeftPanelVisible(false)}>
+                </ResizablePanel>
+
+                {/* Right Inspector */}
+                {rightPanelVisible ? (
+                  <>
+                    <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors cursor-col-resize" />
+                    <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+                      <div className="relative h-full">
+                        <RightInspector
+                          selectedElement={selectedElement}
+                          currentStep={walkthrough.steps[currentStepIndex]}
+                          onUpdate={(updates) => {
+                            if (walkthrough.steps[currentStepIndex]) {
+                              updateStep(walkthrough.steps[currentStepIndex].id, updates);
+                            }
+                          }}
+                          onDeleteStep={() => {
+                            if (walkthrough.steps[currentStepIndex]) {
+                              deleteStep(walkthrough.steps[currentStepIndex].id);
+                            }
+                          }}
+                          onUpdateBlock={(updatedBlock) => {
+                            if (walkthrough.steps[currentStepIndex]) {
+                              const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
+                                b.id === updatedBlock.id ? updatedBlock : b
+                              );
+                              updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
+                            }
+                          }}
+                          workspaceId={workspaceId}
+                          walkthroughId={walkthroughId}
+                          stepId={walkthrough.steps[currentStepIndex]?.id}
+                          onUpgrade={(reason) => setUpgradePromptOpen(true)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-right-10' : '-left-10'}`}
+                          onClick={() => setRightPanelVisible(false)}
+                          title="Hide element settings"
+                        >
+                          {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </ResizablePanel>
+                  </>
+                ) : null}
+              </ResizablePanelGroup>
+            </div>
+
+            {/* Mobile overlays */}
+            <div className="lg:hidden">
+              {leftPanelVisible && (
+                <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setLeftPanelVisible(false)}>
                   <div className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
                     <div className="relative h-full">
                       <LeftSidebar
@@ -1338,86 +1438,24 @@ const CanvasBuilderPage = () => {
                     </div>
                   </div>
                 </div>
+              )}
+              
+              {/* Mobile canvas - always visible */}
+              <div className="h-screen pt-16">
+                <LiveCanvas
+                  walkthrough={walkthrough}
+                  currentStepIndex={currentStepIndex}
+                  selectedElement={selectedElement}
+                  onSelectElement={setSelectedElement}
+                  onUpdateStep={updateStep}
+                  workspaceId={workspaceId}
+                  walkthroughId={walkthroughId}
+                  onUpgrade={(reason) => setUpgradePromptOpen(true)}
+                />
               </div>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'right-0 rounded-l-lg' : 'left-0 rounded-r-lg'}`}
-                onClick={() => setLeftPanelVisible(true)}
-                title="Show walkthrough settings"
-              >
-                {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </Button>
-            )}
-            
-            {/* Mobile button to show left panel */}
-            {!leftPanelVisible && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="lg:hidden fixed left-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
-                onClick={() => setLeftPanelVisible(true)}
-                title="Show walkthrough settings"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            )}
 
-            {/* Live Canvas */}
-            <LiveCanvas
-              walkthrough={walkthrough}
-              currentStepIndex={currentStepIndex}
-              selectedElement={selectedElement}
-              onSelectElement={setSelectedElement}
-              onUpdateStep={updateStep}
-              workspaceId={workspaceId}
-              walkthroughId={walkthroughId}
-              onUpgrade={(reason) => setUpgradePromptOpen(true)}
-            />
-
-            {/* Right Inspector */}
-            {rightPanelVisible ? (
-              <div className="relative h-full flex-shrink-0">
-                <div className="hidden lg:block h-full">
-                      <RightInspector
-                        selectedElement={selectedElement}
-                        currentStep={walkthrough.steps[currentStepIndex]}
-                        onUpdate={(updates) => {
-                          if (walkthrough.steps[currentStepIndex]) {
-                            updateStep(walkthrough.steps[currentStepIndex].id, updates);
-                          }
-                        }}
-                        onDeleteStep={() => {
-                          if (walkthrough.steps[currentStepIndex]) {
-                            deleteStep(walkthrough.steps[currentStepIndex].id);
-                          }
-                        }}
-                        onUpdateBlock={(updatedBlock) => {
-                          if (walkthrough.steps[currentStepIndex]) {
-                            const updatedBlocks = (walkthrough.steps[currentStepIndex].blocks || []).map(b => 
-                              b.id === updatedBlock.id ? updatedBlock : b
-                            );
-                            updateStep(walkthrough.steps[currentStepIndex].id, { blocks: updatedBlocks });
-                          }
-                        }}
-                        workspaceId={workspaceId}
-                        walkthroughId={walkthroughId}
-                        stepId={walkthrough.steps[currentStepIndex]?.id}
-                        onUpgrade={(reason) => setUpgradePromptOpen(true)}
-                      />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-right-10' : '-left-10'}`}
-                    onClick={() => setRightPanelVisible(false)}
-                    title="Hide element settings"
-                  >
-                    {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </Button>
-                </div>
-                {/* Mobile overlay */}
-                <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setRightPanelVisible(false)}>
+              {rightPanelVisible && (
+                <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setRightPanelVisible(false)}>
                   <div className="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
                     <div className="relative h-full">
                       <RightInspector
@@ -1458,8 +1496,23 @@ const CanvasBuilderPage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            ) : (
+              )}
+            </div>
+            
+            {/* Show/hide buttons when panels are hidden */}
+            {!leftPanelVisible && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'right-0 rounded-l-lg' : 'left-0 rounded-r-lg'}`}
+                onClick={() => setLeftPanelVisible(true)}
+                title="Show walkthrough settings"
+              >
+                {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </Button>
+            )}
+            
+            {!rightPanelVisible && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -1468,19 +1521,6 @@ const CanvasBuilderPage = () => {
                 title="Show element settings"
               >
                 {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-              </Button>
-            )}
-            
-            {/* Mobile button to show right panel */}
-            {!rightPanelVisible && selectedElement && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="lg:hidden fixed right-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
-                onClick={() => setRightPanelVisible(true)}
-                title="Show element settings"
-              >
-                <ChevronLeft className="w-4 h-4" />
               </Button>
             )}
             </SortableContext>
