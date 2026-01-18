@@ -663,12 +663,13 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   {step.blocks.map((block, idx) => (
                     <div key={block.id || idx}>
                       {block.type === 'heading' && (
-                        <h3 className={`font-heading font-bold text-slate-900 ${
-                          block.data?.level === 1 ? 'text-3xl' :
-                          block.data?.level === 2 ? 'text-2xl' : 'text-xl'
-                        }`}>
-                          {block.data?.content}
-                        </h3>
+                        <h3 
+                          className={`font-heading font-bold text-slate-900 ${
+                            block.data?.level === 1 ? 'text-3xl' :
+                            block.data?.level === 2 ? 'text-2xl' : 'text-xl'
+                          }`}
+                          dangerouslySetInnerHTML={{ __html: block.data?.content || '' }}
+                        />
                       )}
                       {block.type === 'text' && (
                         <div 
@@ -875,8 +876,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       )}
                       {block.type === 'problem' && (
                         <div className="border-l-4 border-warning/40 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none">
-                          <h4 className="font-semibold text-gray-900 mb-1 relative z-10">{block.data?.title}</h4>
-                          <p className="text-gray-700 relative z-10">{block.data?.explanation}</p>
+                          <h4 
+                            className="font-semibold text-gray-900 mb-1 relative z-10"
+                            dangerouslySetInnerHTML={{ __html: block.data?.title || '' }}
+                          />
+                          <div 
+                            className="text-gray-700 relative z-10 prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: block.data?.explanation || '' }}
+                          />
                         </div>
                       )}
                       {block.type === 'carousel' && block.data?.slides && block.data.slides.length > 0 && (
