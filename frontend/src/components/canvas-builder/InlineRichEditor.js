@@ -66,7 +66,7 @@ const InlineRichEditor = ({
     editorProps: {
       attributes: {
         class: `focus:outline-none ${textSize} ${isBold ? 'font-bold' : ''} ${className}`,
-        dir: isRTL ? 'rtl' : 'ltr',
+        dir: 'auto', // Auto-detect direction for proper bidirectional text support (RTL/LTR)
         style: `text-align: ${align}`
       },
     },

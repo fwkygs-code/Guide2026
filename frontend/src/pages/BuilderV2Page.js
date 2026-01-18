@@ -1374,17 +1374,33 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
 
     case BLOCK_TYPES.PROBLEM:
       return (
-        <div className="border border-warning-300 rounded-lg p-4 bg-warning-50 space-y-2">
-          <Input
-            value={block.data.title || ''}
-            onChange={(e) => onUpdate({ data: { ...block.data, title: e.target.value } })}
-            placeholder="Problem title"
-          />
-          <Textarea
-            value={block.data.explanation || ''}
-            onChange={(e) => onUpdate({ data: { ...block.data, explanation: e.target.value } })}
-            placeholder="Explanation"
-          />
+        <div className="border border-warning-300 rounded-lg p-4 bg-warning-50 space-y-3">
+          <div>
+            <Label className="text-xs text-slate-600 mb-1.5 block font-medium">Problem Title</Label>
+            <InlineRichEditor
+              content={block.data.title || ''}
+              onChange={(html) => onUpdate({ data: { ...block.data, title: html } })}
+              placeholder="Problem title"
+              isRTL={false}
+              textSize="text-base"
+              isBold={true}
+              align="left"
+              className=""
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-slate-600 mb-1.5 block font-medium">Explanation</Label>
+            <InlineRichEditor
+              content={block.data.explanation || ''}
+              onChange={(html) => onUpdate({ data: { ...block.data, explanation: html } })}
+              placeholder="Explanation"
+              isRTL={false}
+              textSize="text-sm"
+              isBold={false}
+              align="left"
+              className=""
+            />
+          </div>
         </div>
       );
 

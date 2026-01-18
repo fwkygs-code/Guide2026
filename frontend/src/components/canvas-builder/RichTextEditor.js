@@ -43,7 +43,7 @@ const RichTextEditor = ({ content, onChange, placeholder = 'Start typing...', is
     editorProps: {
       attributes: {
         class: 'prose max-w-none focus:outline-none min-h-[100px] p-4',
-        dir: isRTL ? 'rtl' : 'ltr'
+        dir: 'auto' // Auto-detect direction for proper bidirectional text support (RTL/LTR)
       },
     },
   });
