@@ -31,6 +31,10 @@ export const useQuota = (workspaceId = null) => {
       setQuotaData({
         plan: planData.plan,
         subscription: planData.subscription,
+        trial_period_end: planData.trial_period_end || null,
+        next_billing_date: planData.next_billing_date || null,
+        current_period_end: planData.current_period_end || null,
+        cancel_at_period_end: planData.cancel_at_period_end || false,
         quota: {
           storage_used: planData.quota.storage_used_bytes || 0,
           storage_allowed: planData.quota.storage_allowed_bytes || 0,

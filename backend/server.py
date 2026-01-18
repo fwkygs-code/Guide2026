@@ -3044,11 +3044,41 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     else:
         subscription_dict = None
     
+    # Calculate current billing period end
+    # This is when the current access period ends (trial end or next billing date)
+    current_period_end = None
+    if subscription:
+        if trial_period_end:
+            # If in trial, current period ends when trial ends
+            current_period_end = trial_period_end
+        elif next_billing_date:
+            # If past trial, current period ends at next billing date
+            current_period_end = next_billing_date
+        elif subscription.status == SubscriptionStatus.ACTIVE:
+            # Fallback: If no trial/billing date, estimate from started_at + 30 days
+            try:
+                started_at = subscription.started_at
+                if isinstance(started_at, str):
+                    started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+                else:
+                    started_at_dt = started_at
+                # Estimate first billing period (30 days from start)
+                current_period_end = (started_at_dt + timedelta(days=30)).isoformat()
+            except Exception as e:
+                logging.warning(f"Error calculating current_period_end: {e}")
+    
+    # Get cancel_at_period_end from subscription
+    cancel_at_period_end = False
+    if subscription and subscription_dict:
+        cancel_at_period_end = subscription_dict.get('cancel_at_period_end', False)
+    
     return {
         "plan": plan.model_dump(),
         "subscription": subscription_dict,
         "trial_period_end": trial_period_end,
         "next_billing_date": next_billing_date,
+        "current_period_end": current_period_end,
+        "cancel_at_period_end": cancel_at_period_end,
         "quota": {
             "storage_used_bytes": storage_used,
             "storage_allowed_bytes": storage_allowed,

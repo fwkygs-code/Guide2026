@@ -16,6 +16,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import QuotaDisplay from '../components/QuotaDisplay';
 import OverQuotaBanner from '../components/OverQuotaBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
+import BillingInfo from '../components/BillingInfo';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -368,8 +369,9 @@ const DashboardPage = () => {
           </div>
 
           {/* Quota Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <QuotaDisplay showWarnings={true} onUpgrade={() => setUpgradePromptOpen(true)} />
+            <BillingInfo />
           </div>
         </div>
       </div>

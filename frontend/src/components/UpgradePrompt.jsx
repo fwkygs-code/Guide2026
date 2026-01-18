@@ -361,11 +361,12 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
             {/* CRITICAL: Keep PayPal component mounted - use visibility instead of conditional rendering */}
             <div className="py-4" style={{ display: showPayPal ? 'block' : 'none' }}>
               <PayPalSubscription
+                refreshQuota={refreshQuota}
                 onSuccess={async (subscriptionID) => {
-                  // Close modal after payment success
+                  // Close modal after payment success (polling will handle this automatically)
                   setIsSubscribing(false);
                   setShowPayPal(false);
-                  // Refresh quota in background
+                  // Refresh quota in background (polling already does this, but refresh again to be sure)
                   if (refreshQuota) {
                     await refreshQuota();
                   }

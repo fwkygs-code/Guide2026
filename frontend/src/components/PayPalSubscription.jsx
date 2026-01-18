@@ -10,11 +10,86 @@ if (!PAYPAL_CLIENT_ID) {
   console.error('REACT_APP_PAYPAL_CLIENT_ID environment variable is not set');
 }
 
-const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribing }) => {
+const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribing, refreshQuota }) => {
   const paypalButtonContainerRef = useRef(null);
   const paypalScriptLoaded = useRef(false);
   const [paypalButtons, setPaypalButtons] = useState(null);
   const [paymentCompleted, setPaymentCompleted] = useState(false); // Track if payment was completed
+  const [pollingActive, setPollingActive] = useState(false); // Track if polling is active
+  const pollingIntervalRef = useRef(null); // Store polling interval
+
+  // Define polling function before it's used
+  const startPollingForActivation = () => {
+    // Poll every 2 seconds for up to 60 seconds (30 attempts)
+    let attempts = 0;
+    const maxAttempts = 30;
+    
+    const poll = async () => {
+      if (attempts >= maxAttempts) {
+        // Timeout - stop polling
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+        setPollingActive(false);
+        setIsSubscribing(false);
+        toast.info('Subscription is being processed. Your Pro access will be activated shortly. You can refresh the page to check status.');
+        // Still call onSuccess to close modal, but user needs to refresh
+        if (onSuccess) {
+          onSuccess(null);
+        }
+        return;
+      }
+      
+      attempts++;
+      
+      try {
+        // Fetch current plan status from backend
+        const planResponse = await api.getUserPlan();
+        const planData = planResponse.data;
+        
+        // Check if subscription is now ACTIVE
+        const subscription = planData.subscription;
+        if (subscription && subscription.status === 'active' && subscription.provider === 'paypal') {
+          // Subscription is active! Stop polling
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          setPollingActive(false);
+          setIsSubscribing(false);
+          
+          // Refresh quota data to update UI
+          if (refreshQuota) {
+            await refreshQuota();
+          }
+          
+          toast.success('Pro access activated! Welcome to Pro plan.');
+          
+          // Close modal after short delay
+          setTimeout(() => {
+            if (onSuccess) {
+              onSuccess(subscription.id);
+            }
+          }, 1000);
+        }
+        // If still PENDING, continue polling (no action needed)
+      } catch (error) {
+        console.error('Error polling for subscription activation:', error);
+        // Continue polling on error (might be temporary network issue)
+      }
+    };
+    
+    // Start polling immediately, then every 2 seconds
+    poll();
+    pollingIntervalRef.current = setInterval(poll, 2000);
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Load PayPal SDK script
@@ -72,7 +147,11 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
     // CRITICAL: No cleanup on unmount - PayPal SDK manages its own DOM
     // Removing cleanup prevents removeChild errors
     return () => {
-      // Do nothing - let PayPal SDK manage its own lifecycle
+      // Cleanup polling on unmount
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
     };
   }, [paypalButtons]);
 
@@ -113,22 +192,20 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
             const response = await api.subscribePayPal({ subscriptionID });
             
             if (response.data && response.data.success) {
-              toast.success('Subscription created successfully! Your Pro access will be activated shortly.');
-              // Close modal and refresh after short delay to show success message
-              setTimeout(() => {
-                if (onSuccess) {
-                  onSuccess(subscriptionID);
-                }
-              }, 1500);
+              toast.success('Subscription created successfully! Waiting for activation...');
+              
+              // Start polling for subscription activation
+              setPollingActive(true);
+              startPollingForActivation();
             } else {
               toast.error('Subscription created but failed to activate. Please contact support.');
               setPaymentCompleted(false); // Allow retry on error
+              setIsSubscribing(false);
             }
           } catch (error) {
             console.error('PayPal subscription approval error:', error);
             toast.error(error.response?.data?.detail || 'Failed to activate subscription. Please contact support.');
             setPaymentCompleted(false); // Allow retry on error
-          } finally {
             setIsSubscribing(false);
           }
         },
@@ -169,9 +246,23 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
         <div className="w-full min-h-[200px] flex items-center justify-center flex-col space-y-2">
           <div className="text-green-600 text-sm font-medium">✓ Subscription submitted successfully!</div>
           <div className="text-xs text-slate-500 text-center">
-            Your Pro access will be activated shortly.<br/>
-            Please wait for webhook confirmation.
+            {pollingActive ? (
+              <>
+                Waiting for activation...<br/>
+                This may take a few seconds.
+              </>
+            ) : (
+              <>
+                Your Pro access will be activated shortly.<br/>
+                Please wait for webhook confirmation.
+              </>
+            )}
           </div>
+          {pollingActive && (
+            <div className="mt-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
+            </div>
+          )}
         </div>
       ) : (
         <>
