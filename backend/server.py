@@ -1038,11 +1038,21 @@ async def signup(user_data: UserCreate):
     # Refresh user data to include plan_id
     user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
     if user_doc:
-        user = User(**{k: v for k, v in user_doc.items() if k != 'password'})
+        # Convert datetime ISO strings to datetime objects for Pydantic
+        user_dict = {k: v for k, v in user_doc.items() if k != 'password'}
+        # Handle datetime fields that might be stored as ISO strings
+        for date_field in ['created_at', 'trial_ends_at', 'email_verification_expires_at']:
+            if date_field in user_dict and user_dict[date_field] and isinstance(user_dict[date_field], str):
+                try:
+                    user_dict[date_field] = datetime.fromisoformat(user_dict[date_field].replace('Z', '+00:00'))
+                except (ValueError, AttributeError):
+                    pass  # If conversion fails, leave as is (Pydantic will handle it)
+        user = User(**user_dict)
     
     token = create_token(user.id)
     
-    return {"user": user, "token": token, "email_verification_sent": email_sent}
+    # Use model_dump to ensure proper JSON serialization
+    return {"user": user.model_dump(mode='json'), "token": token, "email_verification_sent": email_sent}
 
 @api_router.post("/auth/login")
 async def login(login_data: UserLogin):
@@ -1154,19 +1164,28 @@ async def resend_verification_email(current_user: User = Depends(get_current_use
         }
     )
     
-    # Send verification email
-    email_sent = await send_verification_email(
-        current_user.email,
-        current_user.name,
-        verification_token
-    )
-    
-    if not email_sent:
-        logging.warning(f"Failed to send verification email to {current_user.email}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to send verification email. Please try again later or contact support."
+    # Send verification email (non-blocking - don't fail if email service is down)
+    try:
+        email_sent = await send_verification_email(
+            current_user.email,
+            current_user.name,
+            verification_token
         )
+        
+        if not email_sent:
+            logging.warning(f"Failed to send verification email to {current_user.email}")
+            # Don't raise exception - just return a warning message
+            return {
+                "success": False,
+                "message": "Verification token has been updated, but email could not be sent. Please check your email configuration or try again later."
+            }
+    except Exception as e:
+        logging.error(f"Error sending verification email to {current_user.email}: {e}", exc_info=True)
+        # Don't fail the request - token was already updated
+        return {
+            "success": False,
+            "message": "Verification token has been updated, but email could not be sent due to a server error. Please try again later."
+        }
     
     return {
         "success": True,
