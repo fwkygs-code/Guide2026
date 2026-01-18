@@ -2911,28 +2911,35 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     
     has_pro_access = False
     
+    # CRITICAL: Check subscription's plan_id, not just status
+    # Free plan users also have ACTIVE subscriptions, so we must check the plan
     if subscription:
+        # Get the plan for this subscription
+        subscription_plan = await db.plans.find_one({"id": subscription.plan_id}, {"_id": 0})
+        is_pro_subscription = subscription_plan and subscription_plan.get('name') == 'pro'
+        
         if subscription.status == SubscriptionStatus.ACTIVE:
-            # ACTIVE subscription always grants Pro access
-            has_pro_access = True
+            # ACTIVE subscription grants Pro access ONLY if it's a Pro plan subscription
+            if is_pro_subscription:
+                has_pro_access = True
         elif subscription.status == SubscriptionStatus.PENDING:
-            # PENDING subscription grants Pro access during trial period
-            # Check if trial is still active
-            if has_active_trial:
+            # PENDING subscription grants Pro access during trial period ONLY if it's a Pro plan subscription
+            if is_pro_subscription and has_active_trial:
                 has_pro_access = True
         elif subscription.status == SubscriptionStatus.CANCELLED:
             # CANCELLED subscription: User keeps Pro access until EXPIRED webhook
             # Check if user still has Pro plan_id (not yet downgraded)
             # This means they're still within billing period
-            user_plan_id = user.get('plan_id') if user else None
-            if user_plan_id:
-                pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
-                if pro_plan and user_plan_id == pro_plan['id']:
-                    # User still has Pro plan_id - access continues until EXPIRED
+            if is_pro_subscription:
+                user_plan_id = user.get('plan_id') if user else None
+                if user_plan_id:
+                    pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+                    if pro_plan and user_plan_id == pro_plan['id']:
+                        # User still has Pro plan_id - access continues until EXPIRED
+                        has_pro_access = True
+                # Also check if trial is still active (for cancelled subscriptions during trial)
+                if has_active_trial:
                     has_pro_access = True
-            # Also check if trial is still active (for cancelled subscriptions during trial)
-            if has_active_trial:
-                has_pro_access = True
     
     # Also check standalone trial (no subscription)
     if not has_pro_access and has_active_trial:
