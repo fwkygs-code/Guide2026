@@ -20,6 +20,7 @@ import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
 import { BLOCK_TYPES, createBlock, getBlockLabel, getBlockIcon } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
+import StepTitleEditorComponent from '../components/canvas-builder/StepTitleEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -1015,12 +1016,12 @@ const CanvasStage = ({
 };
 
 // Step Title Editor with guards
+// StepTitleEditor wrapper - uses the actual StepTitleEditor component with center alignment
 const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     if (isStepLoaded && !isInitialized) {
-      // Small delay to ensure editor is fully hydrated
       const timer = setTimeout(() => {
         setIsInitialized(true);
       }, 100);
@@ -1040,15 +1041,10 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
   }
 
   return (
-    <InlineRichEditor
-      content={title || ''}
+    <StepTitleEditorComponent
+      title={title || ''}
       onChange={handleChange}
-      placeholder="Step title..."
       isRTL={false}
-      textSize="text-3xl"
-      isBold={true}
-      align="left"
-      className="text-slate-900 font-heading"
     />
   );
 };
@@ -1106,10 +1102,9 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
       </PopoverTrigger>
       <PopoverContent 
         className="w-64 p-2 bg-white border-slate-200 z-50" 
-        side="bottom" 
         align="start" 
-        sideOffset={5}
-        collisionPadding={10}
+        sideOffset={8}
+        collisionPadding={16}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="grid grid-cols-2 gap-2">
