@@ -1104,7 +1104,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
         className="w-64 p-2 bg-white border-slate-200 z-50" 
         align="start" 
         sideOffset={8}
-        collisionPadding={16}
+        collisionPadding={{ top: 16, bottom: 16, left: 16, right: 16 }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="grid grid-cols-2 gap-2">

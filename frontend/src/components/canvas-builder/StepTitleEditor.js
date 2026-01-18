@@ -49,26 +49,30 @@ const StepTitleEditor = ({ title, onChange, isRTL = false }) => {
     },
   });
 
-  // Ensure center alignment persists on mount and when title changes
+  // CRITICAL: Ensure center alignment persists on mount and when title changes
+  // This is the root cause fix - alignment must be applied every time content is set
   useEffect(() => {
-    if (editor && title !== undefined) {
-      // Update content and force center alignment
-      const currentText = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n', '\0');
-      if (currentText !== title) {
-        // Set content with center alignment attribute
-        editor.commands.setContent({
-          type: 'heading',
-          attrs: { level: 2, textAlign: 'center' },
-          content: title ? [{ type: 'text', text: title }] : []
-        }, false);
-      }
-      // Always ensure center alignment is applied
-      setTimeout(() => {
-        if (editor && !editor.isActive({ textAlign: 'center' })) {
-          editor.chain().setTextAlign('center').run();
-        }
-      }, 0);
+    if (!editor || title === undefined) return;
+    
+    const currentText = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n', '\0');
+    
+    // If title changed, update content WITH center alignment
+    if (currentText !== title) {
+      // Set content with explicit center alignment attribute
+      editor.commands.setContent({
+        type: 'heading',
+        attrs: { level: 2, textAlign: 'center' },
+        content: title ? [{ type: 'text', text: title }] : []
+      }, false);
     }
+    
+    // CRITICAL: Always force center alignment after content is set
+    // Use requestAnimationFrame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      if (editor && !editor.isActive({ textAlign: 'center' })) {
+        editor.chain().focus().setTextAlign('center').run();
+      }
+    });
   }, [editor, title]);
 
   if (!editor) {
