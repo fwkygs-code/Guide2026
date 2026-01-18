@@ -2985,6 +2985,7 @@ class ProcessedWebhookEvent(BaseModel):
     event_type: str
     processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     subscription_id: Optional[str] = None  # Our subscription ID if applicable
+    # TTL: Events older than 90 days are eligible for cleanup (managed by MongoDB TTL index or periodic cleanup)
 
 @api_router.post("/billing/paypal/subscribe")
 async def subscribe_paypal(
@@ -3231,7 +3232,8 @@ async def paypal_webhook(
                 logging.warning(f"PayPal webhook: Subscription not found for PayPal ID: {paypal_subscription_id}")
         
         elif event_type == "BILLING.SUBSCRIPTION.CANCELLED":
-            # Subscription cancelled - downgrade user to Free
+            # Subscription cancelled - mark as CANCELLED but do NOT downgrade immediately
+            # User keeps Pro access until EXPIRED (end of billing period)
             paypal_subscription_id = resource.get('id')
             if not paypal_subscription_id:
                 logging.error("PayPal webhook: BILLING.SUBSCRIPTION.CANCELLED missing subscription ID")
@@ -3244,6 +3246,7 @@ async def paypal_webhook(
             
             if subscription:
                 # Update subscription status to CANCELLED
+                # CRITICAL: Do NOT downgrade user to Free - user keeps access until EXPIRED
                 await db.subscriptions.update_one(
                     {"id": subscription['id']},
                     {
@@ -3254,16 +3257,8 @@ async def paypal_webhook(
                         }
                     }
                 )
-                
-                # Downgrade user to Free plan
-                free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
-                if free_plan:
-                    await db.users.update_one(
-                        {"id": subscription['user_id']},
-                        {"$set": {"plan_id": free_plan['id']}}
-                    )
                 subscription_id = subscription['id']
-                logging.info(f"PayPal subscription cancelled: user={subscription['user_id']}, subscription={subscription['id']}")
+                logging.info(f"PayPal subscription cancelled: user={subscription['user_id']}, subscription={subscription['id']} - access continues until billing period ends")
         
         elif event_type == "BILLING.SUBSCRIPTION.SUSPENDED":
             # Subscription suspended - downgrade user to Free
