@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon } from 'lucide-react';
+import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -158,9 +158,11 @@ const BuilderV2Page = () => {
         for (const step of walkthrough.steps) {
           const stepData = {
             title: step.title || '',
+            content: step.content || '', // Required by backend StepCreate model
             blocks: step.blocks || [],
             navigation_type: step.navigation_type || 'next_prev',
             order: step.order || 0,
+            common_problems: step.common_problems || [],
           };
 
           if (step.id && !step.id.startsWith('step-')) {
@@ -310,9 +312,11 @@ const BuilderV2Page = () => {
         try {
           const stepData = {
             title: currentStep.title || '',
+            content: currentStep.content || '', // Required by backend
             blocks: currentStep.blocks || [],
             navigation_type: currentStep.navigation_type || 'next_prev',
             order: currentStep.order || 0,
+            common_problems: currentStep.common_problems || [],
           };
           await api.updateStep(workspaceId, walkthroughId, currentStep.id, stepData);
         } catch (error) {
@@ -704,9 +708,11 @@ const BuilderV2Page = () => {
               const newStep = {
                 id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 title: `Step ${walkthrough.steps.length + 1}`,
+                content: '', // Required by backend
                 blocks: [],
                 order: walkthrough.steps.length,
-                navigation_type: 'next_prev'
+                navigation_type: 'next_prev',
+                common_problems: []
               };
               
               // Update local state immediately
@@ -721,9 +727,11 @@ const BuilderV2Page = () => {
                 try {
                   const stepData = {
                     title: newStep.title,
+                    content: newStep.content || '', // Required by backend
                     blocks: [],
                     navigation_type: 'next_prev',
                     order: newStep.order,
+                    common_problems: []
                   };
                   const response = await api.addStep(workspaceId, walkthroughId, stepData);
                   // Update with real ID
@@ -1020,6 +1028,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
     BLOCK_TYPES.TEXT,
     BLOCK_TYPES.IMAGE,
     BLOCK_TYPES.VIDEO,
+    BLOCK_TYPES.CAROUSEL,
     BLOCK_TYPES.BUTTON,
     BLOCK_TYPES.DIVIDER,
     BLOCK_TYPES.SPACER,
@@ -1309,6 +1318,15 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             placeholder="Explanation"
           />
         </div>
+      );
+
+    case BLOCK_TYPES.CAROUSEL:
+      return (
+        <CarouselBlockEditor
+          block={block}
+          onUpdate={onUpdate}
+          onMediaUpload={onMediaUpload}
+        />
       );
 
     default:
