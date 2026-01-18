@@ -206,8 +206,7 @@ export const AuthProvider = ({ children }) => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Don't fetch user again - we already have it from signup response
       setLoading(false);
-      // Return full response data including plan_selection_required flag
-      return { user, plan_selection_required: data.plan_selection_required || false };
+      return { user };
     } catch (error) {
       // Re-throw with better error message
       if (error.message === 'Signup request timeout') {
