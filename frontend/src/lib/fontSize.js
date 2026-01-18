@@ -1,6 +1,13 @@
 import { TextStyle } from '@tiptap/extension-text-style';
 
 export const FontSize = TextStyle.extend({
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      types: ['textStyle', 'heading'], // Allow fontSize in both textStyle marks and heading nodes
+    };
+  },
+
   addAttributes() {
     return {
       ...this.parent?.(),
