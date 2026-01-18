@@ -2923,8 +2923,10 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
             if is_pro_subscription:
                 has_pro_access = True
         elif subscription.status == SubscriptionStatus.PENDING:
-            # PENDING subscription grants Pro access during trial period ONLY if it's a Pro plan subscription
-            if is_pro_subscription and has_active_trial:
+            # PENDING subscription grants Pro access ONLY if it's a Pro plan subscription
+            # Note: Trial period check is not required for PENDING - user gets access immediately
+            # Trial period is for billing purposes, not access control
+            if is_pro_subscription:
                 has_pro_access = True
         elif subscription.status == SubscriptionStatus.CANCELLED:
             # CANCELLED subscription: User keeps Pro access until EXPIRED webhook
