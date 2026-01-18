@@ -302,6 +302,16 @@ const WalkthroughsPage = () => {
                             variant="outline"
                             size="sm"
                             className="flex-1"
+                            onClick={() => navigate(`/workspace/${workspaceId}/builder-v2/${walkthrough.id}`)}
+                            title="Edit in Builder V2"
+                          >
+                            <Edit className="w-3 h-3 mr-1" />
+                            Edit (V2)
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
                             onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/${walkthrough.id}/edit`)}
                             data-testid={`edit-walkthrough-${walkthrough.id}`}
                           >
