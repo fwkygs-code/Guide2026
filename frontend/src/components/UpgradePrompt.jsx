@@ -59,7 +59,8 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
     {
       name: 'pro',
       displayName: 'Pro',
-      price: 'Contact for pricing',
+      price: '14 days free trial',
+      priceAfter: '$19.90/month',
       features: [
         '3 workspaces',
         'Unlimited categories',
@@ -150,9 +151,16 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 <h3 className="text-xl font-semibold text-slate-900">
                   {planOption.displayName}
                 </h3>
-                <p className="text-2xl font-bold text-slate-900 mt-2">
-                  {planOption.price}
-                </p>
+                <div className="mt-2">
+                  <p className="text-2xl font-bold text-slate-900">
+                    {planOption.price}
+                  </p>
+                  {planOption.priceAfter && (
+                    <p className="text-sm text-slate-600 mt-1">
+                      {planOption.priceAfter}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <ul className="space-y-2 mb-6">
