@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -167,33 +167,98 @@ const BuilderV2Page = () => {
     }
   };
 
-  // Update current step
-  const updateCurrentStep = (updates) => {
+  // Update current step - canonical function for all step updates
+  const updateCurrentStep = React.useCallback((updates) => {
+    if (!walkthrough.steps || walkthrough.steps.length === 0) return;
+    if (currentStepIndex < 0 || currentStepIndex >= walkthrough.steps.length) return;
+    
     const newSteps = [...walkthrough.steps];
     if (newSteps[currentStepIndex]) {
       newSteps[currentStepIndex] = { ...newSteps[currentStepIndex], ...updates };
-      setWalkthrough({ ...walkthrough, steps: newSteps });
+      setWalkthrough(prev => ({ ...prev, steps: newSteps }));
     }
-  };
+  }, [walkthrough.steps, currentStepIndex]);
 
-  // Add block at index
-  const addBlock = (blockType, insertAfterIndex) => {
-    const newBlock = createBlock(blockType);
-    const newSteps = [...walkthrough.steps];
-    if (newSteps[currentStepIndex]) {
-      const blocks = newSteps[currentStepIndex].blocks || [];
+  // Debounced save for step updates
+  const saveStepDebounced = React.useRef(null);
+  useEffect(() => {
+    if (saveStepDebounced.current) {
+      clearTimeout(saveStepDebounced.current);
+    }
+    if (walkthroughId && currentStep && currentStep.id && !currentStep.id.startsWith('step-')) {
+      saveStepDebounced.current = setTimeout(async () => {
+        try {
+          const stepData = {
+            title: currentStep.title || '',
+            blocks: currentStep.blocks || [],
+            navigation_type: currentStep.navigation_type || 'next_prev',
+            order: currentStep.order || 0,
+          };
+          await api.updateStep(workspaceId, walkthroughId, currentStep.id, stepData);
+        } catch (error) {
+          console.error('Failed to auto-save step:', error);
+        }
+      }, 1000);
+    }
+    return () => {
+      if (saveStepDebounced.current) {
+        clearTimeout(saveStepDebounced.current);
+      }
+    };
+  }, [currentStep, walkthroughId, workspaceId]);
+
+  // Add block at index - index-safe with validation
+  const addBlock = useCallback((blockType, insertAfterIndex) => {
+    if (!blockType || !BLOCK_TYPES[blockType.toUpperCase()]) {
+      console.error('Invalid block type:', blockType);
+      return;
+    }
+    
+    if (!walkthrough.steps || walkthrough.steps.length === 0) {
+      console.error('Cannot add block: no steps exist');
+      return;
+    }
+    
+    if (currentStepIndex < 0 || currentStepIndex >= walkthrough.steps.length) {
+      console.error('Invalid step index:', currentStepIndex);
+      return;
+    }
+
+    try {
+      const newBlock = createBlock(blockType);
+      if (!newBlock || !newBlock.id) {
+        console.error('Failed to create block');
+        return;
+      }
+
+      const newSteps = [...walkthrough.steps];
+      const currentStep = newSteps[currentStepIndex];
+      if (!currentStep) {
+        console.error('Current step not found');
+        return;
+      }
+
+      const blocks = currentStep.blocks || [];
       const newBlocks = [...blocks];
-      if (insertAfterIndex === -1) {
+      
+      // Validate insertAfterIndex
+      const safeIndex = Math.max(-1, Math.min(insertAfterIndex, blocks.length - 1));
+      
+      if (safeIndex === -1) {
         newBlocks.unshift(newBlock);
       } else {
-        newBlocks.splice(insertAfterIndex + 1, 0, newBlock);
+        newBlocks.splice(safeIndex + 1, 0, newBlock);
       }
-      newSteps[currentStepIndex] = { ...newSteps[currentStepIndex], blocks: newBlocks };
-      setWalkthrough({ ...walkthrough, steps: newSteps });
+      
+      newSteps[currentStepIndex] = { ...currentStep, blocks: newBlocks };
+      setWalkthrough(prev => ({ ...prev, steps: newSteps }));
       setSelectedBlockId(newBlock.id);
       setBlockPickerOpen(null);
+    } catch (error) {
+      console.error('Error adding block:', error);
+      toast.error('Failed to add block');
     }
-  };
+  }, [walkthrough.steps, currentStepIndex]);
 
   // Update block
   const updateBlock = (blockId, updates) => {
@@ -367,16 +432,49 @@ const BuilderV2Page = () => {
           steps={walkthrough.steps}
           currentStepIndex={currentStepIndex}
           onStepClick={setCurrentStepIndex}
-          onAddStep={() => {
-            const newStep = {
-              id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              title: `Step ${walkthrough.steps.length + 1}`,
-              blocks: [],
-              order: walkthrough.steps.length
-            };
-            setWalkthrough({ ...walkthrough, steps: [...walkthrough.steps, newStep] });
-            setCurrentStepIndex(walkthrough.steps.length);
-            setSelectedBlockId(null);
+          onAddStep={async () => {
+            try {
+              const newStep = {
+                id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                title: `Step ${walkthrough.steps.length + 1}`,
+                blocks: [],
+                order: walkthrough.steps.length,
+                navigation_type: 'next_prev'
+              };
+              
+              // Update local state immediately
+              const newSteps = [...walkthrough.steps, newStep];
+              setWalkthrough(prev => ({ ...prev, steps: newSteps }));
+              const newIndex = newSteps.length - 1;
+              setCurrentStepIndex(newIndex);
+              setSelectedBlockId(null);
+              
+              // Persist to backend if walkthrough exists
+              if (walkthroughId) {
+                try {
+                  const stepData = {
+                    title: newStep.title,
+                    blocks: [],
+                    navigation_type: 'next_prev',
+                    order: newStep.order,
+                  };
+                  const response = await api.addStep(workspaceId, walkthroughId, stepData);
+                  // Update with real ID
+                  setWalkthrough(prev => ({
+                    ...prev,
+                    steps: prev.steps.map((s, i) => 
+                      i === newIndex ? { ...s, id: response.data.id } : s
+                    )
+                  }));
+                } catch (error) {
+                  console.error('Failed to persist step:', error);
+                  toast.error('Step created locally but failed to save');
+                }
+              }
+            } catch (error) {
+              console.error('Error creating step:', error);
+              toast.error('Failed to create step');
+            }
           }}
           onDeleteStep={(stepIndex) => {
             if (walkthrough.steps.length <= 1) {
@@ -421,6 +519,7 @@ const BuilderV2Page = () => {
             onMediaUpload={handleMediaUpload}
             blockPickerOpen={blockPickerOpen}
             onBlockPickerOpen={setBlockPickerOpen}
+            isStepLoaded={!loading && !!currentStep}
           />
         </div>
 
@@ -513,6 +612,7 @@ const CanvasStage = ({
   onBlockAdd,
   onBlockUpdate,
   onBlockDelete,
+  onStepUpdate,
   onDragStart,
   onDragEnd,
   blockItems,
@@ -522,7 +622,8 @@ const CanvasStage = ({
   stepId,
   onMediaUpload,
   blockPickerOpen,
-  onBlockPickerOpen
+  onBlockPickerOpen,
+  isStepLoaded
 }) => {
   if (!currentStep) {
     return (
@@ -532,6 +633,10 @@ const CanvasStage = ({
         </div>
       </div>
     );
+  }
+
+  if (!onStepUpdate) {
+    console.error('CanvasStage: onStepUpdate is required but not provided');
   }
 
   return (
@@ -546,10 +651,17 @@ const CanvasStage = ({
           <SortableContext items={blockItems} strategy={verticalListSortingStrategy}>
             <div className="space-y-8">
               {/* Step Title */}
-              <StepTitleEditor
-                title={currentStep.title}
-                onChange={(title) => onStepUpdate({ title })}
-              />
+              {onStepUpdate && (
+                <StepTitleEditor
+                  title={currentStep.title || ''}
+                  onChange={(title) => {
+                    if (onStepUpdate && isStepLoaded) {
+                      onStepUpdate({ title });
+                    }
+                  }}
+                  isStepLoaded={isStepLoaded}
+                />
+              )}
 
               {/* Blocks with inline "+" buttons */}
               {blocks.length === 0 ? (
@@ -595,12 +707,35 @@ const CanvasStage = ({
   );
 };
 
-// Step Title Editor
-const StepTitleEditor = ({ title, onChange }) => {
+// Step Title Editor with guards
+const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
+  const [isInitialized, setIsInitialized] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isStepLoaded && !isInitialized) {
+      // Small delay to ensure editor is fully hydrated
+      const timer = setTimeout(() => {
+        setIsInitialized(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isStepLoaded, isInitialized]);
+
+  const handleChange = useCallback((content) => {
+    if (isInitialized && isStepLoaded && onChange) {
+      onChange(content);
+    }
+  }, [isInitialized, isStepLoaded, onChange]);
+
+  if (!onChange) {
+    console.error('StepTitleEditor: onChange is required');
+    return null;
+  }
+
   return (
     <InlineRichEditor
       content={title || ''}
-      onChange={onChange}
+      onChange={handleChange}
       placeholder="Step title..."
       isRTL={false}
       textSize="text-3xl"
@@ -611,7 +746,7 @@ const StepTitleEditor = ({ title, onChange }) => {
   );
 };
 
-// Add Block Button with Popover
+// Add Block Button with Popover - Always visible, keyboard accessible
 const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
   const blockTypes = [
     BLOCK_TYPES.HEADING,
@@ -624,29 +759,51 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
     BLOCK_TYPES.PROBLEM,
   ];
 
+  const handleAdd = useCallback((type) => {
+    if (onAdd && typeof onAdd === 'function') {
+      try {
+        onAdd(type, insertAfterIndex);
+        if (onOpenChange) {
+          onOpenChange(false);
+        }
+      } catch (error) {
+        console.error('Error adding block:', error);
+      }
+    } else {
+      console.error('AddBlockButton: onAdd is not a function');
+    }
+  }, [onAdd, insertAfterIndex, onOpenChange]);
+
+  if (!onAdd) {
+    console.error('AddBlockButton: onAdd is required');
+    return null;
+  }
+
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
-          className="w-full h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity border-2 border-dashed border-slate-300 rounded-lg hover:border-primary hover:bg-primary/5"
+          className="w-full h-8 flex items-center justify-center opacity-40 hover:opacity-100 focus:opacity-100 transition-opacity border-2 border-dashed border-slate-300 rounded-lg hover:border-primary hover:bg-primary/5 focus:border-primary focus:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/20"
           onClick={(e) => {
             e.stopPropagation();
-            onOpenChange(true);
+            if (onOpenChange) {
+              onOpenChange(true);
+            }
           }}
+          aria-label="Add block"
+          type="button"
         >
           <Plus className="w-4 h-4 text-slate-400" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 bg-white border-slate-200">
+      <PopoverContent className="w-64 p-2 bg-white border-slate-200" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="grid grid-cols-2 gap-2">
           {blockTypes.map((type) => (
             <button
               key={type}
-              className="p-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 text-left transition-colors"
-              onClick={() => {
-                onAdd(type, insertAfterIndex);
-                onOpenChange(false);
-              }}
+              className="p-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onClick={() => handleAdd(type)}
+              type="button"
             >
               <div className="text-2xl mb-1">{getBlockIcon(type)}</div>
               <div className="text-sm font-medium text-slate-900">{getBlockLabel(type)}</div>
@@ -718,14 +875,31 @@ const BlockRenderer = ({
 
 // Block Content Renderer
 const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, stepId, onMediaUpload }) => {
+  // Initialize guards for editors (hooks must be at top level)
+  const [headingInitialized, setHeadingInitialized] = useState(false);
+  const [textInitialized, setTextInitialized] = useState(false);
+  
+  useEffect(() => {
+    const timer1 = setTimeout(() => setHeadingInitialized(true), 100);
+    const timer2 = setTimeout(() => setTextInitialized(true), 100);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
+
   switch (block.type) {
     case BLOCK_TYPES.HEADING:
-      const headingSize = block.data.level === 1 ? 'text-3xl' : block.data.level === 2 ? 'text-2xl' : 'text-xl';
+      const headingSize = block.data?.level === 1 ? 'text-3xl' : block.data?.level === 2 ? 'text-2xl' : 'text-xl';
       return (
         <div>
           <InlineRichEditor
-            content={block.data.content || ''}
-            onChange={(content) => onUpdate({ data: { ...block.data, content } })}
+            content={block.data?.content || ''}
+            onChange={(content) => {
+              if (headingInitialized && onUpdate) {
+                onUpdate({ data: { ...(block.data || {}), content } });
+              }
+            }}
             placeholder="Heading text..."
             textSize={headingSize}
             isBold={true}
@@ -737,8 +911,12 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
     case BLOCK_TYPES.TEXT:
       return (
         <RichTextEditor
-          content={block.data.content || ''}
-          onChange={(content) => onUpdate({ data: { ...block.data, content } })}
+          content={block.data?.content || ''}
+          onChange={(content) => {
+            if (textInitialized && onUpdate) {
+              onUpdate({ data: { ...(block.data || {}), content } });
+            }
+          }}
         />
       );
 
@@ -871,7 +1049,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
   }
 };
 
-// Inspector Panel Component
+// Inspector Panel Component - Never crashes, always resilient
 const InspectorPanel = ({
   selectedBlock,
   currentStep,
@@ -884,7 +1062,8 @@ const InspectorPanel = ({
   onMediaUpload,
   canUploadFile
 }) => {
-  if (selectedBlock) {
+  // Block settings
+  if (selectedBlock && selectedBlock.id && onBlockUpdate && onBlockDelete) {
     return (
       <div className="w-80 flex-shrink-0 border-l border-slate-200 bg-white overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
@@ -1091,7 +1270,8 @@ const InspectorPanel = ({
     );
   }
 
-  if (currentStep) {
+  // Step settings (no block selected)
+  if (currentStep && currentStep.id && onStepUpdate) {
     return (
       <div className="w-80 flex-shrink-0 border-l border-slate-200 bg-white overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-200">
@@ -1102,7 +1282,11 @@ const InspectorPanel = ({
             <Label className="text-xs text-slate-500 mb-1.5 block">Step Title</Label>
             <Input
               value={currentStep.title || ''}
-              onChange={(e) => onStepUpdate({ title: e.target.value })}
+              onChange={(e) => {
+                if (onStepUpdate) {
+                  onStepUpdate({ title: e.target.value });
+                }
+              }}
               placeholder="Step title"
             />
           </div>
