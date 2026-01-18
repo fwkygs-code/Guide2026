@@ -1596,9 +1596,9 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                 />
               )}
               {currentSlide.caption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent text-white p-3 pb-4 text-sm pointer-events-none">
+                <div className="absolute bottom-0 left-0 right-0 p-3 pb-4 pointer-events-none">
                   <div 
-                    className="prose prose-invert prose-sm max-w-none pointer-events-auto"
+                    className="prose prose-invert prose-sm max-w-none pointer-events-auto bg-black/60 backdrop-blur-md rounded-lg px-4 py-3 border border-white/20 shadow-lg"
                     dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
                   />
                 </div>
