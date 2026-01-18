@@ -162,7 +162,13 @@ const WalkthroughsPage = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate(`/workspace/${workspaceId}/builder-v2/new`)}
+              onClick={() => {
+                if (!workspaceId) {
+                  console.error('workspaceId is missing');
+                  return;
+                }
+                navigate(`/workspace/${workspaceId}/builder-v2/new`.replace(/\/+/g, '/'));
+              }}
               data-testid="create-walkthrough-v2-button"
               title="New Builder V2 (Clean & Stable)"
             >
@@ -302,7 +308,13 @@ const WalkthroughsPage = () => {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            onClick={() => navigate(`/workspace/${workspaceId}/builder-v2/${walkthrough.id}`)}
+                            onClick={() => {
+                              if (!workspaceId || !walkthrough?.id) {
+                                console.error('workspaceId or walkthrough.id is missing');
+                                return;
+                              }
+                              navigate(`/workspace/${workspaceId}/builder-v2/${walkthrough.id}`.replace(/\/+/g, '/'));
+                            }}
                             title="Edit in Builder V2"
                           >
                             <Edit className="w-3 h-3 mr-1" />
