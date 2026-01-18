@@ -1089,7 +1089,7 @@ const CanvasBuilderPage = () => {
           </div>
         )}
         {/* Top Bar */}
-        <div className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
+        <div className="h-16 flex-shrink-0 border-b border-slate-200 bg-white flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -1222,13 +1222,13 @@ const CanvasBuilderPage = () => {
         </div>
 
         {/* Timeline and Main Editor Area - Vertical Resizable */}
-        <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
+        <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0" style={{ minHeight: 0 }}>
           {/* Timeline */}
           {stepTimelineVisible ? (
             <>
               <ResizablePanel defaultSize={15} minSize={10} maxSize={30}>
-                <div className="relative border-b border-slate-200 h-full overflow-y-auto">
-                  <div className="pr-12">
+                <div className="relative border-b border-slate-200 h-full overflow-hidden" style={{ minHeight: 0 }}>
+                  <div className="pr-12 overflow-y-auto" style={{ height: '100%', maxHeight: '100%' }}>
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
@@ -1279,7 +1279,7 @@ const CanvasBuilderPage = () => {
                   </Button>
                 </div>
               </ResizablePanel>
-              <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors cursor-row-resize" />
+              <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors cursor-row-resize flex-shrink-0" />
             </>
           ) : (
             <Button
