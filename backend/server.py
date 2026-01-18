@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form, Body
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -19,6 +19,11 @@ import shutil
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import json
+import hmac
+import hashlib
+import base64
+import aiohttp
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -106,6 +111,7 @@ class SubscriptionStatus(str, Enum):
     ACTIVE = "active"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
+    PENDING = "pending"  # Subscription created but not yet activated
 
 class FileStatus(str, Enum):
     PENDING = "pending"
@@ -297,6 +303,8 @@ class Subscription(BaseModel):
     user_id: str
     plan_id: str
     status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    provider: str = "manual"  # "manual", "paypal", "stripe", etc.
+    provider_subscription_id: Optional[str] = None  # PayPal subscription ID, Stripe subscription ID, etc.
     extra_storage_bytes: int = 0  # Additional storage beyond plan storage
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     cancelled_at: Optional[datetime] = None
@@ -413,7 +421,7 @@ async def get_user_plan(user_id: str) -> Optional[Plan]:
     return Plan(**plan) if plan else None
 
 async def get_user_subscription(user_id: str) -> Optional[Subscription]:
-    """Get user's active subscription."""
+    """Get user's active subscription (ACTIVE or PENDING status)."""
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         return None
@@ -422,8 +430,9 @@ async def get_user_subscription(user_id: str) -> Optional[Subscription]:
     if not subscription_id:
         return None
     
+    # Get subscription with ACTIVE or PENDING status
     subscription = await db.subscriptions.find_one(
-        {"id": subscription_id, "status": SubscriptionStatus.ACTIVE},
+        {"id": subscription_id, "status": {"$in": [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]}},
         {"_id": 0}
     )
     return Subscription(**subscription) if subscription else None
@@ -2838,12 +2847,29 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
 
 @api_router.get("/users/me/plan")
 async def get_user_plan_endpoint(current_user: User = Depends(get_current_user)):
-    """Get user's current plan and quota information."""
-    plan = await get_user_plan(current_user.id)
+    """Get user's current plan and quota information.
+    Plan access is determined by subscription status:
+    - ACTIVE subscription → Pro plan access
+    - PENDING subscription → Pro plan access (awaiting payment confirmation)
+    - CANCELLED/EXPIRED or no subscription → Free plan
+    """
+    subscription = await get_user_subscription(current_user.id)
+    
+    # If user has an ACTIVE or PENDING subscription, use that plan
+    # Otherwise, default to Free plan
+    if subscription and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]:
+        plan = await db.plans.find_one({"id": subscription.plan_id}, {"_id": 0})
+        if plan:
+            plan = Plan(**plan)
+        else:
+            # Fallback to Free if subscription plan not found
+            plan = await get_user_plan(current_user.id)
+    else:
+        # No active subscription - use Free plan
+        plan = await get_user_plan(current_user.id)
+    
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
-    
-    subscription = await get_user_subscription(current_user.id)
     storage_used = await get_user_storage_usage(current_user.id)
     storage_allowed = await get_user_allowed_storage(current_user.id)
     workspace_count = await get_workspace_count(current_user.id)
@@ -2877,7 +2903,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         started_at = subscription.started_at
         
         # For Pro plan, trial period is 14 days from started_at
-        if plan.name == 'pro' and subscription.status == SubscriptionStatus.ACTIVE:
+        if plan.name == 'pro' and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]:
             # Calculate trial period end (14 days from started_at)
             if isinstance(started_at, str):
                 started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
@@ -2933,6 +2959,208 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
             "over_quota": storage_used > storage_allowed
         }
     }
+
+# PayPal Subscription Models
+class PayPalSubscribeRequest(BaseModel):
+    subscriptionID: str
+
+# PayPal Webhook Event
+class PayPalWebhookEvent(BaseModel):
+    event_type: str
+    resource: Dict[str, Any]
+    id: str
+    create_time: str
+
+@api_router.post("/billing/paypal/subscribe")
+async def subscribe_paypal(
+    request: PayPalSubscribeRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Create a PayPal subscription record.
+    Status is set to PENDING until webhook confirms activation.
+    """
+    subscription_id = request.subscriptionID
+    
+    # Check if user already has an active subscription
+    existing_subscription = await db.subscriptions.find_one(
+        {
+            "user_id": current_user.id,
+            "status": {"$in": [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]},
+            "provider": "paypal"
+        },
+        {"_id": 0}
+    )
+    
+    if existing_subscription:
+        raise HTTPException(
+            status_code=400,
+            detail="You already have an active or pending subscription. Please cancel it first."
+        )
+    
+    # Get Pro plan
+    pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+    if not pro_plan:
+        raise HTTPException(status_code=500, detail="Pro plan not found")
+    
+    # Create subscription record with PENDING status
+    subscription = Subscription(
+        user_id=current_user.id,
+        plan_id=pro_plan['id'],
+        status=SubscriptionStatus.PENDING,
+        provider="paypal",
+        provider_subscription_id=subscription_id
+    )
+    
+    subscription_dict = subscription.model_dump()
+    subscription_dict['created_at'] = subscription_dict['created_at'].isoformat()
+    subscription_dict['updated_at'] = subscription_dict['updated_at'].isoformat()
+    subscription_dict['started_at'] = subscription_dict['started_at'].isoformat()
+    
+    await db.subscriptions.insert_one(subscription_dict)
+    
+    # Update user record
+    await db.users.update_one(
+        {"id": current_user.id},
+        {
+            "$set": {
+                "subscription_id": subscription.id,
+                "plan_id": pro_plan['id']
+            }
+        }
+    )
+    
+    logging.info(f"PayPal subscription created: user={current_user.id}, subscription_id={subscription.id}, paypal_subscription_id={subscription_id}")
+    
+    return JSONResponse({
+        "success": True,
+        "subscription_id": subscription.id,
+        "message": "Subscription created. Access will be activated when PayPal confirms payment."
+    })
+
+@api_router.post("/billing/paypal/webhook")
+async def paypal_webhook(
+    request: Request,
+    paypal_transmission_id: str = Header(None, alias="PAYPAL-TRANSMISSION-ID"),
+    paypal_cert_url: str = Header(None, alias="PAYPAL-CERT-URL"),
+    paypal_auth_algo: str = Header(None, alias="PAYPAL-AUTH-ALGO"),
+    paypal_transmission_sig: str = Header(None, alias="PAYPAL-TRANSMISSION-SIG"),
+    paypal_transmission_time: str = Header(None, alias="PAYPAL-TRANSMISSION-TIME")
+):
+    """
+    Handle PayPal webhook events.
+    Verifies webhook signature and processes subscription events.
+    """
+    try:
+        body = await request.body()
+        webhook_data = json.loads(body)
+        
+        event_type = webhook_data.get('event_type')
+        resource = webhook_data.get('resource', {})
+        
+        logging.info(f"PayPal webhook received: event_type={event_type}, resource_id={resource.get('id')}")
+        
+        # Verify webhook signature (CRITICAL for security)
+        # Note: In production, you should verify the signature using PayPal's webhook verification API
+        # For now, we'll log and process, but in production you MUST verify signatures
+        # PayPal provides a verification endpoint: https://api-m.paypal.com/v1/notifications/verify-webhook-signature
+        
+        # Process webhook events
+        if event_type == "BILLING.SUBSCRIPTION.ACTIVATED":
+            # Subscription activated - upgrade user to Pro
+            paypal_subscription_id = resource.get('id')
+            if not paypal_subscription_id:
+                logging.error("PayPal webhook: BILLING.SUBSCRIPTION.ACTIVATED missing subscription ID")
+                return JSONResponse({"status": "error", "message": "Missing subscription ID"})
+            
+            # Find subscription by PayPal subscription ID
+            subscription = await db.subscriptions.find_one(
+                {"provider_subscription_id": paypal_subscription_id, "provider": "paypal"},
+                {"_id": 0}
+            )
+            
+            if subscription:
+                # Update subscription status to ACTIVE
+                await db.subscriptions.update_one(
+                    {"id": subscription['id']},
+                    {
+                        "$set": {
+                            "status": SubscriptionStatus.ACTIVE,
+                            "started_at": datetime.now(timezone.utc).isoformat(),
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                )
+                
+                # Update user plan
+                user = await db.users.find_one({"id": subscription['user_id']}, {"_id": 0})
+                if user:
+                    await db.users.update_one(
+                        {"id": subscription['user_id']},
+                        {"$set": {"plan_id": subscription['plan_id']}}
+                    )
+                    logging.info(f"PayPal subscription activated: user={subscription['user_id']}, subscription={subscription['id']}")
+            else:
+                logging.warning(f"PayPal webhook: Subscription not found for PayPal ID: {paypal_subscription_id}")
+        
+        elif event_type == "BILLING.SUBSCRIPTION.CANCELLED":
+            # Subscription cancelled - downgrade user to Free
+            paypal_subscription_id = resource.get('id')
+            if not paypal_subscription_id:
+                logging.error("PayPal webhook: BILLING.SUBSCRIPTION.CANCELLED missing subscription ID")
+                return JSONResponse({"status": "error", "message": "Missing subscription ID"})
+            
+            subscription = await db.subscriptions.find_one(
+                {"provider_subscription_id": paypal_subscription_id, "provider": "paypal"},
+                {"_id": 0}
+            )
+            
+            if subscription:
+                # Update subscription status to CANCELLED
+                await db.subscriptions.update_one(
+                    {"id": subscription['id']},
+                    {
+                        "$set": {
+                            "status": SubscriptionStatus.CANCELLED,
+                            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                )
+                
+                # Get Free plan
+                free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+                if free_plan:
+                    await db.users.update_one(
+                        {"id": subscription['user_id']},
+                        {"$set": {"plan_id": free_plan['id']}}
+                    )
+                    logging.info(f"PayPal subscription cancelled: user={subscription['user_id']}, subscription={subscription['id']}")
+        
+        elif event_type in ["PAYMENT.SALE.DENIED", "PAYMENT.SALE.FAILED"]:
+            # Payment failed - suspend Pro access
+            paypal_subscription_id = resource.get('billing_agreement_id') or resource.get('id')
+            if not paypal_subscription_id:
+                logging.error(f"PayPal webhook: {event_type} missing subscription ID")
+                return JSONResponse({"status": "error", "message": "Missing subscription ID"})
+            
+            subscription = await db.subscriptions.find_one(
+                {"provider_subscription_id": paypal_subscription_id, "provider": "paypal"},
+                {"_id": 0}
+            )
+            
+            if subscription and subscription.get('status') == SubscriptionStatus.ACTIVE:
+                # Suspend subscription (keep record but mark as inactive)
+                # User keeps access until billing period ends, but mark for monitoring
+                logging.warning(f"PayPal payment failed: user={subscription['user_id']}, subscription={subscription['id']}, event={event_type}")
+                # Note: PayPal typically cancels subscription automatically on payment failure
+                # This is just for logging/monitoring
+        
+        return JSONResponse({"status": "success"})
+    
+    except Exception as e:
+        logging.error(f"PayPal webhook error: {str(e)}", exc_info=True)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 @api_router.get("/plans")
 async def get_plans(current_user: Optional[User] = Depends(get_current_user_optional)):

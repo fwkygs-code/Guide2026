@@ -135,6 +135,9 @@ export const api = {
   changePlan: (planName) => axios.put(`${API}/users/me/plan`, null, { params: { plan_name: planName } }),
   getPlans: () => axios.get(`${API}/plans`),
   
+  // PayPal Subscriptions
+  subscribePayPal: (data) => axios.post(`${API}/billing/paypal/subscribe`, data),
+  
   // File Management
   deleteFile: (fileId) => axios.delete(`${API}/files/${fileId}`)
 };

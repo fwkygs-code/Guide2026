@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, Info } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
+import PayPalSubscription from './PayPalSubscription';
 
 const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }) => {
   const { t } = useTranslation();
@@ -152,16 +153,26 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 <Button variant="outline" className="w-full" disabled>
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
+              ) : planOption.name === 'pro' ? (
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setShowPayPal(true);
+                  }}
+                  disabled={isSubscribing}
+                >
+                  {isSubscribing ? 'Processing...' : t('upgrade.select')}
+                </Button>
               ) : (
                 <Button
                   className="w-full"
                   onClick={() => {
-                    // TODO: Integrate with payment system
-                    window.open('mailto:support@example.com?subject=Plan Upgrade Request', '_blank');
+                    // Enterprise plan - still use mailto
+                    window.open('mailto:support@example.com?subject=Enterprise Plan Inquiry', '_blank');
                     onOpenChange(false);
                   }}
                 >
-                  {planOption.name === 'enterprise' ? t('upgrade.contactSales') : t('upgrade.select')}
+                  {t('upgrade.contactSales')}
                 </Button>
               )}
 
@@ -246,12 +257,52 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
           </DialogContent>
         </Dialog>
 
-        <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-          <p className="text-sm text-slate-600">
-            <strong>Note:</strong> Plan upgrades are currently processed manually. Please contact us to upgrade your plan.
-            We'll help you choose the right plan for your needs.
-          </p>
-        </div>
+        {/* PayPal Subscription Dialog */}
+        <Dialog open={showPayPal} onOpenChange={(open) => {
+          setShowPayPal(open);
+          if (!open) {
+            setIsSubscribing(false);
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Subscribe to Pro Plan</DialogTitle>
+              <DialogDescription>
+                Complete your subscription to unlock Pro features. Your subscription will be activated automatically.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <PayPalSubscription
+                onSuccess={async (subscriptionID) => {
+                  setShowPayPal(false);
+                  setIsSubscribing(false);
+                  // Refresh quota to get updated plan status
+                  if (refreshQuota) {
+                    await refreshQuota();
+                  }
+                  onOpenChange(false);
+                }}
+                onCancel={() => {
+                  setShowPayPal(false);
+                  setIsSubscribing(false);
+                }}
+                isSubscribing={isSubscribing}
+                setIsSubscribing={setIsSubscribing}
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-4 text-center">
+              By subscribing, you agree to PayPal's terms. Your subscription will renew automatically.
+            </p>
+          </DialogContent>
+        </Dialog>
+
+        {!showPayPal && (
+          <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+            <p className="text-sm text-slate-600">
+              <strong>Note:</strong> Enterprise plans require custom setup. Please contact us for Enterprise pricing.
+            </p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
