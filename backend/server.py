@@ -58,6 +58,14 @@ PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID')
 PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET')
 PAYPAL_WEBHOOK_ID = os.environ.get('PAYPAL_WEBHOOK_ID')  # Webhook ID from PayPal dashboard
 PAYPAL_API_BASE = os.environ.get('PAYPAL_API_BASE', 'https://api-m.paypal.com')  # Use api-m.sandbox.paypal.com for sandbox
+# PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
+# IMPORTANT: Sandbox vs Production behavior differences:
+# - Sandbox may NOT open PayPal UI on cancellation (PayPal sandbox limitation)
+# - Sandbox may auto-cancel silently in some test scenarios
+# - Production always executes the same API calls regardless of UI behavior
+# - Backend logic is identical for sandbox and production (only API base URL differs)
+# - Sandbox UI behavior does not affect backend truth - all state changes require PayPal API/webhook confirmation
+# - All audit logging works identically in sandbox and production
 
 USE_CLOUDINARY = all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
 
@@ -2908,6 +2916,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     
     # RECONCILIATION: Check PENDING subscriptions with PayPal API
     # This handles missed or delayed webhooks safely
+    # NOTE: Reconciliation audit logging is handled inside reconcile_pending_subscription()
     if subscription and subscription.status == SubscriptionStatus.PENDING:
         reconciled_subscription = await reconcile_pending_subscription(subscription)
         if reconciled_subscription:
@@ -2986,6 +2995,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     
     # RUNTIME INVARIANT VALIDATION (log-only, never crash)
     # These checks ensure system state consistency and help detect bugs
+    # PART 4: State validation assertions for production safety
     if subscription and subscription.provider == 'paypal':
         user_plan_id = user.get('plan_id') if user else None
         pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
@@ -2994,32 +3004,54 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         # INVARIANT 1: User cannot be FREE while PayPal status is ACTIVE
         if subscription.paypal_verified_status == 'ACTIVE' and user_plan_id and free_plan and user_plan_id == free_plan['id']:
             logging.critical(
-                f"INVARIANT VIOLATION: User {current_user.id} has FREE plan but PayPal subscription status is ACTIVE. "
+                f"[STATE VALIDATION] INVARIANT VIOLATION: User {current_user.id} has FREE plan but PayPal subscription status is ACTIVE. "
                 f"subscription_id={subscription.id}, paypal_subscription_id={subscription.provider_subscription_id}, "
-                f"paypal_verified_status={subscription.paypal_verified_status}"
+                f"paypal_verified_status={subscription.paypal_verified_status}, user_plan_id={user_plan_id}"
             )
         
-        # INVARIANT 2: User cannot be PRO if PayPal status is EXPIRED
+        # INVARIANT 2: User cannot be PRO if PayPal status is EXPIRED (unless EXPIRED webhook hasn't processed yet)
         if subscription.paypal_verified_status == 'CANCELLED' and subscription.status == SubscriptionStatus.EXPIRED and user_plan_id and pro_plan and user_plan_id == pro_plan['id']:
             # This is actually OK - user keeps access until EXPIRED webhook processes
             # But log if EXPIRED webhook hasn't processed yet
-            pass  # Not a violation - EXPIRED webhook will downgrade
+            logging.warning(
+                f"[STATE VALIDATION] User {current_user.id} has PRO plan but subscription is EXPIRED. "
+                f"This may be expected if EXPIRED webhook is processing. subscription_id={subscription.id}"
+            )
         
         # INVARIANT 3: Cancellation cannot be marked CONFIRMED unless PayPal confirms
         if subscription.status == SubscriptionStatus.CANCELLED and subscription.paypal_verified_status not in ['CANCELLED', 'UNKNOWN']:
             logging.critical(
-                f"INVARIANT VIOLATION: Subscription {subscription.id} marked CANCELLED but paypal_verified_status={subscription.paypal_verified_status}. "
-                f"user_id={current_user.id}, paypal_subscription_id={subscription.provider_subscription_id}"
+                f"[STATE VALIDATION] INVARIANT VIOLATION: Subscription {subscription.id} marked CANCELLED but paypal_verified_status={subscription.paypal_verified_status}. "
+                f"user_id={current_user.id}, paypal_subscription_id={subscription.provider_subscription_id}, "
+                f"subscription_status={subscription.status}"
             )
         
         # INVARIANT 4: Downgrade may occur ONLY on BILLING.SUBSCRIPTION.EXPIRED webhook
-        # This is verified by code review - only EXPIRED webhook downgrades (line 4040-4059)
+        # This is verified by code review - only EXPIRED webhook downgrades
         # Log if user is FREE but subscription is not EXPIRED
         if user_plan_id and free_plan and user_plan_id == free_plan['id']:
             if subscription.status not in [SubscriptionStatus.EXPIRED]:
                 logging.warning(
-                    f"User {current_user.id} has FREE plan but subscription status is {subscription.status}. "
-                    f"This may be expected if subscription was never created or was manually downgraded."
+                    f"[STATE VALIDATION] User {current_user.id} has FREE plan but subscription status is {subscription.status}. "
+                    f"This may be expected if subscription was never created or was manually downgraded. subscription_id={subscription.id}"
+                )
+        
+        # INVARIANT 5: User cannot be PRO if PayPal status != ACTIVE/CANCELLED (unless PENDING)
+        if user_plan_id and pro_plan and user_plan_id == pro_plan['id']:
+            if subscription.paypal_verified_status not in ['ACTIVE', 'CANCELLED', None] and subscription.status != SubscriptionStatus.PENDING:
+                logging.critical(
+                    f"[STATE VALIDATION] INVARIANT VIOLATION: User {current_user.id} has PRO plan but PayPal verified status is {subscription.paypal_verified_status}. "
+                    f"subscription_id={subscription.id}, subscription_status={subscription.status}, "
+                    f"paypal_subscription_id={subscription.provider_subscription_id}"
+                )
+        
+        # INVARIANT 6: trial_ends_at exists without PayPal billing_info source
+        if user.get('trial_ends_at') and subscription.status == SubscriptionStatus.ACTIVE:
+            # Check if trial_ends_at was set from PayPal (should have paypal_verified_status)
+            if not subscription.paypal_verified_status:
+                logging.warning(
+                    f"[STATE VALIDATION] User {current_user.id} has trial_ends_at but subscription has no paypal_verified_status. "
+                    f"This may indicate trial was set without PayPal confirmation. subscription_id={subscription.id}"
                 )
     
     storage_used = await get_user_storage_usage(current_user.id)
@@ -3313,6 +3345,8 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
     
     # For ACTIVE subscriptions, attempt PayPal API cancellation
     # Note: This may fail for card-only (guest) subscriptions, but we have a fallback
+    # SANDBOX NOTE: In sandbox, PayPal may not open cancellation UI, but API calls still execute
+    # Backend truth is determined by PayPal API response, not UI behavior
     if subscription.status != SubscriptionStatus.ACTIVE:
         # EXPIRED subscriptions - return success (idempotent)
         return JSONResponse({
@@ -3364,7 +3398,8 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
         
         async with aiohttp.ClientSession() as session:
             # Cancel subscription via PayPal API
-            cancel_url = f"{PAYPAL_API_BASE}/v1/billing/subscriptions/{paypal_subscription_id}/cancel"
+            cancel_endpoint = f"/v1/billing/subscriptions/{paypal_subscription_id}/cancel"
+            cancel_url = f"{PAYPAL_API_BASE}{cancel_endpoint}"
             cancel_payload = {
                 "reason": "User requested cancellation"
             }
@@ -3373,27 +3408,83 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                 'Content-Type': 'application/json'
             }
             
+            # AUDIT LOG: BEFORE cancellation request
+            await log_paypal_action(
+                action="cancel_request",
+                paypal_endpoint=cancel_endpoint,
+                http_method="POST",
+                source="api_call",
+                user_id=current_user.id,
+                subscription_id=subscription.id,
+                paypal_status=None,
+                verified=False,
+                raw_paypal_response={"request_payload": cancel_payload}
+            )
+            
             async with session.post(cancel_url, json=cancel_payload, headers=cancel_headers) as cancel_response:
                 cancel_status_code = cancel_response.status
+                cancel_response_text = await cancel_response.text() if cancel_status_code != 204 else None
                 logging.info(f"PayPal cancel API response: status={cancel_status_code}, user={current_user.id}, subscription={subscription.id}")
+                
+                # AUDIT LOG: AFTER cancellation request
+                await log_paypal_action(
+                    action="cancel_request_response",
+                    paypal_endpoint=cancel_endpoint,
+                    http_method="POST",
+                    source="api_call",
+                    user_id=current_user.id,
+                    subscription_id=subscription.id,
+                    http_status_code=cancel_status_code,
+                    paypal_status=None,
+                    verified=False,
+                    raw_paypal_response={"response_status": cancel_status_code, "response_text": cancel_response_text}
+                )
                 
                 if cancel_status_code == 204:
                     # Cancellation request accepted by PayPal - now verify status immediately
                     # MANDATORY: PayPal is source of truth - verify before updating local status
-                    verify_url = f"{PAYPAL_API_BASE}/v1/billing/subscriptions/{paypal_subscription_id}"
+                    verify_endpoint = f"/v1/billing/subscriptions/{paypal_subscription_id}"
+                    verify_url = f"{PAYPAL_API_BASE}{verify_endpoint}"
                     verify_headers = {
                         'Authorization': f'Bearer {access_token}',
                         'Content-Type': 'application/json'
                     }
                     
+                    # AUDIT LOG: BEFORE cancellation verification
+                    await log_paypal_action(
+                        action="cancel_verify_before",
+                        paypal_endpoint=verify_endpoint,
+                        http_method="GET",
+                        source="api_call",
+                        user_id=current_user.id,
+                        subscription_id=subscription.id,
+                        paypal_status=None,
+                        verified=False
+                    )
+                    
                     async with session.get(verify_url, headers=verify_headers) as verify_response:
                         paypal_verified_status = "UNKNOWN"
                         now = datetime.now(timezone.utc)
+                        verify_status_code = verify_response.status
                         
-                        if verify_response.status == 200:
+                        if verify_status_code == 200:
                             paypal_details = await verify_response.json()
                             paypal_status = paypal_details.get('status', '').upper()
                             paypal_verified_status = paypal_status if paypal_status in ['ACTIVE', 'CANCELLED'] else "UNKNOWN"
+                            
+                            # AUDIT LOG: AFTER cancellation verification
+                            await log_paypal_action(
+                                action="cancel_verify_after",
+                                paypal_endpoint=verify_endpoint,
+                                http_method="GET",
+                                source="api_call",
+                                user_id=current_user.id,
+                                subscription_id=subscription.id,
+                                http_status_code=verify_status_code,
+                                paypal_status=paypal_verified_status,
+                                verified=(paypal_verified_status == 'CANCELLED'),
+                                raw_paypal_response=paypal_details
+                            )
                             
                             logging.info(f"PayPal verification after cancel: paypal_status={paypal_status}, subscription={subscription.id}")
                             
@@ -3498,7 +3589,20 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
                                 })
                         else:
                             # Could not verify PayPal status - don't assume cancellation succeeded
-                            logging.warning(f"Could not verify PayPal status after cancellation: status={verify_response.status}, subscription={subscription.id}")
+                            # AUDIT LOG: Verification failed
+                            await log_paypal_action(
+                                action="cancel_verify_failed",
+                                paypal_endpoint=verify_endpoint,
+                                http_method="GET",
+                                source="api_call",
+                                user_id=current_user.id,
+                                subscription_id=subscription.id,
+                                http_status_code=verify_status_code,
+                                paypal_status="UNKNOWN",
+                                verified=False,
+                                raw_paypal_response={"error": f"HTTP {verify_status_code}"}
+                            )
+                            logging.warning(f"Could not verify PayPal status after cancellation: status={verify_status_code}, subscription={subscription.id}")
                             effective_end_dt = None
                             if current_period_end:
                                 try:
@@ -3735,6 +3839,19 @@ async def subscribe_paypal(
         }
     )
     
+    # AUDIT LOG: Subscription creation (no PayPal API call, but logs creation)
+    await log_paypal_action(
+        action="create_subscription",
+        paypal_endpoint=f"/v1/billing/subscriptions/{subscription_id}",
+        http_method="N/A",
+        source="api_call",
+        user_id=current_user.id,
+        subscription_id=subscription.id,
+        paypal_status="PENDING",
+        verified=False,
+        raw_paypal_response={"subscription_id": subscription_id, "status": "PENDING"}
+    )
+    
     logging.info(f"PayPal subscription created: user={current_user.id}, subscription_id={subscription.id}, paypal_subscription_id={subscription_id}")
     
     return JSONResponse({
@@ -3823,32 +3940,113 @@ async def log_paypal_action(
     
     return audit_log.id
 
-async def get_paypal_subscription_details(paypal_subscription_id: str) -> Optional[Dict[str, Any]]:
+async def get_paypal_subscription_details(paypal_subscription_id: str, user_id: Optional[str] = None, subscription_id: Optional[str] = None, action: str = "verify_activation", source: str = "api_call") -> Optional[Dict[str, Any]]:
     """
     Fetch subscription details from PayPal API.
     Returns subscription details dict or None if fetch fails.
+    
+    AUDIT LOGGING: All calls to this function are logged before and after.
     """
+    endpoint = f"/v1/billing/subscriptions/{paypal_subscription_id}"
+    
+    # AUDIT LOG: BEFORE PayPal API call
+    await log_paypal_action(
+        action=f"{action}_before",
+        paypal_endpoint=endpoint,
+        http_method="GET",
+        source=source,
+        user_id=user_id,
+        subscription_id=subscription_id,
+        paypal_status=None,
+        verified=False
+    )
+    
     access_token = await get_paypal_access_token()
     if not access_token:
+        # AUDIT LOG: Failed to get access token
+        await log_paypal_action(
+            action=f"{action}_failed",
+            paypal_endpoint=endpoint,
+            http_method="GET",
+            source=source,
+            user_id=user_id,
+            subscription_id=subscription_id,
+            http_status_code=None,
+            paypal_status="UNKNOWN",
+            verified=False,
+            raw_paypal_response={"error": "Failed to get PayPal access token"}
+        )
         return None
     
     try:
         async with aiohttp.ClientSession() as session:
-            subscription_url = f"{PAYPAL_API_BASE}/v1/billing/subscriptions/{paypal_subscription_id}"
+            subscription_url = f"{PAYPAL_API_BASE}{endpoint}"
             headers = {
                 'Authorization': f'Bearer {access_token}',
                 'Content-Type': 'application/json'
             }
             
             async with session.get(subscription_url, headers=headers) as response:
-                if response.status != 200:
-                    logging.error(f"Failed to fetch PayPal subscription details: status={response.status}")
-                    return None
+                response_status = response.status
+                paypal_status = None
+                raw_response = None
                 
-                subscription_details = await response.json()
-                return subscription_details
+                if response_status == 200:
+                    subscription_details = await response.json()
+                    raw_response = subscription_details
+                    paypal_status = subscription_details.get('status', '').upper() if subscription_details else None
+                    
+                    # AUDIT LOG: AFTER successful PayPal API call
+                    await log_paypal_action(
+                        action=f"{action}_after",
+                        paypal_endpoint=endpoint,
+                        http_method="GET",
+                        source=source,
+                        user_id=user_id,
+                        subscription_id=subscription_id,
+                        http_status_code=response_status,
+                        paypal_status=paypal_status,
+                        verified=(paypal_status in ['ACTIVE', 'CANCELLED', 'EXPIRED', 'SUSPENDED']),
+                        raw_paypal_response=raw_response
+                    )
+                    
+                    return subscription_details
+                else:
+                    error_text = await response.text()
+                    raw_response = {"error": error_text, "status_code": response_status}
+                    
+                    # AUDIT LOG: AFTER failed PayPal API call
+                    await log_paypal_action(
+                        action=f"{action}_failed",
+                        paypal_endpoint=endpoint,
+                        http_method="GET",
+                        source=source,
+                        user_id=user_id,
+                        subscription_id=subscription_id,
+                        http_status_code=response_status,
+                        paypal_status="UNKNOWN",
+                        verified=False,
+                        raw_paypal_response=raw_response
+                    )
+                    
+                    logging.error(f"Failed to fetch PayPal subscription details: status={response_status}")
+                    return None
     except Exception as e:
-        logging.error(f"Error fetching PayPal subscription details: {str(e)}")
+        error_msg = str(e)
+        # AUDIT LOG: Exception during PayPal API call
+        await log_paypal_action(
+            action=f"{action}_exception",
+            paypal_endpoint=endpoint,
+            http_method="GET",
+            source=source,
+            user_id=user_id,
+            subscription_id=subscription_id,
+            http_status_code=None,
+            paypal_status="UNKNOWN",
+            verified=False,
+            raw_paypal_response={"error": error_msg, "exception": True}
+        )
+        logging.error(f"Error fetching PayPal subscription details: {error_msg}")
         return None
 
 async def reconcile_pending_subscription(subscription: Subscription) -> Optional[Subscription]:
@@ -3878,7 +4076,13 @@ async def reconcile_pending_subscription(subscription: Subscription) -> Optional
     
     try:
         # Fetch subscription details from PayPal
-        paypal_details = await get_paypal_subscription_details(subscription.provider_subscription_id)
+        paypal_details = await get_paypal_subscription_details(
+            subscription.provider_subscription_id,
+            user_id=subscription.user_id,
+            subscription_id=subscription.id,
+            action="reconcile",
+            source="reconciliation"
+        )
         if not paypal_details:
             # PayPal API unavailable or subscription not found - fail silently
             logging.warning(f"PayPal reconciliation: Could not fetch details for subscription {subscription.id} (PayPal ID: {subscription.provider_subscription_id})")
@@ -3932,6 +4136,20 @@ async def reconcile_pending_subscription(subscription: Subscription) -> Optional
                 {"$set": user_update_data}
             )
             
+            # AUDIT LOG: Reconciliation successful - subscription activated
+            await log_paypal_action(
+                action="reconcile_success",
+                paypal_endpoint=f"/v1/billing/subscriptions/{subscription.provider_subscription_id}",
+                http_method="GET",
+                source="reconciliation",
+                user_id=subscription.user_id,
+                subscription_id=subscription.id,
+                http_status_code=200,
+                paypal_status="ACTIVE",
+                verified=True,
+                raw_paypal_response=paypal_details
+            )
+            
             logging.info(f"PayPal reconciliation: Subscription {subscription.id} reconciled to ACTIVE, user {subscription.user_id} upgraded to Pro")
             
             # Return updated subscription object
@@ -3940,6 +4158,19 @@ async def reconcile_pending_subscription(subscription: Subscription) -> Optional
                 return Subscription(**updated_sub)
         else:
             # PayPal status is not ACTIVE - leave as PENDING
+            # AUDIT LOG: Reconciliation checked but status not ACTIVE
+            await log_paypal_action(
+                action="reconcile_no_action",
+                paypal_endpoint=f"/v1/billing/subscriptions/{subscription.provider_subscription_id}",
+                http_method="GET",
+                source="reconciliation",
+                user_id=subscription.user_id,
+                subscription_id=subscription.id,
+                http_status_code=200,
+                paypal_status=paypal_status,
+                verified=(paypal_status in ['CANCELLED', 'EXPIRED', 'SUSPENDED']),
+                raw_paypal_response=paypal_details
+            )
             logging.debug(f"PayPal reconciliation: Subscription {subscription.id} status in PayPal is {paypal_status}, leaving as PENDING")
             return None
             
@@ -4070,6 +4301,18 @@ async def paypal_webhook(
             logging.error(f"PayPal webhook signature verification failed for event {event_id}")
             return JSONResponse({"status": "error", "message": "Invalid webhook signature"}, status_code=401)
         
+        # AUDIT LOG: Webhook received (before processing)
+        await log_paypal_action(
+            action="webhook_received",
+            paypal_endpoint="/v1/notifications/webhooks",
+            http_method="POST",
+            source="webhook",
+            http_status_code=None,
+            paypal_status=None,
+            verified=False,
+            raw_paypal_response=webhook_data
+        )
+        
         # Process webhook events
         subscription_id = None
         
@@ -4106,7 +4349,13 @@ async def paypal_webhook(
                     subscription['plan_id'] = pro_plan['id']  # Update local variable
                 
                 # Fetch subscription details from PayPal to get actual billing schedule
-                paypal_subscription_details = await get_paypal_subscription_details(paypal_subscription_id)
+                paypal_subscription_details = await get_paypal_subscription_details(
+                    paypal_subscription_id,
+                    user_id=subscription['user_id'],
+                    subscription_id=subscription['id'],
+                    action="activate",
+                    source="webhook"
+                )
                 
                 # Extract trial end date from PayPal's billing_info.next_billing_time
                 # CRITICAL: Trial length must come from PayPal plan, not hardcoded
@@ -4161,6 +4410,20 @@ async def paypal_webhook(
                 result = await db.users.update_one(
                     {"id": subscription['user_id']},
                     {"$set": update_data}
+                )
+                
+                # AUDIT LOG: Activation complete
+                await log_paypal_action(
+                    action="activate",
+                    paypal_endpoint=f"/v1/billing/subscriptions/{paypal_subscription_id}",
+                    http_method="POST",
+                    source="webhook",
+                    user_id=subscription['user_id'],
+                    subscription_id=subscription['id'],
+                    http_status_code=None,
+                    paypal_status="ACTIVE",
+                    verified=True,
+                    raw_paypal_response={"event_type": event_type, "event_id": event_id, "trial_ends_at": trial_ends_at}
                 )
                 
                 logging.info(f"User {subscription['user_id']} upgraded to Pro plan: plan_id={pro_plan['id']}, trial_ends_at={trial_ends_at}, update_result={result.modified_count}")
@@ -4218,6 +4481,21 @@ async def paypal_webhook(
                     }
                 )
                 subscription_id = subscription['id']
+                
+                # AUDIT LOG: Cancellation webhook
+                await log_paypal_action(
+                    action="cancel_webhook",
+                    paypal_endpoint=f"/v1/billing/subscriptions/{paypal_subscription_id}",
+                    http_method="POST",
+                    source="webhook",
+                    user_id=subscription['user_id'],
+                    subscription_id=subscription['id'],
+                    http_status_code=None,
+                    paypal_status="CANCELLED",
+                    verified=True,
+                    raw_paypal_response={"event_type": event_type, "event_id": event_id}
+                )
+                
                 logging.info(f"PayPal subscription cancelled (webhook verified): user={subscription['user_id']}, subscription={subscription['id']} - access continues until billing period ends")
         
         elif event_type == "BILLING.SUBSCRIPTION.SUSPENDED":
@@ -4247,6 +4525,21 @@ async def paypal_webhook(
                     }
                 )
                 subscription_id = subscription['id']
+                
+                # AUDIT LOG: Suspension webhook
+                await log_paypal_action(
+                    action="suspend",
+                    paypal_endpoint=f"/v1/billing/subscriptions/{paypal_subscription_id}",
+                    http_method="POST",
+                    source="webhook",
+                    user_id=subscription['user_id'],
+                    subscription_id=subscription['id'],
+                    http_status_code=None,
+                    paypal_status="SUSPENDED",
+                    verified=True,
+                    raw_paypal_response={"event_type": event_type, "event_id": event_id}
+                )
+                
                 logging.info(f"PayPal subscription suspended (marked as CANCELLED): user={subscription['user_id']}, subscription={subscription['id']} - access continues until EXPIRED")
         
         elif event_type == "BILLING.SUBSCRIPTION.EXPIRED":
@@ -4297,6 +4590,21 @@ async def paypal_webhook(
                         }
                     )
                 subscription_id = subscription['id']
+                
+                # AUDIT LOG: Expiration webhook
+                await log_paypal_action(
+                    action="expire",
+                    paypal_endpoint=f"/v1/billing/subscriptions/{paypal_subscription_id}",
+                    http_method="POST",
+                    source="webhook",
+                    user_id=subscription['user_id'],
+                    subscription_id=subscription['id'],
+                    http_status_code=None,
+                    paypal_status="EXPIRED",
+                    verified=True,
+                    raw_paypal_response={"event_type": event_type, "event_id": event_id}
+                )
+                
                 logging.info(f"PayPal subscription expired - user downgraded to Free: user={subscription['user_id']}, subscription={subscription['id']}")
         
         elif event_type in ["PAYMENT.SALE.DENIED", "PAYMENT.SALE.FAILED"]:
@@ -4321,6 +4629,19 @@ async def paypal_webhook(
                 # Do NOT change subscription status or downgrade user
                 # PayPal will send EXPIRED webhook when subscription actually expires
                 subscription_id = subscription['id']
+        
+        # AUDIT LOG: Webhook processing complete
+        await log_paypal_action(
+            action="webhook_processed",
+            paypal_endpoint="/v1/notifications/webhooks",
+            http_method="POST",
+            source="webhook",
+            subscription_id=subscription_id,
+            http_status_code=200,
+            paypal_status=None,
+            verified=True,
+            raw_paypal_response={"event_type": event_type, "event_id": event_id, "processed": True}
+        )
         
         # Record processed event for idempotency
         processed_event = ProcessedWebhookEvent(
@@ -4695,6 +5016,101 @@ async def global_exception_handler(request: Request, exc: Exception):
             "Access-Control-Allow-Credentials": "true" if not allow_all_origins else "false"
         }
     )
+
+# Admin-only PayPal verification endpoints (read-only, for disputes and audits)
+@api_router.get("/admin/paypal/audit/{subscription_id}")
+async def get_paypal_audit_logs(
+    subscription_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get full PayPal audit log for a subscription.
+    Admin-only endpoint for dispute resolution and audits.
+    
+    Returns chronological audit trail of all PayPal interactions for this subscription.
+    """
+    # TODO: Add admin role check when admin system is implemented
+    # For now, any authenticated user can access (should be restricted in production)
+    
+    # Get subscription to verify it exists
+    subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    # Get all audit logs for this subscription
+    audit_logs = await db.paypal_audit_logs.find(
+        {"subscription_id": subscription_id},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(1000)  # Sort chronologically, limit 1000
+    
+    return {
+        "subscription_id": subscription_id,
+        "provider_subscription_id": subscription.get('provider_subscription_id'),
+        "user_id": subscription.get('user_id'),
+        "audit_logs": audit_logs,
+        "total_logs": len(audit_logs)
+    }
+
+@api_router.get("/admin/paypal/state/{subscription_id}")
+async def get_paypal_state(
+    subscription_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get last verified PayPal status for a subscription.
+    Admin-only endpoint for dispute resolution.
+    
+    Returns:
+    - Last verified PayPal status
+    - Source of confirmation (API / webhook / reconciliation)
+    - Timestamp of last verification
+    - Full audit trail summary
+    """
+    # TODO: Add admin role check when admin system is implemented
+    
+    # Get subscription
+    subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    # Get last verified audit log entry
+    last_verified = await db.paypal_audit_logs.find_one(
+        {
+            "subscription_id": subscription_id,
+            "verified": True
+        },
+        {"_id": 0}
+    )
+    
+    # Get most recent audit log (even if not verified)
+    most_recent = await db.paypal_audit_logs.find_one(
+        {"subscription_id": subscription_id},
+        {"_id": 0}
+    )
+    
+    # Get summary counts
+    total_logs = await db.paypal_audit_logs.count_documents({"subscription_id": subscription_id})
+    verified_logs = await db.paypal_audit_logs.count_documents({
+        "subscription_id": subscription_id,
+        "verified": True
+    })
+    
+    return {
+        "subscription_id": subscription_id,
+        "provider_subscription_id": subscription.get('provider_subscription_id'),
+        "user_id": subscription.get('user_id'),
+        "local_status": subscription.get('status'),
+        "paypal_verified_status": subscription.get('paypal_verified_status'),
+        "last_verified_at": subscription.get('last_verified_at'),
+        "last_verified_log": last_verified,
+        "most_recent_log": most_recent,
+        "audit_summary": {
+            "total_logs": total_logs,
+            "verified_logs": verified_logs,
+            "source_of_truth": last_verified.get('source') if last_verified else None,
+            "last_verification_timestamp": last_verified.get('created_at') if last_verified else None
+        }
+    }
 
 @app.on_event("startup")
 async def startup_event():

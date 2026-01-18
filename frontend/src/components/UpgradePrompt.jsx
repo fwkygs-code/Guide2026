@@ -241,15 +241,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                                       if (status === 'cancelled_confirmed' && paypalVerified) {
                                         toast.success(
                                           <div>
-                                            <div className="font-medium">Subscription cancelled</div>
-                                            <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur. Final billing status is determined by PayPal.</div>
+                                            <div className="font-medium">Subscription cancelled by PayPal</div>
+                                            <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur. Verified by PayPal.</div>
                                           </div>
                                         );
                                       } else {
                                         toast.success(
                                           <div>
-                                            <div className="font-medium">Cancellation pending confirmation</div>
-                                            <div className="text-sm">PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal.</div>
+                                            <div className="font-medium">Cancellation requested — pending PayPal confirmation</div>
+                                            <div className="text-sm">Cancellation request sent. PayPal confirmation pending. Your access remains active until the end of the period. Final billing status is determined by PayPal.</div>
                                           </div>
                                         );
                                       }

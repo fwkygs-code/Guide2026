@@ -249,10 +249,9 @@ const BillingInfo = () => {
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5" />
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-green-900">Subscription cancelled</div>
+                        <div className="text-sm font-medium text-green-900">Subscription cancelled by PayPal</div>
                         <div className="text-xs text-green-700 mt-1">
-                          PayPal has confirmed the cancellation. No further charges will occur after {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
-                          {current_period_end && ` Pro access until ${formatDate(current_period_end)}.`}
+                          PayPal has confirmed the cancellation. No further charges will occur. Pro access until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. Verified by PayPal.
                         </div>
                       </div>
                     </div>
@@ -262,9 +261,9 @@ const BillingInfo = () => {
                     <div className="flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-blue-900">Cancellation pending confirmation</div>
+                        <div className="text-sm font-medium text-blue-900">Cancellation requested — pending PayPal confirmation</div>
                         <div className="text-xs text-blue-700 mt-1">
-                          PayPal is processing the cancellation. Your access remains active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. Final billing status is determined by PayPal.
+                          Cancellation request sent. PayPal confirmation pending. Your access remains active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. Final billing status is determined by PayPal.
                         </div>
                       </div>
                     </div>
