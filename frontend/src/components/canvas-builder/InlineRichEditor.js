@@ -41,7 +41,9 @@ const InlineRichEditor = ({
       Underline,
       TextStyle,
       Color,
-      FontSize,
+      FontSize.configure({
+        types: ['textStyle'],
+      }),
       TextAlign.configure({
         types: ['paragraph'],
       }),

@@ -1,4 +1,3 @@
-import { Extension } from '@tiptap/core';
 import { TextStyle } from '@tiptap/extension-text-style';
 
 export const FontSize = TextStyle.extend({
@@ -7,7 +6,13 @@ export const FontSize = TextStyle.extend({
       ...this.parent?.(),
       fontSize: {
         default: null,
-        parseHTML: element => element.style.fontSize?.replace('px', '') || null,
+        parseHTML: element => {
+          const fontSize = element.style.fontSize;
+          if (!fontSize) return null;
+          // Extract numeric value (remove 'px', 'em', etc.)
+          const match = fontSize.match(/(\d+(?:\.\d+)?)/);
+          return match ? match[1] : null;
+        },
         renderHTML: attributes => {
           if (!attributes.fontSize) {
             return {};
@@ -23,15 +28,20 @@ export const FontSize = TextStyle.extend({
   addCommands() {
     return {
       ...this.parent?.(),
-      setFontSize: (fontSize) => ({ chain }) => {
+      setFontSize: (fontSize) => ({ chain, state }) => {
+        // Extract numeric value from fontSize string (e.g., "16px" -> "16")
+        const sizeValue = fontSize.toString().replace(/px|em|rem|%/i, '').trim();
+        
+        // Set the mark on 'textStyle' (the mark name, not the extension name)
         return chain()
-          .setMark(this.name, { fontSize: fontSize.replace('px', '') })
+          .focus()
+          .setMark('textStyle', { fontSize: sizeValue })
           .run();
       },
       unsetFontSize: () => ({ chain }) => {
         return chain()
-          .setMark(this.name, { fontSize: null })
-          .removeEmptyTextStyle()
+          .focus()
+          .removeMark('textStyle')
           .run();
       },
     };
