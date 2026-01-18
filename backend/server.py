@@ -3212,6 +3212,67 @@ async def subscribe_paypal(
         "message": "Subscription created. Access will be activated when PayPal confirms payment."
     })
 
+async def get_paypal_access_token() -> Optional[str]:
+    """
+    Get PayPal OAuth access token for API calls.
+    Returns access token or None if authentication fails.
+    """
+    if not all([PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET]):
+        logging.error("PayPal credentials not configured")
+        return None
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            auth_url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
+            auth_data = aiohttp.FormData()
+            auth_data.add_field('grant_type', 'client_credentials')
+            
+            auth_string = base64.b64encode(f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()).decode()
+            auth_headers = {
+                'Authorization': f'Basic {auth_string}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            async with session.post(auth_url, data=auth_data, headers=auth_headers) as auth_response:
+                if auth_response.status != 200:
+                    logging.error(f"Failed to get PayPal access token: {auth_response.status}")
+                    return None
+                
+                auth_data = await auth_response.json()
+                access_token = auth_data.get('access_token')
+                return access_token
+    except Exception as e:
+        logging.error(f"Error getting PayPal access token: {str(e)}")
+        return None
+
+async def get_paypal_subscription_details(paypal_subscription_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Fetch subscription details from PayPal API.
+    Returns subscription details dict or None if fetch fails.
+    """
+    access_token = await get_paypal_access_token()
+    if not access_token:
+        return None
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            subscription_url = f"{PAYPAL_API_BASE}/v1/billing/subscriptions/{paypal_subscription_id}"
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            async with session.get(subscription_url, headers=headers) as response:
+                if response.status != 200:
+                    logging.error(f"Failed to fetch PayPal subscription details: status={response.status}")
+                    return None
+                
+                subscription_details = await response.json()
+                return subscription_details
+    except Exception as e:
+        logging.error(f"Error fetching PayPal subscription details: {str(e)}")
+        return None
+
 async def verify_paypal_webhook_signature(
     webhook_id: str,
     transmission_id: str,
@@ -3230,28 +3291,12 @@ async def verify_paypal_webhook_signature(
         return False
     
     try:
-        # Get PayPal access token
+        # Get PayPal access token using helper function
+        access_token = await get_paypal_access_token()
+        if not access_token:
+            return False
+        
         async with aiohttp.ClientSession() as session:
-            # Get OAuth token
-            auth_url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
-            auth_data = aiohttp.FormData()
-            auth_data.add_field('grant_type', 'client_credentials')
-            
-            auth_string = base64.b64encode(f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()).decode()
-            auth_headers = {
-                'Authorization': f'Basic {auth_string}',
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            
-            async with session.post(auth_url, data=auth_data, headers=auth_headers) as auth_response:
-                if auth_response.status != 200:
-                    logging.error(f"Failed to get PayPal access token: {auth_response.status}")
-                    return False
-                auth_data = await auth_response.json()
-                access_token = auth_data.get('access_token')
-                if not access_token:
-                    logging.error("No access token in PayPal auth response")
-                    return False
             
             # Verify webhook signature
             verify_url = f"{PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature"
@@ -3366,6 +3411,35 @@ async def paypal_webhook(
             )
             
             if subscription:
+                # Fetch subscription details from PayPal to get actual billing schedule
+                paypal_subscription_details = await get_paypal_subscription_details(paypal_subscription_id)
+                
+                # Extract trial end date from PayPal's billing_info.next_billing_time
+                # CRITICAL: Trial length must come from PayPal plan, not hardcoded
+                trial_ends_at = None
+                if paypal_subscription_details:
+                    billing_info = paypal_subscription_details.get('billing_info')
+                    if billing_info and billing_info.get('next_billing_time'):
+                        # next_billing_time indicates when the first billing will occur (end of trial)
+                        trial_ends_at = billing_info['next_billing_time']
+                        logging.info(f"Trial end date from PayPal billing_info.next_billing_time: {trial_ends_at}")
+                    else:
+                        # Fallback: If billing_info is not yet available (may take a few minutes),
+                        # check cycle_executions for trial information
+                        cycle_executions = billing_info.get('cycle_executions', []) if billing_info else []
+                        for cycle in cycle_executions:
+                            if cycle.get('tenure_type') == 'TRIAL' and cycle.get('cycles_remaining', 0) > 0:
+                                # Trial is active - next_billing_time should be set when available
+                                logging.warning(f"Trial cycle found but next_billing_time not available yet for subscription {paypal_subscription_id}")
+                                break
+                
+                if not trial_ends_at:
+                    # Fallback: If we can't get next_billing_time from PayPal (shouldn't happen),
+                    # log warning but don't set trial - let it be handled by subscription status
+                    logging.warning(f"Could not determine trial end date from PayPal for subscription {paypal_subscription_id}. Subscription activated but trial_ends_at not set.")
+                    # Don't set trial_ends_at - user will have Pro access via subscription status
+                    trial_ends_at = None
+                
                 # Update subscription status to ACTIVE
                 await db.subscriptions.update_one(
                     {"id": subscription['id']},
@@ -3379,18 +3453,22 @@ async def paypal_webhook(
                 )
                 
                 # Upgrade user to Pro plan (ONLY place this happens)
-                # Set 14-day trial period starting from subscription activation
-                trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+                # Set trial_ends_at from PayPal's billing schedule (not hardcoded)
+                update_data = {
+                    "plan_id": subscription['plan_id']
+                }
+                if trial_ends_at:
+                    update_data["trial_ends_at"] = trial_ends_at
+                
                 await db.users.update_one(
                     {"id": subscription['user_id']},
-                    {
-                        "$set": {
-                            "plan_id": subscription['plan_id'],
-                            "trial_ends_at": trial_ends_at
-                        }
-                    }
+                    {"$set": update_data}
                 )
-                logging.info(f"Pro subscription activated with 14-day trial: user={subscription['user_id']}, trial_ends_at={trial_ends_at}")
+                
+                if trial_ends_at:
+                    logging.info(f"Pro subscription activated with trial ending at {trial_ends_at} (from PayPal billing_info.next_billing_time): user={subscription['user_id']}")
+                else:
+                    logging.info(f"Pro subscription activated (trial end date not available from PayPal yet): user={subscription['user_id']}")
                 subscription_id = subscription['id']
                 logging.info(f"PayPal subscription activated: user={subscription['user_id']}, subscription={subscription['id']}")
             else:
