@@ -30,7 +30,7 @@ import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { FontSize } from '@/lib/fontSize';
-import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 
 /**
