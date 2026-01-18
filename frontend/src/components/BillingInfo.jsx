@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 import { api } from '../lib/api';
@@ -12,12 +13,13 @@ const BillingInfo = () => {
   const { t } = useTranslation();
   const { quotaData, refreshQuota } = useQuota();
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   if (!quotaData) {
     return null;
   }
 
-  const { plan, subscription, trial_period_end, current_period_end, cancel_at_period_end } = quotaData;
+  const { plan, subscription, trial_period_end, current_period_end, cancel_at_period_end, paypal_verified_status, last_verified_at } = quotaData;
   const hasSubscription = subscription && subscription.provider === 'paypal';
   const isProPlan = plan.name === 'pro';
 
@@ -122,8 +124,8 @@ const BillingInfo = () => {
           </div>
         )}
 
-        {/* Cancellation Status */}
-        {cancel_at_period_end && (
+        {/* Cancellation Status - Only show if not in button section */}
+        {cancel_at_period_end && !(subscription && (subscription.status === 'active' || subscription.status === 'pending' || subscription.status === 'cancelled')) && (
           <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
@@ -168,6 +170,23 @@ const BillingInfo = () => {
           </div>
         )}
 
+        {/* PayPal Verified Status */}
+        {paypal_verified_status && (
+          <div>
+            <div className="text-sm font-medium text-slate-700">PayPal Verified Status</div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge className={paypal_verified_status === 'ACTIVE' ? 'bg-green-500' : paypal_verified_status === 'CANCELLED' ? 'bg-orange-500' : 'bg-slate-500'}>
+                {paypal_verified_status}
+              </Badge>
+              {last_verified_at && (
+                <span className="text-xs text-slate-500">
+                  Last verified: {formatDate(last_verified_at)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Cancel Subscription Button */}
         {subscription && (subscription.status === 'active' || subscription.status === 'pending' || subscription.status === 'cancelled') && (
           <div className="pt-4 border-t border-slate-200">
@@ -180,35 +199,111 @@ const BillingInfo = () => {
                 >
                   Cancellation Scheduled
                 </Button>
-                <p className="text-xs text-slate-500 text-center">
-                  Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. No further charges will occur.
-                </p>
+                {paypal_verified_status === 'CANCELLED' ? (
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-green-900">Subscription cancelled</div>
+                        <div className="text-xs text-green-700 mt-1">
+                          PayPal has confirmed the cancellation. No further charges will occur.
+                          {current_period_end && ` Pro access until ${formatDate(current_period_end)}.`}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : paypal_verified_status === 'UNKNOWN' || !paypal_verified_status ? (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-blue-900">Cancellation pending confirmation</div>
+                        <div className="text-xs text-blue-700 mt-1">
+                          PayPal is processing the cancellation. Your access remains active until the end of the period.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 text-center">
+                    Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. No further charges will occur.
+                  </p>
+                )}
               </div>
             ) : (
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={async () => {
-                  setIsCancelling(true);
-                  try {
-                    const response = await api.cancelPayPalSubscription();
-                    if (response.data && response.data.success) {
-                      toast.success(response.data.message || 'Subscription cancellation requested. You will continue to have Pro access until the end of your current billing period.');
-                      if (refreshQuota) {
-                        await refreshQuota();
-                      }
-                    }
-                  } catch (error) {
-                    const errorMessage = error.response?.data?.detail || 'Failed to process cancellation request. Please try again or contact support.';
-                    toast.error(errorMessage);
-                  } finally {
-                    setIsCancelling(false);
-                  }
-                }}
-                disabled={isCancelling}
-              >
-                {isCancelling ? 'Processing...' : 'Cancel Subscription'}
-              </Button>
+              <>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => setShowCancelDialog(true)}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? 'Processing...' : 'Cancel Subscription'}
+                </Button>
+                
+                {/* Cancellation Confirmation Dialog */}
+                <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Cancel subscription?</DialogTitle>
+                      <DialogDescription>
+                        You will keep Pro access until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.<br/>
+                        No further charges will occur.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowCancelDialog(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          setShowCancelDialog(false);
+                          setIsCancelling(true);
+                          try {
+                            const response = await api.cancelPayPalSubscription();
+                            if (response.data && response.data.success) {
+                              const status = response.data.status;
+                              const paypalVerified = response.data.paypal_verified;
+                              
+                              // Show different messages based on PayPal verification
+                              if (status === 'cancelled_confirmed' && paypalVerified) {
+                                toast.success(
+                                  <div>
+                                    <div className="font-medium">Subscription cancelled</div>
+                                    <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur.</div>
+                                  </div>
+                                );
+                              } else {
+                                toast.success(
+                                  <div>
+                                    <div className="font-medium">Cancellation pending confirmation</div>
+                                    <div className="text-sm">PayPal is processing the cancellation. Your access remains active until the end of the period.</div>
+                                  </div>
+                                );
+                              }
+                              
+                              if (refreshQuota) {
+                                await refreshQuota();
+                              }
+                            }
+                          } catch (error) {
+                            const errorMessage = error.response?.data?.detail || 'Failed to process cancellation request. Please try again or contact support.';
+                            toast.error(errorMessage);
+                          } finally {
+                            setIsCancelling(false);
+                          }
+                        }}
+                        disabled={isCancelling}
+                      >
+                        {isCancelling ? 'Processing...' : 'Confirm cancellation'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
             )}
           </div>
         )}

@@ -35,6 +35,8 @@ export const useQuota = (workspaceId = null) => {
         next_billing_date: planData.next_billing_date || null,
         current_period_end: planData.current_period_end || null,
         cancel_at_period_end: planData.cancel_at_period_end || false,
+        paypal_verified_status: planData.paypal_verified_status || null,
+        last_verified_at: planData.last_verified_at || null,
         quota: {
           storage_used: planData.quota.storage_used_bytes || 0,
           storage_allowed: planData.quota.storage_allowed_bytes || 0,
