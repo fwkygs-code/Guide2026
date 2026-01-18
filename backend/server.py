@@ -3258,6 +3258,34 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
             detail="PayPal subscription ID not found"
         )
     
+    # Calculate current_period_end for user messaging
+    # Get user data to find trial_ends_at
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    trial_ends_at = user.get('trial_ends_at') if user else None
+    current_period_end = None
+    
+    if trial_ends_at:
+        # If in trial, period ends when trial ends
+        try:
+            if isinstance(trial_ends_at, str):
+                current_period_end = trial_ends_at
+            else:
+                current_period_end = trial_ends_at.isoformat()
+        except Exception:
+            pass
+    else:
+        # If not in trial, estimate from started_at + 30 days
+        try:
+            started_at = subscription.started_at
+            if isinstance(started_at, str):
+                started_at_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            else:
+                started_at_dt = started_at
+            # Estimate billing period (30 days from start)
+            current_period_end = (started_at_dt + timedelta(days=30)).isoformat()
+        except Exception:
+            pass
+    
     # Attempt to cancel via PayPal API
     try:
         access_token = await get_paypal_access_token()
