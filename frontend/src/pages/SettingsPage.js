@@ -176,15 +176,18 @@ const SettingsPage = () => {
     }
   };
 
-  const handleRemoveMember = async (userId) => {
+  const handleRemoveMember = async (userId, isPending = false) => {
     if (!workspaceId) return;
-    if (!confirm('Are you sure you want to remove this member?')) return;
+    const confirmMessage = isPending 
+      ? 'Are you sure you want to cancel this invitation?'
+      : 'Are you sure you want to remove this member?';
+    if (!confirm(confirmMessage)) return;
     try {
       await api.removeWorkspaceMember(workspaceId, userId);
-      toast.success('Member removed');
+      toast.success(isPending ? 'Invitation cancelled' : 'Member removed');
       fetchMembers();
     } catch (error) {
-      const errorMsg = error.response?.data?.detail || 'Failed to remove member';
+      const errorMsg = error.response?.data?.detail || (isPending ? 'Failed to cancel invitation' : 'Failed to remove member');
       toast.error(errorMsg);
     }
   };
@@ -702,12 +705,13 @@ const SettingsPage = () => {
                               </p>
                             </div>
                           </div>
-                          {member.user_id !== user?.id && member.status === 'accepted' && isOwner && (
+                          {member.user_id !== user?.id && isOwner && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRemoveMember(member.user_id)}
+                              onClick={() => handleRemoveMember(member.user_id, member.status === 'pending')}
                               className="text-destructive hover:text-destructive"
+                              title={member.status === 'pending' ? 'Cancel invitation' : 'Remove member'}
                             >
                               <X className="w-4 h-4" />
                             </Button>

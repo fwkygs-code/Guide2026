@@ -1930,8 +1930,9 @@ async def invite_user_to_workspace(
                 metadata={"workspace_id": workspace_id, "invitation_id": member.id, "inviter_id": current_user.id, "inviter_name": current_user.name}
             )
         except Exception as notif_error:
-            logging.error(f"Failed to create notification for invitation: {notif_error}")
-            # Don't fail the invitation if notification creation fails
+            logging.error(f"Failed to create notification for invitation: {notif_error}", exc_info=True)
+            # Don't fail the invitation if notification creation fails, but log the error
+            # The invitation was created successfully, so we continue
     except Exception as e:
         logging.error(f"Failed to create invitation: {e}", exc_info=True)
         # Provide more specific error message
@@ -2221,13 +2222,19 @@ async def remove_workspace_member(
     )
     
     # Notify removed member (not batched - member removal events are never batched)
-    await create_notification(
-        user_id=user_id,
-        notification_type=NotificationType.MEMBER_REMOVED,
-        title="Removed from Workspace",
-        message=f"You have been removed from the workspace \"{workspace_name}\" by {current_user.name}",
-        metadata={"workspace_id": workspace_id, "removed_by_id": current_user.id, "removed_by_name": current_user.name}
-    )
+    # Only notify if member was accepted (not pending invitations)
+    member_status = member.get('status', 'accepted')
+    if member_status == InvitationStatus.ACCEPTED:
+        try:
+            await create_notification(
+                user_id=user_id,
+                notification_type=NotificationType.MEMBER_REMOVED,
+                title="Removed from Workspace",
+                message=f"You have been removed from the workspace \"{workspace_name}\" by {current_user.name}",
+                metadata={"workspace_id": workspace_id, "removed_by_id": current_user.id, "removed_by_name": current_user.name}
+            )
+        except Exception as notif_error:
+            logging.error(f"Failed to create removal notification: {notif_error}", exc_info=True)
     
     return {"success": True, "message": "Member removed successfully"}
 
