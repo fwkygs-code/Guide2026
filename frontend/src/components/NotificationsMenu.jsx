@@ -85,6 +85,12 @@ const NotificationsMenu = () => {
     } catch (error) {
       const errorMsg = error.response?.data?.detail || 'Failed to decline invitation';
       toast.error(errorMsg);
+      
+      // If invitation is already accepted/declined, remove the notification
+      if (errorMsg.includes('already been accepted') || errorMsg.includes('already been declined') || errorMsg.includes('no longer pending')) {
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        await fetchNotifications();
+      }
     }
   };
 
