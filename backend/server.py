@@ -1816,7 +1816,22 @@ async def get_notifications(current_user: User = Depends(get_current_user)):
         {"user_id": current_user.id},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
-    return [Notification(**n) for n in notifications]
+    
+    # Filter out INVITE notifications for invitations that have already been accepted/declined
+    filtered_notifications = []
+    for n in notifications:
+        if n.get("type") == NotificationType.INVITE and n.get("metadata", {}).get("invitation_id"):
+            # Check if invitation has been handled
+            invitation_id = n["metadata"]["invitation_id"]
+            workspace_id = n.get("metadata", {}).get("workspace_id")
+            if workspace_id:
+                member = await get_workspace_member(workspace_id, current_user.id)
+                if member and member.status != InvitationStatus.PENDING:
+                    # Invitation has been accepted/declined, skip this notification
+                    continue
+        filtered_notifications.append(n)
+    
+    return [Notification(**n) for n in filtered_notifications]
 
 @api_router.post("/notifications/{notification_id}/read")
 async def mark_notification_read(notification_id: str, current_user: User = Depends(get_current_user)):
