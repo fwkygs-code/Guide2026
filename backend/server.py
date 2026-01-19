@@ -4131,36 +4131,36 @@ async def upload_file(
     """
     file_id = None
     try:
-        logging.info(f"[upload_file] Upload request received: user={current_user.id}, workspace_id={workspace_id}, reference_type={reference_type}, reference_id={reference_id}, filename={file.filename}")
+        # Defensive check: filename can be None
+        filename = file.filename or "uploaded_file"
+        logging.info(f"[upload_file] Upload request received: user={current_user.id}, workspace_id={workspace_id}, reference_type={reference_type}, reference_id={reference_id}, filename={filename}")
         
         # Generate idempotency key if not provided
         if not idempotency_key:
             idempotency_key = str(uuid.uuid4())
         
-        # Get workspace_id from request or use first workspace if not provided
-        # IMPORTANT: Verify workspace access BEFORE using workspace data
+        # CRITICAL: workspace_id is REQUIRED - do not fallback to owner's workspace
+        # This ensures shared workspace members can upload files
         if not workspace_id:
-            # Get user's first workspace (for backward compatibility)
-            workspace = await db.workspaces.find_one({"owner_id": current_user.id}, {"_id": 0, "id": 1, "owner_id": 1})
-            if not workspace:
-                raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
-            workspace_id = workspace['id']
-        else:
-            # Verify user has access to workspace (handles both owners and members)
-            try:
-                await check_workspace_access(workspace_id, current_user.id)
-            except HTTPException:
-                raise
-            except Exception as access_error:
-                logging.error(f"Failed to check workspace access: {access_error}", exc_info=True)
-                raise HTTPException(status_code=403, detail="Access denied to workspace")
+            raise HTTPException(status_code=400, detail="workspace_id is required. Please specify workspace_id in the upload request.")
         
-        # Get workspace to determine owner for idempotency check
+        # Verify user has access to workspace (handles both owners and members)
+        # This check ensures collaborators can upload files
+        try:
+            await check_workspace_access(workspace_id, current_user.id)
+        except HTTPException:
+            raise
+        except Exception as access_error:
+            logging.error(f"[upload_file] Failed to check workspace access: {access_error}", exc_info=True)
+            raise HTTPException(status_code=403, detail="Access denied to workspace")
+        
+        # Get workspace by workspace_id (not by owner_id)
         workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
         if not workspace:
             raise HTTPException(status_code=404, detail="Workspace not found")
         
-        # For idempotency check, use workspace owner's user_id if shared user, otherwise current user
+        # For idempotency check, use workspace owner's user_id for shared users
+        # This ensures idempotency works correctly for all collaborators
         idempotency_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
         
         # Check for existing file with same idempotency key (idempotency check)
@@ -4188,6 +4188,10 @@ async def upload_file(
         file_content = await file.read()
         file_size = len(file_content)
         
+        # Defensive check: file must have content
+        if file_size == 0:
+            raise HTTPException(status_code=400, detail="File is empty")
+        
         # Get user's plan and check file size limit
         plan = await get_user_plan(current_user.id)
         if not plan:
@@ -4199,8 +4203,6 @@ async def upload_file(
                 status_code=413,
                 detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
             )
-        
-        # Workspace is already fetched above for idempotency check
         
         # For shared users, count storage against workspace owner's quota
         # For owners, use their own quota
@@ -4217,7 +4219,6 @@ async def upload_file(
             )
         
         # Determine resource type based on file extension
-        filename = file.filename or "uploaded_file"
         file_extension = Path(filename).suffix.lower()
         resource_type = "auto"
         if file_extension == '.gif':
@@ -4276,9 +4277,9 @@ async def upload_file(
                         category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
             # workspace_logo, workspace_background don't have category/walkthrough
         
-        # Build folder path: guide2026/user_id/workspace_id/category_id/walkthrough_id
-        # Use workspace owner's ID for folder structure (for shared users)
-        folder_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+        # Build folder path: guide2026/workspace_owner_id/workspace_id/category_id/walkthrough_id
+        # Use workspace owner's ID for folder structure (consistent for all collaborators)
+        folder_user_id = workspace['owner_id']
         folder_parts = ["guide2026", folder_user_id, workspace_id]
         if category_id:
             folder_parts.append(category_id)
@@ -4289,8 +4290,8 @@ async def upload_file(
         logging.info(f"[upload_file] Cloudinary folder: {cloudinary_folder} (user={current_user.id}, workspace={workspace_id}, category={category_id}, walkthrough_id={walkthrough_id})")
         
         # Phase 1: Create file record with status=pending (reserves quota)
-        # For shared users, file records should be associated with workspace owner for quota tracking
-        file_owner_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+        # For shared users, file records are associated with workspace owner for quota tracking
+        file_owner_id = workspace['owner_id']
         
         file_id = str(uuid.uuid4())
         file_record = File(
@@ -4313,116 +4314,117 @@ async def upload_file(
         
         # Insert file record (this reserves the quota)
         await db.files.insert_one(file_dict)
-    
-    # Phase 2: Upload to Cloudinary (MANDATORY - no local storage fallback)
-    try:
-        upload_params = {
-            "public_id": file_id,
-            "resource_type": resource_type,
-            "folder": cloudinary_folder,  # Organized: guide2026/user_id/workspace_id/category_id/walkthrough_id
-            "overwrite": False,
-            "invalidate": True
-        }
         
-        # Add optimization parameters for upload
-        # Note: format="auto" and fetch_format are NOT valid upload parameters
-        # Format optimization is done at delivery time via URL transformations, not upload
-        if resource_type == "image":
-            upload_params.update({
-                "quality": "auto:good"
-            })
-            logging.info(f"[upload_file] Image upload params: {upload_params}")
-        elif resource_type == "video":
-            upload_params.update({
-                "quality": "auto:good",
-                "video_codec": "auto",
-                "bit_rate": "1m",
-                "max_video_bitrate": 1000000,
-            })
-            logging.info(f"[upload_file] Video upload params: {upload_params}")
-        
-        # CRITICAL: Upload to Cloudinary - this is the only storage mechanism
-        logging.info(f"[upload_file] Uploading file {file_id} to Cloudinary with resource_type={resource_type}")
-        upload_result = cloudinary.uploader.upload(
-            file_content,
-            **upload_params
-        )
-        
-        secure_url = upload_result.get('secure_url') or upload_result.get('url')
-        public_id = upload_result.get('public_id')
-        returned_resource_type = upload_result.get('resource_type')
-        
-        # CRITICAL: Verify upload succeeded and returned required data
-        if not secure_url:
-            raise ValueError("Cloudinary upload succeeded but no URL returned")
-        if not public_id:
-            raise ValueError("Cloudinary upload succeeded but no public_id returned")
-        
-        logging.info(f"[upload_file] Cloudinary upload successful: file_id={file_id}, public_id={public_id}, resource_type={returned_resource_type}, url={secure_url}")
-        
-        # CRITICAL: Update file record with Cloudinary data - this is what /api/media/:id uses
-        update_result = await db.files.update_one(
-            {"id": file_id},
-            {"$set": {
-                "status": FileStatus.ACTIVE,
-                "url": secure_url,  # CRITICAL: Store Cloudinary URL
-                "public_id": public_id,  # CRITICAL: Store public_id for lookups
-                "resource_type": resource_type,  # CRITICAL: Store resource_type for lookups
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-        
-        if update_result.modified_count == 0:
-            logging.error(f"[upload_file] WARNING: File record update failed for {file_id}")
-        else:
-            logging.info(f"[upload_file] File record updated successfully: file_id={file_id}, status=ACTIVE, url={secure_url}, public_id={public_id}")
-        
-        # Verify the record was saved correctly
-        verification = await db.files.find_one({"id": file_id}, {"_id": 0, "url": 1, "public_id": 1, "resource_type": 1, "status": 1})
-        if verification:
-            logging.info(f"[upload_file] Verification: DB record for {file_id} = {verification}")
-            if verification.get('url') != secure_url:
-                logging.error(f"[upload_file] CRITICAL: URL mismatch! Expected: {secure_url}, Got: {verification.get('url')}")
-            if verification.get('public_id') != public_id:
-                logging.error(f"[upload_file] CRITICAL: public_id mismatch! Expected: {public_id}, Got: {verification.get('public_id')}")
-        else:
-            logging.error(f"[upload_file] CRITICAL: File record not found after update for {file_id}")
-        
-        return {
-            "file_id": file_id,
-            "url": secure_url,
-            "public_id": public_id,
-            "size_bytes": file_size,
-            "format": upload_result.get('format'),
-            "width": upload_result.get('width'),
-            "height": upload_result.get('height'),
-            "bytes": upload_result.get('bytes'),
-            "status": "active"
-        }
-        
-    except Exception as e:
-        # Mark file as failed if upload fails
-        logging.error(f"[upload_file] Cloudinary upload failed for file {file_id}: {str(e)}", exc_info=True)
+        # Phase 2: Upload to Cloudinary (MANDATORY - no local storage fallback)
         try:
-            await db.files.update_one(
+            upload_params = {
+                "public_id": file_id,
+                "resource_type": resource_type,
+                "folder": cloudinary_folder,  # Organized: guide2026/workspace_owner_id/workspace_id/category_id/walkthrough_id
+                "overwrite": False,
+                "invalidate": True
+            }
+            
+            # Add optimization parameters for upload
+            # Note: format="auto" and fetch_format are NOT valid upload parameters
+            # Format optimization is done at delivery time via URL transformations, not upload
+            if resource_type == "image":
+                upload_params.update({
+                    "quality": "auto:good"
+                })
+                logging.info(f"[upload_file] Image upload params: {upload_params}")
+            elif resource_type == "video":
+                upload_params.update({
+                    "quality": "auto:good",
+                    "video_codec": "auto",
+                    "bit_rate": "1m",
+                    "max_video_bitrate": 1000000,
+                })
+                logging.info(f"[upload_file] Video upload params: {upload_params}")
+            
+            # CRITICAL: Upload to Cloudinary - this is the only storage mechanism
+            logging.info(f"[upload_file] Uploading file {file_id} to Cloudinary with resource_type={resource_type}")
+            upload_result = cloudinary.uploader.upload(
+                file_content,
+                **upload_params
+            )
+            
+            secure_url = upload_result.get('secure_url') or upload_result.get('url')
+            public_id = upload_result.get('public_id')
+            returned_resource_type = upload_result.get('resource_type')
+            
+            # CRITICAL: Verify upload succeeded and returned required data
+            if not secure_url:
+                raise ValueError("Cloudinary upload succeeded but no URL returned")
+            if not public_id:
+                raise ValueError("Cloudinary upload succeeded but no public_id returned")
+            
+            logging.info(f"[upload_file] Cloudinary upload successful: file_id={file_id}, public_id={public_id}, resource_type={returned_resource_type}, url={secure_url}")
+            
+            # CRITICAL: Update file record with Cloudinary data - this is what /api/media/:id uses
+            update_result = await db.files.update_one(
                 {"id": file_id},
                 {"$set": {
-                    "status": FileStatus.FAILED,
+                    "status": FileStatus.ACTIVE,
+                    "url": secure_url,  # CRITICAL: Store Cloudinary URL
+                    "public_id": public_id,  # CRITICAL: Store public_id for lookups
+                    "resource_type": resource_type,  # CRITICAL: Store resource_type for lookups
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }}
             )
-        except Exception as update_error:
-            logging.error(f"[upload_file] Failed to update file record status to FAILED: {update_error}", exc_info=True)
-        
-        # Re-raise HTTPExceptions as-is (they already have proper status codes)
-        if isinstance(e, HTTPException):
-            raise
-        # For other exceptions, wrap in 500 error with detailed logging
-        logging.error(f"[upload_file] Unexpected error during Cloudinary upload: {type(e).__name__}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"File upload failed: {str(e)}. Please try again or contact support."
-        )
+            
+            if update_result.modified_count == 0:
+                logging.error(f"[upload_file] WARNING: File record update failed for {file_id}")
+            else:
+                logging.info(f"[upload_file] File record updated successfully: file_id={file_id}, status=ACTIVE, url={secure_url}, public_id={public_id}")
+            
+            # Verify the record was saved correctly
+            verification = await db.files.find_one({"id": file_id}, {"_id": 0, "url": 1, "public_id": 1, "resource_type": 1, "status": 1})
+            if verification:
+                logging.info(f"[upload_file] Verification: DB record for {file_id} = {verification}")
+                if verification.get('url') != secure_url:
+                    logging.error(f"[upload_file] CRITICAL: URL mismatch! Expected: {secure_url}, Got: {verification.get('url')}")
+                if verification.get('public_id') != public_id:
+                    logging.error(f"[upload_file] CRITICAL: public_id mismatch! Expected: {public_id}, Got: {verification.get('public_id')}")
+            else:
+                logging.error(f"[upload_file] CRITICAL: File record not found after update for {file_id}")
+            
+            return {
+                "file_id": file_id,
+                "url": secure_url,
+                "public_id": public_id,
+                "size_bytes": file_size,
+                "format": upload_result.get('format'),
+                "width": upload_result.get('width'),
+                "height": upload_result.get('height'),
+                "bytes": upload_result.get('bytes'),
+                "status": "active"
+            }
+            
+        except Exception as e:
+            # Mark file as failed if upload fails
+            logging.error(f"[upload_file] Cloudinary upload failed for file {file_id}: {str(e)}", exc_info=True)
+            if file_id:
+                try:
+                    await db.files.update_one(
+                        {"id": file_id},
+                        {"$set": {
+                            "status": FileStatus.FAILED,
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }}
+                    )
+                except Exception as update_error:
+                    logging.error(f"[upload_file] Failed to update file record status to FAILED: {update_error}", exc_info=True)
+            
+            # Re-raise HTTPExceptions as-is (they already have proper status codes)
+            if isinstance(e, HTTPException):
+                raise
+            # For other exceptions, wrap in 500 error with detailed logging
+            logging.error(f"[upload_file] Unexpected error during Cloudinary upload: {type(e).__name__}: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"File upload failed: {str(e)}. Please try again or contact support."
+            )
     except HTTPException:
         # Re-raise HTTPExceptions as-is
         raise
