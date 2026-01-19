@@ -898,7 +898,7 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
     if existing_lock:
         if existing_lock.locked_by_user_id == user_id:
             # Same user, extend lock (idempotent - safe for refresh)
-            expires_at = datetime.now(timezone.utc) + timedelta(hours=2)
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # 10 minute TTL
             await db.workspace_locks.update_one(
                 {"workspace_id": workspace_id},
                 {"$set": {"expires_at": expires_at.isoformat()}}
@@ -935,7 +935,9 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
             )
     
     # Create new lock
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=2)  # 2 hour TTL
+    # Reduced TTL to 10 minutes - locks should be actively maintained by frontend
+    # If user navigates away, lock expires quickly to prevent blocking
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # 10 minute TTL
     lock = WorkspaceLock(
         workspace_id=workspace_id,
         locked_by_user_id=user_id,

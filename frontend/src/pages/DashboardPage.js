@@ -43,7 +43,22 @@ const DashboardPage = () => {
   const fetchWorkspaces = async () => {
     try {
       const response = await api.getWorkspaces();
-      setWorkspaces(response.data);
+      const workspacesData = response.data;
+      setWorkspaces(workspacesData);
+      
+      // Release any locks for workspaces when user is on dashboard
+      // This ensures locks are released even if user navigated directly to dashboard
+      // (bypassing workspace page cleanup)
+      if (workspacesData && workspacesData.length > 0 && user?.id) {
+        workspacesData.forEach(async (workspace) => {
+          try {
+            // Silently release lock - ignore errors (lock may not exist or already released)
+            await api.unlockWorkspace(workspace.id).catch(() => {});
+          } catch (error) {
+            // Ignore errors - lock may not exist
+          }
+        });
+      }
     } catch (error) {
       toast.error('Failed to load workspaces');
     } finally {
