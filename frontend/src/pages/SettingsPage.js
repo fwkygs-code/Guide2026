@@ -53,10 +53,15 @@ const SettingsPage = () => {
       const userIsOwner = workspace.owner_id === user.id;
       setIsOwner(userIsOwner);
       
-      // Redirect non-owners away from settings
+      // Redirect non-owners away from settings immediately
       if (!userIsOwner) {
         toast.error('Only workspace owners can access settings');
-        navigate(`/workspace/${workspace.slug || workspaceId}/walkthroughs`);
+        const slug = workspace.slug || workspaceId;
+        if (slug) {
+          navigate(`/workspace/${slug}/walkthroughs`, { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
         return;
       }
       
@@ -75,6 +80,9 @@ const SettingsPage = () => {
     } else if (workspace && !workspace.owner_id && user && workspaceId) {
       // Fallback: if owner_id not in workspace object, fetch it
       checkOwnership();
+    } else if (!workspace && workspaceId && user) {
+      // If workspace not loaded yet, wait for it
+      // Don't redirect until we know the ownership status
     }
   }, [workspace, user, workspaceId, navigate]);
 

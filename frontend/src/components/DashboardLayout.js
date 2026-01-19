@@ -26,6 +26,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
   
   // Check if user is a shared member (not owner)
   const isSharedUser = workspace && workspace.owner_id && workspace.owner_id !== user?.id;
+  const isOwner = workspace && workspace.owner_id === user?.id;
 
   const workspaceMatch = location.pathname.match(/^\/workspace\/([^/]+)/);
   const workspaceId = workspaceMatch?.[1] || contextWorkspaceId;
@@ -196,15 +197,17 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 <BarChart3 className="w-4 h-4 mr-2" />
                 {t('workspace.analytics')}
               </Button>
-              <Button
-                variant={location.pathname.includes('/settings') ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => navigate(`/workspace/${workspaceId}/settings`)}
-                data-testid="nav-workspace-settings"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                {t('workspace.settings')}
-              </Button>
+              {isOwner && (
+                <Button
+                  variant={location.pathname.includes('/settings') ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => navigate(`/workspace/${workspaceSlug || workspaceId}/settings`)}
+                  data-testid="nav-workspace-settings"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  {t('workspace.settings')}
+                </Button>
+              )}
             </div>
           </div>
         )}
