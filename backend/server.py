@@ -4187,9 +4187,13 @@ async def upload_file(
             raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
         workspace_id = workspace['id']
     else:
-        # Verify user has access to workspace
-        member = await get_workspace_member(workspace_id, current_user.id)
-        if not member:
+        # Verify user has access to workspace (handles both owners and members)
+        try:
+            await check_workspace_access(workspace_id, current_user.id)
+        except HTTPException:
+            raise
+        except Exception as access_error:
+            logging.error(f"Failed to check workspace access: {access_error}", exc_info=True)
             raise HTTPException(status_code=403, detail="Access denied to workspace")
     
     # Get workspace to determine owner
