@@ -9,7 +9,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { api } from '../lib/api';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 
 const NotificationsMenu = () => {
@@ -54,6 +54,41 @@ const NotificationsMenu = () => {
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Check for FORCED_DISCONNECT notifications and handle them
+  useEffect(() => {
+    const forcedDisconnect = notifications.find(n => n.type === 'forced_disconnect' && !n.is_read);
+    if (forcedDisconnect) {
+      // Mark as read immediately
+      api.markNotificationRead(forcedDisconnect.id).catch(console.error);
+      
+      // Update notification state
+      setNotifications(prev => prev.map(n => 
+        n.id === forcedDisconnect.id ? { ...n, is_read: true } : n
+      ));
+      
+      // Check if user is currently in a workspace
+      const workspaceMatch = location.pathname.match(/^\/workspace\/([^/]+)/);
+      if (workspaceMatch) {
+        const workspaceSlug = workspaceMatch[1];
+        const workspaceId = forcedDisconnect.metadata?.workspace_id;
+        
+        // Release lock if we have workspace ID
+        if (workspaceId) {
+          api.unlockWorkspace(workspaceId).catch(console.error);
+        }
+        
+        // Redirect to workspace main page (walkthroughs) - not logged out
+        navigate(`/workspace/${workspaceSlug}/walkthroughs`, { replace: true });
+        
+        // Show non-dismissible message
+        toast.error('Another user entered the workspace and your session was ended.', {
+          duration: 10000,
+          important: true
+        });
+      }
+    }
+  }, [notifications, location.pathname, navigate]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 

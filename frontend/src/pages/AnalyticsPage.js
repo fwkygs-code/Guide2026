@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart3, Eye, Play, CheckCircle, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 const AnalyticsPage = () => {
   const { workspaceSlug } = useParams();
+  const navigate = useNavigate();
   const [walkthroughs, setWalkthroughs] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -16,6 +17,33 @@ const AnalyticsPage = () => {
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
   const [analyticsData, setAnalyticsData] = useState({});
   const [feedbackData, setFeedbackData] = useState({});
+
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate(`/workspace/${workspaceSlug}/walkthroughs`);
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(console.error);
+      }
+    };
+  }, [workspaceId, workspaceSlug, navigate]);
 
   useEffect(() => {
     fetchData();

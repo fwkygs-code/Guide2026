@@ -158,5 +158,23 @@ export const api = {
   acceptInvitation: (workspaceId, invitationId) => axios.post(`${API}/workspaces/${workspaceId}/invitations/${invitationId}/accept`),
   declineInvitation: (workspaceId, invitationId) => axios.post(`${API}/workspaces/${workspaceId}/invitations/${invitationId}/decline`),
   removeWorkspaceMember: (workspaceId, userId) => axios.delete(`${API}/workspaces/${workspaceId}/members/${userId}`),
-  getWorkspaceMembers: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/members`)
+  getWorkspaceMembers: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/members`),
+  
+  // Workspace Locking
+  lockWorkspace: async (workspaceId, force = false) => {
+    try {
+      const response = await axios.post(`${API}/workspaces/${workspaceId}/lock?force=${force}`);
+      return { success: true, locked: false, data: response.data };
+    } catch (error) {
+      if (error.response?.status === 409) {
+        // Extract locked_by name from error message
+        const detail = error.response?.data?.detail || '';
+        const match = detail.match(/Another user \(([^)]+)\)/);
+        const lockedBy = match ? match[1] : 'Another user';
+        return { success: false, locked: true, locked_by: lockedBy, error: detail };
+      }
+      throw error;
+    }
+  },
+  unlockWorkspace: (workspaceId) => axios.delete(`${API}/workspaces/${workspaceId}/lock`)
 };

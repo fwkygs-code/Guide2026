@@ -17,6 +17,7 @@ import QuotaDisplay from '../components/QuotaDisplay';
 import OverQuotaBanner from '../components/OverQuotaBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
+import WorkspaceLockModal from '../components/WorkspaceLockModal';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -29,6 +30,9 @@ const DashboardPage = () => {
   const [newWorkspaceLogo, setNewWorkspaceLogo] = useState('');
   const [newWorkspaceBackground, setNewWorkspaceBackground] = useState('');
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const [lockModalOpen, setLockModalOpen] = useState(false);
+  const [pendingWorkspace, setPendingWorkspace] = useState(null);
+  const [lockedBy, setLockedBy] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -277,7 +281,19 @@ const DashboardPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all cursor-pointer"
-              onClick={() => navigate(`/workspace/${workspace.slug}/walkthroughs`)}
+              onClick={async () => {
+                // Check lock before navigating
+                const lockResult = await api.lockWorkspace(workspace.id, false);
+                if (lockResult.locked) {
+                  // Workspace is locked, show modal
+                  setLockedBy(lockResult.locked_by);
+                  setPendingWorkspace(workspace);
+                  setLockModalOpen(true);
+                } else {
+                  // Lock acquired successfully, navigate
+                  navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                }
+              }}
               data-testid={`workspace-card-${workspace.id}`}
             >
               <div className="flex items-start gap-4">
@@ -318,9 +334,17 @@ const DashboardPage = () => {
                   variant="ghost"
                   size="sm"
                   className="flex-col h-auto py-3"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                    // Check lock before navigating
+                    const lockResult = await api.lockWorkspace(workspace.id, false);
+                    if (lockResult.locked) {
+                      setLockedBy(lockResult.locked_by);
+                      setPendingWorkspace(workspace);
+                      setLockModalOpen(true);
+                    } else {
+                      navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                    }
                   }}
                   data-testid={`workspace-walkthroughs-${workspace.id}`}
                 >
@@ -331,9 +355,17 @@ const DashboardPage = () => {
                   variant="ghost"
                   size="sm"
                   className="flex-col h-auto py-3"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    navigate(`/workspace/${workspace.slug}/categories`);
+                    // Check lock before navigating
+                    const lockResult = await api.lockWorkspace(workspace.id, false);
+                    if (lockResult.locked) {
+                      setLockedBy(lockResult.locked_by);
+                      setPendingWorkspace(workspace);
+                      setLockModalOpen(true);
+                    } else {
+                      navigate(`/workspace/${workspace.slug}/categories`);
+                    }
                   }}
                   data-testid={`workspace-categories-${workspace.id}`}
                 >
@@ -365,6 +397,30 @@ const DashboardPage = () => {
             </motion.div>
           ))}
         </div>
+
+        <WorkspaceLockModal
+          open={lockModalOpen}
+          onOpenChange={setLockModalOpen}
+          lockedBy={lockedBy}
+          onCancel={() => {
+            setLockModalOpen(false);
+            setPendingWorkspace(null);
+            setLockedBy('');
+          }}
+          onEnterAnyway={async () => {
+            if (!pendingWorkspace) return;
+            // Force takeover
+            const lockResult = await api.lockWorkspace(pendingWorkspace.id, true);
+            if (lockResult.success) {
+              setLockModalOpen(false);
+              navigate(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
+              setPendingWorkspace(null);
+              setLockedBy('');
+            } else {
+              toast.error('Failed to enter workspace. Please try again.');
+            }
+          }}
+        />
 
         {workspaces.length === 0 && (
           <div className="text-center py-16">

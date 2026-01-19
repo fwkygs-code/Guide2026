@@ -86,6 +86,33 @@ const SettingsPage = () => {
     }
   }, [workspace, user, workspaceId, navigate]);
 
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(console.error);
+      }
+    };
+  }, [workspaceId, navigate]);
+
   // Fetch workspace members
   useEffect(() => {
     if (workspaceId && user) {

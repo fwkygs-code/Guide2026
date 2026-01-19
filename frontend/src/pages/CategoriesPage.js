@@ -24,6 +24,7 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const CategoriesPage = () => {
   const { t } = useTranslation();
   const { workspaceSlug } = useParams();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -46,6 +47,33 @@ const CategoriesPage = () => {
   useEffect(() => {
     fetchCategories();
   }, [workspaceId]);
+
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(console.error);
+      }
+    };
+  }, [workspaceId, navigate]);
 
   const fetchCategories = async () => {
     if (!workspaceId) return; // Wait for workspace ID to be resolved

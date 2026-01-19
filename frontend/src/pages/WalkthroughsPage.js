@@ -42,6 +42,35 @@ const WalkthroughsPage = () => {
     fetchData();
   }, [workspaceSlug]);
 
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          // If locked, redirect back to dashboard
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+        // Don't block access if lock check fails, but log it
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(console.error);
+      }
+    };
+  }, [workspaceId, navigate]);
+
   const fetchData = async () => {
     try {
       // First get workspace by slug to get the ID
