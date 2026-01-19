@@ -2014,13 +2014,17 @@ async def accept_invitation(
     )
     
     # HARDENING LAYER C: Audit log
-    await log_workspace_audit(
-        action_type=WorkspaceAuditAction.INVITE_ACCEPTED,
-        workspace_id=workspace_id,
-        actor_user_id=current_user.id,
-        target_user_id=member.get('invited_by_user_id'),
-        metadata={"accepted_by_name": current_user.name}
-    )
+    try:
+        await log_workspace_audit(
+            action_type=WorkspaceAuditAction.INVITE_ACCEPTED,
+            workspace_id=workspace_id,
+            actor_user_id=current_user.id,
+            target_user_id=member.get('invited_by_user_id'),
+            metadata={"accepted_by_name": current_user.name}
+        )
+    except Exception as audit_error:
+        logging.error(f"Failed to log audit entry for invitation acceptance: {audit_error}", exc_info=True)
+        # Don't fail the acceptance if audit logging fails
     
     # Get workspace and inviter info
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
@@ -2030,13 +2034,17 @@ async def accept_invitation(
     
     # Notify inviter (not batched - invitation events are never batched)
     if inviter_id:
-        await create_notification(
-            user_id=inviter_id,
-            notification_type=NotificationType.INVITE_ACCEPTED,
-            title="Invitation Accepted",
-            message=f"{current_user.name} has accepted your invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
-            metadata={"workspace_id": workspace_id, "accepted_by_id": current_user.id, "accepted_by_name": current_user.name}
-        )
+        try:
+            await create_notification(
+                user_id=inviter_id,
+                notification_type=NotificationType.INVITE_ACCEPTED,
+                title="Invitation Accepted",
+                message=f"{current_user.name} has accepted your invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
+                metadata={"workspace_id": workspace_id, "accepted_by_id": current_user.id, "accepted_by_name": current_user.name}
+            )
+        except Exception as notif_error:
+            logging.error(f"Failed to create notification for invitation acceptance: {notif_error}", exc_info=True)
+            # Don't fail the acceptance if notification creation fails
     
     return {
         "success": True,
@@ -2051,7 +2059,30 @@ async def decline_invitation(
     current_user: User = Depends(get_current_user)
 ):
     """Decline a workspace invitation."""
-    # Find invitation
+    # First check if invitation exists at all (even if not pending)
+    existing_member = await db.workspace_members.find_one(
+        {
+            "id": invitation_id,
+            "workspace_id": workspace_id,
+            "user_id": current_user.id
+        },
+        {"_id": 0, "status": 1}
+    )
+    
+    if not existing_member:
+        raise HTTPException(status_code=404, detail="Invitation not found. It may have been cancelled.")
+    
+    # Check if invitation is still pending
+    if existing_member.get("status") != InvitationStatus.PENDING:
+        status = existing_member.get("status", "unknown")
+        if status == InvitationStatus.ACCEPTED:
+            raise HTTPException(status_code=400, detail="Invitation has already been accepted")
+        elif status == InvitationStatus.DECLINED:
+            raise HTTPException(status_code=400, detail="Invitation has already been declined")
+        else:
+            raise HTTPException(status_code=400, detail=f"Invitation is no longer pending (status: {status})")
+    
+    # Find invitation with pending status (for full member data)
     member = await db.workspace_members.find_one(
         {
             "id": invitation_id,
@@ -2061,8 +2092,10 @@ async def decline_invitation(
         },
         {"_id": 0}
     )
+    
+    # Double-check (should not happen, but safety check)
     if not member:
-        raise HTTPException(status_code=404, detail="Invitation not found or already responded to")
+        raise HTTPException(status_code=404, detail="Invitation not found or no longer pending")
     
     # Update invitation status
     responded_at = datetime.now(timezone.utc)
@@ -2077,19 +2110,31 @@ async def decline_invitation(
     )
     
     # HARDENING LAYER C: Audit log
-    await log_workspace_audit(
-        action_type=WorkspaceAuditAction.INVITE_DECLINED,
-        workspace_id=workspace_id,
-        actor_user_id=current_user.id,
-        target_user_id=member.get('invited_by_user_id'),
-        metadata={"declined_by_name": current_user.name}
-    )
+    try:
+        await log_workspace_audit(
+            action_type=WorkspaceAuditAction.INVITE_DECLINED,
+            workspace_id=workspace_id,
+            actor_user_id=current_user.id,
+            target_user_id=member.get('invited_by_user_id'),
+            metadata={"declined_by_name": current_user.name}
+        )
+    except Exception as audit_error:
+        logging.error(f"Failed to log audit entry for invitation decline: {audit_error}", exc_info=True)
+        # Don't fail the decline if audit logging fails
     
     # HARDENING LAYER A: Check and release lock if user had one (declined invite means no access)
-    await release_workspace_lock(workspace_id, current_user.id, force=True, reason="Invitation declined - access revoked")
+    try:
+        await release_workspace_lock(workspace_id, current_user.id, force=True, reason="Invitation declined - access revoked")
+    except Exception as lock_error:
+        logging.error(f"Failed to release lock on invitation decline: {lock_error}", exc_info=True)
+        # Don't fail the decline if lock release fails
     
     # HARDENING LAYER A: Invariant check
-    await check_membership_lock_invariant(workspace_id)
+    try:
+        await check_membership_lock_invariant(workspace_id)
+    except Exception as invariant_error:
+        logging.error(f"Failed to check membership lock invariant on decline: {invariant_error}", exc_info=True)
+        # Don't fail the decline if invariant check fails
     
     # Get workspace and inviter info
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
@@ -2099,13 +2144,17 @@ async def decline_invitation(
     
     # Notify inviter (not batched - invitation events are never batched)
     if inviter_id:
-        await create_notification(
-            user_id=inviter_id,
-            notification_type=NotificationType.INVITE_DECLINED,
-            title="Invitation Declined",
-            message=f"{current_user.name} has declined your invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
-            metadata={"workspace_id": workspace_id, "declined_by_id": current_user.id, "declined_by_name": current_user.name}
-        )
+        try:
+            await create_notification(
+                user_id=inviter_id,
+                notification_type=NotificationType.INVITE_DECLINED,
+                title="Invitation Declined",
+                message=f"{current_user.name} has declined your invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
+                metadata={"workspace_id": workspace_id, "declined_by_id": current_user.id, "declined_by_name": current_user.name}
+            )
+        except Exception as notif_error:
+            logging.error(f"Failed to create notification for invitation decline: {notif_error}", exc_info=True)
+            # Don't fail the decline if notification creation fails
     
     return {
         "success": True,
@@ -2229,22 +2278,35 @@ async def remove_workspace_member(
     workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
     
     # HARDENING LAYER A: Force-release lock BEFORE removing member (invariant enforcement)
-    lock_released = await release_workspace_lock(workspace_id, user_id, force=True, reason="Member removed from workspace")
+    lock_released = False
+    try:
+        lock_released = await release_workspace_lock(workspace_id, user_id, force=True, reason="Member removed from workspace")
+    except Exception as lock_error:
+        logging.error(f"Failed to release lock when removing member: {lock_error}", exc_info=True)
+        # Continue with removal even if lock release fails
     
     # Remove member
     await db.workspace_members.delete_one({"workspace_id": workspace_id, "user_id": user_id})
     
     # HARDENING LAYER A: Invariant check after removal
-    await check_membership_lock_invariant(workspace_id)
+    try:
+        await check_membership_lock_invariant(workspace_id)
+    except Exception as invariant_error:
+        logging.error(f"Failed to check membership lock invariant after removal: {invariant_error}", exc_info=True)
+        # Don't fail the removal if invariant check fails
     
     # HARDENING LAYER C: Audit log
-    await log_workspace_audit(
-        action_type=WorkspaceAuditAction.MEMBER_REMOVED,
-        workspace_id=workspace_id,
-        actor_user_id=current_user.id,
-        target_user_id=user_id,
-        metadata={"removed_by_name": current_user.name, "workspace_name": workspace_name, "lock_released": lock_released}
-    )
+    try:
+        await log_workspace_audit(
+            action_type=WorkspaceAuditAction.MEMBER_REMOVED,
+            workspace_id=workspace_id,
+            actor_user_id=current_user.id,
+            target_user_id=user_id,
+            metadata={"removed_by_name": current_user.name, "workspace_name": workspace_name, "lock_released": lock_released}
+        )
+    except Exception as audit_error:
+        logging.error(f"Failed to log audit entry for member removal: {audit_error}", exc_info=True)
+        # Don't fail the removal if audit logging fails
     
     # Notify removed member (not batched - member removal events are never batched)
     # Only notify if member was accepted (not pending invitations)
