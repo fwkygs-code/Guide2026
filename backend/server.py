@@ -4051,9 +4051,18 @@ async def upload_file(
     if not idempotency_key:
         idempotency_key = str(uuid.uuid4())
     
+    # Get workspace to determine owner for idempotency check
+    # Note: workspace_id might not be set yet, so we'll check after workspace verification
+    workspace_for_idempotency = None
+    if workspace_id:
+        workspace_for_idempotency = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
+    
+    # For idempotency check, use workspace owner's user_id if shared user, otherwise current user
+    idempotency_user_id = workspace_for_idempotency['owner_id'] if (workspace_for_idempotency and workspace_for_idempotency['owner_id'] != current_user.id) else current_user.id
+    
     # Check for existing file with same idempotency key (idempotency check)
     existing_file = await db.files.find_one(
-        {"idempotency_key": idempotency_key, "user_id": current_user.id},
+        {"idempotency_key": idempotency_key, "user_id": idempotency_user_id},
         {"_id": 0}
     )
     if existing_file:
@@ -4101,9 +4110,18 @@ async def upload_file(
         if not member:
             raise HTTPException(status_code=403, detail="Access denied to workspace")
     
+    # Get workspace to determine owner
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    # For shared users, count storage against workspace owner's quota
+    # For owners, use their own quota
+    quota_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+    
     # Check quota: current storage + file size <= allowed storage
-    storage_used = await get_user_storage_usage(current_user.id)
-    storage_allowed = await get_user_allowed_storage(current_user.id)
+    storage_used = await get_user_storage_usage(quota_user_id)
+    storage_allowed = await get_user_allowed_storage(quota_user_id)
     
     if storage_used + file_size > storage_allowed:
         raise HTTPException(
@@ -4171,7 +4189,9 @@ async def upload_file(
         # workspace_logo, workspace_background don't have category/walkthrough
     
     # Build folder path: guide2026/user_id/workspace_id/category_id/walkthrough_id
-    folder_parts = ["guide2026", current_user.id, workspace_id]
+    # Use workspace owner's ID for folder structure (for shared users)
+    folder_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+    folder_parts = ["guide2026", folder_user_id, workspace_id]
     if category_id:
         folder_parts.append(category_id)
     if walkthrough_id:
@@ -4181,10 +4201,13 @@ async def upload_file(
     logging.info(f"[upload_file] Cloudinary folder: {cloudinary_folder} (user={current_user.id}, workspace={workspace_id}, category={category_id}, walkthrough={walkthrough_id})")
     
     # Phase 1: Create file record with status=pending (reserves quota)
+    # For shared users, file records should be associated with workspace owner for quota tracking
+    file_owner_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+    
     file_id = str(uuid.uuid4())
     file_record = File(
         id=file_id,
-        user_id=current_user.id,
+        user_id=file_owner_id,  # Use workspace owner's ID for quota tracking
         workspace_id=workspace_id,
         status=FileStatus.PENDING,
         size_bytes=file_size,

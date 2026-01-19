@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink } from 'lucide-react';
+import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { api } from '../lib/api';
 import LanguageSwitcher from './LanguageSwitcher';
 import DarkModeToggle from './DarkModeToggle';
 import NotificationsMenu from './NotificationsMenu';
+import QuotaDisplay from './QuotaDisplay';
 
 const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
   const { t } = useTranslation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { workspace, workspaceId: contextWorkspaceId, backgroundUrl: contextBackgroundUrl, logoUrl } = useWorkspace();
   
   // Use prop background (for dashboard) or context background (for workspace pages)
@@ -20,6 +22,10 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
   const navigate = useNavigate();
   const location = useLocation();
   const [workspaceSlug, setWorkspaceSlug] = useState(null);
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false);
+  
+  // Check if user is a shared member (not owner)
+  const isSharedUser = workspace && workspace.owner_id && workspace.owner_id !== user?.id;
 
   const workspaceMatch = location.pathname.match(/^\/workspace\/([^/]+)/);
   const workspaceId = workspaceMatch?.[1] || contextWorkspaceId;
@@ -114,6 +120,26 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Portal
               </Button>
+            )}
+            {isSharedUser && workspaceId && (
+              <Dialog open={quotaDialogOpen} onOpenChange={setQuotaDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="View workspace limits"
+                  >
+                    <Database className="w-4 h-4 mr-2" />
+                    Limits
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Workspace Limits</DialogTitle>
+                  </DialogHeader>
+                  <QuotaDisplay workspaceId={workspaceId} showWarnings={true} />
+                </DialogContent>
+              </Dialog>
             )}
             <LanguageSwitcher />
             <NotificationsMenu />
