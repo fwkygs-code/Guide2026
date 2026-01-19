@@ -4129,17 +4129,17 @@ async def upload_file(
     
     Idempotent: If idempotency_key provided and file exists, returns existing file.
     """
+    file_id = None
     try:
         logging.info(f"[upload_file] Upload request received: user={current_user.id}, workspace_id={workspace_id}, reference_type={reference_type}, reference_id={reference_id}, filename={file.filename}")
-    except Exception as log_error:
-        logging.error(f"[upload_file] Failed to log upload request: {log_error}", exc_info=True)
-    # Generate idempotency key if not provided
-    if not idempotency_key:
-        idempotency_key = str(uuid.uuid4())
-    
-    # Get workspace_id from request or use first workspace if not provided
-    # IMPORTANT: Verify workspace access BEFORE using workspace data
-    if not workspace_id:
+        
+        # Generate idempotency key if not provided
+        if not idempotency_key:
+            idempotency_key = str(uuid.uuid4())
+        
+        # Get workspace_id from request or use first workspace if not provided
+        # IMPORTANT: Verify workspace access BEFORE using workspace data
+        if not workspace_id:
         # Get user's first workspace (for backward compatibility)
         workspace = await db.workspaces.find_one({"owner_id": current_user.id}, {"_id": 0, "id": 1, "owner_id": 1})
         if not workspace:
@@ -4216,12 +4216,13 @@ async def upload_file(
             detail=f"Storage quota exceeded. Used: {storage_used} bytes, Allowed: {storage_allowed} bytes, File size: {file_size} bytes"
         )
     
-    # Determine resource type based on file extension
-    file_extension = Path(file.filename).suffix.lower()
+        # Determine resource type based on file extension
+        filename = file.filename or "uploaded_file"
+        file_extension = Path(filename).suffix.lower()
     resource_type = "auto"
     if file_extension == '.gif':
         resource_type = "image"  # Upload GIFs as images (not video - conversion caused issues)
-        logging.info(f"[upload_file] GIF detected, using resource_type=image for file {file.filename}")
+            logging.info(f"[upload_file] GIF detected, using resource_type=image for file {filename}")
     elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
         resource_type = "image"
     elif file_extension in ['.mp4', '.webm', '.mov', '.avi', '.mkv']:
@@ -4417,7 +4418,31 @@ async def upload_file(
         if isinstance(e, HTTPException):
             raise
         # For other exceptions, wrap in 500 error with detailed logging
-        logging.error(f"[upload_file] Unexpected error during upload: {type(e).__name__}: {str(e)}", exc_info=True)
+        logging.error(f"[upload_file] Unexpected error during Cloudinary upload: {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"File upload failed: {str(e)}. Please try again or contact support."
+        )
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is
+        raise
+    except Exception as e:
+        # Catch any other unhandled exceptions in the upload process
+        logging.error(f"[upload_file] Unexpected error in upload endpoint: {type(e).__name__}: {str(e)}", exc_info=True)
+        
+        # Try to clean up file record if it was created
+        if file_id:
+            try:
+                await db.files.update_one(
+                    {"id": file_id},
+                    {"$set": {
+                        "status": FileStatus.FAILED,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+            except Exception as cleanup_error:
+                logging.error(f"[upload_file] Failed to cleanup file record: {cleanup_error}", exc_info=True)
+        
         raise HTTPException(
             status_code=500,
             detail=f"File upload failed: {str(e)}. Please try again or contact support."
