@@ -69,24 +69,22 @@ const NotificationsMenu = () => {
       
       // Check if user is currently in a workspace
       const workspaceMatch = location.pathname.match(/^\/workspace\/([^/]+)/);
-      if (workspaceMatch) {
-        const workspaceSlug = workspaceMatch[1];
-        const workspaceId = forcedDisconnect.metadata?.workspace_id;
-        
-        // Release lock if we have workspace ID
-        if (workspaceId) {
-          api.unlockWorkspace(workspaceId).catch(console.error);
-        }
-        
-        // Redirect to workspace main page (walkthroughs) - not logged out
-        navigate(`/workspace/${workspaceSlug}/walkthroughs`, { replace: true });
-        
-        // Show non-dismissible message (does not imply logout - user stays logged in)
-        toast.error('Another user entered the workspace and your session was ended. You have been redirected to the workspace main page.', {
-          duration: 10000,
-          important: true
-        });
+      const workspaceId = forcedDisconnect.metadata?.workspace_id;
+      
+      // Release lock if we have workspace ID
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(console.error);
       }
+      
+      // Always redirect to dashboard when forced disconnect occurs
+      // This ensures user is removed from workspace immediately
+      navigate('/dashboard', { replace: true });
+      
+      // Show non-dismissible message (does not imply logout - user stays logged in)
+      toast.error('Another user entered the workspace and your session was ended. You have been redirected to the dashboard.', {
+        duration: 10000,
+        important: true
+      });
     }
   }, [notifications, location.pathname, navigate]);
 
