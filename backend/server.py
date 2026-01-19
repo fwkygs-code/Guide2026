@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form, Body, BackgroundTasks
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -5293,6 +5293,80 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Open Graph preview route for workspace sharing
+@app.get("/share/workspace/{slug}", response_class=HTMLResponse)
+async def share_workspace(slug: str, request: Request):
+    """
+    Generate Open Graph HTML preview for workspace sharing.
+    This route is used by social media crawlers (WhatsApp, Facebook, etc.) to display
+    rich previews when workspace links are shared.
+    """
+    # Look up workspace by slug (public route, no auth required)
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
+    
+    if not workspace:
+        # Return 404 HTML if workspace not found
+        return HTMLResponse(
+            content="<html><head><title>Workspace Not Found</title></head><body><h1>Workspace Not Found</h1></body></html>",
+            status_code=404
+        )
+    
+    workspace_name = workspace.get("name", "Untitled Workspace")
+    workspace_logo = workspace.get("logo")
+    
+    # Build URLs
+    workspace_url = f"{FRONTEND_URL}/workspace/{slug}/walkthroughs"
+    share_url = f"{request.url.scheme}://{request.url.netloc}/share/workspace/{slug}"
+    
+    # Default image fallback (use the site's og-image.png if workspace has no logo)
+    og_image_url = workspace_logo if workspace_logo else f"{FRONTEND_URL}/og-image.png"
+    
+    # Ensure Cloudinary URLs are HTTPS
+    if workspace_logo and workspace_logo.startswith("http://"):
+        og_image_url = workspace_logo.replace("http://", "https://", 1)
+    
+    # Build Open Graph HTML
+    og_title = f"InterGuide – {workspace_name}"
+    og_description = f"InterGuide – {workspace_name}"
+    
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{og_title}">
+    <meta property="og:description" content="{og_description}">
+    <meta property="og:image" content="{og_image_url}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{share_url}">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{og_title}">
+    <meta name="twitter:description" content="{og_description}">
+    <meta name="twitter:image" content="{og_image_url}">
+    
+    <!-- Standard Meta Tags -->
+    <title>{og_title}</title>
+    <meta name="description" content="{og_description}">
+    
+    <!-- Redirect real users to the SPA workspace URL -->
+    <meta http-equiv="refresh" content="0;url={workspace_url}">
+    <script>
+        // Immediate redirect for browsers (crawlers will read meta tags first)
+        window.location.replace("{workspace_url}");
+    </script>
+</head>
+<body>
+    <p>Redirecting to <a href="{workspace_url}">{workspace_name}</a>...</p>
+</body>
+</html>"""
+    
+    return HTMLResponse(content=html_content)
 
 # Include router AFTER CORS middleware
 app.include_router(api_router)

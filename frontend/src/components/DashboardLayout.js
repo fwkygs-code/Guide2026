@@ -51,21 +51,6 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
     ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
     : {};
 
-  // Update document title based on workspace
-  useEffect(() => {
-    if (workspace?.name) {
-      document.title = `InterGuide - ${workspace.name}`;
-    } else {
-      document.title = 'InterGuide - Create Interactive Step-by-Step Guides';
-    }
-    // Cleanup: restore default title when component unmounts or workspace changes
-    return () => {
-      if (!workspace?.name) {
-        document.title = 'InterGuide - Create Interactive Step-by-Step Guides';
-      }
-    };
-  }, [workspace?.name]);
-
   return (
     <div className="min-h-screen bg-white" style={backgroundStyle}>
       {/* Overlay for background image readability */}
@@ -92,7 +77,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               <img 
                 src={logoUrl} 
                 alt={workspace?.name || 'Workspace'} 
-                className="h-14 w-auto object-contain"
+                className="w-7 h-7 rounded-lg object-cover"
                 onError={(e) => {
                   e.target.style.display = 'none';
                 }}
