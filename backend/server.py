@@ -2275,27 +2275,6 @@ async def lock_workspace(
         "expires_at": lock.expires_at.isoformat()
     }
 
-@api_router.get("/workspaces/{workspace_id}/lock")
-async def get_workspace_lock_status(
-    workspace_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Get current workspace lock status without acquiring."""
-    await check_workspace_access(workspace_id, current_user.id)
-    lock = await get_workspace_lock(workspace_id)
-    if lock:
-        locked_by_user = await db.users.find_one({"id": lock.locked_by_user_id}, {"_id": 0, "name": 1})
-        locked_by_name = locked_by_user.get("name", "Unknown") if locked_by_user else "Unknown"
-        return {
-            "locked": True,
-            "locked_by_user_id": lock.locked_by_user_id,
-            "locked_by_name": locked_by_name,
-            "locked_at": lock.locked_at.isoformat(),
-            "expires_at": lock.expires_at.isoformat(),
-            "is_current_user": lock.locked_by_user_id == current_user.id
-        }
-    return {"locked": False}
-
 @api_router.delete("/workspaces/{workspace_id}/lock")
 async def unlock_workspace(
     workspace_id: str,
@@ -4188,6 +4167,18 @@ async def upload_file(
     file_content = await file.read()
     file_size = len(file_content)
     
+    # Get user's plan and check file size limit
+    plan = await get_user_plan(current_user.id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="User has no plan assigned")
+    
+    # Check file size limit
+    if file_size > plan.max_file_size_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
+        )
+    
     # Get workspace_id from request or use first workspace if not provided
     if not workspace_id:
         # Get user's first workspace (for backward compatibility)
@@ -4209,22 +4200,6 @@ async def upload_file(
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
-    
-    # For shared users, use workspace owner's plan for file size limits
-    # For owners, use their own plan
-    plan_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
-    
-    # Get plan and check file size limit (use workspace owner's plan for shared users)
-    plan = await get_user_plan(plan_user_id)
-    if not plan:
-        raise HTTPException(status_code=400, detail="User has no plan assigned")
-    
-    # Check file size limit
-    if file_size > plan.max_file_size_bytes:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
-        )
     
     # For shared users, count storage against workspace owner's quota
     # For owners, use their own quota

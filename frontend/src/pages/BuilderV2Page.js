@@ -16,9 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { useWorkspaceLock } from '../hooks/useWorkspaceLock';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Users } from 'lucide-react';
 import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
 import { BLOCK_TYPES, createBlock, getBlockLabel, getBlockIcon } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
@@ -84,8 +81,34 @@ const BuilderV2Page = () => {
     })
   );
 
-  // Use workspace lock hook for lock management and monitoring
-  const lockStatus = useWorkspaceLock(workspaceId, `/workspace/${workspaceSlug}/walkthroughs`);
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate(`/workspace/${workspaceSlug}/walkthroughs`);
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount (ignore errors - idempotent)
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(() => {
+          // Ignore unlock errors - lock may already be released or expired
+        });
+      }
+    };
+  }, [workspaceId, workspaceSlug, navigate]);
 
   // Load categories and walkthrough if editing
   useEffect(() => {

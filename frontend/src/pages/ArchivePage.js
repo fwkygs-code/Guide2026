@@ -7,9 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { useWorkspaceLock } from '../hooks/useWorkspaceLock';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Users } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
@@ -27,8 +24,34 @@ const ArchivePage = () => {
     fetchData();
   }, [workspaceId]);
 
-  // Use workspace lock hook for lock management and monitoring
-  const lockStatus = useWorkspaceLock(workspaceId, `/workspace/${workspaceSlug}/walkthroughs`);
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate(`/workspace/${workspaceSlug}/walkthroughs`);
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount (ignore errors - idempotent)
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(() => {
+          // Ignore unlock errors - lock may already be released or expired
+        });
+      }
+    };
+  }, [workspaceId, workspaceSlug, navigate]);
 
   const fetchData = async () => {
     if (!workspaceId) return; // Wait for workspace ID to be resolved
@@ -76,23 +99,6 @@ const ArchivePage = () => {
 
   return (
     <DashboardLayout>
-      {/* Lock status indicator */}
-      {lockStatus && lockStatus.locked && lockStatus.is_current_user && (
-        <Alert className="mb-4 border-blue-200 bg-blue-50">
-          <Users className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-900">
-            <strong>You have exclusive access</strong> to this workspace. Other users will be notified if they try to enter.
-          </AlertDescription>
-        </Alert>
-      )}
-      {lockStatus && lockStatus.locked && !lockStatus.is_current_user && (
-        <Alert className="mb-4 border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-900">
-            <strong>Warning:</strong> Another user ({lockStatus.locked_by_name}) is currently in this workspace. You may be redirected.
-          </AlertDescription>
-        </Alert>
-      )}
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>

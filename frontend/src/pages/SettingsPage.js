@@ -10,9 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { useWorkspaceLock } from '../hooks/useWorkspaceLock';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Users } from 'lucide-react';
 import { useTextSize } from '../contexts/TextSizeContext';
 import DashboardLayout from '../components/DashboardLayout';
 import QuotaDisplay from '../components/QuotaDisplay';
@@ -89,8 +86,34 @@ const SettingsPage = () => {
     }
   }, [workspace, user, workspaceId, navigate]);
 
-  // Use workspace lock hook for lock management and monitoring
-  const lockStatus = useWorkspaceLock(workspaceId, '/dashboard');
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount (ignore errors - idempotent)
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(() => {
+          // Ignore unlock errors - lock may already be released, expired, or user was forced out
+        });
+      }
+    };
+  }, [workspaceId, navigate]);
 
   // Fetch workspace members
   useEffect(() => {
@@ -280,23 +303,6 @@ const SettingsPage = () => {
 
   return (
     <DashboardLayout>
-      {/* Lock status indicator */}
-      {lockStatus && lockStatus.locked && lockStatus.is_current_user && (
-        <Alert className="mb-4 border-blue-200 bg-blue-50">
-          <Users className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-900">
-            <strong>You have exclusive access</strong> to this workspace. Other users will be notified if they try to enter.
-          </AlertDescription>
-        </Alert>
-      )}
-      {lockStatus && lockStatus.locked && !lockStatus.is_current_user && (
-        <Alert className="mb-4 border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-900">
-            <strong>Warning:</strong> Another user ({lockStatus.locked_by_name}) is currently in this workspace. You may be redirected.
-          </AlertDescription>
-        </Alert>
-      )}
       <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} workspaceId={workspaceId} />
       <PlanSelectionModal
         open={planSelectionOpen}
