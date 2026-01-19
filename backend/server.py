@@ -4140,12 +4140,12 @@ async def upload_file(
         # Get workspace_id from request or use first workspace if not provided
         # IMPORTANT: Verify workspace access BEFORE using workspace data
         if not workspace_id:
-        # Get user's first workspace (for backward compatibility)
-        workspace = await db.workspaces.find_one({"owner_id": current_user.id}, {"_id": 0, "id": 1, "owner_id": 1})
-        if not workspace:
-            raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
-        workspace_id = workspace['id']
-    else:
+            # Get user's first workspace (for backward compatibility)
+            workspace = await db.workspaces.find_one({"owner_id": current_user.id}, {"_id": 0, "id": 1, "owner_id": 1})
+            if not workspace:
+                raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
+            workspace_id = workspace['id']
+        else:
         # Verify user has access to workspace (handles both owners and members)
         try:
             await check_workspace_access(workspace_id, current_user.id)
