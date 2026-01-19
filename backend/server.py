@@ -2091,6 +2091,63 @@ async def unlock_workspace(
     return {"success": True, "message": "Workspace lock released"}
 
 # Workspace Member Management
+@api_router.get("/workspaces/{workspace_id}/members")
+async def get_workspace_members_endpoint(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all members of a workspace (including pending invitations).
+    Only workspace owner can view all members.
+    Members can view accepted members only.
+    """
+    # Check workspace access
+    member = await check_workspace_access(workspace_id, current_user.id)
+    
+    # Get workspace to check ownership
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    is_owner = workspace.get("owner_id") == current_user.id
+    
+    # Owners can see all members (including pending), members can only see accepted
+    query = {"workspace_id": workspace_id}
+    if not is_owner:
+        query["status"] = InvitationStatus.ACCEPTED
+    
+    # Fetch members with user email lookup
+    members_cursor = db.workspace_members.find(query, {"_id": 0}).to_list(1000)
+    members_list = await members_cursor
+    
+    # Enrich with user email
+    result = []
+    for m in members_list:
+        user_doc = await db.users.find_one({"id": m["user_id"]}, {"_id": 0, "email": 1, "name": 1})
+        member_dict = dict(m)
+        if user_doc:
+            member_dict["user_email"] = user_doc.get("email", "")
+            member_dict["user_name"] = user_doc.get("name", "")
+        result.append(member_dict)
+    
+    # Add owner if not already in list
+    owner_id = workspace.get("owner_id")
+    owner_in_list = any(m["user_id"] == owner_id for m in result)
+    if not owner_in_list and owner_id:
+        owner_doc = await db.users.find_one({"id": owner_id}, {"_id": 0, "email": 1, "name": 1})
+        if owner_doc:
+            result.append({
+                "id": "owner",
+                "workspace_id": workspace_id,
+                "user_id": owner_id,
+                "role": UserRole.OWNER,
+                "status": InvitationStatus.ACCEPTED,
+                "user_email": owner_doc.get("email", ""),
+                "user_name": owner_doc.get("name", "")
+            })
+    
+    return result
+
 @api_router.delete("/workspaces/{workspace_id}/members/{user_id}")
 async def remove_workspace_member(
     workspace_id: str,

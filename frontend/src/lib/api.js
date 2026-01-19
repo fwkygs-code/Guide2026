@@ -146,5 +146,16 @@ export const api = {
   cancelPayPalSubscription: () => axios.post(`${API}/billing/paypal/cancel`),
   
   // File Management
-  deleteFile: (fileId) => axios.delete(`${API}/files/${fileId}`)
+  deleteFile: (fileId) => axios.delete(`${API}/files/${fileId}`),
+  
+  // Notifications
+  getNotifications: () => axios.get(`${API}/notifications`),
+  markNotificationRead: (notificationId) => axios.post(`${API}/notifications/${notificationId}/read`),
+  
+  // Workspace Invitations & Members
+  inviteUserToWorkspace: (workspaceId, email) => axios.post(`${API}/workspaces/${workspaceId}/invite`, { email }),
+  acceptInvitation: (workspaceId, invitationId) => axios.post(`${API}/workspaces/${workspaceId}/invitations/${invitationId}/accept`),
+  declineInvitation: (workspaceId, invitationId) => axios.post(`${API}/workspaces/${workspaceId}/invitations/${invitationId}/decline`),
+  removeWorkspaceMember: (workspaceId, userId) => axios.delete(`${API}/workspaces/${workspaceId}/members/${userId}`),
+  getWorkspaceMembers: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/members`)
 };

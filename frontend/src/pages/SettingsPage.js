@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle } from 'lucide-react';
+import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle, UserPlus, Mail, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,11 +16,13 @@ import QuotaDisplay from '../components/QuotaDisplay';
 import UpgradePrompt from '../components/UpgradePrompt';
 import PlanSelectionModal from '../components/PlanSelectionModal';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
+import { useAuth } from '../contexts/AuthContext';
 
 const SettingsPage = () => {
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { textSize, setTextSize } = useTextSize();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   
   // Resolve workspace slug to ID
@@ -39,6 +41,11 @@ const SettingsPage = () => {
   const [planSelectionOpen, setPlanSelectionOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     if (workspace) {
@@ -564,6 +571,82 @@ const SettingsPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Workspace Sharing */}
+          {workspace && workspaceId && user && isOwner && (
+            <div className="glass rounded-xl p-6">
+              <h2 className="text-xl font-heading font-semibold mb-4">Workspace Sharing</h2>
+              <div className="space-y-4">
+                <div>
+                  <Label>Invite User by Email</Label>
+                  <p className="text-xs text-slate-500 mb-1.5">Invite users to collaborate on this workspace</p>
+                  <div className="flex gap-2 mt-1.5">
+                    <Input
+                      type="email"
+                      placeholder="user@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleInvite()}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleInvite}
+                      disabled={inviting || !inviteEmail}
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      {inviting ? 'Inviting...' : 'Invite'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Workspace Members</Label>
+                  <p className="text-xs text-slate-500 mb-1.5">People who have access to this workspace</p>
+                  {loadingMembers ? (
+                    <div className="p-4 text-center text-sm text-slate-500">Loading members...</div>
+                  ) : members.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-slate-500 border border-slate-200 dark:border-slate-800 rounded-lg">
+                      No members yet. Invite users to collaborate.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 mt-1.5">
+                      {members.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Mail className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                {member.user_email || 'Member'}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer'}
+                                {member.status === 'pending' && ' • Pending invitation'}
+                              </p>
+                            </div>
+                          </div>
+                          {member.user_id !== user?.id && member.status === 'accepted' && isOwner && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveMember(member.user_id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Portal Settings */}
           <div className="glass rounded-xl p-6">

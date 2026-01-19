@@ -8,6 +8,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { api } from '../lib/api';
 import LanguageSwitcher from './LanguageSwitcher';
 import DarkModeToggle from './DarkModeToggle';
+import NotificationsMenu from './NotificationsMenu';
 
 const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
   const { t } = useTranslation();
@@ -115,6 +116,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               </Button>
             )}
             <LanguageSwitcher />
+            <NotificationsMenu />
             <DarkModeToggle />
             <Button
               variant="ghost"
