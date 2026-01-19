@@ -17,7 +17,7 @@ const PrivacyPage = () => {
             <img 
               src="/logo.svg" 
               alt="InterGuide" 
-              className="w-6 h-6 object-contain"
+              className="h-10 w-auto object-contain"
             />
           </Link>
           <div className="flex items-center gap-4">

@@ -246,8 +246,7 @@ const SignupPage = () => {
             <img 
               src="/logo.svg" 
               alt="InterGuide" 
-              className={`${getSizeClass('2xl')} object-contain`}
-              style={{ width: '2rem', height: '2rem' }}
+              className="h-10 w-auto object-contain"
             />
           </Link>
           <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>Get Started</h1>

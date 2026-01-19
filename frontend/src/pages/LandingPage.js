@@ -47,11 +47,11 @@ const LandingPage = () => {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 glass border-b border-slate-200/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <img 
               src="/logo.svg" 
               alt="InterGuide" 
-              className="w-8 h-8 object-contain"
+              className="h-10 w-auto object-contain"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -75,6 +75,13 @@ const LandingPage = () => {
             transition={{ duration: 0.5 }}
             className="text-center max-w-4xl mx-auto"
           >
+            <div className="flex justify-center mb-8">
+              <img 
+                src="/logo.svg" 
+                alt="InterGuide" 
+                className="h-40 md:h-48 w-auto object-contain"
+              />
+            </div>
             <h1 className="text-5xl lg:text-6xl font-heading font-bold text-slate-900 mb-6 tracking-tight">
               {t('landing.heroTitle')}
               <span className="text-primary block mt-2">{t('landing.heroSubtitle')}</span>
@@ -164,7 +171,7 @@ const LandingPage = () => {
             <img 
               src="/logo.svg" 
               alt="InterGuide" 
-              className="w-6 h-6 object-contain"
+              className="h-8 w-auto object-contain"
             />
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
