@@ -877,16 +877,25 @@ async def create_notification(
     return notification
 
 async def get_workspace_lock(workspace_id: str) -> Optional[WorkspaceLock]:
-    """Get current workspace lock if exists and not expired."""
+    """
+    Get current workspace lock if exists and not expired.
+    
+    CRITICAL: This function is authoritative - it enforces expiration server-side.
+    Expired locks are automatically deleted and treated as if they don't exist.
+    This ensures stale locks from crashed/closed sessions don't block users.
+    """
     lock = await db.workspace_locks.find_one({"workspace_id": workspace_id}, {"_id": 0})
     if not lock:
         return None
     
-    # Check if lock is expired
+    # MANDATORY: Check expiration on every read - backend is authoritative
     expires_at = datetime.fromisoformat(lock['expires_at'].replace('Z', '+00:00'))
-    if datetime.now(timezone.utc) > expires_at:
-        # Lock expired, remove it
+    now = datetime.now(timezone.utc)
+    if now > expires_at:
+        # Lock expired - delete it and treat as unlocked
+        # This is self-healing: stale locks from crashes/closes are automatically cleaned up
         await db.workspace_locks.delete_one({"workspace_id": workspace_id})
+        logging.info(f"[get_workspace_lock] Expired lock deleted for workspace {workspace_id} (expired at {expires_at.isoformat()})")
         return None
     
     return WorkspaceLock(**lock)
@@ -896,14 +905,19 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
     Acquire workspace lock. Returns lock if successful, raises HTTPException if locked by another user.
     If force=True, releases existing lock and acquires new one.
     
-    Note: Locks have a 2-hour TTL. If a user navigates away from workspace pages,
-    their lock will expire naturally. Frontend cleanup functions also release locks on unmount.
+    CRITICAL: This function is authoritative and self-healing:
+    - Expired locks are automatically deleted (via get_workspace_lock)
+    - Only valid, non-expired locks block other users
+    - Backend enforces expiration - no reliance on frontend cleanup
     """
+    # MANDATORY: get_workspace_lock enforces expiration and deletes expired locks
+    # This ensures stale locks from crashes/closes don't block users
     existing_lock = await get_workspace_lock(workspace_id)
     
     if existing_lock:
+        # Lock exists and is valid (not expired)
         if existing_lock.locked_by_user_id == user_id:
-            # Same user, extend lock (idempotent - safe for refresh)
+            # Same user, extend lock (idempotent - safe for refresh/heartbeat)
             expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # 10 minute TTL
             await db.workspace_locks.update_one(
                 {"workspace_id": workspace_id},
@@ -929,7 +943,7 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
                 # Log but don't fail lock acquisition if notification fails
                 logging.error(f"Failed to create forced disconnect notification: {notif_error}", exc_info=True)
         else:
-            # Locked by another user
+            # Locked by another user (lock is valid and not expired)
             workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
             workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
             locked_by_user = await db.users.find_one({"id": existing_lock.locked_by_user_id}, {"_id": 0, "name": 1})
@@ -940,9 +954,9 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
                 detail=f"Another user ({locked_by_name}) is currently connected to this workspace. Entering now will force them out and may cause data loss."
             )
     
-    # Create new lock
-    # Reduced TTL to 10 minutes - locks should be actively maintained by frontend
-    # If user navigates away, lock expires quickly to prevent blocking
+    # No valid lock exists (either no lock or expired lock was deleted)
+    # Create new lock with 10 minute TTL
+    # TTL is short to ensure stale locks expire quickly if user crashes/closes
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # 10 minute TTL
     lock = WorkspaceLock(
         workspace_id=workspace_id,
@@ -2283,16 +2297,68 @@ async def lock_workspace(
     force: bool = Query(False, description="Force release existing lock if another user has it"),
     current_user: User = Depends(get_current_user)
 ):
-    """Acquire workspace lock. Returns lock info or error if locked by another user."""
+    """
+    Acquire workspace lock. Returns lock info or error if locked by another user.
+    
+    CRITICAL: Expired locks are automatically deleted - backend is authoritative.
+    This endpoint is self-healing: stale locks from crashes/closes don't block users.
+    """
     # Check workspace access first
     await check_workspace_access(workspace_id, current_user.id)
     
+    # acquire_workspace_lock automatically handles expired locks via get_workspace_lock
     lock = await acquire_workspace_lock(workspace_id, current_user.id, force=force)
     return {
         "success": True,
         "locked_by_user_id": lock.locked_by_user_id,
         "locked_at": lock.locked_at.isoformat(),
         "expires_at": lock.expires_at.isoformat()
+    }
+
+@api_router.post("/workspaces/{workspace_id}/lock/heartbeat")
+async def refresh_workspace_lock(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Refresh workspace lock TTL (heartbeat).
+    
+    CRITICAL: This endpoint extends the lock expiration for active sessions.
+    Frontend should call this every 30-60 seconds while user is actively in workspace.
+    If lock doesn't exist or is held by another user, returns error.
+    Backend is authoritative - expired locks are automatically deleted.
+    """
+    # Check workspace access first
+    await check_workspace_access(workspace_id, current_user.id)
+    
+    # Get current lock (enforces expiration - deletes expired locks)
+    existing_lock = await get_workspace_lock(workspace_id)
+    
+    if not existing_lock:
+        raise HTTPException(
+            status_code=404,
+            detail="Workspace lock not found. Lock may have expired or been released."
+        )
+    
+    if existing_lock.locked_by_user_id != current_user.id:
+        # Lock is held by another user
+        locked_by_user = await db.users.find_one({"id": existing_lock.locked_by_user_id}, {"_id": 0, "name": 1})
+        locked_by_name = locked_by_user.get("name", "Another user") if locked_by_user else "Another user"
+        raise HTTPException(
+            status_code=403,
+            detail=f"Workspace lock is held by another user ({locked_by_name})"
+        )
+    
+    # Extend lock TTL (refresh heartbeat)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # 10 minute TTL
+    await db.workspace_locks.update_one(
+        {"workspace_id": workspace_id},
+        {"$set": {"expires_at": expires_at.isoformat()}}
+    )
+    
+    return {
+        "success": True,
+        "expires_at": expires_at.isoformat()
     }
 
 @api_router.delete("/workspaces/{workspace_id}/lock")
