@@ -1390,16 +1390,23 @@ async def extract_file_urls_from_walkthrough(walkthrough: dict) -> List[str]:
     
     return urls
 
-async def delete_files_by_urls(urls: List[str], user_id: str) -> int:
-    """Delete files by their URLs (for cascade deletion). Returns count of deleted files."""
+async def delete_files_by_urls(urls: List[str], workspace_id: str) -> int:
+    """
+    Delete files by their URLs (for cascade deletion). Returns count of deleted files.
+    
+    CRITICAL: Uses workspace_id instead of user_id because file records store
+    user_id = workspace['owner_id'] for quota tracking. This ensures files uploaded
+    by collaborators can be deleted correctly.
+    """
     if not urls:
         return 0
     
     deleted_count = 0
     for url in urls:
-        # Find file record by URL
+        # Find file record by URL and workspace_id
+        # Note: We use workspace_id because file.user_id = workspace.owner_id for quota tracking
         file_record = await db.files.find_one(
-            {"url": url, "user_id": user_id, "status": FileStatus.ACTIVE},
+            {"url": url, "workspace_id": workspace_id, "status": FileStatus.ACTIVE},
             {"_id": 0}
         )
         
@@ -2603,7 +2610,7 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
     total_deleted_files = 0
     for walkthrough in walkthroughs:
         file_urls = await extract_file_urls_from_walkthrough(walkthrough)
-        deleted_count = await delete_files_by_urls(file_urls, current_user.id)
+        deleted_count = await delete_files_by_urls(file_urls, workspace_id)
         total_deleted_files += deleted_count
     
     # Delete workspace logo and background files
@@ -2614,7 +2621,7 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
         workspace_file_urls.append(workspace['portal_background_url'])
     
     if workspace_file_urls:
-        deleted_count = await delete_files_by_urls(workspace_file_urls, current_user.id)
+        deleted_count = await delete_files_by_urls(workspace_file_urls, workspace_id)
         total_deleted_files += deleted_count
     
     # Delete all walkthroughs (including archived)
@@ -2632,7 +2639,7 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
     for cat in all_categories:
         cat_full = await db.categories.find_one({"id": cat["id"]}, {"_id": 0})
         if cat_full and cat_full.get('icon_url'):
-            await delete_files_by_urls([cat_full['icon_url']], current_user.id)
+            await delete_files_by_urls([cat_full['icon_url']], workspace_id)
     
     # Delete all categories (including sub-categories)
     await db.categories.delete_many({"workspace_id": workspace_id})
@@ -3165,7 +3172,7 @@ async def permanently_delete_walkthrough(workspace_id: str, walkthrough_id: str,
     
     # Cascade delete: Find and delete all associated files
     file_urls = await extract_file_urls_from_walkthrough(walkthrough)
-    deleted_files_count = await delete_files_by_urls(file_urls, current_user.id)
+    deleted_files_count = await delete_files_by_urls(file_urls, workspace_id)
     
     # Delete walkthrough
     result = await db.walkthroughs.delete_one({"id": walkthrough_id, "workspace_id": workspace_id, "archived": True})
