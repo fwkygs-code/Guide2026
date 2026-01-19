@@ -189,6 +189,8 @@ const BuilderV2Page = () => {
       setIsSaving(true);
       
       // Save walkthrough metadata
+      // CRITICAL: Always save as draft unless explicitly publishing
+      // This ensures save/autosave doesn't accidentally publish
       const walkthroughData = {
         title: walkthrough.title || '',
         description: walkthrough.description || '',
@@ -196,7 +198,7 @@ const BuilderV2Page = () => {
         category_ids: walkthrough.category_ids || [],
         navigation_type: walkthrough.navigation_type || 'next_prev',
         navigation_placement: walkthrough.navigation_placement || 'bottom',
-        status: walkthrough.status || 'draft',
+        status: 'draft',  // Always save as draft - publish is separate action
       };
 
       let finalWalkthroughId = walkthroughId;

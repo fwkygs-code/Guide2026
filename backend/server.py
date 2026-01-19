@@ -3034,6 +3034,15 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         if update_data.get("privacy") and update_data.get("privacy") != Privacy.PASSWORD:
             update_data["password_hash"] = None
 
+    # CRITICAL: Ensure status is always set - default to DRAFT unless explicitly PUBLISHED
+    # This prevents save/autosave from accidentally keeping published status
+    if "status" not in update_data:
+        # If status not provided, set to DRAFT (save operation, not publish)
+        update_data["status"] = WalkthroughStatus.DRAFT
+    elif update_data.get("status") != WalkthroughStatus.PUBLISHED:
+        # If status is provided but not PUBLISHED, ensure it's DRAFT
+        update_data["status"] = WalkthroughStatus.DRAFT
+    
     # Versioning: create a snapshot on every publish action.
     # Any update that sets status=published creates a new version entry.
     is_publish_request = update_data.get("status") == WalkthroughStatus.PUBLISHED

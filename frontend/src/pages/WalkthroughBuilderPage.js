@@ -138,7 +138,8 @@ const WalkthroughBuilderPage = () => {
         password: privacy === 'password' ? password : undefined,
         category_ids: selectedCategories,
         navigation_type: 'next_prev',
-        navigation_placement: 'bottom'
+        navigation_placement: 'bottom',
+        status: publishNow ? 'published' : 'draft'  // Always set status: draft on save, published only on explicit publish
       };
 
       let savedWalkthroughId = walkthroughId;
@@ -176,11 +177,13 @@ const WalkthroughBuilderPage = () => {
         setSteps(nextSteps);
         
         if (publishNow) {
-          await api.updateWalkthrough(workspaceId, walkthroughId, { ...data, status: 'published' });
+          // Status already set to 'published' in data above
           setStatus('published');
           toast.success('Walkthrough published!');
         } else {
-          toast.success('Walkthrough updated!');
+          // Status already set to 'draft' in data above
+          setStatus('draft');
+          toast.success('Walkthrough saved as draft!');
         }
       } else {
         const response = await api.createWalkthrough(workspaceId, data);
@@ -199,11 +202,13 @@ const WalkthroughBuilderPage = () => {
         }
         
         if (publishNow) {
-          await api.updateWalkthrough(workspaceId, savedWalkthroughId, { ...data, status: 'published' });
+          // Status already set to 'published' in data above
           setStatus('published');
           toast.success('Walkthrough published!');
         } else {
-          toast.success('Walkthrough created!');
+          // Status already set to 'draft' in data above
+          setStatus('draft');
+          toast.success('Walkthrough created as draft!');
         }
         
         navigate(`/workspace/${workspaceSlug}/walkthroughs/${savedWalkthroughId}/edit`);
