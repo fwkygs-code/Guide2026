@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { api } from '../lib/api';
 import LanguageSwitcher from './LanguageSwitcher';
+import InterGuideLogo from './InterGuideLogo';
 
 const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
   const { t } = useTranslation();
@@ -83,7 +84,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 }}
               />
             ) : (
-              <BookOpen className="w-7 h-7 text-primary" />
+              <InterGuideLogo className="w-7 h-7" />
             )}
             <span className="text-xl font-heading font-bold truncate">InterGuide</span>
           </div>

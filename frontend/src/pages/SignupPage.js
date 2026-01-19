@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useTextSize } from '../contexts/TextSizeContext';
-import { BookOpen, CheckCircle2, AlertCircle, Loader2, WifiOff } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, WifiOff } from 'lucide-react';
+import InterGuideLogo from '../components/InterGuideLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -243,7 +244,7 @@ const SignupPage = () => {
       >
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <BookOpen className="w-8 h-8 text-primary" />
+            <InterGuideLogo className="w-8 h-8" />
             <span className={`${getSizeClass('2xl')} font-heading font-bold text-white`}>InterGuide</span>
           </Link>
           <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>Get Started</h1>

@@ -2,9 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
+import { Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import InterGuideLogo from '../components/InterGuideLogo';
 
 const LandingPage = () => {
   const { t } = useTranslation();
@@ -48,7 +49,7 @@ const LandingPage = () => {
       <nav className="fixed top-0 w-full z-50 glass border-b border-slate-200/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-8 h-8 text-primary" />
+            <InterGuideLogo className="w-8 h-8" />
             <span className="text-xl font-heading font-bold">InterGuide</span>
           </div>
           <div className="flex items-center gap-3">
