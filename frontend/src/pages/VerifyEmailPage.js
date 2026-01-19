@@ -100,7 +100,7 @@ const VerifyEmailPage = () => {
           )}
           {status === 'success' && (
             <>
-              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
+              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-blue-600" />
               <CardTitle>Email Verified!</CardTitle>
               <CardDescription>Your email has been successfully verified.</CardDescription>
             </>
