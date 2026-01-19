@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import InterGuideLogo from '../components/InterGuideLogo';
 
 const LandingPage = () => {
   const { t } = useTranslation();
@@ -49,8 +48,11 @@ const LandingPage = () => {
       <nav className="fixed top-0 w-full z-50 glass border-b border-slate-200/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <InterGuideLogo className="w-8 h-8" />
-            <span className="text-xl font-heading font-bold">InterGuide</span>
+            <img 
+              src="/logo.svg" 
+              alt="InterGuide" 
+              className="w-8 h-8 object-contain"
+            />
           </div>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
@@ -159,8 +161,11 @@ const LandingPage = () => {
       <footer className="bg-slate-900 text-slate-300 py-12 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center gap-2 mb-6">
-            <BookOpen className="w-6 h-6 text-primary" />
-            <span className="text-xl font-heading font-bold text-white">InterGuide</span>
+            <img 
+              src="/logo.svg" 
+              alt="InterGuide" 
+              className="w-6 h-6 object-contain"
+            />
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
             <Link to="/terms" className="text-slate-300 hover:text-white transition-colors">

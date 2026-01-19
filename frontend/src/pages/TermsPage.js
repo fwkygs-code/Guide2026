@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
@@ -14,8 +14,11 @@ const TermsPage = () => {
       <header className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-slate-900 hover:text-primary transition-colors">
-            <BookOpen className="w-6 h-6 text-primary" />
-            <span className="text-xl font-heading font-bold">InterGuide</span>
+            <img 
+              src="/logo.svg" 
+              alt="InterGuide" 
+              className="w-6 h-6 object-contain"
+            />
           </Link>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />

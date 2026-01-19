@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useTextSize } from '../contexts/TextSizeContext';
 import { CheckCircle2, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
-import InterGuideLogo from '../components/InterGuideLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -238,8 +237,12 @@ const LoginPage = () => {
       >
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <InterGuideLogo className="w-8 h-8" />
-            <span className={`${getSizeClass('2xl')} font-heading font-bold text-white`}>InterGuide</span>
+            <img 
+              src="/logo.svg" 
+              alt="InterGuide" 
+              className={`${getSizeClass('2xl')} object-contain`}
+              style={{ width: '2rem', height: '2rem' }}
+            />
           </Link>
           <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('common.welcome')}</h1>
           <p className={`${getSizeClass('base')} text-slate-200`}>{t('auth.loginTitle')}</p>
