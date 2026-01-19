@@ -40,18 +40,6 @@ const DashboardPage = () => {
     fetchWorkspaces();
   }, []);
 
-  // Release any workspace locks when user navigates to dashboard
-  // This ensures locks are released even if user navigates directly (URL, browser back, etc.)
-  useEffect(() => {
-    const releaseAllLocks = async () => {
-      // Get all workspaces and release locks for any that might be held
-      // Note: We can't know which workspace locks we hold without backend support,
-      // but the TTL (2 hours) will eventually expire stale locks
-      // For now, we rely on the cleanup functions in workspace pages
-    };
-    releaseAllLocks();
-  }, []);
-
   const fetchWorkspaces = async () => {
     try {
       const response = await api.getWorkspaces();

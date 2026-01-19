@@ -81,7 +81,17 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               <ArrowLeft className="w-4 h-4" />
             </Button>
 
-            <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={() => navigate('/dashboard')} data-testid="dashboard-logo">
+            <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={async () => {
+              // Release workspace lock when navigating to dashboard
+              if (workspaceId && user?.id) {
+                try {
+                  await api.unlockWorkspace(workspaceId);
+                } catch (error) {
+                  // Ignore errors - lock may already be released or expired
+                }
+              }
+              navigate('/dashboard');
+            }} data-testid="dashboard-logo">
             {logoUrl ? (
               <img 
                 src={logoUrl} 

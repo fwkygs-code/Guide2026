@@ -889,12 +889,15 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
     """
     Acquire workspace lock. Returns lock if successful, raises HTTPException if locked by another user.
     If force=True, releases existing lock and acquires new one.
+    
+    Note: Locks have a 2-hour TTL. If a user navigates away from workspace pages,
+    their lock will expire naturally. Frontend cleanup functions also release locks on unmount.
     """
     existing_lock = await get_workspace_lock(workspace_id)
     
     if existing_lock:
         if existing_lock.locked_by_user_id == user_id:
-            # Same user, extend lock
+            # Same user, extend lock (idempotent - safe for refresh)
             expires_at = datetime.now(timezone.utc) + timedelta(hours=2)
             await db.workspace_locks.update_one(
                 {"workspace_id": workspace_id},
