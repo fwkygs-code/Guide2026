@@ -1884,37 +1884,52 @@ async def invite_user_to_workspace(
             raise HTTPException(status_code=400, detail="User already has a pending invitation")
     
     # Create invitation (WorkspaceMember with PENDING status)
-    invited_at = datetime.now(timezone.utc)
-    member = WorkspaceMember(
-        workspace_id=workspace_id,
-        user_id=invitee_user_id,
-        role=UserRole.EDITOR,  # Shared users are members with EDITOR role
-        status=InvitationStatus.PENDING,
-        invited_by_user_id=current_user.id,
-        invited_at=invited_at
-    )
-    member_dict = member.model_dump()
-    member_dict['invited_at'] = member_dict['invited_at'].isoformat()
-    member_dict['joined_at'] = member_dict['joined_at'].isoformat()
-    await db.workspace_members.insert_one(member_dict)
-    
-    # HARDENING LAYER C: Audit log
-    await log_workspace_audit(
-        action_type=WorkspaceAuditAction.INVITE_SENT,
-        workspace_id=workspace_id,
-        actor_user_id=current_user.id,
-        target_user_id=invitee_user_id,
-        metadata={"invitee_email": invite_data.email, "inviter_name": current_user.name}
-    )
-    
-    # Create notification for invitee (not batched - invitations are never batched)
-    await create_notification(
-        user_id=invitee_user_id,
-        notification_type=NotificationType.INVITE,
-        title="Workspace Invitation",
-        message=f"{current_user.name} has invited you to collaborate on the workspace \"{workspace['name']}\"",
-        metadata={"workspace_id": workspace_id, "invitation_id": member.id, "inviter_id": current_user.id, "inviter_name": current_user.name}
-    )
+    try:
+        invited_at = datetime.now(timezone.utc)
+        member = WorkspaceMember(
+            workspace_id=workspace_id,
+            user_id=invitee_user_id,
+            role=UserRole.EDITOR,  # Shared users are members with EDITOR role
+            status=InvitationStatus.PENDING,
+            invited_by_user_id=current_user.id,
+            invited_at=invited_at
+        )
+        member_dict = member.model_dump()
+        # Ensure datetime fields are properly serialized
+        if member_dict.get('invited_at'):
+            member_dict['invited_at'] = member_dict['invited_at'].isoformat()
+        if member_dict.get('joined_at'):
+            member_dict['joined_at'] = member_dict['joined_at'].isoformat()
+        await db.workspace_members.insert_one(member_dict)
+        
+        # HARDENING LAYER C: Audit log
+        try:
+            await log_workspace_audit(
+                action_type=WorkspaceAuditAction.INVITE_SENT,
+                workspace_id=workspace_id,
+                actor_user_id=current_user.id,
+                target_user_id=invitee_user_id,
+                metadata={"invitee_email": invite_data.email, "inviter_name": current_user.name}
+            )
+        except Exception as audit_error:
+            logging.error(f"Failed to log audit entry for invitation: {audit_error}")
+            # Don't fail the invitation if audit logging fails
+        
+        # Create notification for invitee (not batched - invitations are never batched)
+        try:
+            await create_notification(
+                user_id=invitee_user_id,
+                notification_type=NotificationType.INVITE,
+                title="Workspace Invitation",
+                message=f"{current_user.name} has invited you to collaborate on the workspace \"{workspace['name']}\"",
+                metadata={"workspace_id": workspace_id, "invitation_id": member.id, "inviter_id": current_user.id, "inviter_name": current_user.name}
+            )
+        except Exception as notif_error:
+            logging.error(f"Failed to create notification for invitation: {notif_error}")
+            # Don't fail the invitation if notification creation fails
+    except Exception as e:
+        logging.error(f"Failed to create invitation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to create invitation: {str(e)}")
     
     # Send invitation email (background task)
     background_tasks.add_task(
