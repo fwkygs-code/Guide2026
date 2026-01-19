@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Plus, BookOpen, FolderOpen, BarChart3, Settings, Upload, X } from 'lucide-react';
+import { Plus, BookOpen, FolderOpen, BarChart3, Settings, Upload, X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -301,9 +301,14 @@ const DashboardPage = () => {
                   {workspace.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-heading font-semibold text-slate-900 mb-1">
-                    {workspace.name}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-heading font-semibold text-slate-900">
+                      {workspace.name}
+                    </h3>
+                    {workspace.owner_id && workspace.owner_id !== user?.id && (
+                      <Users className="w-4 h-4 text-slate-400" title="Shared workspace" />
+                    )}
+                  </div>
                   <p className="text-sm text-slate-500">/{workspace.slug}</p>
                 </div>
               </div>
@@ -335,19 +340,27 @@ const DashboardPage = () => {
                   <FolderOpen className="w-4 h-4 mb-1" />
                   <span className="text-xs">{t('workspace.categories')}</span>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-col h-auto py-3"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/workspace/${workspace.slug}/settings`);
-                  }}
-                  data-testid={`workspace-settings-${workspace.id}`}
-                >
-                  <Settings className="w-4 h-4 mb-1" />
-                  <span className="text-xs">{t('workspace.settings')}</span>
-                </Button>
+                {workspace.owner_id === user?.id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-col h-auto py-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/workspace/${workspace.slug}/settings`);
+                    }}
+                    data-testid={`workspace-settings-${workspace.id}`}
+                  >
+                    <Settings className="w-4 h-4 mb-1" />
+                    <span className="text-xs">{t('workspace.settings')}</span>
+                  </Button>
+                )}
+                {workspace.owner_id !== user?.id && (
+                  <div className="flex-col h-auto py-3 flex items-center justify-center opacity-50">
+                    <Settings className="w-4 h-4 mb-1" />
+                    <span className="text-xs">{t('workspace.settings')}</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, X, CheckCircle2, XCircle } from 'lucide-react';
+import { Bell, Check, X, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -79,11 +79,23 @@ const NotificationsMenu = () => {
     try {
       await api.declineInvitation(notification.metadata.workspace_id, notification.metadata.invitation_id);
       toast.success('Invitation declined');
-      // Remove notification and refresh
+      // Remove notification immediately and refresh
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
-      fetchNotifications();
+      await fetchNotifications();
     } catch (error) {
       const errorMsg = error.response?.data?.detail || 'Failed to decline invitation';
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId, e) => {
+    e.stopPropagation();
+    try {
+      await api.deleteNotification(notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      toast.success('Notification deleted');
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Failed to delete notification';
       toast.error(errorMsg);
     }
   };
@@ -201,16 +213,28 @@ const NotificationsMenu = () => {
                         </div>
                       )}
                     </div>
-                    {!notification.is_read && notification.type !== 'invite' && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {!notification.is_read && notification.type !== 'invite' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => handleMarkAsRead(notification.id, e)}
+                          title="Mark as read"
+                        >
+                          <Check className="w-3 h-3" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 shrink-0"
-                        onClick={(e) => handleMarkAsRead(notification.id, e)}
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-destructive"
+                        onClick={(e) => handleDeleteNotification(notification.id, e)}
+                        title="Delete notification"
                       >
-                        <Check className="w-3 h-3" />
+                        <Trash2 className="w-3 h-3" />
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}

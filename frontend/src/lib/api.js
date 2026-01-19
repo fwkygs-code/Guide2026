@@ -151,6 +151,7 @@ export const api = {
   // Notifications
   getNotifications: () => axios.get(`${API}/notifications`),
   markNotificationRead: (notificationId) => axios.post(`${API}/notifications/${notificationId}/read`),
+  deleteNotification: (notificationId) => axios.delete(`${API}/notifications/${notificationId}`),
   
   // Workspace Invitations & Members
   inviteUserToWorkspace: (workspaceId, email) => axios.post(`${API}/workspaces/${workspaceId}/invite`, { email }),

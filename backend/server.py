@@ -1834,6 +1834,19 @@ async def mark_notification_read(notification_id: str, current_user: User = Depe
     )
     return {"success": True, "message": "Notification marked as read"}
 
+@api_router.delete("/notifications/{notification_id}")
+async def delete_notification(notification_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a notification."""
+    notification = await db.notifications.find_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {"_id": 0}
+    )
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    await db.notifications.delete_one({"id": notification_id})
+    return {"success": True, "message": "Notification deleted"}
+
 # Workspace Invitation Routes
 class InviteRequest(BaseModel):
     email: EmailStr
