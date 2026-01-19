@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
+import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import InterGuideLogo from '../components/InterGuideLogo';
