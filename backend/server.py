@@ -955,18 +955,97 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
             )
     
     # No valid lock exists (either no lock or expired lock was deleted)
-    # Create new lock with 10 minute TTL
-    # TTL is short to ensure stale locks expire quickly if user crashes/closes
+    # CRITICAL: Use atomic find_one_and_update with upsert to prevent race conditions
+    # This ensures only one lock can be created even under concurrent load
+    # MongoDB's upsert is atomic - if two requests try simultaneously, only one document is created
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # 10 minute TTL
-    lock = WorkspaceLock(
-        workspace_id=workspace_id,
-        locked_by_user_id=user_id,
-        expires_at=expires_at
-    )
-    lock_dict = lock.model_dump()
-    lock_dict['locked_at'] = lock_dict['locked_at'].isoformat()
-    lock_dict['expires_at'] = lock_dict['expires_at'].isoformat()
-    await db.workspace_locks.insert_one(lock_dict)
+    locked_at = datetime.now(timezone.utc)
+    lock_id = str(uuid.uuid4())
+    
+    # Atomic operation: create lock only if it doesn't exist (upsert)
+    # $setOnInsert only sets fields when document is inserted, not when updated
+    # This prevents overwriting existing locks
+    try:
+        result = await db.workspace_locks.find_one_and_update(
+            {"workspace_id": workspace_id},
+            {
+                "$setOnInsert": {
+                    "id": lock_id,
+                    "workspace_id": workspace_id,
+                    "locked_by_user_id": user_id,
+                    "locked_at": locked_at.isoformat(),
+                    "expires_at": expires_at.isoformat()
+                }
+            },
+            upsert=True,
+            return_document=True
+        )
+        
+        # Check if lock was created by us or already existed
+        if result and result.get("locked_by_user_id") == user_id:
+            # Lock is ours (either just created or we already had it)
+            lock = WorkspaceLock(
+                id=result.get("id", lock_id),
+                workspace_id=workspace_id,
+                locked_by_user_id=user_id,
+                locked_at=datetime.fromisoformat(result.get("locked_at", locked_at.isoformat()).replace('Z', '+00:00')),
+                expires_at=datetime.fromisoformat(result.get("expires_at", expires_at.isoformat()).replace('Z', '+00:00'))
+            )
+            return lock
+        
+        # Another request created the lock concurrently - re-check with expiration enforcement
+        # This handles the race where two requests both saw no lock and both tried to create one
+        # MongoDB ensures only one succeeds, so we need to check which one won
+        existing_lock = await get_workspace_lock(workspace_id)
+        if existing_lock:
+            if existing_lock.locked_by_user_id == user_id:
+                # Same user (shouldn't happen but handle gracefully)
+                return existing_lock
+            else:
+                # Locked by another user - raise conflict
+                workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+                workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
+                locked_by_user = await db.users.find_one({"id": existing_lock.locked_by_user_id}, {"_id": 0, "name": 1})
+                locked_by_name = locked_by_user.get("name", "Another user") if locked_by_user else "Another user"
+                
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Another user ({locked_by_name}) is currently connected to this workspace. Entering now will force them out and may cause data loss."
+                )
+        
+        # Lock was created but expired immediately (extremely rare edge case) - retry
+        # This can happen if lock creation took longer than TTL (shouldn't happen but handle it)
+        return await acquire_workspace_lock(workspace_id, user_id, force=force)
+        
+    except Exception as e:
+        # If upsert fails for any reason, fall back to checking existing lock
+        # This ensures we don't lose the race condition protection
+        logging.error(f"[acquire_workspace_lock] Upsert failed, checking existing lock: {e}", exc_info=True)
+        existing_lock = await get_workspace_lock(workspace_id)
+        if existing_lock:
+            if existing_lock.locked_by_user_id == user_id:
+                return existing_lock
+            else:
+                workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+                locked_by_user = await db.users.find_one({"id": existing_lock.locked_by_user_id}, {"_id": 0, "name": 1})
+                locked_by_name = locked_by_user.get("name", "Another user") if locked_by_user else "Another user"
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Another user ({locked_by_name}) is currently connected to this workspace. Entering now will force them out and may cause data loss."
+                )
+        
+        # No lock exists - create it (fallback to non-atomic insert if upsert fails)
+        # This should be extremely rare
+        lock = WorkspaceLock(
+            workspace_id=workspace_id,
+            locked_by_user_id=user_id,
+            expires_at=expires_at
+        )
+        lock_dict = lock.model_dump()
+        lock_dict['locked_at'] = lock_dict['locked_at'].isoformat()
+        lock_dict['expires_at'] = lock_dict['expires_at'].isoformat()
+        await db.workspace_locks.insert_one(lock_dict)
+        return lock
     
     # HARDENING LAYER C: Audit log (non-blocking)
     try:
