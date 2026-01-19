@@ -79,9 +79,14 @@ const NotificationsMenu = () => {
     try {
       await api.acceptInvitation(notification.metadata.workspace_id, notification.metadata.invitation_id);
       toast.success('Invitation accepted!');
-      // Remove notification and refresh
+      // Remove invitation notification immediately
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
-      fetchNotifications();
+      // Refresh notifications to get the new confirmation notification
+      await fetchNotifications();
+      // Reload page to refresh workspace list and show new workspace
+      setTimeout(() => {
+        window.location.reload();
+      }, 500); // Small delay to ensure notification is saved
     } catch (error) {
       const errorMsg = error.response?.data?.detail || 'Failed to accept invitation';
       toast.error(errorMsg);
