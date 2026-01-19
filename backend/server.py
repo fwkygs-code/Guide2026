@@ -1962,7 +1962,30 @@ async def accept_invitation(
     current_user: User = Depends(get_current_user)
 ):
     """Accept a workspace invitation."""
-    # Find invitation
+    # First check if invitation exists at all (even if not pending)
+    existing_member = await db.workspace_members.find_one(
+        {
+            "id": invitation_id,
+            "workspace_id": workspace_id,
+            "user_id": current_user.id
+        },
+        {"_id": 0, "status": 1}
+    )
+    
+    if not existing_member:
+        raise HTTPException(status_code=404, detail="Invitation not found. It may have been cancelled.")
+    
+    # Check if invitation is still pending
+    if existing_member.get("status") != InvitationStatus.PENDING:
+        status = existing_member.get("status", "unknown")
+        if status == InvitationStatus.ACCEPTED:
+            raise HTTPException(status_code=400, detail="Invitation has already been accepted")
+        elif status == InvitationStatus.DECLINED:
+            raise HTTPException(status_code=400, detail="Invitation has already been declined")
+        else:
+            raise HTTPException(status_code=400, detail=f"Invitation is no longer pending (status: {status})")
+    
+    # Find invitation with pending status (for full member data)
     member = await db.workspace_members.find_one(
         {
             "id": invitation_id,
@@ -1972,8 +1995,10 @@ async def accept_invitation(
         },
         {"_id": 0}
     )
+    
+    # Double-check (should not happen, but safety check)
     if not member:
-        raise HTTPException(status_code=404, detail="Invitation not found or already responded to")
+        raise HTTPException(status_code=404, detail="Invitation not found or no longer pending")
     
     # Update invitation status
     responded_at = datetime.now(timezone.utc)
