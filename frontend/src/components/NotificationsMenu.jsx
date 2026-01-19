@@ -81,8 +81,8 @@ const NotificationsMenu = () => {
         // Redirect to workspace main page (walkthroughs) - not logged out
         navigate(`/workspace/${workspaceSlug}/walkthroughs`, { replace: true });
         
-        // Show non-dismissible message
-        toast.error('Another user entered the workspace and your session was ended.', {
+        // Show non-dismissible message (does not imply logout - user stays logged in)
+        toast.error('Another user entered the workspace and your session was ended. You have been redirected to the workspace main page.', {
           duration: 10000,
           important: true
         });

@@ -37,10 +37,12 @@ const AnalyticsPage = () => {
       acquireLock();
     }
 
-    // Release lock on unmount
+    // Release lock on unmount (ignore errors - idempotent)
     return () => {
       if (workspaceId) {
-        api.unlockWorkspace(workspaceId).catch(console.error);
+        api.unlockWorkspace(workspaceId).catch(() => {
+          // Ignore unlock errors - lock may already be released, expired, or user was forced out
+        });
       }
     };
   }, [workspaceId, workspaceSlug, navigate]);

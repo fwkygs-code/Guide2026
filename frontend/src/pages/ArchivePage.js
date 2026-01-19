@@ -24,6 +24,35 @@ const ArchivePage = () => {
     fetchData();
   }, [workspaceId]);
 
+  // Acquire workspace lock on mount
+  useEffect(() => {
+    const acquireLock = async () => {
+      if (!workspaceId) return;
+      try {
+        const lockResult = await api.lockWorkspace(workspaceId, false);
+        if (lockResult.locked) {
+          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          navigate(`/workspace/${workspaceSlug}/walkthroughs`);
+        }
+      } catch (error) {
+        console.error('Failed to acquire workspace lock:', error);
+      }
+    };
+
+    if (workspaceId) {
+      acquireLock();
+    }
+
+    // Release lock on unmount (ignore errors - idempotent)
+    return () => {
+      if (workspaceId) {
+        api.unlockWorkspace(workspaceId).catch(() => {
+          // Ignore unlock errors - lock may already be released or expired
+        });
+      }
+    };
+  }, [workspaceId, workspaceSlug, navigate]);
+
   const fetchData = async () => {
     if (!workspaceId) return; // Wait for workspace ID to be resolved
     try {

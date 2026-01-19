@@ -24,7 +24,7 @@ const WorkspaceLockModal = ({ open, onOpenChange, lockedBy, onCancel, onEnterAny
               <strong>{lockedBy}</strong> is currently connected to this workspace.
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-              Signing in will force the other user out and may result in data loss if their progress isn't saved.
+              Entering will force the other user out and may cause data loss if their progress isn't saved.
             </p>
           </DialogDescription>
         </DialogHeader>
