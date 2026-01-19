@@ -899,7 +899,7 @@ async def check_workspace_access(workspace_id: str, user_id: str, require_owner:
     # For non-owners: Enforce plan-based access restriction
     if not is_owner:
         # Get user plan and subscription status
-        user = await db.users.find_one({"id": user_id}, {"_id": 0, "plan_id", "grace_period_ends_at": 1})
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "plan_id": 1, "grace_period_ends_at": 1})
         if not user:
             raise HTTPException(status_code=403, detail="Access denied: User not found")
         
