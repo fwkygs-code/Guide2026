@@ -1896,10 +1896,15 @@ async def invite_user_to_workspace(
         )
         member_dict = member.model_dump()
         # Ensure datetime fields are properly serialized
-        if member_dict.get('invited_at'):
-            member_dict['invited_at'] = member_dict['invited_at'].isoformat()
-        if member_dict.get('joined_at'):
-            member_dict['joined_at'] = member_dict['joined_at'].isoformat()
+        if 'invited_at' in member_dict and member_dict['invited_at']:
+            if isinstance(member_dict['invited_at'], datetime):
+                member_dict['invited_at'] = member_dict['invited_at'].isoformat()
+        if 'joined_at' in member_dict and member_dict['joined_at']:
+            if isinstance(member_dict['joined_at'], datetime):
+                member_dict['joined_at'] = member_dict['joined_at'].isoformat()
+        if 'responded_at' in member_dict and member_dict['responded_at']:
+            if isinstance(member_dict['responded_at'], datetime):
+                member_dict['responded_at'] = member_dict['responded_at'].isoformat()
         await db.workspace_members.insert_one(member_dict)
         
         # HARDENING LAYER C: Audit log
