@@ -290,6 +290,7 @@ const CanvasBuilderPage = () => {
     if (isSaving || isPublishing) return;
     setIsSaving(true);
     // CRITICAL: Always include icon_url explicitly, even if null, to preserve existing value
+    // CRITICAL: Always save as draft unless explicitly publishing - prevents accidental publishing
     const data = {
       title: walkthrough.title || '',
       description: walkthrough.description || '',
@@ -299,7 +300,7 @@ const CanvasBuilderPage = () => {
       category_ids: walkthrough.category_ids || [],
       navigation_type: walkthrough.navigation_type || 'next_prev',
       navigation_placement: walkthrough.navigation_placement || 'bottom',
-      status: walkthrough.status || 'draft'
+      status: 'draft'  // Always save as draft - publish is separate action
     };
 
     try {
@@ -728,6 +729,7 @@ const CanvasBuilderPage = () => {
       setWalkthrough(next);
       await (async () => {
         // CRITICAL: Always include icon_url, even if null, to preserve existing value
+        // CRITICAL: Status is set to 'published' in next object above (line 727) for publish action
         const data = {
           title: next.title,
           description: next.description || '',
@@ -736,7 +738,7 @@ const CanvasBuilderPage = () => {
           category_ids: next.category_ids || [],
           navigation_type: next.navigation_type,
           navigation_placement: next.navigation_placement,
-          status: next.status,
+          status: next.status,  // This is 'published' when called from publish action (line 727)
         };
 
         if (isEditing) {
