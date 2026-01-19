@@ -15,7 +15,7 @@ const PrivacyPage = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-slate-900 hover:text-primary transition-colors">
             <img 
-              src="/logo.svg" 
+              src="/logo.png" 
               alt="InterGuide" 
               className="h-10 w-auto object-contain"
             />

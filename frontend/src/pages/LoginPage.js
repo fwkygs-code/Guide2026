@@ -238,7 +238,7 @@ const LoginPage = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <img 
-              src="/logo.svg" 
+              src="/logo.png" 
               alt="InterGuide" 
               className="h-10 w-auto object-contain"
             />
