@@ -79,16 +79,31 @@ const NotificationsMenu = () => {
     try {
       await api.declineInvitation(notification.metadata.workspace_id, notification.metadata.invitation_id);
       toast.success('Invitation declined');
-      // Remove notification immediately and refresh
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      // Update notification to show declined status instead of removing
+      setNotifications(prev => prev.map(n => 
+        n.id === notification.id 
+          ? { ...n, type: 'invite_declined', message: 'You have declined this invitation', is_read: true }
+          : n
+      ));
       await fetchNotifications();
     } catch (error) {
       const errorMsg = error.response?.data?.detail || 'Failed to decline invitation';
       toast.error(errorMsg);
       
-      // If invitation is already accepted/declined, remove the notification
-      if (errorMsg.includes('already been accepted') || errorMsg.includes('already been declined') || errorMsg.includes('no longer pending')) {
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      // If invitation is already accepted/declined, update notification status
+      if (errorMsg.includes('already been declined')) {
+        setNotifications(prev => prev.map(n => 
+          n.id === notification.id 
+            ? { ...n, type: 'invite_declined', message: 'You have already declined this invitation', is_read: true }
+            : n
+        ));
+        await fetchNotifications();
+      } else if (errorMsg.includes('already been accepted') || errorMsg.includes('no longer pending')) {
+        setNotifications(prev => prev.map(n => 
+          n.id === notification.id 
+            ? { ...n, type: 'invite_accepted', message: 'This invitation has already been accepted', is_read: true }
+            : n
+        ));
         await fetchNotifications();
       }
     }
@@ -216,6 +231,22 @@ const NotificationsMenu = () => {
                             <XCircle className="w-3 h-3 mr-1" />
                             Decline
                           </Button>
+                        </div>
+                      )}
+                      {notification.type === 'invite_accepted' && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Accepted
+                          </span>
+                        </div>
+                      )}
+                      {notification.type === 'invite_declined' && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded">
+                            <XCircle className="w-3 h-3" />
+                            Declined
+                          </span>
                         </div>
                       )}
                     </div>
