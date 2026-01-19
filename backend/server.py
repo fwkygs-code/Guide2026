@@ -2173,7 +2173,7 @@ class InviteRequest(BaseModel):
 
 async def can_user_share_workspaces(user_id: str) -> bool:
     """Check if user can share workspaces (must have Pro plan or active subscription, or be in grace period)."""
-    user = await db.users.find_one({"id": user_id}, {"_id": 0, "plan_id", "grace_period_ends_at": 1})
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "plan_id": 1, "grace_period_ends_at": 1})
     if not user:
         return False
     
