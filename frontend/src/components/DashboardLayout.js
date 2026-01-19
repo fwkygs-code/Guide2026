@@ -86,7 +86,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               <img 
                 src="/logo.svg" 
                 alt="InterGuide" 
-                className="h-10 w-auto object-contain"
+                className="h-14 w-auto object-contain"
               />
             )}
           </div>

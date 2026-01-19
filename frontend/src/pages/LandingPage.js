@@ -51,7 +51,7 @@ const LandingPage = () => {
             <img 
               src="/logo.svg" 
               alt="InterGuide" 
-              className="h-10 w-auto object-contain"
+              className="h-14 w-auto object-contain"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -79,7 +79,7 @@ const LandingPage = () => {
               <img 
                 src="/logo.svg" 
                 alt="InterGuide" 
-                className="h-40 md:h-48 w-auto object-contain"
+                className="h-64 md:h-80 lg:h-96 w-auto object-contain"
               />
             </div>
             <h1 className="text-5xl lg:text-6xl font-heading font-bold text-slate-900 mb-6 tracking-tight">
