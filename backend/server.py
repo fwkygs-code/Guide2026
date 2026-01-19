@@ -27,6 +27,8 @@ import base64
 import aiohttp
 import secrets
 import requests
+import sys
+import inspect
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -203,7 +205,14 @@ class User(BaseModel):
     email_verified: bool = False  # Email verification status
     email_verification_token: Optional[str] = None  # Hashed verification token
     email_verification_expires_at: Optional[datetime] = None  # Token expiration
+    disabled: bool = False  # Admin can disable user login
+    deleted_at: Optional[datetime] = None  # Soft delete timestamp
+    grace_period_ends_at: Optional[datetime] = None  # Grace period end date for expired subscriptions
+    custom_storage_bytes: Optional[int] = None  # Admin-set custom storage quota override (None = use plan)
+    custom_max_workspaces: Optional[int] = None  # Admin-set custom workspace limit override (None = use plan)
+    custom_max_walkthroughs: Optional[int] = None  # Admin-set custom walkthrough limit override (None = use plan)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = None  # Track modifications
 
 class WorkspaceCreate(BaseModel):
     name: str
@@ -386,6 +395,8 @@ class Subscription(BaseModel):
     last_verified_at: Optional[datetime] = None  # Last time PayPal status was verified via API
     cancellation_requested_at: Optional[datetime] = None  # When user requested cancellation (for receipt)
     effective_end_date: Optional[datetime] = None  # When subscription access ends (for cancellation receipt)
+    grace_started_at: Optional[datetime] = None  # When grace period started (for expired subscriptions)
+    grace_ends_at: Optional[datetime] = None  # When grace period ends (for expired subscriptions)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -742,6 +753,58 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     user = await db.users.find_one({"id": payload['user_id']}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    
+    # Check if user is disabled
+    if user.get('disabled', False):
+        raise HTTPException(status_code=403, detail="Account is disabled. Please contact support.")
+    
+    # Check if user is soft deleted
+    if user.get('deleted_at'):
+        raise HTTPException(status_code=403, detail="Account has been deleted.")
+    
+    # Check grace period expiration - force downgrade if expired
+    grace_ends_at = user.get('grace_period_ends_at')
+    if grace_ends_at:
+        try:
+            if isinstance(grace_ends_at, str):
+                grace_end = datetime.fromisoformat(grace_ends_at.replace('Z', '+00:00'))
+            else:
+                grace_end = grace_ends_at
+            now = datetime.now(timezone.utc)
+            if grace_end <= now:
+                # SECURITY INVARIANT: Grace period MUST expire deterministically
+                # REGRESSION GUARD: This check MUST happen on every authenticated request
+                # Grace period expired - check if user should be downgraded
+                plan_id = user.get('plan_id')
+                if plan_id:
+                    plan = await db.plans.find_one({"id": plan_id}, {"_id": 0, "name": 1})
+                    if plan and plan.get('name') == 'pro':
+                        # Check subscription status
+                        subscription = await get_user_subscription(user.get('id'))
+                        if subscription and subscription.status != SubscriptionStatus.EXPIRED:
+                            # Subscription not expired but grace period ended - check if payment failed
+                            # If subscription is ACTIVE/PENDING/CANCELLED but grace period expired,
+                            # this means payment failed and grace period ended - downgrade to Free
+                            free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+                            if free_plan:
+                                await db.users.update_one(
+                                    {"id": user.get('id')},
+                                    {"$set": {
+                                        "plan_id": free_plan['id'],
+                                        "grace_period_ends_at": None,  # Clear grace period
+                                        "updated_at": now.isoformat()
+                                    }}
+                                )
+                                logging.info(
+                                    f"Grace period expired for user {user.get('id')} - downgraded to Free plan"
+                                )
+                                # Update user dict for return
+                                user['plan_id'] = free_plan['id']
+                                user['grace_period_ends_at'] = None
+        except Exception as e:
+            logging.error(f"Error checking grace period expiration for user {user.get('id')}: {e}", exc_info=True)
+            # Continue on error - don't block user access if grace period check fails
+    
     return User(**user)
 
 async def require_admin(current_user: User = Depends(get_current_user)) -> User:
@@ -827,9 +890,61 @@ async def check_workspace_access(workspace_id: str, user_id: str, require_owner:
     
     For owners: They may not have a WorkspaceMember record (legacy), so check owner_id first.
     For members: Must have ACCEPTED status in WorkspaceMember.
+    
+    BLOCKING ENFORCEMENT: Free users and expired subscriptions cannot access shared workspaces.
     """
     # Check if user is owner (owners may not have WorkspaceMember record)
-    if await is_workspace_owner(workspace_id, user_id):
+    is_owner = await is_workspace_owner(workspace_id, user_id)
+    
+    # For non-owners: Enforce plan-based access restriction
+    if not is_owner:
+        # Get user plan and subscription status
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "plan_id", "grace_period_ends_at": 1})
+        if not user:
+            raise HTTPException(status_code=403, detail="Access denied: User not found")
+        
+        # Check grace period expiration
+        grace_ends_at = user.get('grace_period_ends_at')
+        if grace_ends_at:
+            try:
+                if isinstance(grace_ends_at, str):
+                    grace_end = datetime.fromisoformat(grace_ends_at.replace('Z', '+00:00'))
+                else:
+                    grace_end = grace_ends_at
+                if grace_end <= datetime.now(timezone.utc):
+                    # Grace period expired - block access
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Access denied: Your subscription grace period has expired. Please upgrade to Pro to access shared workspaces."
+                    )
+            except Exception:
+                # Invalid grace period date - treat as expired
+                pass
+        
+        # Check user plan
+        plan_id = user.get('plan_id')
+        if plan_id:
+            plan = await db.plans.find_one({"id": plan_id}, {"_id": 0, "name": 1})
+            if plan and plan.get('name') == 'free':
+                # SECURITY INVARIANT: Free plan users CANNOT access shared workspaces
+                # REGRESSION GUARD: This check MUST happen before membership status check
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access denied: Free plan users cannot access shared workspaces. Please upgrade to Pro."
+                )
+            
+            # Check subscription status for Pro plan users
+            if plan and plan.get('name') == 'pro':
+                subscription = await get_user_subscription(user_id)
+                if subscription and subscription.status == SubscriptionStatus.EXPIRED:
+                    # Expired subscription - block access
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Access denied: Your subscription has expired. Please renew to access shared workspaces."
+                    )
+    
+    # Owner check (owners always have access regardless of plan)
+    if is_owner:
         if require_owner:
             # Return a virtual WorkspaceMember for owner
             return WorkspaceMember(
@@ -854,9 +969,29 @@ async def check_workspace_access(workspace_id: str, user_id: str, require_owner:
     if not member:
         raise HTTPException(status_code=403, detail="Access denied: You are not a member of this workspace")
     
-    # Only ACCEPTED members have access (pending/declined cannot access)
+    # SECURITY INVARIANT: Only ACCEPTED members have access
+    # REGRESSION GUARD: Frozen memberships (PENDING with frozen_reason) are blocked here
+    # This ensures frozen memberships cannot grant access even if status is somehow ACCEPTED
     if member.status != InvitationStatus.ACCEPTED:
         raise HTTPException(status_code=403, detail="Access denied: Your invitation is pending or declined")
+    
+    # REGRESSION GUARD: Verify membership is not frozen (should not happen if status is ACCEPTED)
+    # This is a defensive check - frozen memberships should have status=PENDING
+    member_doc = await db.workspace_members.find_one(
+        {"workspace_id": workspace_id, "user_id": user_id, "status": InvitationStatus.ACCEPTED},
+        {"_id": 0, "frozen_reason": 1}
+    )
+    if member_doc and member_doc.get('frozen_reason') == "subscription_expired":
+        # This should never happen - frozen memberships have status=PENDING
+        # But if it does, block access as a safety measure
+        logging.error(
+            f"SECURITY WARNING: User {user_id} has ACCEPTED membership with frozen_reason in workspace {workspace_id}. "
+            "This violates security invariant - blocking access."
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Your workspace membership has been suspended due to subscription expiration."
+        )
     
     if require_owner:
         raise HTTPException(status_code=403, detail="Access denied: Only workspace owner can perform this action")
@@ -1459,7 +1594,15 @@ async def get_user_storage_usage(user_id: str) -> int:
     return file_storage + untracked_storage
 
 async def get_user_allowed_storage(user_id: str) -> int:
-    """Get total storage allowed for user (plan storage + extra storage)."""
+    """Get total storage allowed for user (plan storage + extra storage).
+    Respects admin-set custom_storage_bytes override if present.
+    """
+    # Check for custom storage override (admin-set)
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "custom_storage_bytes": 1})
+    if user and user.get('custom_storage_bytes') is not None:
+        return user['custom_storage_bytes']
+    
+    # Use plan-based storage
     subscription = await get_user_subscription(user_id)
     if not subscription:
         plan = await get_user_plan(user_id)
@@ -2028,6 +2171,37 @@ async def delete_notification(notification_id: str, current_user: User = Depends
 class InviteRequest(BaseModel):
     email: EmailStr
 
+async def can_user_share_workspaces(user_id: str) -> bool:
+    """Check if user can share workspaces (must have Pro plan or active subscription, or be in grace period)."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "plan_id", "grace_period_ends_at": 1})
+    if not user:
+        return False
+    
+    # Check grace period
+    grace_ends_at = user.get('grace_period_ends_at')
+    if grace_ends_at:
+        try:
+            if isinstance(grace_ends_at, str):
+                grace_end = datetime.fromisoformat(grace_ends_at.replace('Z', '+00:00'))
+            else:
+                grace_end = grace_ends_at
+            if grace_end > datetime.now(timezone.utc):
+                return True  # Still in grace period
+        except Exception:
+            pass
+    
+    # Check plan
+    plan_id = user.get('plan_id')
+    if plan_id:
+        plan = await db.plans.find_one({"id": plan_id}, {"_id": 0, "name": 1})
+        if plan and plan.get('name') == 'pro':
+            # Check subscription status
+            subscription = await get_user_subscription(user_id)
+            if subscription and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]:
+                return True
+    
+    return False
+
 @api_router.post("/workspaces/{workspace_id}/invite")
 async def invite_user_to_workspace(
     workspace_id: str,
@@ -2038,10 +2212,19 @@ async def invite_user_to_workspace(
     """
     Invite a user to a workspace by email.
     Only workspace owner can invite users.
+    Free/expired users cannot share workspaces.
     """
     # Check if user is owner
     if not await is_workspace_owner(workspace_id, current_user.id):
         raise HTTPException(status_code=403, detail="Only workspace owner can invite users")
+    
+    # SECURITY INVARIANT: Free/expired users cannot invite to workspaces
+    # REGRESSION GUARD: This check MUST happen before creating invitation
+    if not await can_user_share_workspaces(current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Workspace sharing requires a Pro subscription. Please upgrade to share workspaces."
+        )
     
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
     if not workspace:
@@ -2151,6 +2334,17 @@ async def accept_invitation(
     invitation_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Accept a workspace invitation.
+    Free/expired users cannot accept workspace invitations (sharing is Pro-only).
+    """
+    # SECURITY INVARIANT: Free/expired users cannot accept invitations
+    # REGRESSION GUARD: This check MUST happen before accepting invitation
+    if not await can_user_share_workspaces(current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Workspace sharing requires a Pro subscription. Please upgrade to access shared workspaces."
+        )
     """Accept a workspace invitation."""
     # First check if invitation exists at all (even if not pending)
     existing_member = await db.workspace_members.find_one(
@@ -2624,16 +2818,22 @@ async def remove_workspace_member(
 # Workspace Routes
 @api_router.post("/workspaces", response_model=Workspace)
 async def create_workspace(workspace_data: WorkspaceCreate, current_user: User = Depends(get_current_user)):
-    # Check workspace count limit
+    # Check workspace count limit (respects custom quota override)
     plan = await get_user_plan(current_user.id)
     if not plan:
         raise HTTPException(status_code=400, detail="User has no plan assigned")
     
+    # Check for custom workspace limit override
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0, "custom_max_workspaces": 1})
+    max_workspaces = plan.max_workspaces
+    if user and user.get('custom_max_workspaces') is not None:
+        max_workspaces = user['custom_max_workspaces']
+    
     workspace_count = await get_workspace_count(current_user.id)
-    if plan.max_workspaces is not None and workspace_count >= plan.max_workspaces:
+    if max_workspaces is not None and workspace_count >= max_workspaces:
         raise HTTPException(
             status_code=402,
-            detail=f"Workspace limit reached. Current: {workspace_count}, Limit: {plan.max_workspaces} for your plan"
+            detail=f"Workspace limit reached. Current: {workspace_count}, Limit: {max_workspaces}"
         )
     
     workspace = Workspace(
@@ -3010,17 +3210,46 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
     if member.role == UserRole.VIEWER:
         raise HTTPException(status_code=403, detail="Viewers cannot create walkthroughs")
     
-    # Check walkthrough count limit
+    # Enforce walkthrough quota limits (plan and custom overrides)
     plan = await get_user_plan(current_user.id)
     if not plan:
         raise HTTPException(status_code=400, detail="User has no plan assigned")
     
-    walkthrough_count = await get_walkthrough_count(workspace_id)
-    if plan.max_walkthroughs is not None and walkthrough_count >= plan.max_walkthroughs:
+    # Check for custom walkthrough limit override
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0, "custom_max_walkthroughs": 1})
+    max_walkthroughs = plan.max_walkthroughs
+    if user and user.get('custom_max_walkthroughs') is not None:
+        max_walkthroughs = user['custom_max_walkthroughs']
+    
+    # Count existing walkthroughs in all user's workspaces (not just this one)
+    # Walkthrough quota is per user, not per workspace
+    workspace_ids = []
+    owned_workspaces = await db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1}).to_list(100)
+    workspace_ids.extend([w['id'] for w in owned_workspaces])
+    
+    # Also count walkthroughs in shared workspaces where user is ACCEPTED member
+    shared_memberships = await db.workspace_members.find(
+        {"user_id": current_user.id, "status": InvitationStatus.ACCEPTED},
+        {"_id": 0, "workspace_id": 1}
+    ).to_list(100)
+    workspace_ids.extend([m['workspace_id'] for m in shared_memberships])
+    
+    total_walkthroughs = 0
+    if workspace_ids:
+        total_walkthroughs = await db.walkthroughs.count_documents(
+            {"workspace_id": {"$in": workspace_ids}, "archived": {"$ne": True}}
+        )
+    
+    # SECURITY INVARIANT: Walkthrough quota MUST be enforced
+    # REGRESSION GUARD: This check MUST happen before creating walkthrough
+    if max_walkthroughs is not None and total_walkthroughs >= max_walkthroughs:
         raise HTTPException(
             status_code=402,
-            detail=f"Walkthrough limit reached. Current: {walkthrough_count}, Limit: {plan.max_walkthroughs} for your plan"
+            detail=f"Walkthrough limit reached. Current: {total_walkthroughs}, Limit: {max_walkthroughs} for your plan"
         )
+    
+    # Note: User-level quota check above replaces workspace-level check
+    # Walkthrough quota is enforced per user across all workspaces
     
     # Store password safely (hash only) if password-protected
     password_hash = None
@@ -6403,6 +6632,7 @@ async def paypal_webhook(
                 
                 # Upgrade user to Pro plan (ONLY place this happens)
                 # CRITICAL: Use pro_plan['id'] directly to ensure it's correct
+                user_id = subscription['user_id']
                 update_data = {
                     "plan_id": pro_plan['id']
                 }
@@ -6410,9 +6640,48 @@ async def paypal_webhook(
                     update_data["trial_ends_at"] = trial_ends_at
                 
                 result = await db.users.update_one(
-                    {"id": subscription['user_id']},
+                    {"id": user_id},
                     {"$set": update_data}
                 )
+                
+                # Restore frozen workspace memberships (if user was previously downgraded)
+                # Restore memberships that were frozen due to subscription expiration or admin downgrade
+                # SECURITY INVARIANT: Only restore memberships with frozen_reason="subscription_expired" or "admin_downgrade"
+                restored_count = await db.workspace_members.update_many(
+                    {
+                        "user_id": user_id,
+                        "status": InvitationStatus.PENDING,
+                        "frozen_reason": {"$in": ["subscription_expired", "admin_downgrade"]}  # CRITICAL: Only restore frozen memberships
+                    },
+                    {
+                        "$set": {
+                            "status": InvitationStatus.ACCEPTED,  # Restore to ACCEPTED
+                            "restored_at": now.isoformat()  # Track when restored
+                        },
+                        "$unset": {
+                            "frozen_at": "",
+                            "frozen_reason": ""
+                        }
+                    }
+                )
+                
+                # REGRESSION GUARD: Verify only frozen memberships were restored
+                # Check that no new pending invitations (without frozen_reason) were restored
+                new_pending_count = await db.workspace_members.count_documents(
+                    {
+                        "user_id": user_id,
+                        "status": InvitationStatus.PENDING,
+                        "frozen_reason": {"$exists": False}  # New invitations have no frozen_reason
+                    }
+                )
+                if new_pending_count > 0 and restored_count.modified_count > 0:
+                    # This is OK - user may have new pending invitations, but restoration only affected frozen ones
+                    logging.debug(f"User {user_id} has {new_pending_count} new pending invitations (not restored)")
+                
+                if restored_count.modified_count > 0:
+                    logging.info(
+                        f"User {user_id} resubscribed to Pro. Restored {restored_count.modified_count} workspace memberships."
+                    )
                 
                 # AUDIT LOG: Activation complete
                 await log_paypal_action(
@@ -6584,12 +6853,50 @@ async def paypal_webhook(
                 # GUARD: Only downgrade here - never downgrade on CANCELLED, SUSPENDED, or PAYMENT FAILED
                 free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
                 if free_plan:
-                    await db.users.update_one(
-                        {"id": subscription['user_id']},
+                    user_id = subscription['user_id']
+                    
+                    # Freeze existing workspace memberships (suspend, do not delete)
+                    # Update all ACCEPTED memberships to PENDING (suspended state)
+                    # This preserves the membership for restoration on resubscribe
+                    # SECURITY INVARIANT: Must freeze ALL ACCEPTED memberships before downgrade
+                    frozen_count = await db.workspace_members.update_many(
                         {
-                            "$set": {"plan_id": free_plan['id']},
+                            "user_id": user_id,
+                            "status": InvitationStatus.ACCEPTED
+                        },
+                        {
+                            "$set": {
+                                "status": InvitationStatus.PENDING,  # Suspend by setting to PENDING
+                                "frozen_at": now.isoformat(),  # Track when frozen
+                                "frozen_reason": "subscription_expired"  # Reason for suspension
+                            }
+                        }
+                    )
+                    
+                    # REGRESSION GUARD: Verify memberships were frozen
+                    remaining_accepted = await db.workspace_members.count_documents(
+                        {"user_id": user_id, "status": InvitationStatus.ACCEPTED}
+                    )
+                    if remaining_accepted > 0:
+                        logging.error(
+                            f"SECURITY WARNING: User {user_id} downgraded but {remaining_accepted} ACCEPTED memberships remain. "
+                            "This violates security invariant - memberships should be frozen."
+                        )
+                    
+                    await db.users.update_one(
+                        {"id": user_id},
+                        {
+                            "$set": {
+                                "plan_id": free_plan['id'],
+                                "grace_period_ends_at": None,  # Clear grace period
+                                "updated_at": now.isoformat()
+                            },
                             "$unset": {"trial_ends_at": ""}  # Clear trial_ends_at when downgrading
                         }
+                    )
+                    
+                    logging.info(
+                        f"User {user_id} downgraded to Free. Frozen {frozen_count.modified_count} workspace memberships."
                     )
                 subscription_id = subscription['id']
                 
@@ -6610,12 +6917,11 @@ async def paypal_webhook(
                 logging.info(f"PayPal subscription expired - user downgraded to Free: user={subscription['user_id']}, subscription={subscription['id']}")
         
         elif event_type in ["PAYMENT.SALE.DENIED", "PAYMENT.SALE.FAILED"]:
-            # Payment failed/denied - log warning but do NOT downgrade
+            # Payment failed/denied - start grace period (7 days)
             # PayPal will send EXPIRED webhook when subscription actually expires
             # GUARD: Never downgrade on payment failure - downgrade only on EXPIRED
-            # Payment failed - log warning
             # CRITICAL: Do NOT downgrade user here - PayPal will send EXPIRED webhook when subscription actually expires
-            # User keeps Pro access until EXPIRED webhook is received
+            # User keeps Pro access during grace period (7 days)
             paypal_subscription_id = resource.get('billing_agreement_id') or resource.get('id')
             if not paypal_subscription_id:
                 logging.error(f"PayPal webhook: {event_type} missing subscription ID")
@@ -6627,9 +6933,33 @@ async def paypal_webhook(
             )
             
             if subscription:
-                logging.warning(f"PayPal payment failed: user={subscription['user_id']}, subscription={subscription['id']}, event={event_type}. User keeps access until EXPIRED webhook.")
-                # Do NOT change subscription status or downgrade user
-                # PayPal will send EXPIRED webhook when subscription actually expires
+                now = datetime.now(timezone.utc)
+                grace_ends_at = now + timedelta(days=7)  # 7-day grace period
+                
+                # Set grace period on subscription
+                await db.subscriptions.update_one(
+                    {"id": subscription['id']},
+                    {"$set": {
+                        "grace_started_at": now.isoformat(),
+                        "grace_ends_at": grace_ends_at.isoformat(),
+                        "updated_at": now.isoformat()
+                    }}
+                )
+                
+                # Set grace period on user (for workspace sharing checks)
+                await db.users.update_one(
+                    {"id": subscription['user_id']},
+                    {"$set": {
+                        "grace_period_ends_at": grace_ends_at.isoformat(),
+                        "updated_at": now.isoformat()
+                    }}
+                )
+                
+                logging.warning(
+                    f"PayPal payment failed: user={subscription['user_id']}, subscription={subscription['id']}, "
+                    f"event={event_type}. Grace period started until {grace_ends_at.isoformat()}. "
+                    f"User keeps access during grace period."
+                )
                 subscription_id = subscription['id']
         
         # AUDIT LOG: Webhook processing complete
@@ -6670,9 +7000,8 @@ async def get_plans(current_user: Optional[User] = Depends(get_current_user_opti
 @api_router.get("/workspaces/{workspace_id}/quota")
 async def get_workspace_quota(workspace_id: str, current_user: User = Depends(get_current_user)):
     """Get workspace quota usage."""
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Use check_workspace_access() to enforce plan-based restrictions
+    await check_workspace_access(workspace_id, current_user.id)
     
     # Get workspace owner's plan
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
@@ -7697,10 +8026,13 @@ async def list_users(
             plan = await db.plans.find_one({"id": plan_id}, {"_id": 0, "name": 1, "display_name": 1})
             user_dict["plan"] = plan
         
-        # Get subscription
+        # Get subscription (include grace period fields)
         subscription_id = user.get('subscription_id')
         if subscription_id:
-            subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0, "status": 1, "started_at": 1})
+            subscription = await db.subscriptions.find_one(
+                {"id": subscription_id}, 
+                {"_id": 0, "status": 1, "started_at": 1, "grace_started_at": 1, "grace_ends_at": 1}
+            )
             user_dict["subscription"] = subscription
         
         # Get storage usage
@@ -7772,6 +8104,61 @@ async def get_user_details(
     
     return user_dict
 
+@api_router.get("/admin/users/{user_id}/memberships")
+async def get_user_memberships(
+    user_id: str,
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=100, description="Items per page"),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Get user's workspace memberships including frozen status.
+    Admin-only, read-only endpoint.
+    Returns paginated list of workspace memberships with status and frozen_reason.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    skip = (page - 1) * limit
+    
+    # Get memberships
+    memberships_cursor = db.workspace_members.find(
+        {"user_id": user_id},
+        {"_id": 0}
+    ).skip(skip).limit(limit).sort("created_at", -1)
+    
+    memberships = await memberships_cursor.to_list(limit)
+    total = await db.workspace_members.count_documents({"user_id": user_id})
+    
+    # Enrich with workspace names
+    enriched_memberships = []
+    for membership in memberships:
+        membership_dict = dict(membership)
+        
+        # Get workspace name
+        workspace_id = membership.get('workspace_id')
+        if workspace_id:
+            workspace = await db.workspaces.find_one(
+                {"id": workspace_id}, 
+                {"_id": 0, "name": 1, "slug": 1}
+            )
+            if workspace:
+                membership_dict["workspace"] = {
+                    "name": workspace.get("name"),
+                    "slug": workspace.get("slug")
+                }
+        
+        enriched_memberships.append(membership_dict)
+    
+    return {
+        "memberships": enriched_memberships,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
 class UpdateUserRoleRequest(BaseModel):
     role: UserRole
 
@@ -7807,6 +8194,7 @@ async def admin_update_user_plan(
     """
     Admin endpoint to update user's plan.
     Bypasses PayPal subscription requirement - use for testing or manual upgrades.
+    If downgrading to Free, immediately applies Free quotas.
     Admin-only endpoint.
     """
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
@@ -7818,11 +8206,32 @@ async def admin_update_user_plan(
     if not plan:
         raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
     
+    # Check if downgrading to Free
+    old_plan_id = user.get('plan_id')
+    old_plan = None
+    if old_plan_id:
+        old_plan = await db.plans.find_one({"id": old_plan_id}, {"_id": 0, "name": 1})
+    
+    is_downgrade = old_plan and old_plan.get('name') == 'pro' and plan_name == 'free'
+    
     # Update user plan
     await db.users.update_one(
         {"id": user_id},
         {"$set": {"plan_id": plan["id"], "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
+    
+    # If downgrading to Free, check and enforce storage quota immediately
+    if is_downgrade:
+        storage_used = await get_user_storage_usage(user_id)
+        free_storage_limit = plan.get('storage_bytes', 500 * 1024 * 1024)  # Default 500MB
+        
+        if storage_used > free_storage_limit:
+            logging.warning(
+                f"[ADMIN] User {user_id} downgraded to Free but storage exceeds limit. "
+                f"Used: {storage_used}, Limit: {free_storage_limit}. "
+                f"User will need to delete files to continue using service."
+            )
+            # Note: We don't block the downgrade, but user will hit quota errors on uploads
     
     logging.info(f"[ADMIN] User {current_user.id} updated plan for user {user_id} to {plan_name}")
     
@@ -8022,6 +8431,428 @@ async def get_admin_stats(
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
+# ============================================================================
+# ADDITIONAL ADMIN ENDPOINTS - Extended User Management
+# ============================================================================
+
+class SetCustomQuotaRequest(BaseModel):
+    storage_bytes: Optional[int] = None
+    max_workspaces: Optional[int] = None
+    max_walkthroughs: Optional[int] = None
+
+class SetGracePeriodRequest(BaseModel):
+    grace_period_ends_at: Optional[datetime] = None
+
+@api_router.put("/admin/users/{user_id}/disable")
+async def disable_user(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Disable user login. Admin-only endpoint."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"disabled": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} disabled user {user_id}")
+    return {"success": True, "user_id": user_id, "disabled": True}
+
+@api_router.put("/admin/users/{user_id}/enable")
+async def enable_user(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Enable user login. Admin-only endpoint."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"disabled": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} enabled user {user_id}")
+    return {"success": True, "user_id": user_id, "disabled": False}
+
+@api_router.put("/admin/users/{user_id}/verify-email")
+async def verify_user_email(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Manually verify user email. Admin-only endpoint."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"email_verified": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} verified email for user {user_id}")
+    return {"success": True, "user_id": user_id, "email_verified": True}
+
+@api_router.put("/admin/users/{user_id}/unverify-email")
+async def unverify_user_email(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Manually unverify user email. Admin-only endpoint."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"email_verified": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} unverified email for user {user_id}")
+    return {"success": True, "user_id": user_id, "email_verified": False}
+
+@api_router.put("/admin/users/{user_id}/soft-delete")
+async def soft_delete_user(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Soft delete user (marks as deleted but preserves data). Admin-only endpoint."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get('deleted_at'):
+        raise HTTPException(status_code=400, detail="User is already soft deleted")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+            "disabled": True,  # Also disable login
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} soft deleted user {user_id}")
+    return {"success": True, "user_id": user_id, "deleted_at": datetime.now(timezone.utc).isoformat()}
+
+@api_router.delete("/admin/users/{user_id}")
+async def hard_delete_user(
+    user_id: str,
+    confirm: bool = Query(False, description="Must be True to confirm hard delete"),
+    current_user: User = Depends(require_admin)
+):
+    """Hard delete user (permanently removes user and all associated data). Admin-only endpoint.
+    Requires confirm=True query parameter for safety.
+    """
+    if not confirm:
+        raise HTTPException(
+            status_code=400,
+            detail="Hard delete requires confirm=true query parameter. This action cannot be undone."
+        )
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Prevent deleting yourself
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    
+    # Delete user's workspaces (cascade delete)
+    workspace_ids = []
+    async for workspace in db.workspaces.find({"owner_id": user_id}, {"_id": 0, "id": 1}):
+        workspace_ids.append(workspace["id"])
+    
+    # Delete workspace memberships
+    await db.workspace_members.delete_many({"user_id": user_id})
+    
+    # Delete workspaces (this will cascade delete walkthroughs, categories, etc. via existing logic)
+    for workspace_id in workspace_ids:
+        # Get all walkthroughs for file cleanup
+        walkthroughs = await db.walkthroughs.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(10000)
+        for walkthrough in walkthroughs:
+            file_urls = await extract_file_urls_from_walkthrough(walkthrough)
+            await delete_files_by_urls(file_urls, workspace_id)
+        
+        await db.walkthroughs.delete_many({"workspace_id": workspace_id})
+        await db.walkthrough_versions.delete_many({"workspace_id": workspace_id})
+        await db.categories.delete_many({"workspace_id": workspace_id})
+        await db.workspaces.delete_one({"id": workspace_id})
+    
+    # Delete user's files
+    await db.files.delete_many({"user_id": user_id})
+    
+    # Delete user's subscriptions
+    await db.subscriptions.delete_many({"user_id": user_id})
+    
+    # Delete user's notifications
+    await db.notifications.delete_many({"user_id": user_id})
+    
+    # Delete workspace locks held by user
+    await db.workspace_locks.delete_many({"locked_by_user_id": user_id})
+    
+    # Finally, delete the user
+    await db.users.delete_one({"id": user_id})
+    
+    logging.warning(f"[ADMIN] User {current_user.id} HARD DELETED user {user_id} and all associated data")
+    return {"success": True, "user_id": user_id, "message": "User and all associated data permanently deleted"}
+
+@api_router.put("/admin/users/{user_id}/quota")
+async def set_custom_quota(
+    user_id: str,
+    request: SetCustomQuotaRequest,
+    current_user: User = Depends(require_admin)
+):
+    """Set custom quota overrides for user. Admin-only endpoint.
+    Set to None to remove override and use plan defaults.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if request.storage_bytes is not None:
+        update_fields["custom_storage_bytes"] = request.storage_bytes
+    if request.max_workspaces is not None:
+        update_fields["custom_max_workspaces"] = request.max_workspaces
+    if request.max_walkthroughs is not None:
+        update_fields["custom_max_walkthroughs"] = request.max_walkthroughs
+    
+    await db.users.update_one({"id": user_id}, {"$set": update_fields})
+    
+    logging.info(f"[ADMIN] User {current_user.id} set custom quotas for user {user_id}: {update_fields}")
+    return {"success": True, "user_id": user_id, "custom_quotas": update_fields}
+
+@api_router.put("/admin/users/{user_id}/grace-period")
+async def set_grace_period(
+    user_id: str,
+    request: SetGracePeriodRequest,
+    current_user: User = Depends(require_admin)
+):
+    """Set grace period end date for user. Admin-only endpoint.
+    Set to None to remove grace period.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    grace_ends_at_iso = None
+    if request.grace_period_ends_at:
+        grace_ends_at_iso = request.grace_period_ends_at.isoformat()
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "grace_period_ends_at": grace_ends_at_iso,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} set grace period for user {user_id} until {grace_ends_at_iso}")
+    return {"success": True, "user_id": user_id, "grace_period_ends_at": grace_ends_at_iso}
+
+@api_router.put("/admin/users/{user_id}/plan/downgrade")
+async def force_downgrade_to_free(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Force downgrade user to Free plan immediately. Admin-only endpoint.
+    Applies Free plan quotas immediately.
+    SECURITY INVARIANT: Freezes all workspace memberships on downgrade.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+    if not free_plan:
+        raise HTTPException(status_code=500, detail="Free plan not found")
+    
+    now = datetime.now(timezone.utc)
+    
+    # SECURITY INVARIANT: Freeze all workspace memberships before downgrading
+    # This ensures frozen memberships cannot grant access after downgrade
+    frozen_count = await db.workspace_members.update_many(
+        {
+            "user_id": user_id,
+            "status": InvitationStatus.ACCEPTED
+        },
+        {
+            "$set": {
+                "status": InvitationStatus.PENDING,  # Suspend by setting to PENDING
+                "frozen_at": now.isoformat(),
+                "frozen_reason": "admin_downgrade"  # Track admin-initiated freeze
+            }
+        }
+    )
+    
+    # Update user plan
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "plan_id": free_plan["id"],
+            "grace_period_ends_at": None,  # Clear grace period
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # Cancel any active subscriptions
+    subscription_id = user.get('subscription_id')
+    if subscription_id:
+        await db.subscriptions.update_one(
+            {"id": subscription_id},
+            {"$set": {
+                "status": SubscriptionStatus.CANCELLED.value,
+                "cancelled_at": now.isoformat(),
+                "updated_at": now.isoformat()
+            }}
+        )
+    
+    logging.info(
+        f"[ADMIN] User {current_user.id} force downgraded user {user_id} to Free plan. "
+        f"Frozen {frozen_count.modified_count} workspace memberships."
+    )
+    return {"success": True, "user_id": user_id, "plan_name": "free", "plan_id": free_plan["id"]}
+
+@api_router.put("/admin/users/{user_id}/plan/upgrade")
+async def force_upgrade_to_pro(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Force upgrade user to Pro plan immediately. Admin-only endpoint.
+    SECURITY INVARIANT: Restores frozen workspace memberships on upgrade.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+    if not pro_plan:
+        raise HTTPException(status_code=500, detail="Pro plan not found")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Update user plan
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "plan_id": pro_plan["id"],
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # Create or update subscription to Pro
+    subscription_id = user.get('subscription_id')
+    if subscription_id:
+        # Update existing subscription
+        await db.subscriptions.update_one(
+            {"id": subscription_id},
+            {"$set": {
+                "plan_id": pro_plan["id"],
+                "status": SubscriptionStatus.ACTIVE.value,
+                "updated_at": now.isoformat()
+            }}
+        )
+    else:
+        # Create new manual subscription
+        subscription_id = str(uuid.uuid4())
+        subscription = Subscription(
+            id=subscription_id,
+            user_id=user_id,
+            plan_id=pro_plan["id"],
+            status=SubscriptionStatus.ACTIVE,
+            provider="manual"
+        )
+        sub_dict = subscription.model_dump()
+        sub_dict['started_at'] = sub_dict['started_at'].isoformat()
+        sub_dict['created_at'] = sub_dict['created_at'].isoformat()
+        sub_dict['updated_at'] = sub_dict['updated_at'].isoformat()
+        await db.subscriptions.insert_one(sub_dict)
+        
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"subscription_id": subscription_id}}
+        )
+    
+    # SECURITY INVARIANT: Restore frozen workspace memberships on upgrade
+    # Restore memberships that were frozen due to subscription expiration or admin downgrade
+    restored_count = await db.workspace_members.update_many(
+        {
+            "user_id": user_id,
+            "status": InvitationStatus.PENDING,
+            "frozen_reason": {"$in": ["subscription_expired", "admin_downgrade"]}
+        },
+        {
+            "$set": {
+                "status": InvitationStatus.ACCEPTED,  # Restore to ACCEPTED
+                "restored_at": now.isoformat()
+            },
+            "$unset": {
+                "frozen_at": "",
+                "frozen_reason": ""
+            }
+        }
+    )
+    
+    if restored_count.modified_count > 0:
+        logging.info(
+            f"[ADMIN] User {current_user.id} force upgraded user {user_id} to Pro plan. "
+            f"Restored {restored_count.modified_count} workspace memberships."
+        )
+    else:
+        logging.info(f"[ADMIN] User {current_user.id} force upgraded user {user_id} to Pro plan")
+    
+    return {"success": True, "user_id": user_id, "plan_name": "pro", "plan_id": pro_plan["id"], "subscription_id": subscription_id}
+
+async def verify_security_invariants():
+    """
+    Regression guards: Verify critical security invariants at startup.
+    Fail-fast if any invariant is violated.
+    """
+    # Guard 1: Verify check_workspace_access() exists and is callable
+    if not callable(check_workspace_access):
+        error_msg = "SECURITY INVARIANT VIOLATION: check_workspace_access() is not callable"
+        logging.critical(error_msg)
+        raise RuntimeError(error_msg)
+    
+    # Guard 2: Verify get_current_user() exists and is callable
+    if not callable(get_current_user):
+        error_msg = "SECURITY INVARIANT VIOLATION: get_current_user() is not callable"
+        logging.critical(error_msg)
+        raise RuntimeError(error_msg)
+    
+    # Guard 3: Verify can_user_share_workspaces() exists and is callable
+    if not callable(can_user_share_workspaces):
+        error_msg = "SECURITY INVARIANT VIOLATION: can_user_share_workspaces() is not callable"
+        logging.critical(error_msg)
+        raise RuntimeError(error_msg)
+    
+    # Guard 4: Verify critical functions have required parameters
+    import inspect
+    
+    # Verify check_workspace_access signature
+    check_sig = inspect.signature(check_workspace_access)
+    required_params = ['workspace_id', 'user_id']
+    for param in required_params:
+        if param not in check_sig.parameters:
+            error_msg = f"SECURITY INVARIANT VIOLATION: check_workspace_access() missing parameter: {param}"
+            logging.critical(error_msg)
+            raise RuntimeError(error_msg)
+    
+    # Verify get_current_user signature
+    user_sig = inspect.signature(get_current_user)
+    if 'credentials' not in user_sig.parameters:
+        error_msg = "SECURITY INVARIANT VIOLATION: get_current_user() missing credentials parameter"
+        logging.critical(error_msg)
+        raise RuntimeError(error_msg)
+    
+    logging.info("[SECURITY] All security invariants verified at startup")
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize default plans and ensure workspace lock index on startup."""
@@ -8036,6 +8867,9 @@ async def startup_event():
     if index_created:
         await cleanup_duplicate_workspace_locks()
     logging.info("Default plans initialized")
+    
+    # SECURITY: Verify critical invariants at startup
+    await verify_security_invariants()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

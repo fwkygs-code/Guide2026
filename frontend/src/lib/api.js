@@ -214,8 +214,25 @@ export const api = {
     axios.post(`${API}/admin/users/${userId}/subscription/manual`, { plan_name: planName, duration_days: durationDays }),
   adminCancelSubscription: (userId) => axios.delete(`${API}/admin/users/${userId}/subscription`),
   
+  // User management
+  adminDisableUser: (userId) => axios.put(`${API}/admin/users/${userId}/disable`),
+  adminEnableUser: (userId) => axios.put(`${API}/admin/users/${userId}/enable`),
+  adminDowngradeUser: (userId) => axios.put(`${API}/admin/users/${userId}/plan/downgrade`),
+  adminUpgradeUser: (userId) => axios.put(`${API}/admin/users/${userId}/plan/upgrade`),
+  adminSetGracePeriod: (userId, gracePeriodEndsAt) => 
+    axios.put(`${API}/admin/users/${userId}/grace-period`, { grace_period_ends_at: gracePeriodEndsAt }),
+  adminSetCustomQuota: (userId, storageBytes, maxWorkspaces, maxWalkthroughs) => 
+    axios.put(`${API}/admin/users/${userId}/quota`, { 
+      storage_bytes: storageBytes, 
+      max_workspaces: maxWorkspaces, 
+      max_walkthroughs: maxWalkthroughs 
+    }),
+  
   // Stats
   adminGetStats: () => axios.get(`${API}/admin/stats`),
+  adminGetUserMemberships: (userId, page = 1, limit = 50) => {
+    return axios.get(`${API}/admin/users/${userId}/memberships`, { params: { page, limit } });
+  },
   
   // Existing admin endpoints
   adminReconcileQuota: (userId = null, fixDiscrepancies = false) => {

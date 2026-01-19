@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Database, BarChart3, Edit, Trash2, Crown, HardDrive, FileText, FolderOpen } from 'lucide-react';
+import { Users, Database, BarChart3, Edit, Trash2, Crown, HardDrive, FileText, FolderOpen, Ban, CheckCircle, ArrowDown, ArrowUp, Clock, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +31,11 @@ const AdminDashboardPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [membershipsDialogOpen, setMembershipsDialogOpen] = useState(false);
+  const [userMemberships, setUserMemberships] = useState([]);
+  const [membershipsLoading, setMembershipsLoading] = useState(false);
+  const [membershipsPage, setMembershipsPage] = useState(1);
+  const [membershipsTotal, setMembershipsTotal] = useState(0);
   
   // Stats tab
   const [stats, setStats] = useState(null);
@@ -50,6 +55,18 @@ const AdminDashboardPage = () => {
   });
   const [creatingSubscription, setCreatingSubscription] = useState(false);
   const [cancellingSubscription, setCancellingSubscription] = useState(false);
+  
+  // Admin action states
+  const [disablingUser, setDisablingUser] = useState(false);
+  const [enablingUser, setEnablingUser] = useState(false);
+  const [downgradingUser, setDowngradingUser] = useState(false);
+  const [upgradingUser, setUpgradingUser] = useState(false);
+  const [gracePeriodDialogOpen, setGracePeriodDialogOpen] = useState(false);
+  const [gracePeriodForm, setGracePeriodForm] = useState({ gracePeriodEndsAt: '' });
+  const [settingGracePeriod, setSettingGracePeriod] = useState(false);
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false);
+  const [quotaForm, setQuotaForm] = useState({ storageBytes: '', maxWorkspaces: '', maxWalkthroughs: '' });
+  const [settingQuota, setSettingQuota] = useState(false);
 
   useEffect(() => {
     // Check if user is admin (role field from backend)
@@ -108,6 +125,20 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const fetchUserMemberships = async (userId, page = 1) => {
+    try {
+      setMembershipsLoading(true);
+      const response = await api.adminGetUserMemberships(userId, page, 50);
+      setUserMemberships(response.data.memberships || []);
+      setMembershipsTotal(response.data.total || 0);
+    } catch (error) {
+      console.error('Failed to fetch memberships:', error);
+      toast.error('Failed to load memberships');
+    } finally {
+      setMembershipsLoading(false);
+    }
+  };
+
   const handleEditUser = (user) => {
     setSelectedUser(user);
     setEditForm({
@@ -115,6 +146,24 @@ const AdminDashboardPage = () => {
       planName: user.plan?.name || 'free'
     });
     setEditDialogOpen(true);
+  };
+  
+  // Show current values before editing
+  const getCurrentUserInfo = () => {
+    if (!selectedUser) return null;
+    return {
+      email: selectedUser.email,
+      name: selectedUser.name,
+      role: selectedUser.role || 'owner',
+      plan: selectedUser.plan?.display_name || 'Free',
+      subscription: selectedUser.subscription?.status || 'None',
+      disabled: selectedUser.disabled ? 'Yes' : 'No',
+      deleted_at: selectedUser.deleted_at ? formatDateTime(selectedUser.deleted_at) : 'No',
+      grace_period_ends_at: selectedUser.grace_period_ends_at ? formatDateTime(selectedUser.grace_period_ends_at) : 'None',
+      custom_storage: selectedUser.custom_storage_bytes ? formatBytes(selectedUser.custom_storage_bytes) : 'None',
+      custom_workspaces: selectedUser.custom_max_workspaces !== null && selectedUser.custom_max_workspaces !== undefined ? selectedUser.custom_max_workspaces : 'None',
+      custom_walkthroughs: selectedUser.custom_max_walkthroughs !== null && selectedUser.custom_max_walkthroughs !== undefined ? selectedUser.custom_max_walkthroughs : 'None',
+    };
   };
 
   const handleSaveUser = async () => {
@@ -223,6 +272,168 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const handleDisableUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      setDisablingUser(true);
+      await api.adminDisableUser(selectedUser.id);
+      toast.success('User disabled successfully');
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to disable user:', error);
+      let errorMessage = 'Failed to disable user';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : errorMessage;
+      }
+      toast.error(errorMessage);
+    } finally {
+      setDisablingUser(false);
+    }
+  };
+
+  const handleEnableUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      setEnablingUser(true);
+      await api.adminEnableUser(selectedUser.id);
+      toast.success('User enabled successfully');
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to enable user:', error);
+      let errorMessage = 'Failed to enable user';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : errorMessage;
+      }
+      toast.error(errorMessage);
+    } finally {
+      setEnablingUser(false);
+    }
+  };
+
+  const handleDowngradeUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      setDowngradingUser(true);
+      await api.adminDowngradeUser(selectedUser.id);
+      toast.success('User downgraded to Free plan successfully');
+      fetchUsers();
+      fetchStats();
+      // Refresh memberships if dialog is open
+      if (membershipsDialogOpen && selectedUser.id) {
+        fetchUserMemberships(selectedUser.id, membershipsPage);
+      }
+    } catch (error) {
+      console.error('Failed to downgrade user:', error);
+      let errorMessage = 'Failed to downgrade user';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : errorMessage;
+      }
+      toast.error(errorMessage);
+    } finally {
+      setDowngradingUser(false);
+    }
+  };
+
+  const handleUpgradeUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      setUpgradingUser(true);
+      await api.adminUpgradeUser(selectedUser.id);
+      toast.success('User upgraded to Pro plan successfully');
+      fetchUsers();
+      fetchStats();
+      // Refresh memberships if dialog is open
+      if (membershipsDialogOpen && selectedUser.id) {
+        fetchUserMemberships(selectedUser.id, membershipsPage);
+      }
+    } catch (error) {
+      console.error('Failed to upgrade user:', error);
+      let errorMessage = 'Failed to upgrade user';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : errorMessage;
+      }
+      toast.error(errorMessage);
+    } finally {
+      setUpgradingUser(false);
+    }
+  };
+
+  const handleSetGracePeriod = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      setSettingGracePeriod(true);
+      const graceEndsAt = gracePeriodForm.gracePeriodEndsAt 
+        ? new Date(gracePeriodForm.gracePeriodEndsAt).toISOString()
+        : null;
+      await api.adminSetGracePeriod(selectedUser.id, graceEndsAt);
+      toast.success(graceEndsAt ? 'Grace period set successfully' : 'Grace period removed successfully');
+      setGracePeriodDialogOpen(false);
+      setGracePeriodForm({ gracePeriodEndsAt: '' });
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to set grace period:', error);
+      let errorMessage = 'Failed to set grace period';
+      if (error.response?.data) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          const firstError = error.response.data.detail[0];
+          errorMessage = firstError?.msg || firstError?.loc?.join('. ') || errorMessage;
+        }
+      }
+      toast.error(errorMessage);
+    } finally {
+      setSettingGracePeriod(false);
+    }
+  };
+
+  const handleSetCustomQuota = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      setSettingQuota(true);
+      const storageBytes = quotaForm.storageBytes ? parseInt(quotaForm.storageBytes) : null;
+      const maxWorkspaces = quotaForm.maxWorkspaces ? parseInt(quotaForm.maxWorkspaces) : null;
+      const maxWalkthroughs = quotaForm.maxWalkthroughs ? parseInt(quotaForm.maxWalkthroughs) : null;
+      await api.adminSetCustomQuota(selectedUser.id, storageBytes, maxWorkspaces, maxWalkthroughs);
+      toast.success('Custom quotas updated successfully');
+      setQuotaDialogOpen(false);
+      setQuotaForm({ storageBytes: '', maxWorkspaces: '', maxWalkthroughs: '' });
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to set custom quota:', error);
+      let errorMessage = 'Failed to set custom quota';
+      if (error.response?.data) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          const firstError = error.response.data.detail[0];
+          errorMessage = firstError?.msg || firstError?.loc?.join('. ') || errorMessage;
+        }
+      }
+      toast.error(errorMessage);
+    } finally {
+      setSettingQuota(false);
+    }
+  };
+
   const formatBytes = (bytes) => {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -234,6 +445,46 @@ const AdminDashboardPage = () => {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString();
+  };
+
+  const getEffectiveState = (user) => {
+    if (user.disabled) return { label: 'Disabled', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
+    if (user.deleted_at) return { label: 'Deleted', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-900/20' };
+    
+    const planName = user.plan?.name || 'free';
+    const subscriptionStatus = user.subscription?.status;
+    
+    // Check grace period
+    if (user.grace_period_ends_at) {
+      const graceEnd = new Date(user.grace_period_ends_at);
+      const now = new Date();
+      if (graceEnd > now) {
+        return { 
+          label: `Grace (expires ${formatDate(user.grace_period_ends_at)})`, 
+          color: 'text-orange-600 dark:text-orange-400', 
+          bg: 'bg-orange-50 dark:bg-orange-900/20' 
+        };
+      } else {
+        return { label: 'Grace Expired', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
+      }
+    }
+    
+    if (planName === 'pro' && subscriptionStatus === 'active') {
+      return { label: 'Active (Pro)', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' };
+    }
+    if (planName === 'pro' && subscriptionStatus === 'expired') {
+      return { label: 'Expired', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
+    }
+    if (planName === 'free') {
+      return { label: 'Free', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900/20' };
+    }
+    
+    return { label: 'Unknown', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900/20' };
   };
 
   return (
@@ -287,19 +538,34 @@ const AdminDashboardPage = () => {
                           <tr className="border-b border-slate-200 dark:border-slate-800">
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Email</th>
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Name</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">State</th>
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Role</th>
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Plan</th>
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Subscription</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Grace Period</th>
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Storage</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Custom Quotas</th>
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Created</th>
                             <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {users.map((u) => (
+                          {users.map((u) => {
+                            const effectiveState = getEffectiveState(u);
+                            return (
                             <tr key={u.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50">
                               <td className="p-2 text-slate-900 dark:text-slate-100">{u.email}</td>
                               <td className="p-2 text-slate-900 dark:text-slate-100">{u.name}</td>
+                              <td className="p-2">
+                                <Badge variant="outline" className={`${effectiveState.color} ${effectiveState.bg} border-current`}>
+                                  {effectiveState.label}
+                                </Badge>
+                                {u.deleted_at && (
+                                  <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                    Deleted: {formatDate(u.deleted_at)}
+                                  </div>
+                                )}
+                              </td>
                               <td className="p-2">
                                 <Badge 
                                   variant={u.role === 'admin' ? 'outline' : 'secondary'}
@@ -328,7 +594,41 @@ const AdminDashboardPage = () => {
                                   <span className="text-slate-400">None</span>
                                 )}
                               </td>
-                              <td className="p-2 text-slate-700 dark:text-slate-300">{formatBytes(u.storage_used || 0)}</td>
+                              <td className="p-2 text-slate-700 dark:text-slate-300 text-sm">
+                                {u.grace_period_ends_at ? (
+                                  <div>
+                                    <div>Until: {formatDate(u.grace_period_ends_at)}</div>
+                                    {new Date(u.grace_period_ends_at) < new Date() && (
+                                      <div className="text-xs text-red-600 dark:text-red-400">Expired</div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">None</span>
+                                )}
+                              </td>
+                              <td className="p-2 text-slate-700 dark:text-slate-300">
+                                <div>{formatBytes(u.storage_used || 0)}</div>
+                                {u.custom_storage_bytes !== null && u.custom_storage_bytes !== undefined && (
+                                  <div className="text-xs text-purple-600 dark:text-purple-400">
+                                    Limit: {formatBytes(u.custom_storage_bytes)}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-2 text-slate-700 dark:text-slate-300 text-xs">
+                                {(u.custom_max_workspaces !== null && u.custom_max_workspaces !== undefined) ||
+                                 (u.custom_max_walkthroughs !== null && u.custom_max_walkthroughs !== undefined) ? (
+                                  <div className="space-y-1">
+                                    {u.custom_max_workspaces !== null && u.custom_max_workspaces !== undefined && (
+                                      <div>Workspaces: {u.custom_max_workspaces}</div>
+                                    )}
+                                    {u.custom_max_walkthroughs !== null && u.custom_max_walkthroughs !== undefined && (
+                                      <div>Walkthroughs: {u.custom_max_walkthroughs}</div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">None</span>
+                                )}
+                              </td>
                               <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(u.created_at)}</td>
                               <td className="p-2">
                                 <div className="flex gap-2">
@@ -339,6 +639,19 @@ const AdminDashboardPage = () => {
                                     title="Edit user"
                                   >
                                     <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedUser(u);
+                                      setMembershipsDialogOpen(true);
+                                      setMembershipsPage(1);
+                                      fetchUserMemberships(u.id, 1);
+                                    }}
+                                    title="View memberships"
+                                  >
+                                    <Users className="w-4 h-4" />
                                   </Button>
                                   {!u.subscription && (
                                     <Button
@@ -388,10 +701,139 @@ const AdminDashboardPage = () => {
                                       </AlertDialogContent>
                                     </AlertDialog>
                                   )}
+                                  {!u.disabled && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          title="Disable user"
+                                        >
+                                          <Ban className="w-4 h-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Disable User</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to disable {u.email}? 
+                                            They will not be able to log in until re-enabled.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => {
+                                              setSelectedUser(u);
+                                              handleDisableUser();
+                                            }}
+                                            disabled={disablingUser}
+                                          >
+                                            {disablingUser ? 'Disabling...' : 'Disable User'}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                  {u.disabled && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedUser(u);
+                                        handleEnableUser();
+                                      }}
+                                      disabled={enablingUser}
+                                      title="Enable user"
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  {u.plan?.name === 'pro' && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          title="Force downgrade to Free"
+                                        >
+                                          <ArrowDown className="w-4 h-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Force Downgrade to Free</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to force downgrade {u.email} to the Free plan? 
+                                            This will freeze their workspace memberships and apply Free plan quotas immediately.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => {
+                                              setSelectedUser(u);
+                                              handleDowngradeUser();
+                                            }}
+                                            disabled={downgradingUser}
+                                          >
+                                            {downgradingUser ? 'Downgrading...' : 'Downgrade to Free'}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                  {u.plan?.name === 'free' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedUser(u);
+                                        handleUpgradeUser();
+                                      }}
+                                      disabled={upgradingUser}
+                                      title="Force upgrade to Pro"
+                                    >
+                                      <ArrowUp className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedUser(u);
+                                      setGracePeriodForm({ 
+                                        gracePeriodEndsAt: u.grace_period_ends_at 
+                                          ? new Date(u.grace_period_ends_at).toISOString().slice(0, 16)
+                                          : '' 
+                                      });
+                                      setGracePeriodDialogOpen(true);
+                                    }}
+                                    title="Set grace period"
+                                  >
+                                    <Clock className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedUser(u);
+                                      setQuotaForm({
+                                        storageBytes: u.custom_storage_bytes ? String(u.custom_storage_bytes) : '',
+                                        maxWorkspaces: u.custom_max_workspaces !== null && u.custom_max_workspaces !== undefined ? String(u.custom_max_workspaces) : '',
+                                        maxWalkthroughs: u.custom_max_walkthroughs !== null && u.custom_max_walkthroughs !== undefined ? String(u.custom_max_walkthroughs) : ''
+                                      });
+                                      setQuotaDialogOpen(true);
+                                    }}
+                                    title="Set custom quotas"
+                                  >
+                                    <Settings className="w-4 h-4" />
+                                  </Button>
                                 </div>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -563,13 +1005,75 @@ const AdminDashboardPage = () => {
 
         {/* Edit User Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
               <DialogDescription>
                 {selectedUser && `${selectedUser.email} - ${selectedUser.name}`}
               </DialogDescription>
             </DialogHeader>
+            
+            {/* Current State Display */}
+            {selectedUser && (
+              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Current State</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Effective State:</span>
+                    <Badge variant="outline" className={`ml-2 ${getEffectiveState(selectedUser).color} ${getEffectiveState(selectedUser).bg} border-current`}>
+                      {getEffectiveState(selectedUser).label}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Role:</span>
+                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.role || 'owner'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Plan:</span>
+                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.plan?.display_name || 'Free'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Subscription:</span>
+                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.subscription?.status || 'None'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Disabled:</span>
+                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.disabled ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Deleted:</span>
+                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.deleted_at ? formatDateTime(selectedUser.deleted_at) : 'No'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Grace Period Ends:</span>
+                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.grace_period_ends_at ? formatDateTime(selectedUser.grace_period_ends_at) : 'None'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">Storage Used:</span>
+                    <span className="ml-2 text-slate-900 dark:text-slate-100">{formatBytes(selectedUser.storage_used || 0)}</span>
+                  </div>
+                  {selectedUser.custom_storage_bytes !== null && selectedUser.custom_storage_bytes !== undefined && (
+                    <div>
+                      <span className="text-slate-600 dark:text-slate-400">Custom Storage Limit:</span>
+                      <span className="ml-2 text-purple-600 dark:text-purple-400">{formatBytes(selectedUser.custom_storage_bytes)}</span>
+                    </div>
+                  )}
+                  {selectedUser.custom_max_workspaces !== null && selectedUser.custom_max_workspaces !== undefined && (
+                    <div>
+                      <span className="text-slate-600 dark:text-slate-400">Custom Workspaces Limit:</span>
+                      <span className="ml-2 text-purple-600 dark:text-purple-400">{selectedUser.custom_max_workspaces}</span>
+                    </div>
+                  )}
+                  {selectedUser.custom_max_walkthroughs !== null && selectedUser.custom_max_walkthroughs !== undefined && (
+                    <div>
+                      <span className="text-slate-600 dark:text-slate-400">Custom Walkthroughs Limit:</span>
+                      <span className="ml-2 text-purple-600 dark:text-purple-400">{selectedUser.custom_max_walkthroughs}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-4 py-4">
               <div>
                 <Label>Role</Label>
@@ -645,6 +1149,250 @@ const AdminDashboardPage = () => {
               <Button variant="outline" onClick={() => setSubscriptionDialogOpen(false)}>Cancel</Button>
               <Button variant="default" onClick={handleCreateSubscription} disabled={creatingSubscription}>
                 {creatingSubscription ? 'Creating...' : 'Create Subscription'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Memberships Dialog */}
+        <Dialog open={membershipsDialogOpen} onOpenChange={setMembershipsDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Workspace Memberships</DialogTitle>
+              <DialogDescription>
+                {selectedUser && `${selectedUser.email} - ${selectedUser.name}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              {membershipsLoading ? (
+                <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading memberships...</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Workspace</th>
+                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Status</th>
+                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Frozen</th>
+                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {userMemberships.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" className="text-center py-8 text-slate-600 dark:text-slate-400">
+                              No memberships found
+                            </td>
+                          </tr>
+                        ) : (
+                          userMemberships.map((m) => (
+                            <tr key={m.id} className="border-b border-slate-100 dark:border-slate-800">
+                              <td className="p-2 text-slate-900 dark:text-slate-100">
+                                {m.workspace?.name || 'Unknown'}
+                                {m.workspace?.slug && (
+                                  <div className="text-xs text-slate-500">/{m.workspace.slug}</div>
+                                )}
+                              </td>
+                              <td className="p-2">
+                                <Badge 
+                                  variant={m.status === 'accepted' ? 'outline' : 'secondary'}
+                                  className={m.status === 'accepted' ? 'border-green-500 text-green-700 dark:text-green-400' : ''}
+                                >
+                                  {m.status || 'pending'}
+                                </Badge>
+                              </td>
+                              <td className="p-2 text-slate-700 dark:text-slate-300 text-sm">
+                                {m.frozen_reason ? (
+                                  <div>
+                                    <Badge variant="outline" className="border-orange-500 text-orange-700 dark:text-orange-400">
+                                      Frozen
+                                    </Badge>
+                                    <div className="text-xs text-slate-500 mt-1">Reason: {m.frozen_reason}</div>
+                                    {m.frozen_at && (
+                                      <div className="text-xs text-slate-500">At: {formatDateTime(m.frozen_at)}</div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">No</span>
+                                )}
+                              </td>
+                              <td className="p-2 text-slate-600 dark:text-slate-400 text-sm">
+                                {formatDate(m.created_at)}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {membershipsTotal > 50 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-slate-600">
+                        Showing {(membershipsPage - 1) * 50 + 1} to {Math.min(membershipsPage * 50, membershipsTotal)} of {membershipsTotal} memberships
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={membershipsPage === 1}
+                          onClick={() => {
+                            const newPage = membershipsPage - 1;
+                            setMembershipsPage(newPage);
+                            fetchUserMemberships(selectedUser.id, newPage);
+                          }}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={membershipsPage * 50 >= membershipsTotal}
+                          onClick={() => {
+                            const newPage = membershipsPage + 1;
+                            setMembershipsPage(newPage);
+                            fetchUserMemberships(selectedUser.id, newPage);
+                          }}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setMembershipsDialogOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Set Grace Period Dialog */}
+        <Dialog open={gracePeriodDialogOpen} onOpenChange={setGracePeriodDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Set Grace Period</DialogTitle>
+              <DialogDescription>
+                {selectedUser && `${selectedUser.email} - ${selectedUser.name}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedUser && (
+              <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Current Grace Period</h4>
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  {selectedUser.grace_period_ends_at 
+                    ? `Ends: ${formatDateTime(selectedUser.grace_period_ends_at)}`
+                    : 'None'}
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Grace Period End Date & Time</Label>
+                <Input
+                  type="datetime-local"
+                  value={gracePeriodForm.gracePeriodEndsAt}
+                  onChange={(e) => setGracePeriodForm({ ...gracePeriodForm, gracePeriodEndsAt: e.target.value })}
+                  placeholder="Leave empty to remove grace period"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Leave empty to remove grace period. Format: YYYY-MM-DDTHH:mm
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setGracePeriodDialogOpen(false);
+                setGracePeriodForm({ gracePeriodEndsAt: '' });
+              }}>Cancel</Button>
+              <Button variant="default" onClick={handleSetGracePeriod} disabled={settingGracePeriod}>
+                {settingGracePeriod ? 'Setting...' : 'Set Grace Period'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Set Custom Quotas Dialog */}
+        <Dialog open={quotaDialogOpen} onOpenChange={setQuotaDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Set Custom Quotas</DialogTitle>
+              <DialogDescription>
+                {selectedUser && `${selectedUser.email} - ${selectedUser.name}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedUser && (
+              <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Current Custom Quotas</h4>
+                <div className="text-sm space-y-1 text-slate-600 dark:text-slate-400">
+                  <div>
+                    Storage: {selectedUser.custom_storage_bytes 
+                      ? formatBytes(selectedUser.custom_storage_bytes) 
+                      : 'None (using plan default)'}
+                  </div>
+                  <div>
+                    Workspaces: {selectedUser.custom_max_workspaces !== null && selectedUser.custom_max_workspaces !== undefined
+                      ? selectedUser.custom_max_workspaces
+                      : 'None (using plan default)'}
+                  </div>
+                  <div>
+                    Walkthroughs: {selectedUser.custom_max_walkthroughs !== null && selectedUser.custom_max_walkthroughs !== undefined
+                      ? selectedUser.custom_max_walkthroughs
+                      : 'None (using plan default)'}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Storage Limit (bytes)</Label>
+                <Input
+                  type="number"
+                  value={quotaForm.storageBytes}
+                  onChange={(e) => setQuotaForm({ ...quotaForm, storageBytes: e.target.value })}
+                  placeholder="Leave empty to use plan default"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Leave empty to remove override and use plan default
+                </p>
+              </div>
+              <div>
+                <Label>Max Workspaces</Label>
+                <Input
+                  type="number"
+                  value={quotaForm.maxWorkspaces}
+                  onChange={(e) => setQuotaForm({ ...quotaForm, maxWorkspaces: e.target.value })}
+                  placeholder="Leave empty to use plan default"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Leave empty to remove override and use plan default
+                </p>
+              </div>
+              <div>
+                <Label>Max Walkthroughs</Label>
+                <Input
+                  type="number"
+                  value={quotaForm.maxWalkthroughs}
+                  onChange={(e) => setQuotaForm({ ...quotaForm, maxWalkthroughs: e.target.value })}
+                  placeholder="Leave empty to use plan default"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Leave empty to remove override and use plan default
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setQuotaDialogOpen(false);
+                setQuotaForm({ storageBytes: '', maxWorkspaces: '', maxWalkthroughs: '' });
+              }}>Cancel</Button>
+              <Button variant="default" onClick={handleSetCustomQuota} disabled={settingQuota}>
+                {settingQuota ? 'Setting...' : 'Set Custom Quotas'}
               </Button>
             </DialogFooter>
           </DialogContent>
