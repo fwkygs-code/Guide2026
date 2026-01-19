@@ -2026,6 +2026,20 @@ async def accept_invitation(
         }
     )
     
+    # Mark the invitation notification as read for the invitee
+    try:
+        await db.notifications.update_many(
+            {
+                "user_id": current_user.id,
+                "type": NotificationType.INVITE,
+                "metadata.invitation_id": invitation_id
+            },
+            {"$set": {"is_read": True}}
+        )
+    except Exception as notif_read_error:
+        logging.error(f"Failed to mark invitation notification as read: {notif_read_error}", exc_info=True)
+        # Don't fail the acceptance if notification update fails
+    
     # HARDENING LAYER C: Audit log
     try:
         await log_workspace_audit(
@@ -2121,6 +2135,20 @@ async def decline_invitation(
             }
         }
     )
+    
+    # Mark the invitation notification as read for the invitee
+    try:
+        await db.notifications.update_many(
+            {
+                "user_id": current_user.id,
+                "type": NotificationType.INVITE,
+                "metadata.invitation_id": invitation_id
+            },
+            {"$set": {"is_read": True}}
+        )
+    except Exception as notif_read_error:
+        logging.error(f"Failed to mark invitation notification as read: {notif_read_error}", exc_info=True)
+        # Don't fail the decline if notification update fails
     
     # HARDENING LAYER C: Audit log
     try:
