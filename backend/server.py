@@ -1036,16 +1036,37 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
         
         # No lock exists - create it (fallback to non-atomic insert if upsert fails)
         # This should be extremely rare
-        lock = WorkspaceLock(
-            workspace_id=workspace_id,
-            locked_by_user_id=user_id,
-            expires_at=expires_at
-        )
-        lock_dict = lock.model_dump()
-        lock_dict['locked_at'] = lock_dict['locked_at'].isoformat()
-        lock_dict['expires_at'] = lock_dict['expires_at'].isoformat()
-        await db.workspace_locks.insert_one(lock_dict)
-        return lock
+        # CRITICAL: Handle duplicate key error if unique index exists and another request created lock
+        try:
+            lock = WorkspaceLock(
+                workspace_id=workspace_id,
+                locked_by_user_id=user_id,
+                expires_at=expires_at
+            )
+            lock_dict = lock.model_dump()
+            lock_dict['locked_at'] = lock_dict['locked_at'].isoformat()
+            lock_dict['expires_at'] = lock_dict['expires_at'].isoformat()
+            await db.workspace_locks.insert_one(lock_dict)
+            return lock
+        except Exception as insert_error:
+            # If unique index exists and duplicate key error occurs, another request created the lock
+            error_msg = str(insert_error).lower()
+            if "duplicate key" in error_msg or "E11000" in error_msg:
+                # Unique index prevented duplicate - re-check existing lock
+                existing_lock = await get_workspace_lock(workspace_id)
+                if existing_lock:
+                    if existing_lock.locked_by_user_id == user_id:
+                        return existing_lock
+                    else:
+                        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+                        locked_by_user = await db.users.find_one({"id": existing_lock.locked_by_user_id}, {"_id": 0, "name": 1})
+                        locked_by_name = locked_by_user.get("name", "Another user") if locked_by_user else "Another user"
+                        raise HTTPException(
+                            status_code=409,
+                            detail=f"Another user ({locked_by_name}) is currently connected to this workspace. Entering now will force them out and may cause data loss."
+                        )
+            # Re-raise if it's not a duplicate key error
+            raise
     
     # HARDENING LAYER C: Audit log (non-blocking)
     try:
@@ -7512,10 +7533,132 @@ async def get_paypal_state(
         }
     }
 
+async def ensure_workspace_lock_index():
+    """
+    Ensure unique index exists on workspace_locks.workspace_id.
+    
+    CRITICAL: This enforces database-level uniqueness guarantee for workspace locks.
+    Prevents duplicate locks even under race conditions, process restarts, or concurrent deploys.
+    
+    Idempotent: Safe to run multiple times. Logs success or existing-index detection.
+    Background-safe: Does not block boot if index already exists.
+    """
+    try:
+        # Check if index already exists
+        existing_indexes = await db.workspace_locks.list_indexes().to_list(10)
+        index_names = [idx.get('name', '') for idx in existing_indexes]
+        
+        if 'workspace_id_unique' in index_names:
+            logging.info("[startup] Workspace lock unique index already exists: workspace_id_unique")
+            return True
+        
+        # Create unique index on workspace_id
+        # This ensures only one lock can exist per workspace at the database level
+        result = await db.workspace_locks.create_index(
+            [("workspace_id", 1)],
+            unique=True,
+            name="workspace_id_unique"
+        )
+        logging.info(f"[startup] Created unique index on workspace_locks.workspace_id: {result}")
+        return True
+        
+    except Exception as e:
+        # Log error but don't crash - index might already exist or database might be unavailable
+        # Application-level atomic operations still provide protection
+        error_msg = str(e).lower()
+        if "already exists" in error_msg or "duplicate key" in error_msg or "E11000" in error_msg:
+            logging.info("[startup] Workspace lock unique index already exists (detected via exception)")
+            return True
+        else:
+            logging.error(f"[startup] Failed to create workspace lock unique index: {e}", exc_info=True)
+            logging.warning("[startup] Continuing without unique index - application-level atomic operations provide protection")
+            return False
+
+async def cleanup_duplicate_workspace_locks():
+    """
+    Audit and clean up duplicate workspace_id records in workspace_locks.
+    
+    CRITICAL: This is a one-time cleanup for any duplicates that existed before the unique index.
+    Deterministically keeps the newest lock (by expires_at) and deletes the rest.
+    
+    Safe: Only runs if duplicates are found. Idempotent.
+    """
+    try:
+        # Find all workspace_ids that have multiple locks
+        # Use aggregation to find duplicates
+        pipeline = [
+            {"$group": {
+                "_id": "$workspace_id",
+                "count": {"$sum": 1},
+                "locks": {"$push": {
+                    "id": "$id",
+                    "locked_by_user_id": "$locked_by_user_id",
+                    "expires_at": "$expires_at",
+                    "locked_at": "$locked_at"
+                }}
+            }},
+            {"$match": {"count": {"$gt": 1}}}
+        ]
+        
+        duplicates = await db.workspace_locks.aggregate(pipeline).to_list(1000)
+        
+        if not duplicates:
+            logging.info("[startup] No duplicate workspace locks found - database is clean")
+            return 0
+        
+        total_deleted = 0
+        for dup_group in duplicates:
+            workspace_id = dup_group["_id"]
+            locks = dup_group["locks"]
+            
+            # Sort by expires_at descending (newest first)
+            # Keep the lock with the latest expires_at
+            locks_sorted = sorted(
+                locks,
+                key=lambda x: x.get("expires_at", ""),
+                reverse=True
+            )
+            
+            # Keep the newest lock, delete the rest
+            keep_lock_id = locks_sorted[0]["id"]
+            delete_lock_ids = [lock["id"] for lock in locks_sorted[1:]]
+            
+            if delete_lock_ids:
+                delete_result = await db.workspace_locks.delete_many(
+                    {"workspace_id": workspace_id, "id": {"$in": delete_lock_ids}}
+                )
+                total_deleted += delete_result.deleted_count
+                logging.info(
+                    f"[startup] Cleaned up {delete_result.deleted_count} duplicate locks for workspace {workspace_id} "
+                    f"(kept lock {keep_lock_id}, deleted {delete_lock_ids})"
+                )
+        
+        if total_deleted > 0:
+            logging.info(f"[startup] Cleanup complete: removed {total_deleted} duplicate workspace locks")
+        else:
+            logging.info("[startup] No duplicate locks needed cleanup")
+        
+        return total_deleted
+        
+    except Exception as e:
+        # Log error but don't crash - cleanup is best-effort
+        logging.error(f"[startup] Failed to cleanup duplicate workspace locks: {e}", exc_info=True)
+        logging.warning("[startup] Continuing without cleanup - duplicates will be handled by unique index")
+        return 0
+
 @app.on_event("startup")
 async def startup_event():
-    """Initialize default plans on startup."""
+    """Initialize default plans and ensure workspace lock index on startup."""
     await initialize_default_plans()
+    
+    # CRITICAL: Ensure unique index exists for workspace locks
+    # This provides database-level enforcement of lock uniqueness
+    index_created = await ensure_workspace_lock_index()
+    
+    # Clean up any duplicate locks that existed before the index
+    # This is a one-time operation - duplicates cannot exist after index is created
+    if index_created:
+        await cleanup_duplicate_workspace_locks()
     logging.info("Default plans initialized")
 
 @app.on_event("shutdown")
