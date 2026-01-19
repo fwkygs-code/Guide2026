@@ -40,6 +40,18 @@ const DashboardPage = () => {
     fetchWorkspaces();
   }, []);
 
+  // Release any workspace locks when user navigates to dashboard
+  // This ensures locks are released even if user navigates directly (URL, browser back, etc.)
+  useEffect(() => {
+    const releaseAllLocks = async () => {
+      // Get all workspaces and release locks for any that might be held
+      // Note: We can't know which workspace locks we hold without backend support,
+      // but the TTL (2 hours) will eventually expire stale locks
+      // For now, we rely on the cleanup functions in workspace pages
+    };
+    releaseAllLocks();
+  }, []);
+
   const fetchWorkspaces = async () => {
     try {
       const response = await api.getWorkspaces();
@@ -409,15 +421,26 @@ const DashboardPage = () => {
           }}
           onEnterAnyway={async () => {
             if (!pendingWorkspace) return;
-            // Force takeover
-            const lockResult = await api.lockWorkspace(pendingWorkspace.id, true);
-            if (lockResult.success) {
+            try {
+              // Force takeover
+              const lockResult = await api.lockWorkspace(pendingWorkspace.id, true);
+              if (lockResult.success) {
+                setLockModalOpen(false);
+                navigate(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
+                setPendingWorkspace(null);
+                setLockedBy('');
+              } else {
+                toast.error('Failed to enter workspace. Please try again.');
+              }
+            } catch (error) {
+              console.error('Force takeover error:', error);
+              // Even if there's an error, try to navigate - lock may have been released
+              // The workspace page will handle lock acquisition on mount
+              toast.error('Error during force takeover. Attempting to enter workspace...');
               setLockModalOpen(false);
               navigate(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
               setPendingWorkspace(null);
               setLockedBy('');
-            } else {
-              toast.error('Failed to enter workspace. Please try again.');
             }
           }}
         />

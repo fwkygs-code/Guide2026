@@ -907,14 +907,18 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
             previous_user_id = existing_lock.locked_by_user_id
             await db.workspace_locks.delete_one({"workspace_id": workspace_id})
             
-            # Notify previous user they were disconnected
-            await create_notification(
-                user_id=previous_user_id,
-                notification_type=NotificationType.FORCED_DISCONNECT,
-                title="Workspace Access Interrupted",
-                message=f"Another user has entered the workspace. You were disconnected to prevent conflicts.",
-                metadata={"workspace_id": workspace_id}
-            )
+            # Notify previous user they were disconnected (non-blocking)
+            try:
+                await create_notification(
+                    user_id=previous_user_id,
+                    notification_type=NotificationType.FORCED_DISCONNECT,
+                    title="Workspace Access Interrupted",
+                    message=f"Another user has entered the workspace. You were disconnected to prevent conflicts.",
+                    metadata={"workspace_id": workspace_id}
+                )
+            except Exception as notif_error:
+                # Log but don't fail lock acquisition if notification fails
+                logging.error(f"Failed to create forced disconnect notification: {notif_error}", exc_info=True)
         else:
             # Locked by another user
             workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
@@ -939,13 +943,17 @@ async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = 
     lock_dict['expires_at'] = lock_dict['expires_at'].isoformat()
     await db.workspace_locks.insert_one(lock_dict)
     
-    # HARDENING LAYER C: Audit log
-    await log_workspace_audit(
-        action_type=WorkspaceAuditAction.LOCK_ACQUIRED,
-        workspace_id=workspace_id,
-        actor_user_id=user_id,
-        metadata={"expires_at": expires_at.isoformat(), "force": force}
-    )
+    # HARDENING LAYER C: Audit log (non-blocking)
+    try:
+        await log_workspace_audit(
+            action_type=WorkspaceAuditAction.LOCK_ACQUIRED,
+            workspace_id=workspace_id,
+            actor_user_id=user_id,
+            metadata={"expires_at": expires_at.isoformat(), "force": force}
+        )
+    except Exception as audit_error:
+        # Log but don't fail lock acquisition if audit log fails
+        logging.error(f"Failed to log workspace audit for lock acquisition: {audit_error}", exc_info=True)
     
     return lock
 
