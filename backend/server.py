@@ -7653,6 +7653,9 @@ async def cleanup_duplicate_workspace_locks():
 # ADMIN ENDPOINTS - User & Subscription Management
 # ============================================================================
 
+class UpdateUserRoleRequest(BaseModel):
+    role: UserRole
+
 @api_router.get("/admin/users")
 async def list_users(
     page: int = Query(1, ge=1, description="Page number"),
@@ -7769,10 +7772,13 @@ async def get_user_details(
     
     return user_dict
 
+class UpdateUserRoleRequest(BaseModel):
+    role: UserRole
+
 @api_router.put("/admin/users/{user_id}/role")
 async def update_user_role(
     user_id: str,
-    role: UserRole = Body(..., description="New role for user"),
+    request: UpdateUserRoleRequest,
     current_user: User = Depends(require_admin)
 ):
     """
@@ -7785,12 +7791,12 @@ async def update_user_role(
     
     await db.users.update_one(
         {"id": user_id},
-        {"$set": {"role": role.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {"role": request.role.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
-    logging.info(f"[ADMIN] User {current_user.id} updated role for user {user_id} to {role.value}")
+    logging.info(f"[ADMIN] User {current_user.id} updated role for user {user_id} to {request.role.value}")
     
-    return {"success": True, "user_id": user_id, "role": role.value}
+    return {"success": True, "user_id": user_id, "role": request.role.value}
 
 @api_router.put("/admin/users/{user_id}/plan")
 async def admin_update_user_plan(

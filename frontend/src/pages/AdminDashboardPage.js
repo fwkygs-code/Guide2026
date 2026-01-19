@@ -139,7 +139,20 @@ const AdminDashboardPage = () => {
       fetchStats();
     } catch (error) {
       console.error('Failed to update user:', error);
-      toast.error(error.response?.data?.detail || 'Failed to update user');
+      // Handle validation errors (422) - extract message from error response
+      let errorMessage = 'Failed to update user';
+      if (error.response?.data) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          // FastAPI validation errors are arrays
+          const firstError = error.response.data.detail[0];
+          errorMessage = firstError?.msg || firstError?.loc?.join('. ') || errorMessage;
+        } else if (error.response.data.detail?.msg) {
+          errorMessage = error.response.data.detail.msg;
+        }
+      }
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -161,7 +174,20 @@ const AdminDashboardPage = () => {
       fetchStats();
     } catch (error) {
       console.error('Failed to create subscription:', error);
-      toast.error(error.response?.data?.detail || 'Failed to create subscription');
+      // Handle validation errors (422) - extract message from error response
+      let errorMessage = 'Failed to create subscription';
+      if (error.response?.data) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          // FastAPI validation errors are arrays
+          const firstError = error.response.data.detail[0];
+          errorMessage = firstError?.msg || firstError?.loc?.join('. ') || errorMessage;
+        } else if (error.response.data.detail?.msg) {
+          errorMessage = error.response.data.detail.msg;
+        }
+      }
+      toast.error(errorMessage);
     } finally {
       setCreatingSubscription(false);
     }
@@ -178,7 +204,20 @@ const AdminDashboardPage = () => {
       fetchStats();
     } catch (error) {
       console.error('Failed to cancel subscription:', error);
-      toast.error(error.response?.data?.detail || 'Failed to cancel subscription');
+      // Handle validation errors (422) - extract message from error response
+      let errorMessage = 'Failed to cancel subscription';
+      if (error.response?.data) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          // FastAPI validation errors are arrays
+          const firstError = error.response.data.detail[0];
+          errorMessage = firstError?.msg || firstError?.loc?.join('. ') || errorMessage;
+        } else if (error.response.data.detail?.msg) {
+          errorMessage = error.response.data.detail.msg;
+        }
+      }
+      toast.error(errorMessage);
     } finally {
       setCancellingSubscription(false);
     }
