@@ -101,12 +101,12 @@ code {
 @layer base {
   :root {
     /* Apple-inspired neutral palette */
-    --background: 255 255 255;
-    --foreground: 29 29 31;
-    --card: 255 255 255;
-    --card-foreground: 29 29 31;
-    --popover: 255 255 255;
-    --popover-foreground: 29 29 31;
+    --background: 0 0% 100%; /* White - HSL format */
+    --foreground: 0 0% 12%; /* Dark gray - HSL format */
+    --card: 0 0% 100%; /* White - HSL format */
+    --card-foreground: 0 0% 12%; /* Dark gray - HSL format */
+    --popover: 0 0% 100%; /* White - HSL format */
+    --popover-foreground: 0 0% 12%; /* Dark gray - HSL format */
     --primary: 214 100% 50%; /* Apple Blue - HSL format for hsl(var(--primary)) */
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 96%; /* Apple Light Gray - HSL format */
@@ -124,12 +124,12 @@ code {
   }
 
   .dark {
-    --background: 0 0 0;
-    --foreground: 255 255 255;
-    --card: 28 28 30;
-    --card-foreground: 255 255 255;
-    --popover: 28 28 30;
-    --popover-foreground: 255 255 255;
+    --background: 0 0% 0%; /* Black - HSL format */
+    --foreground: 0 0% 100%; /* White - HSL format */
+    --card: 0 0% 11%; /* Dark gray - HSL format */
+    --card-foreground: 0 0% 100%; /* White - HSL format */
+    --popover: 0 0% 11%; /* Dark gray - HSL format */
+    --popover-foreground: 0 0% 100%; /* White - HSL format */
     --primary: 214 100% 52%; /* Apple Blue (darker) - HSL format */
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 18%; /* Dark gray - HSL format */

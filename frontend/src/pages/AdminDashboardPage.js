@@ -218,7 +218,7 @@ const AdminDashboardPage = () => {
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
-            <Card className="border-slate-200 dark:border-slate-800">
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <CardHeader>
                 <CardTitle className="text-slate-900 dark:text-slate-100">User Management</CardTitle>
                 <CardDescription className="text-slate-600 dark:text-slate-400">View and manage all users</CardDescription>
@@ -391,7 +391,7 @@ const AdminDashboardPage = () => {
               <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading statistics...</div>
             ) : stats ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="border-slate-200 dark:border-slate-800">
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
                       <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -416,7 +416,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800">
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
                       <Crown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -435,7 +435,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800">
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
                       <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -460,7 +460,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800">
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
                       <FolderOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -472,7 +472,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800">
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
                       <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
@@ -497,7 +497,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800">
+                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
                       <HardDrive className="w-5 h-5 text-slate-600 dark:text-slate-400" />
