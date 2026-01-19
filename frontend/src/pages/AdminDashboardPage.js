@@ -73,7 +73,15 @@ const AdminDashboardPage = () => {
       setUsersTotal(response.data.total || 0);
     } catch (error) {
       console.error('Failed to fetch users:', error);
-      toast.error('Failed to load users');
+      if (error.response?.status === 404) {
+        toast.error('Admin endpoints not found. Server may need to restart.');
+      } else if (error.response?.status === 403) {
+        toast.error('Admin access required. Please contact support.');
+      } else if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+      } else {
+        toast.error('Failed to load users');
+      }
     } finally {
       setUsersLoading(false);
     }
@@ -86,7 +94,15 @@ const AdminDashboardPage = () => {
       setStats(response.data);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
-      toast.error('Failed to load statistics');
+      if (error.response?.status === 404) {
+        toast.error('Admin endpoints not found. Server may need to restart.');
+      } else if (error.response?.status === 403) {
+        toast.error('Admin access required. Please contact support.');
+      } else if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+      } else {
+        toast.error('Failed to load statistics');
+      }
     } finally {
       setStatsLoading(false);
     }
