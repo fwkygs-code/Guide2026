@@ -1528,8 +1528,15 @@ async def create_file_record_from_url(url: str, user_id: str, workspace_id: str,
     )
     
     file_dict = file_record.model_dump()
-    file_dict['created_at'] = file_dict['created_at'].isoformat()
-    file_dict['updated_at'] = file_dict['updated_at'].isoformat()
+    # Defensive serialization: Handle missing timestamps for backward compatibility
+    if file_dict.get('created_at'):
+        file_dict['created_at'] = file_dict['created_at'].isoformat()
+    else:
+        file_dict['created_at'] = datetime.now(timezone.utc).isoformat()
+    if file_dict.get('updated_at'):
+        file_dict['updated_at'] = file_dict['updated_at'].isoformat()
+    else:
+        file_dict['updated_at'] = datetime.now(timezone.utc).isoformat()
     
     await db.files.insert_one(file_dict)
     logging.info(f"Created file record for migrated URL: {url}")
@@ -4322,8 +4329,15 @@ async def upload_file(
         )
         
         file_dict = file_record.model_dump()
-        file_dict['created_at'] = file_dict['created_at'].isoformat()
-        file_dict['updated_at'] = file_dict['updated_at'].isoformat()
+        # Defensive serialization: Handle missing timestamps for backward compatibility
+        if file_dict.get('created_at'):
+            file_dict['created_at'] = file_dict['created_at'].isoformat()
+        else:
+            file_dict['created_at'] = datetime.now(timezone.utc).isoformat()
+        if file_dict.get('updated_at'):
+            file_dict['updated_at'] = file_dict['updated_at'].isoformat()
+        else:
+            file_dict['updated_at'] = datetime.now(timezone.utc).isoformat()
         
         # Insert file record (this reserves the quota)
         await db.files.insert_one(file_dict)
