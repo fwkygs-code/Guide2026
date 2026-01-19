@@ -4188,18 +4188,6 @@ async def upload_file(
     file_content = await file.read()
     file_size = len(file_content)
     
-    # Get user's plan and check file size limit
-    plan = await get_user_plan(current_user.id)
-    if not plan:
-        raise HTTPException(status_code=400, detail="User has no plan assigned")
-    
-    # Check file size limit
-    if file_size > plan.max_file_size_bytes:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
-        )
-    
     # Get workspace_id from request or use first workspace if not provided
     if not workspace_id:
         # Get user's first workspace (for backward compatibility)
@@ -4221,6 +4209,22 @@ async def upload_file(
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    # For shared users, use workspace owner's plan for file size limits
+    # For owners, use their own plan
+    plan_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+    
+    # Get plan and check file size limit (use workspace owner's plan for shared users)
+    plan = await get_user_plan(plan_user_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="User has no plan assigned")
+    
+    # Check file size limit
+    if file_size > plan.max_file_size_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
+        )
     
     # For shared users, count storage against workspace owner's quota
     # For owners, use their own quota
