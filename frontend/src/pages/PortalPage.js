@@ -20,6 +20,11 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
+// Get backend URL for sharing (WhatsApp previews need backend route)
+const getBackendUrl = () => {
+  return API_BASE.replace(/\/api$/, '').replace(/\/$/, '') || 'https://guide2026-backend.onrender.com';
+};
+
 const PortalPage = ({ isEmbedded = false }) => {
   const { t, i18n } = useTranslation();
   const { slug } = useParams();
@@ -88,7 +93,8 @@ const PortalPage = ({ isEmbedded = false }) => {
         meta.setAttribute('content', content);
       };
       
-      const portalUrl = `${window.location.origin}/portal/${slug}`;
+      // Use backend URL for sharing (WhatsApp crawlers need backend route)
+      const portalUrl = `${getBackendUrl()}/portal/${slug}`;
       const ogImageUrl = logoUrl || `${window.location.origin}/og-image.png`;
       
       // Update Open Graph tags

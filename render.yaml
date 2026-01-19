@@ -41,6 +41,9 @@ services:
         value: "Guide2026"
       - key: FRONTEND_URL
         value: "https://guide2026-frontend.onrender.com"
+      # Custom domain (update if using custom domain)
+      # - key: FRONTEND_URL
+      #   value: "https://www.interguide.app"
 
   # Service 2: Frontend (Static Site)
   - type: web

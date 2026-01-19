@@ -594,7 +594,15 @@ const WalkthroughsPage = () => {
 const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
   const { t } = useTranslation();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const walkthroughUrl = `${window.location.origin}/portal/${workspaceSlug}/${walkthrough.id}`;
+  // Use backend URL for sharing (WhatsApp crawlers need backend route)
+  const getBackendUrl = () => {
+    const apiUrl = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL;
+    if (apiUrl) {
+      return apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
+    }
+    return 'https://guide2026-backend.onrender.com';
+  };
+  const walkthroughUrl = `${getBackendUrl()}/portal/${workspaceSlug}/${walkthrough.id}`;
   const embedUrl = `${window.location.origin}/embed/portal/${workspaceSlug}/${walkthrough.id}`;
   const iframeCode = `<iframe src="${embedUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
 

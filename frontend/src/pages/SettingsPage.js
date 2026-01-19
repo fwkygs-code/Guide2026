@@ -147,7 +147,15 @@ const SettingsPage = () => {
     }
   };
 
-  const portalUrl = `${window.location.origin}/portal/${workspace?.slug}`;
+  // Use backend URL for portal sharing (WhatsApp crawlers need backend route)
+  const getBackendUrl = () => {
+    const apiUrl = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL;
+    if (apiUrl) {
+      return apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
+    }
+    return 'https://guide2026-backend.onrender.com';
+  };
+  const portalUrl = `${getBackendUrl()}/portal/${workspace?.slug}`;
   const portalEmbedUrl = `${window.location.origin}/embed/portal/${workspace?.slug}`;
   const portalIframeCode = `<iframe src="${portalEmbedUrl}" width="100%" height="800" frameborder="0" allowfullscreen></iframe>`;
   const portalScriptCode = `<script src="${window.location.origin}/embed/widget.js" data-slug="${workspace?.slug}"></script>`;

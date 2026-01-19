@@ -1,1 +1,5 @@
+# Note: Render static sites don't support proxying, so portal routes will serve index.html
+# The backend route /portal/{slug} handles crawlers directly
+# For WhatsApp previews to work, ensure your custom domain routes /portal/* to backend
+# OR share links using the backend URL directly
 /*    /index.html   200
