@@ -21,7 +21,26 @@ const NotificationsMenu = () => {
   const fetchNotifications = async () => {
     try {
       const response = await api.getNotifications();
-      setNotifications(response.data || []);
+      const fetchedNotifications = response.data || [];
+      
+      // Preserve local status updates for handled invitations
+      setNotifications(prev => {
+        const handledInvitations = new Map();
+        prev.forEach(n => {
+          if ((n.type === 'invite_accepted' || n.type === 'invite_declined') && n.metadata?.invitation_id) {
+            handledInvitations.set(n.id, n);
+          }
+        });
+        
+        // Merge fetched notifications with handled invitations
+        return fetchedNotifications.map(fetched => {
+          const handled = handledInvitations.get(fetched.id);
+          if (handled) {
+            return handled; // Keep the handled status
+          }
+          return fetched;
+        });
+      });
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
