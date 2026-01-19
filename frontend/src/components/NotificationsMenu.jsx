@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, X } from 'lucide-react';
+import { Bell, Check, X, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -50,7 +50,50 @@ const NotificationsMenu = () => {
     }
   };
 
+  const handleAcceptInvitation = async (notification, e) => {
+    e.stopPropagation();
+    if (!notification.metadata?.workspace_id || !notification.metadata?.invitation_id) {
+      toast.error('Invalid invitation');
+      return;
+    }
+    
+    try {
+      await api.acceptInvitation(notification.metadata.workspace_id, notification.metadata.invitation_id);
+      toast.success('Invitation accepted!');
+      // Remove notification and refresh
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      fetchNotifications();
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Failed to accept invitation';
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleDeclineInvitation = async (notification, e) => {
+    e.stopPropagation();
+    if (!notification.metadata?.workspace_id || !notification.metadata?.invitation_id) {
+      toast.error('Invalid invitation');
+      return;
+    }
+    
+    try {
+      await api.declineInvitation(notification.metadata.workspace_id, notification.metadata.invitation_id);
+      toast.success('Invitation declined');
+      // Remove notification and refresh
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      fetchNotifications();
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Failed to decline invitation';
+      toast.error(errorMsg);
+    }
+  };
+
   const handleNotificationClick = async (notification) => {
+    // Don't navigate if it's an invitation notification (user should use Accept/Decline buttons)
+    if (notification.type === 'invite') {
+      return;
+    }
+    
     if (!notification.is_read) {
       try {
         await api.markNotificationRead(notification.id);
@@ -120,7 +163,7 @@ const NotificationsMenu = () => {
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+                  className={`p-4 ${notification.type === 'invite' ? '' : 'cursor-pointer'} hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
                     !notification.is_read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
                   }`}
                 >
@@ -135,8 +178,30 @@ const NotificationsMenu = () => {
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                         {formatNotificationTime(notification.created_at)}
                       </p>
+                      {notification.type === 'invite' && notification.metadata?.workspace_id && (
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={(e) => handleAcceptInvitation(notification, e)}
+                            className="h-7 text-xs"
+                          >
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handleDeclineInvitation(notification, e)}
+                            className="h-7 text-xs"
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Decline
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    {!notification.is_read && (
+                    {!notification.is_read && notification.type !== 'invite' && (
                       <Button
                         variant="ghost"
                         size="sm"

@@ -1913,7 +1913,7 @@ async def invite_user_to_workspace(
         notification_type=NotificationType.INVITE,
         title="Workspace Invitation",
         message=f"{current_user.name} has invited you to collaborate on the workspace \"{workspace['name']}\"",
-        metadata={"workspace_id": workspace_id, "inviter_id": current_user.id, "inviter_name": current_user.name}
+        metadata={"workspace_id": workspace_id, "invitation_id": member.id, "inviter_id": current_user.id, "inviter_name": current_user.name}
     )
     
     # Send invitation email (background task)
