@@ -80,8 +80,18 @@ const SettingsPage = () => {
   };
 
   const handleLogoUpload = async (file) => {
+    if (!workspaceId) {
+      toast.error('Workspace not loaded');
+      return;
+    }
     try {
-      const response = await api.uploadFile(file);
+      const idempotencyKey = `workspace-logo-${workspaceId}-${file.name}-${Date.now()}`;
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'workspace_logo',
+        referenceId: workspaceId
+      });
       const uploadedUrl = response.data.url;
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
@@ -90,13 +100,24 @@ const SettingsPage = () => {
       setLogoUrl(fullUrl);
       toast.success('Logo uploaded!');
     } catch (error) {
+      console.error('Logo upload error:', error);
       toast.error('Failed to upload logo');
     }
   };
 
   const handleBackgroundUpload = async (file) => {
+    if (!workspaceId) {
+      toast.error('Workspace not loaded');
+      return;
+    }
     try {
-      const response = await api.uploadFile(file);
+      const idempotencyKey = `workspace-background-${workspaceId}-${file.name}-${Date.now()}`;
+      const response = await api.uploadFile(file, {
+        workspaceId: workspaceId,
+        idempotencyKey: idempotencyKey,
+        referenceType: 'workspace_background',
+        referenceId: workspaceId
+      });
       const uploadedUrl = response.data.url;
       // CRITICAL: Cloudinary returns full HTTPS URLs, don't prepend API_BASE
       const fullUrl = uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')
@@ -105,6 +126,7 @@ const SettingsPage = () => {
       setPortalBackgroundUrl(fullUrl);
       toast.success('Background uploaded!');
     } catch (error) {
+      console.error('Background upload error:', error);
       toast.error('Failed to upload background');
     }
   };
