@@ -2275,6 +2275,27 @@ async def lock_workspace(
         "expires_at": lock.expires_at.isoformat()
     }
 
+@api_router.get("/workspaces/{workspace_id}/lock")
+async def get_workspace_lock_status(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get current workspace lock status without acquiring."""
+    await check_workspace_access(workspace_id, current_user.id)
+    lock = await get_workspace_lock(workspace_id)
+    if lock:
+        locked_by_user = await db.users.find_one({"id": lock.locked_by_user_id}, {"_id": 0, "name": 1})
+        locked_by_name = locked_by_user.get("name", "Unknown") if locked_by_user else "Unknown"
+        return {
+            "locked": True,
+            "locked_by_user_id": lock.locked_by_user_id,
+            "locked_by_name": locked_by_name,
+            "locked_at": lock.locked_at.isoformat(),
+            "expires_at": lock.expires_at.isoformat(),
+            "is_current_user": lock.locked_by_user_id == current_user.id
+        }
+    return {"locked": False}
+
 @api_router.delete("/workspaces/{workspace_id}/lock")
 async def unlock_workspace(
     workspace_id: str,

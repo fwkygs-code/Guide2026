@@ -179,21 +179,30 @@ export const api = {
   // Check lock status without acquiring (read-only check)
   checkWorkspaceLock: async (workspaceId) => {
     try {
-      // Try to acquire lock with force=false - if it succeeds, release it immediately
-      // If it fails with 409, return lock info without acquiring
-      const response = await axios.post(`${API}/workspaces/${workspaceId}/lock?force=false`);
-      // Lock acquired successfully, release it immediately (we just wanted to check)
-      await axios.delete(`${API}/workspaces/${workspaceId}/lock`).catch(() => {});
+      const response = await axios.get(`${API}/workspaces/${workspaceId}/lock`);
+      if (response.data.locked) {
+        return { 
+          success: false, 
+          locked: true, 
+          locked_by: response.data.locked_by_name,
+          is_current_user: response.data.is_current_user
+        };
+      }
       return { success: true, locked: false };
     } catch (error) {
-      if (error.response?.status === 409) {
-        // Extract locked_by name from error message
-        const detail = error.response?.data?.detail || '';
-        const match = detail.match(/Another user \(([^)]+)\)/);
-        const lockedBy = match ? match[1] : 'Another user';
-        return { success: false, locked: true, locked_by: lockedBy, error: detail };
-      }
-      throw error;
+      console.error('Lock check failed:', error);
+      // If check fails, assume not locked to allow navigation
+      return { success: true, locked: false };
+    }
+  },
+  // Get lock status (for periodic checks while in workspace)
+  getWorkspaceLockStatus: async (workspaceId) => {
+    try {
+      const response = await axios.get(`${API}/workspaces/${workspaceId}/lock`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get lock status:', error);
+      return { locked: false };
     }
   },
   unlockWorkspace: (workspaceId) => axios.delete(`${API}/workspaces/${workspaceId}/lock`)
