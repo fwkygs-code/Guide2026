@@ -8,44 +8,44 @@ const BuildingTips = () => {
   const tips = [
     {
       icon: <Video className="w-5 h-5" />,
-      title: "Record GIFs with ScreenToGIF",
-      description: "Use ScreenToGIF (free Windows app) to record screen captures as animated GIFs. Perfect for step-by-step demonstrations.",
+      title: t('builder.tips.recordGifs'),
+      description: t('builder.tips.recordGifsDesc'),
       link: "https://www.screentogif.com/"
     },
     {
       icon: <CheckSquare className="w-5 h-5" />,
-      title: "Set Step to Tick When Finished",
-      description: "Change navigation type to 'Check-off Required' to make users confirm completion before advancing. Great for important steps.",
+      title: t('builder.tips.tickWhenFinished'),
+      description: t('builder.tips.tickWhenFinishedDesc'),
     },
     {
       icon: <AlertCircle className="w-5 h-5" />,
-      title: "Add Common Problems Block",
-      description: "Click on a step, then select 'Common Problems' to add troubleshooting tips. Helps users solve issues independently.",
+      title: t('builder.tips.commonProblems'),
+      description: t('builder.tips.commonProblemsDesc'),
     },
     {
       icon: <Image className="w-5 h-5" />,
-      title: "Optimize Images Before Upload",
-      description: "Compress images to reduce file size and improve loading speed. Use tools like TinyPNG or Squoosh for best results.",
+      title: t('builder.tips.optimizeImages'),
+      description: t('builder.tips.optimizeImagesDesc'),
     },
     {
       icon: <FileText className="w-5 h-5" />,
-      title: "Use Clear Step Titles",
-      description: "Write concise, action-oriented titles. Users should understand what they'll do in each step at a glance.",
+      title: t('builder.tips.clearTitles'),
+      description: t('builder.tips.clearTitlesDesc'),
     },
     {
       icon: <LinkIcon className="w-5 h-5" />,
-      title: "Link to External Resources",
-      description: "Add links in text blocks to reference documentation, videos, or other helpful resources for deeper learning.",
+      title: t('builder.tips.externalLinks'),
+      description: t('builder.tips.externalLinksDesc'),
     },
     {
       icon: <Zap className="w-5 h-5" />,
-      title: "Test on Mobile Devices",
-      description: "Preview your walkthrough on mobile to ensure it looks good and works smoothly on smaller screens.",
+      title: t('builder.tips.testMobile'),
+      description: t('builder.tips.testMobileDesc'),
     },
     {
       icon: <Video className="w-5 h-5" />,
-      title: "Use Video for Complex Actions",
-      description: "For multi-step processes, consider using video instead of static images. Videos can show the full sequence clearly.",
+      title: t('builder.tips.useVideo'),
+      description: t('builder.tips.useVideoDesc'),
     },
   ];
 
@@ -54,9 +54,9 @@ const BuildingTips = () => {
       <div className="p-6 border-b border-slate-200 sticky top-0 bg-white z-10">
         <div className="flex items-center gap-2 mb-1">
           <Lightbulb className="w-5 h-5 text-primary" />
-          <h3 className="text-sm font-semibold text-slate-900">Building Tips</h3>
+          <h3 className="text-sm font-semibold text-slate-900">{t('builder.buildingTips')}</h3>
         </div>
-        <p className="text-xs text-slate-500">Helpful tips for creating effective walkthroughs</p>
+        <p className="text-xs text-slate-500">{t('builder.buildingTipsDescription')}</p>
       </div>
 
       <div className="p-6 space-y-4 overflow-y-auto flex-1" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto' }}>

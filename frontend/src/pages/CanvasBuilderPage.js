@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X, Plus } from 'lucide-react';
+import { Save, Eye, Play, ArrowLeft, Clock, Check, History, Trash2, CheckSquare, Square, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X, Plus, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -18,14 +18,19 @@ import RightInspector from '../components/canvas-builder/RightInspector';
 import StepTimeline from '../components/canvas-builder/StepTimeline';
 import PreviewMode from '../components/canvas-builder/PreviewMode';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 const CanvasBuilderPage = () => {
   const { t, i18n } = useTranslation();
-  const { workspaceId, walkthroughId } = useParams();
+  const { workspaceSlug, walkthroughId } = useParams();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'he';
   const isEditing = !!walkthroughId;
-  const draftKey = `interguide:draft:${workspaceId}`;
+  
+  // Resolve workspace slug to ID
+  const { workspace, workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
+  
+  const draftKey = workspaceId ? `interguide:draft:${workspaceId}` : null;
 
   // Core state
   const [walkthrough, setWalkthrough] = useState({
@@ -460,7 +465,7 @@ const CanvasBuilderPage = () => {
         } catch {
           // ignore
         }
-        navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
+        navigate(`/workspace/${workspaceSlug}/walkthroughs/${newId}/edit`);
       }
     } catch (error) {
       console.error('[CanvasBuilder] Save failed:', error);
@@ -780,7 +785,7 @@ const CanvasBuilderPage = () => {
             });
           }
 
-          navigate(`/workspace/${workspaceId}/walkthroughs/${newId}/edit`);
+          navigate(`/workspace/${workspaceSlug}/walkthroughs/${newId}/edit`);
         }
       })();
       toast.success('Published successfully!');
@@ -1052,7 +1057,7 @@ const CanvasBuilderPage = () => {
     setSelectStepsMode(false);
   };
 
-  if (loading) {
+  if (loading || workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -1094,7 +1099,7 @@ const CanvasBuilderPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs`)}
+              onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}
               data-testid="back-button"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -1110,6 +1115,47 @@ const CanvasBuilderPage = () => {
                 </div>
               )}
             </div>
+            {/* Navigation Type Toggle - Only show when editing a step */}
+            {walkthrough.steps && walkthrough.steps.length > 0 && currentStepIndex >= 0 && currentStepIndex < walkthrough.steps.length && (
+              <>
+                <div className="h-6 w-px bg-slate-200" />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-medium">{t('builder.navigationType')}:</span>
+                  <div className="flex items-center gap-1 bg-slate-100 rounded-md p-1">
+                    <Button
+                      variant={(walkthrough.steps[currentStepIndex]?.navigation_type || 'next_prev') === 'next_prev' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="h-7 px-3 text-xs"
+                      onClick={() => {
+                        const currentStep = walkthrough.steps[currentStepIndex];
+                        if (currentStep) {
+                          updateStep(currentStep.id, { navigation_type: 'next_prev' });
+                        }
+                      }}
+                      disabled={isSaving || isPublishing}
+                    >
+                      <ArrowLeftRight className="w-3 h-3 mr-1.5" />
+                      {t('builder.nextPrevious')}
+                    </Button>
+                    <Button
+                      variant={walkthrough.steps[currentStepIndex]?.navigation_type === 'checkoff' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="h-7 px-3 text-xs"
+                      onClick={() => {
+                        const currentStep = walkthrough.steps[currentStepIndex];
+                        if (currentStep) {
+                          updateStep(currentStep.id, { navigation_type: 'checkoff' });
+                        }
+                      }}
+                      disabled={isSaving || isPublishing}
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1.5" />
+                      {t('builder.checkoffRequired')}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -1198,6 +1244,17 @@ const CanvasBuilderPage = () => {
                 {t('builder.viewPortal')}
               </Button>
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPreviewMode(true)}
+              disabled={isSaving || isPublishing}
+              data-testid="preview-button"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              {t('common.preview')}
+            </Button>
 
             <Button
               size="sm"

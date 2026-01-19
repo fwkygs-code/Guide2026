@@ -19,12 +19,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const WalkthroughsPage = () => {
   const { t } = useTranslation();
-  const { workspaceId } = useParams();
+  const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const [walkthroughs, setWalkthroughs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [workspace, setWorkspace] = useState(null);
+  const [workspaceId, setWorkspaceId] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [editingWalkthrough, setEditingWalkthrough] = useState(null);
@@ -38,18 +39,23 @@ const WalkthroughsPage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [workspaceId]);
+  }, [workspaceSlug]);
 
   const fetchData = async () => {
     try {
-      const [wtResponse, wsResponse, catResponse] = await Promise.all([
-        api.getWalkthroughs(workspaceId),
-        api.getWorkspace(workspaceId),
-        api.getCategories(workspaceId)
+      // First get workspace by slug to get the ID
+      const wsResponse = await api.getWorkspace(workspaceSlug);
+      const workspaceData = wsResponse.data;
+      setWorkspace(workspaceData);
+      setWorkspaceId(workspaceData.id);
+      
+      // Now fetch data using the actual workspace ID
+      const [wtResponse, catResponse] = await Promise.all([
+        api.getWalkthroughs(workspaceData.id),
+        api.getCategories(workspaceData.id)
       ]);
       // Normalize image URLs
       setWalkthroughs(normalizeImageUrlsInObject(wtResponse.data));
-      setWorkspace(normalizeImageUrlsInObject(wsResponse.data));
       setCategories(normalizeImageUrlsInObject(catResponse.data));
       // Expand all categories by default
       const allCategoryIds = new Set(catResponse.data.map(c => c.id));
@@ -216,7 +222,7 @@ const WalkthroughsPage = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -251,14 +257,14 @@ const WalkthroughsPage = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate(`/workspace/${workspaceId}/archive`)}
+              onClick={() => navigate(`/workspace/${workspaceSlug}/archive`)}
               data-testid="view-archive-button"
             >
               <Archive className="w-4 h-4 mr-2" />
               {t('workspace.archive')}
             </Button>
             <Button
-              onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/new`)}
+              onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/new`)}
               data-testid="create-walkthrough-button"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -399,7 +405,7 @@ const WalkthroughsPage = () => {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/${walkthrough.id}/edit`)}
+                            onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/${walkthrough.id}/edit`)}
                             data-testid={`edit-walkthrough-${walkthrough.id}`}
                           >
                             <Edit className="w-3 h-3 mr-1" />
@@ -432,7 +438,7 @@ const WalkthroughsPage = () => {
               {t('walkthrough.noWalkthroughs')}
             </h3>
             <p className="text-slate-600 mb-6">{t('walkthrough.createFirst')}</p>
-            <Button onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs/new`)} data-testid="empty-create-walkthrough-button">
+            <Button onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/new`)} data-testid="empty-create-walkthrough-button">
               <Plus className="w-4 h-4 mr-2" />
               {t('walkthrough.createWalkthrough')}
             </Button>

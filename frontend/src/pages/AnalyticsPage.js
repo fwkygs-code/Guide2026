@@ -5,11 +5,15 @@ import { BarChart3, Eye, Play, CheckCircle, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
+import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 const AnalyticsPage = () => {
-  const { workspaceId } = useParams();
+  const { workspaceSlug } = useParams();
   const [walkthroughs, setWalkthroughs] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Resolve workspace slug to ID
+  const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
   const [analyticsData, setAnalyticsData] = useState({});
   const [feedbackData, setFeedbackData] = useState({});
 
@@ -18,6 +22,7 @@ const AnalyticsPage = () => {
   }, [workspaceId]);
 
   const fetchData = async () => {
+    if (!workspaceId) return; // Wait for workspace ID to be resolved
     try {
       const response = await api.getWalkthroughs(workspaceId);
       setWalkthroughs(response.data);
@@ -56,7 +61,7 @@ const AnalyticsPage = () => {
   const totalCompletions = Object.values(analyticsData).reduce((sum, data) => sum + (data.completions || 0), 0);
   const avgCompletionRate = totalStarts > 0 ? ((totalCompletions / totalStarts) * 100).toFixed(1) : 0;
 
-  if (loading) {
+  if (loading || workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">

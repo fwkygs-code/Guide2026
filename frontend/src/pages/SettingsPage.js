@@ -15,13 +15,16 @@ import DashboardLayout from '../components/DashboardLayout';
 import QuotaDisplay from '../components/QuotaDisplay';
 import UpgradePrompt from '../components/UpgradePrompt';
 import PlanSelectionModal from '../components/PlanSelectionModal';
+import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 const SettingsPage = () => {
-  const { workspaceId } = useParams();
+  const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { textSize, setTextSize } = useTextSize();
-  const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Resolve workspace slug to ID
+  const { workspace, workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
   const [name, setName] = useState('');
   const [brandColor, setBrandColor] = useState('#4f46e5');
   const [logoUrl, setLogoUrl] = useState('');
@@ -38,14 +41,29 @@ const SettingsPage = () => {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchWorkspace();
-  }, [workspaceId]);
-
+    if (workspace) {
+      // Use workspace data from hook
+      setName(workspace.name || '');
+      setBrandColor(workspace.brand_color || '#4f46e5');
+      setLogoUrl(workspace.logo || '');
+      setPortalBackgroundUrl(workspace.portal_background_url || '');
+      setPortalPalette(workspace.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
+      setPortalLinks(workspace.portal_links || []);
+      setPortalPhone(workspace.portal_phone || '');
+      setPortalWorkingHours(workspace.portal_working_hours || '');
+      setPortalWhatsapp(workspace.portal_whatsapp || '');
+      setLoading(false);
+    }
+  }, [workspace]);
+  
   const fetchWorkspace = async () => {
+    // Workspace is already loaded from useWorkspaceSlug hook, this function may not be needed
+    // But keeping for compatibility with existing code that might call it
+    if (!workspaceId || workspace) return;
     try {
       const response = await api.getWorkspace(workspaceId);
-      setWorkspace(response.data);
-      setName(response.data.name);
+      const workspaceData = response.data;
+      setName(workspaceData.name);
       setBrandColor(response.data.brand_color || '#4f46e5');
       setLogoUrl(response.data.logo || '');
       setPortalBackgroundUrl(response.data.portal_background_url || '');
@@ -121,7 +139,7 @@ const SettingsPage = () => {
         portal_whatsapp: portalWhatsapp || null
       });
       toast.success('Settings saved!');
-      fetchWorkspace();
+      // Workspace is loaded from useWorkspaceSlug hook
     } catch (error) {
       toast.error('Failed to save settings');
     } finally {
@@ -139,7 +157,7 @@ const SettingsPage = () => {
     toast.success(message);
   };
 
-  if (loading) {
+  if (loading || workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">

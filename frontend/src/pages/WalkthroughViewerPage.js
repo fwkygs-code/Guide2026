@@ -24,6 +24,7 @@ const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const { slug, walkthroughId } = useParams();
+  const { t, i18n } = useTranslation();
   
   // Detect if we're in an iframe
   const inIframe = isEmbedded || window.self !== window.top;
@@ -926,7 +927,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     }`}
                     data-testid="checkoff-button"
                   >
-                    {canProceedNext() ? 'Done' : 'Mark as done'}
+                    {canProceedNext() ? t('common.done') : t('common.markAsDone')}
                   </button>
                 )}
                 <Button
@@ -935,8 +936,17 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   disabled={currentStep === 0}
                   data-testid="previous-button"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-2" />
-                  Previous
+                  {i18n.language === 'he' ? (
+                    <>
+                      <ChevronRight className="w-4 h-4 ml-2" />
+                      {t('common.previous')}
+                    </>
+                  ) : (
+                    <>
+                      <ChevronLeft className="w-4 h-4 mr-2" />
+                      {t('common.previous')}
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={handleNext}
@@ -946,12 +956,21 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   {currentStep === walkthrough.steps.length - 1 ? (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Complete
+                      {t('common.complete')}
                     </>
                   ) : (
                     <>
-                      Next
-                      <ChevronRight className="w-4 h-4 ml-2" />
+                      {i18n.language === 'he' ? (
+                        <>
+                          {t('common.next')}
+                          <ChevronLeft className="w-4 h-4 ml-2" />
+                        </>
+                      ) : (
+                        <>
+                          {t('common.next')}
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </>
+                      )}
                     </>
                   )}
                 </Button>

@@ -104,7 +104,10 @@ if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
         "Resend HTTP API is REQUIRED for email sending. SMTP is DISABLED.\n\n"
         "Please set the following environment variables:\n"
         "  - RESEND_API_KEY (get from https://resend.com/api-keys)\n"
-        "  - RESEND_FROM_EMAIL (must be verified in Resend)\n\n"
+        "  - RESEND_FROM_EMAIL (email address to send from)\n\n"
+        "For testing: Use onboarding@resend.dev (works immediately, no verification)\n"
+        "For production: Verify your domain in Resend and use yourdomain.com email\n"
+        "  Example: noreply@yourdomain.com (must verify domain first)\n\n"
         "=" * 80
     )
     logging.error(error_msg)
@@ -1342,13 +1345,18 @@ async def get_workspaces(current_user: User = Depends(get_current_user)):
 
 @api_router.get("/workspaces/{workspace_id}", response_model=Workspace)
 async def get_workspace(workspace_id: str, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    # Support both UUID and slug - try slug first, then UUID
+    workspace = await db.workspaces.find_one({"slug": workspace_id}, {"_id": 0})
+    if not workspace:
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    # Use the actual workspace ID for member check
+    actual_workspace_id = workspace['id']
+    member = await get_workspace_member(actual_workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     return Workspace(**workspace)
 

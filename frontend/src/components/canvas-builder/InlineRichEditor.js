@@ -8,6 +8,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FontSize } from '@/lib/fontSize';
 
 function getEditorPlainText(editor) {
@@ -178,26 +179,35 @@ const InlineRichEditor = ({
           </Button>
           <div className="w-px h-5 bg-slate-700 mx-0.5" />
           <div className="flex items-center gap-0.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                const currentSize = editor.getAttributes('textStyle').fontSize || '16';
-                const sizes = ['12', '14', '16', '18', '20', '24', '28', '32'];
-                const currentIndex = sizes.indexOf(String(currentSize));
-                const nextIndex = (currentIndex + 1) % sizes.length;
-                editor.chain().focus().setFontSize(`${sizes[nextIndex]}px`).run();
-              }}
-              className="h-7 px-2 text-white hover:bg-slate-700 text-xs"
-              title="Font Size"
-            >
-              <Type className="w-3 h-3 mr-1" />
-              <span className="text-[10px]">
-                {editor.getAttributes('textStyle').fontSize ? `${editor.getAttributes('textStyle').fontSize}px` : '16px'}
-              </span>
-            </Button>
+            <div className="flex items-center gap-1">
+              <Type className="w-3.5 h-3.5 text-white" />
+              <Select
+                value={editor.getAttributes('textStyle').fontSize ? editor.getAttributes('textStyle').fontSize.replace('px', '') : '16'}
+                onValueChange={(value) => {
+                  editor.chain().focus().setFontSize(`${value}px`).run();
+                }}
+              >
+                <SelectTrigger 
+                  className="h-7 w-20 bg-slate-800 border-slate-700 text-white text-xs hover:bg-slate-700 focus:ring-slate-600"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700 text-white z-[101]" side="top">
+                  <SelectItem value="12" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">12px</SelectItem>
+                  <SelectItem value="14" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">14px</SelectItem>
+                  <SelectItem value="16" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">16px</SelectItem>
+                  <SelectItem value="18" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">18px</SelectItem>
+                  <SelectItem value="20" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">20px</SelectItem>
+                  <SelectItem value="24" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">24px</SelectItem>
+                  <SelectItem value="28" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">28px</SelectItem>
+                  <SelectItem value="32" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">32px</SelectItem>
+                  <SelectItem value="36" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">36px</SelectItem>
+                  <SelectItem value="40" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">40px</SelectItem>
+                  <SelectItem value="48" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">48px</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       )}

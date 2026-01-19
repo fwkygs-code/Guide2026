@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
+import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -20,9 +21,12 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const WalkthroughBuilderPage = () => {
-  const { workspaceId, walkthroughId } = useParams();
+  const { workspaceSlug, walkthroughId } = useParams();
   const navigate = useNavigate();
   const isEditing = !!walkthroughId;
+  
+  // Resolve workspace slug to ID
+  const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -38,23 +42,23 @@ const WalkthroughBuilderPage = () => {
   const [workspace, setWorkspace] = useState(null);
 
   useEffect(() => {
+    if (!workspaceId) return; // Wait for workspace ID to be resolved
     fetchCategories();
-    fetchWorkspace();
     if (isEditing) {
       fetchWalkthrough();
     }
   }, [workspaceId, walkthroughId]);
-
-  const fetchWorkspace = async () => {
-    try {
-      const response = await api.getWorkspace(workspaceId);
-      setWorkspace(response.data);
-    } catch (error) {
-      console.error('Failed to load workspace');
+  
+  // Get workspace from hook
+  const { workspace: workspaceFromHook } = useWorkspaceSlug(workspaceSlug);
+  useEffect(() => {
+    if (workspaceFromHook) {
+      setWorkspace(workspaceFromHook);
     }
-  };
+  }, [workspaceFromHook]);
 
   const fetchCategories = async () => {
+    if (!workspaceId) return; // Wait for workspace ID to be resolved
     try {
       const response = await api.getCategories(workspaceId);
       setCategories(response.data);
@@ -64,6 +68,7 @@ const WalkthroughBuilderPage = () => {
   };
 
   const fetchWalkthrough = async () => {
+    if (!workspaceId) return; // Wait for workspace ID to be resolved
     try {
       const response = await api.getWalkthrough(workspaceId, walkthroughId);
       const wt = response.data;
@@ -90,7 +95,7 @@ const WalkthroughBuilderPage = () => {
       }
     } catch (error) {
       toast.error('Failed to load walkthrough');
-      navigate(`/workspace/${workspaceId}/walkthroughs`);
+      navigate(`/workspace/${workspaceSlug}/walkthroughs`);
     } finally {
       setLoading(false);
     }
@@ -181,7 +186,7 @@ const WalkthroughBuilderPage = () => {
           toast.success('Walkthrough created!');
         }
         
-        navigate(`/workspace/${workspaceId}/walkthroughs/${savedWalkthroughId}/edit`);
+        navigate(`/workspace/${workspaceSlug}/walkthroughs/${savedWalkthroughId}/edit`);
       }
     } catch (error) {
       toast.error('Failed to save walkthrough');
@@ -313,7 +318,7 @@ const WalkthroughBuilderPage = () => {
     updateStep(index, 'content', event.target.innerHTML);
   };
 
-  if (loading) {
+  if (loading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -341,7 +346,7 @@ const WalkthroughBuilderPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs`)}
+              onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}
               data-testid="back-button"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

@@ -8,27 +8,27 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
+import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 const ArchivePage = () => {
   const { t } = useTranslation();
-  const { workspaceId } = useParams();
+  const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [workspace, setWorkspace] = useState(null);
   const [archived, setArchived] = useState([]);
+  
+  // Resolve workspace slug to ID
+  const { workspace, workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
 
   useEffect(() => {
     fetchData();
   }, [workspaceId]);
 
   const fetchData = async () => {
+    if (!workspaceId) return; // Wait for workspace ID to be resolved
     try {
-      const [archivedRes, wsRes] = await Promise.all([
-        api.getArchivedWalkthroughs(workspaceId),
-        api.getWorkspace(workspaceId),
-      ]);
+      const archivedRes = await api.getArchivedWalkthroughs(workspaceId);
       setArchived(archivedRes.data || []);
-      setWorkspace(wsRes.data);
     } catch (e) {
       toast.error(t('archive.failedToLoad'));
     } finally {
@@ -58,7 +58,7 @@ const ArchivePage = () => {
     }
   };
 
-  if (loading) {
+  if (loading || workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -78,7 +78,7 @@ const ArchivePage = () => {
             </h1>
             <p className="text-slate-600 mt-1">{t('archive.subtitle')}</p>
           </div>
-          <Button variant="outline" onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs`)}>
+          <Button variant="outline" onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}>
             {t('archive.backToGuides')}
           </Button>
         </div>

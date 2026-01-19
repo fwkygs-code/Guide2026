@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
+import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -22,9 +23,12 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const CategoriesPage = () => {
   const { t } = useTranslation();
-  const { workspaceId } = useParams();
+  const { workspaceSlug } = useParams();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Resolve workspace slug to ID
+  const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDesc, setNewCategoryDesc] = useState('');
@@ -44,6 +48,7 @@ const CategoriesPage = () => {
   }, [workspaceId]);
 
   const fetchCategories = async () => {
+    if (!workspaceId) return; // Wait for workspace ID to be resolved
     try {
       const response = await api.getCategories(workspaceId);
       setCategories(normalizeImageUrlsInObject(response.data));
@@ -189,7 +194,7 @@ const CategoriesPage = () => {
     setDialogOpen(true);
   };
 
-  if (loading) {
+  if (loading || workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">

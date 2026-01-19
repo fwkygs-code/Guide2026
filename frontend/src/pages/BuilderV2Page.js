@@ -23,6 +23,7 @@ import RichTextEditor from '../components/canvas-builder/RichTextEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useQuota } from '../hooks/useQuota';
+import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
 /**
  * Builder V2 - Clean, stable, creation-first walkthrough builder
@@ -36,9 +37,12 @@ import { useQuota } from '../hooks/useQuota';
  */
 const BuilderV2Page = () => {
   const { t } = useTranslation();
-  const { workspaceId, walkthroughId } = useParams();
+  const { workspaceSlug, walkthroughId } = useParams();
   const navigate = useNavigate();
   const isEditing = !!walkthroughId && walkthroughId !== 'new';
+  
+  // Resolve workspace slug to ID
+  const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
   const { canUploadFile } = useQuota(workspaceId);
 
   // Core state
@@ -120,7 +124,7 @@ const BuilderV2Page = () => {
           }
         } catch (error) {
           toast.error('Failed to load walkthrough');
-          navigate(`/workspace/${workspaceId}/walkthroughs`.replace(/\/+/g, '/'));
+          navigate(`/workspace/${workspaceSlug}/walkthroughs`.replace(/\/+/g, '/'));
         } finally {
           setLoading(false);
         }
@@ -152,7 +156,7 @@ const BuilderV2Page = () => {
       } else {
         const response = await api.createWalkthrough(workspaceId, walkthroughData);
         finalWalkthroughId = response.data.id;
-        navigate(`/workspace/${workspaceId}/walkthroughs/${finalWalkthroughId}/edit`.replace(/\/+/g, '/'), { replace: true });
+        navigate(`/workspace/${workspaceSlug}/walkthroughs/${finalWalkthroughId}/edit`.replace(/\/+/g, '/'), { replace: true });
         toast.success('Walkthrough created');
       }
 
@@ -228,7 +232,7 @@ const BuilderV2Page = () => {
       setSetupComplete(true);
       
       // Navigate to the new walkthrough
-      navigate(`/workspace/${workspaceId}/walkthroughs/${newWalkthroughId}/edit`.replace(/\/+/g, '/'), { replace: true });
+      navigate(`/workspace/${workspaceSlug}/walkthroughs/${newWalkthroughId}/edit`.replace(/\/+/g, '/'), { replace: true });
       toast.success('Walkthrough created! Start adding steps.');
     } catch (error) {
       console.error('Failed to create walkthrough:', error);
@@ -485,7 +489,7 @@ const BuilderV2Page = () => {
   const blocks = currentStep?.blocks || [];
   const blockItems = blocks.map(b => b.id);
 
-  if (loading) {
+  if (loading || workspaceLoading || !workspaceId) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -615,7 +619,7 @@ const BuilderV2Page = () => {
                 <div className="flex gap-3 pt-4">
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs`.replace(/\/+/g, '/'))}
+                    onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`.replace(/\/+/g, '/'))}
                   >
                     Cancel
                   </Button>
@@ -641,7 +645,7 @@ const BuilderV2Page = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs`)}
+            onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             {t('common.back')}

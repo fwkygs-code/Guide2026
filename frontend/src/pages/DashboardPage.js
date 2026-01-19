@@ -277,7 +277,7 @@ const DashboardPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all cursor-pointer"
-              onClick={() => navigate(`/workspace/${workspace.id}/walkthroughs`)}
+              onClick={() => navigate(`/workspace/${workspace.slug}/walkthroughs`)}
               data-testid={`workspace-card-${workspace.id}`}
             >
               <div className="flex items-start gap-4">
@@ -315,7 +315,7 @@ const DashboardPage = () => {
                   className="flex-col h-auto py-3"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/workspace/${workspace.id}/walkthroughs`);
+                    navigate(`/workspace/${workspace.slug}/walkthroughs`);
                   }}
                   data-testid={`workspace-walkthroughs-${workspace.id}`}
                 >
@@ -328,7 +328,7 @@ const DashboardPage = () => {
                   className="flex-col h-auto py-3"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/workspace/${workspace.id}/categories`);
+                    navigate(`/workspace/${workspace.slug}/categories`);
                   }}
                   data-testid={`workspace-categories-${workspace.id}`}
                 >
@@ -341,7 +341,7 @@ const DashboardPage = () => {
                   className="flex-col h-auto py-3"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/workspace/${workspace.id}/settings`);
+                    navigate(`/workspace/${workspace.slug}/settings`);
                   }}
                   data-testid={`workspace-settings-${workspace.id}`}
                 >
