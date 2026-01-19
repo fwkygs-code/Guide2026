@@ -4146,173 +4146,173 @@ async def upload_file(
                 raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
             workspace_id = workspace['id']
         else:
-        # Verify user has access to workspace (handles both owners and members)
-        try:
-            await check_workspace_access(workspace_id, current_user.id)
-        except HTTPException:
-            raise
-        except Exception as access_error:
-            logging.error(f"Failed to check workspace access: {access_error}", exc_info=True)
-            raise HTTPException(status_code=403, detail="Access denied to workspace")
-    
-    # Get workspace to determine owner for idempotency check
-    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
-    
-    # For idempotency check, use workspace owner's user_id if shared user, otherwise current user
-    idempotency_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
-    
-    # Check for existing file with same idempotency key (idempotency check)
-    existing_file = await db.files.find_one(
-        {"idempotency_key": idempotency_key, "user_id": idempotency_user_id},
-        {"_id": 0}
-    )
-    if existing_file:
-        if existing_file.get('status') == FileStatus.ACTIVE:
-            # Return existing file
-            return {
-                "file_id": existing_file['id'],
-                "url": existing_file['url'],
-                "size_bytes": existing_file['size_bytes'],
-                "status": "existing"
-            }
-        elif existing_file.get('status') == FileStatus.PENDING:
-            # Upload in progress, return pending status
+            # Verify user has access to workspace (handles both owners and members)
+            try:
+                await check_workspace_access(workspace_id, current_user.id)
+            except HTTPException:
+                raise
+            except Exception as access_error:
+                logging.error(f"Failed to check workspace access: {access_error}", exc_info=True)
+                raise HTTPException(status_code=403, detail="Access denied to workspace")
+        
+        # Get workspace to determine owner for idempotency check
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
+        if not workspace:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        
+        # For idempotency check, use workspace owner's user_id if shared user, otherwise current user
+        idempotency_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+        
+        # Check for existing file with same idempotency key (idempotency check)
+        existing_file = await db.files.find_one(
+            {"idempotency_key": idempotency_key, "user_id": idempotency_user_id},
+            {"_id": 0}
+        )
+        if existing_file:
+            if existing_file.get('status') == FileStatus.ACTIVE:
+                # Return existing file
+                return {
+                    "file_id": existing_file['id'],
+                    "url": existing_file['url'],
+                    "size_bytes": existing_file['size_bytes'],
+                    "status": "existing"
+                }
+            elif existing_file.get('status') == FileStatus.PENDING:
+                # Upload in progress, return pending status
+                raise HTTPException(
+                    status_code=409,
+                    detail="Upload already in progress with this idempotency key"
+                )
+        
+        # Read file content
+        file_content = await file.read()
+        file_size = len(file_content)
+        
+        # Get user's plan and check file size limit
+        plan = await get_user_plan(current_user.id)
+        if not plan:
+            raise HTTPException(status_code=400, detail="User has no plan assigned")
+        
+        # Check file size limit
+        if file_size > plan.max_file_size_bytes:
             raise HTTPException(
-                status_code=409,
-                detail="Upload already in progress with this idempotency key"
+                status_code=413,
+                detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
             )
-    
-    # Read file content
-    file_content = await file.read()
-    file_size = len(file_content)
-    
-    # Get user's plan and check file size limit
-    plan = await get_user_plan(current_user.id)
-    if not plan:
-        raise HTTPException(status_code=400, detail="User has no plan assigned")
-    
-    # Check file size limit
-    if file_size > plan.max_file_size_bytes:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
-        )
-    
-    # Workspace is already fetched above for idempotency check
-    
-    # For shared users, count storage against workspace owner's quota
-    # For owners, use their own quota
-    quota_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
-    
-    # Check quota: current storage + file size <= allowed storage
-    storage_used = await get_user_storage_usage(quota_user_id)
-    storage_allowed = await get_user_allowed_storage(quota_user_id)
-    
-    if storage_used + file_size > storage_allowed:
-        raise HTTPException(
-            status_code=402,
-            detail=f"Storage quota exceeded. Used: {storage_used} bytes, Allowed: {storage_allowed} bytes, File size: {file_size} bytes"
-        )
-    
+        
+        # Workspace is already fetched above for idempotency check
+        
+        # For shared users, count storage against workspace owner's quota
+        # For owners, use their own quota
+        quota_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+        
+        # Check quota: current storage + file size <= allowed storage
+        storage_used = await get_user_storage_usage(quota_user_id)
+        storage_allowed = await get_user_allowed_storage(quota_user_id)
+        
+        if storage_used + file_size > storage_allowed:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Storage quota exceeded. Used: {storage_used} bytes, Allowed: {storage_allowed} bytes, File size: {file_size} bytes"
+            )
+        
         # Determine resource type based on file extension
         filename = file.filename or "uploaded_file"
         file_extension = Path(filename).suffix.lower()
-    resource_type = "auto"
-    if file_extension == '.gif':
-        resource_type = "image"  # Upload GIFs as images (not video - conversion caused issues)
+        resource_type = "auto"
+        if file_extension == '.gif':
+            resource_type = "image"  # Upload GIFs as images (not video - conversion caused issues)
             logging.info(f"[upload_file] GIF detected, using resource_type=image for file {filename}")
-    elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
-        resource_type = "image"
-    elif file_extension in ['.mp4', '.webm', '.mov', '.avi', '.mkv']:
-        resource_type = "video"
-    elif file_extension in ['.pdf', '.doc', '.docx', '.txt']:
-        resource_type = "raw"
-    
-    logging.info(f"[upload_file] File type determined: extension={file_extension}, resource_type={resource_type}, size={file_size} bytes")
-    
-    # Build Cloudinary folder structure: guide2026/user_id/workspace_id/category_id/walkthrough_id
-    # Determine category_id and walkthrough_id from reference_type and reference_id
-    category_id = None
-    walkthrough_id = None
-    
-    if reference_type and reference_id:
-        if reference_type == "walkthrough_icon":
-            # reference_id is walkthrough_id
-            walkthrough_id = reference_id
-            # Get walkthrough to find category_id
-            walkthrough = await db.walkthroughs.find_one(
-                {"id": walkthrough_id, "workspace_id": workspace_id},
-                {"_id": 0, "category_ids": 1}
-            )
-            if walkthrough and walkthrough.get("category_ids"):
-                # Use first category if multiple
-                category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
-        elif reference_type == "category_icon":
-            # reference_id is category_id
-            category_id = reference_id
-        elif reference_type == "step_media":
-            # reference_id is step_id - need to find walkthrough
-            # Search for walkthrough containing this step
-            walkthrough = await db.walkthroughs.find_one(
-                {"workspace_id": workspace_id, "steps.id": reference_id},
-                {"_id": 0, "id": 1, "category_ids": 1}
-            )
-            if walkthrough:
-                walkthrough_id = walkthrough["id"]
-                if walkthrough.get("category_ids"):
+        elif file_extension in ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.svg']:
+            resource_type = "image"
+        elif file_extension in ['.mp4', '.webm', '.mov', '.avi', '.mkv']:
+            resource_type = "video"
+        elif file_extension in ['.pdf', '.doc', '.docx', '.txt']:
+            resource_type = "raw"
+        
+        logging.info(f"[upload_file] File type determined: extension={file_extension}, resource_type={resource_type}, size={file_size} bytes")
+        
+        # Build Cloudinary folder structure: guide2026/user_id/workspace_id/category_id/walkthrough_id
+        # Determine category_id and walkthrough_id from reference_type and reference_id
+        category_id = None
+        walkthrough_id = None
+        
+        if reference_type and reference_id:
+            if reference_type == "walkthrough_icon":
+                # reference_id is walkthrough_id
+                walkthrough_id = reference_id
+                # Get walkthrough to find category_id
+                walkthrough = await db.walkthroughs.find_one(
+                    {"id": walkthrough_id, "workspace_id": workspace_id},
+                    {"_id": 0, "category_ids": 1}
+                )
+                if walkthrough and walkthrough.get("category_ids"):
+                    # Use first category if multiple
                     category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
-        elif reference_type == "block_image":
-            # reference_id is block_id - need to find step, then walkthrough
-            # Search for walkthrough containing this block
-            walkthrough = await db.walkthroughs.find_one(
-                {"workspace_id": workspace_id, "steps.blocks.id": reference_id},
-                {"_id": 0, "id": 1, "category_ids": 1}
-            )
-            if walkthrough:
-                walkthrough_id = walkthrough["id"]
-                if walkthrough.get("category_ids"):
-                    category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
-        # workspace_logo, workspace_background don't have category/walkthrough
-    
-    # Build folder path: guide2026/user_id/workspace_id/category_id/walkthrough_id
-    # Use workspace owner's ID for folder structure (for shared users)
-    folder_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
-    folder_parts = ["guide2026", folder_user_id, workspace_id]
-    if category_id:
-        folder_parts.append(category_id)
-    if walkthrough_id:
-        folder_parts.append(walkthrough_id)
-    
-    cloudinary_folder = "/".join(folder_parts)
-    logging.info(f"[upload_file] Cloudinary folder: {cloudinary_folder} (user={current_user.id}, workspace={workspace_id}, category={category_id}, walkthrough={walkthrough_id})")
-    
-    # Phase 1: Create file record with status=pending (reserves quota)
-    # For shared users, file records should be associated with workspace owner for quota tracking
-    file_owner_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
-    
-    file_id = str(uuid.uuid4())
-    file_record = File(
-        id=file_id,
-        user_id=file_owner_id,  # Use workspace owner's ID for quota tracking
-        workspace_id=workspace_id,
-        status=FileStatus.PENDING,
-        size_bytes=file_size,
-        url="",  # Will be set after upload
-        public_id=None,
-        resource_type=resource_type,
-        idempotency_key=idempotency_key,
-        reference_type=reference_type,
-        reference_id=reference_id
-    )
-    
-    file_dict = file_record.model_dump()
-    file_dict['created_at'] = file_dict['created_at'].isoformat()
-    file_dict['updated_at'] = file_dict['updated_at'].isoformat()
-    
-    # Insert file record (this reserves the quota)
-    await db.files.insert_one(file_dict)
+            elif reference_type == "category_icon":
+                # reference_id is category_id
+                category_id = reference_id
+            elif reference_type == "step_media":
+                # reference_id is step_id - need to find walkthrough
+                # Search for walkthrough containing this step
+                walkthrough = await db.walkthroughs.find_one(
+                    {"workspace_id": workspace_id, "steps.id": reference_id},
+                    {"_id": 0, "id": 1, "category_ids": 1}
+                )
+                if walkthrough:
+                    walkthrough_id = walkthrough["id"]
+                    if walkthrough.get("category_ids"):
+                        category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
+            elif reference_type == "block_image":
+                # reference_id is block_id - need to find step, then walkthrough
+                # Search for walkthrough containing this block
+                walkthrough = await db.walkthroughs.find_one(
+                    {"workspace_id": workspace_id, "steps.blocks.id": reference_id},
+                    {"_id": 0, "id": 1, "category_ids": 1}
+                )
+                if walkthrough:
+                    walkthrough_id = walkthrough["id"]
+                    if walkthrough.get("category_ids"):
+                        category_id = walkthrough["category_ids"][0] if isinstance(walkthrough["category_ids"], list) else walkthrough["category_ids"]
+            # workspace_logo, workspace_background don't have category/walkthrough
+        
+        # Build folder path: guide2026/user_id/workspace_id/category_id/walkthrough_id
+        # Use workspace owner's ID for folder structure (for shared users)
+        folder_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+        folder_parts = ["guide2026", folder_user_id, workspace_id]
+        if category_id:
+            folder_parts.append(category_id)
+        if walkthrough_id:
+            folder_parts.append(walkthrough_id)
+        
+        cloudinary_folder = "/".join(folder_parts)
+        logging.info(f"[upload_file] Cloudinary folder: {cloudinary_folder} (user={current_user.id}, workspace={workspace_id}, category={category_id}, walkthrough_id={walkthrough_id})")
+        
+        # Phase 1: Create file record with status=pending (reserves quota)
+        # For shared users, file records should be associated with workspace owner for quota tracking
+        file_owner_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
+        
+        file_id = str(uuid.uuid4())
+        file_record = File(
+            id=file_id,
+            user_id=file_owner_id,  # Use workspace owner's ID for quota tracking
+            workspace_id=workspace_id,
+            status=FileStatus.PENDING,
+            size_bytes=file_size,
+            url="",  # Will be set after upload
+            public_id=None,
+            resource_type=resource_type,
+            idempotency_key=idempotency_key,
+            reference_type=reference_type,
+            reference_id=reference_id
+        )
+        
+        file_dict = file_record.model_dump()
+        file_dict['created_at'] = file_dict['created_at'].isoformat()
+        file_dict['updated_at'] = file_dict['updated_at'].isoformat()
+        
+        # Insert file record (this reserves the quota)
+        await db.files.insert_one(file_dict)
     
     # Phase 2: Upload to Cloudinary (MANDATORY - no local storage fallback)
     try:
