@@ -48,39 +48,35 @@ const SettingsPage = () => {
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
-    if (workspace) {
+    if (workspace && user) {
       // Check if user is owner directly from workspace object
-      if (user && workspace.owner_id) {
-        const userIsOwner = workspace.owner_id === user.id;
-        setIsOwner(userIsOwner);
-        
-        // Redirect non-owners away from settings
-        if (!userIsOwner) {
-          toast.error('Only workspace owners can access settings');
-          navigate(`/workspace/${workspace.slug || workspaceId}/walkthroughs`);
-          return;
-        }
-      } else if (user && workspaceId) {
-        // Fallback: if owner_id not in workspace object, fetch it
-        checkOwnership();
+      const userIsOwner = workspace.owner_id === user.id;
+      setIsOwner(userIsOwner);
+      
+      // Redirect non-owners away from settings
+      if (!userIsOwner) {
+        toast.error('Only workspace owners can access settings');
+        navigate(`/workspace/${workspace.slug || workspaceId}/walkthroughs`);
+        return;
       }
       
       // Use workspace data from hook (only if owner)
-      if (isOwner || (user && workspace.owner_id === user.id)) {
-        setName(workspace.name || '');
-        setBrandColor(workspace.brand_color || '#4f46e5');
-        setLogoUrl(workspace.logo || '');
-        setPortalBackgroundUrl(workspace.portal_background_url || '');
-        setPortalPalette(workspace.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
-        setPortalLinks(workspace.portal_links || []);
-        setPortalPhone(workspace.portal_phone || '');
-        setPortalWorkingHours(workspace.portal_working_hours || '');
-        setPortalWhatsapp(workspace.portal_whatsapp || '');
-      }
+      setName(workspace.name || '');
+      setBrandColor(workspace.brand_color || '#4f46e5');
+      setLogoUrl(workspace.logo || '');
+      setPortalBackgroundUrl(workspace.portal_background_url || '');
+      setPortalPalette(workspace.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
+      setPortalLinks(workspace.portal_links || []);
+      setPortalPhone(workspace.portal_phone || '');
+      setPortalWorkingHours(workspace.portal_working_hours || '');
+      setPortalWhatsapp(workspace.portal_whatsapp || '');
       
       setLoading(false);
+    } else if (workspace && !workspace.owner_id && user && workspaceId) {
+      // Fallback: if owner_id not in workspace object, fetch it
+      checkOwnership();
     }
-  }, [workspace, user, isOwner, navigate]);
+  }, [workspace, user, workspaceId, navigate]);
 
   // Fetch workspace members
   useEffect(() => {
