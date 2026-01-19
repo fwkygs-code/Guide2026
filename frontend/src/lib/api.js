@@ -176,5 +176,25 @@ export const api = {
       throw error;
     }
   },
+  // Check lock status without acquiring (read-only check)
+  checkWorkspaceLock: async (workspaceId) => {
+    try {
+      // Try to acquire lock with force=false - if it succeeds, release it immediately
+      // If it fails with 409, return lock info without acquiring
+      const response = await axios.post(`${API}/workspaces/${workspaceId}/lock?force=false`);
+      // Lock acquired successfully, release it immediately (we just wanted to check)
+      await axios.delete(`${API}/workspaces/${workspaceId}/lock`).catch(() => {});
+      return { success: true, locked: false };
+    } catch (error) {
+      if (error.response?.status === 409) {
+        // Extract locked_by name from error message
+        const detail = error.response?.data?.detail || '';
+        const match = detail.match(/Another user \(([^)]+)\)/);
+        const lockedBy = match ? match[1] : 'Another user';
+        return { success: false, locked: true, locked_by: lockedBy, error: detail };
+      }
+      throw error;
+    }
+  },
   unlockWorkspace: (workspaceId) => axios.delete(`${API}/workspaces/${workspaceId}/lock`)
 };

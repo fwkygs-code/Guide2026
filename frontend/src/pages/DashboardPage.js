@@ -297,15 +297,22 @@ const DashboardPage = () => {
               transition={{ delay: index * 0.1 }}
               className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all cursor-pointer"
               onClick={async () => {
-                // Check lock before navigating
-                const lockResult = await api.lockWorkspace(workspace.id, false);
-                if (lockResult.locked) {
-                  // Workspace is locked, show modal
-                  setLockedBy(lockResult.locked_by);
-                  setPendingWorkspace(workspace);
-                  setLockModalOpen(true);
-                } else {
-                  // Lock acquired successfully, navigate
+                // Check if workspace is locked (read-only check, don't acquire lock)
+                // Lock will be acquired by the workspace page itself when user actually enters
+                try {
+                  const lockResult = await api.checkWorkspaceLock(workspace.id);
+                  if (lockResult.locked) {
+                    // Workspace is locked, show modal
+                    setLockedBy(lockResult.locked_by);
+                    setPendingWorkspace(workspace);
+                    setLockModalOpen(true);
+                  } else {
+                    // Not locked, navigate - workspace page will acquire lock
+                    navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                  }
+                } catch (error) {
+                  // If lock check fails, still navigate - workspace page will handle it
+                  console.error('Lock check failed:', error);
                   navigate(`/workspace/${workspace.slug}/walkthroughs`);
                 }
               }}
@@ -372,13 +379,20 @@ const DashboardPage = () => {
                   className="flex-col h-auto py-3"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    // Check lock before navigating
-                    const lockResult = await api.lockWorkspace(workspace.id, false);
-                    if (lockResult.locked) {
-                      setLockedBy(lockResult.locked_by);
-                      setPendingWorkspace(workspace);
-                      setLockModalOpen(true);
-                    } else {
+                    // Check if workspace is locked (read-only check, don't acquire lock)
+                    try {
+                      const lockResult = await api.checkWorkspaceLock(workspace.id);
+                      if (lockResult.locked) {
+                        setLockedBy(lockResult.locked_by);
+                        setPendingWorkspace(workspace);
+                        setLockModalOpen(true);
+                      } else {
+                        // Not locked, navigate - workspace page will acquire lock
+                        navigate(`/workspace/${workspace.slug}/categories`);
+                      }
+                    } catch (error) {
+                      // If lock check fails, still navigate - workspace page will handle it
+                      console.error('Lock check failed:', error);
                       navigate(`/workspace/${workspace.slug}/categories`);
                     }
                   }}
@@ -424,8 +438,10 @@ const DashboardPage = () => {
           }}
           onEnterAnyway={async () => {
             if (!pendingWorkspace) return;
+            // Force takeover - this will acquire the lock
+            // The workspace page will also try to acquire lock on mount, but since we're forcing,
+            // it should succeed
             try {
-              // Force takeover
               const lockResult = await api.lockWorkspace(pendingWorkspace.id, true);
               if (lockResult.success) {
                 setLockModalOpen(false);
@@ -437,8 +453,7 @@ const DashboardPage = () => {
               }
             } catch (error) {
               console.error('Force takeover error:', error);
-              // Even if there's an error, try to navigate - lock may have been released
-              // The workspace page will handle lock acquisition on mount
+              // Even if there's an error, try to navigate - workspace page will handle lock acquisition
               toast.error('Error during force takeover. Attempting to enter workspace...');
               setLockModalOpen(false);
               navigate(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
