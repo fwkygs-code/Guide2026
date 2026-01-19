@@ -2088,6 +2088,19 @@ async def accept_invitation(
             logging.error(f"Failed to create notification for invitation acceptance: {notif_error}", exc_info=True)
             # Don't fail the acceptance if notification creation fails
     
+    # Notify invitee that they accepted the invitation
+    try:
+        await create_notification(
+            user_id=current_user.id,
+            notification_type=NotificationType.WORKSPACE_CHANGE,
+            title="Invitation Accepted",
+            message=f"You have accepted the invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
+            metadata={"workspace_id": workspace_id, "action": "invitation_accepted"}
+        )
+    except Exception as notif_error:
+        logging.error(f"Failed to create acceptance confirmation notification: {notif_error}", exc_info=True)
+        # Don't fail the acceptance if notification creation fails
+    
     return {
         "success": True,
         "message": "Invitation accepted successfully",
@@ -2211,6 +2224,19 @@ async def decline_invitation(
         except Exception as notif_error:
             logging.error(f"Failed to create notification for invitation decline: {notif_error}", exc_info=True)
             # Don't fail the decline if notification creation fails
+    
+    # Notify invitee that they declined the invitation
+    try:
+        await create_notification(
+            user_id=current_user.id,
+            notification_type=NotificationType.WORKSPACE_CHANGE,
+            title="Invitation Declined",
+            message=f"You have declined the invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
+            metadata={"workspace_id": workspace_id, "action": "invitation_declined"}
+        )
+    except Exception as notif_error:
+        logging.error(f"Failed to create decline confirmation notification: {notif_error}", exc_info=True)
+        # Don't fail the decline if notification creation fails
     
     return {
         "success": True,
