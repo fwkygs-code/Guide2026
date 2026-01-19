@@ -1,6 +1,9 @@
 """
 Script to set a user as admin.
-Usage: python set_admin.py <email>
+Usage: 
+  python set_admin.py <email>
+  python set_admin.py <email> --mongo-uri <connection_string>
+  MONGO_URI=<connection_string> python set_admin.py <email>
 """
 import asyncio
 import sys
@@ -12,10 +15,34 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_uri = os.environ.get("MONGO_URI") or os.environ.get("MONGO_URL")
+# MongoDB connection - check multiple sources
+mongo_uri = None
+
+# 1. Check command-line argument
+if '--mongo-uri' in sys.argv:
+    idx = sys.argv.index('--mongo-uri')
+    if idx + 1 < len(sys.argv):
+        mongo_uri = sys.argv[idx + 1]
+        # Remove from sys.argv so it doesn't interfere with email parsing
+        sys.argv.pop(idx)
+        sys.argv.pop(idx)
+
+# 2. Check environment variable
 if not mongo_uri:
-    print("ERROR: Missing MongoDB connection string. Set MONGO_URI.")
+    mongo_uri = os.environ.get("MONGO_URI") or os.environ.get("MONGO_URL")
+
+# 3. Check .env file (already loaded by load_dotenv)
+if not mongo_uri:
+    mongo_uri = os.environ.get("MONGO_URI") or os.environ.get("MONGO_URL")
+
+if not mongo_uri:
+    print("ERROR: Missing MongoDB connection string.")
+    print("\nPlease provide MONGO_URI in one of these ways:")
+    print("  1. Set environment variable: set MONGO_URI=<your_connection_string>")
+    print("  2. Create backend/.env file with: MONGO_URI=<your_connection_string>")
+    print("  3. Pass as argument: python set_admin.py <email> --mongo-uri <connection_string>")
+    print("\nExample:")
+    print('  python set_admin.py k.ygs@icloud.com --mongo-uri "mongodb+srv://user:pass@cluster.mongodb.net/dbname"')
     sys.exit(1)
 
 client = AsyncIOMotorClient(mongo_uri)

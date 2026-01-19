@@ -185,7 +185,7 @@ const AdminDashboardPage = () => {
     <DashboardLayout>
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
           <p className="text-slate-600 dark:text-slate-400">Manage users, subscriptions, and system settings</p>
         </div>
 
@@ -202,10 +202,10 @@ const AdminDashboardPage = () => {
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
-            <Card>
+            <Card className="border-slate-200 dark:border-slate-800">
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>View and manage all users</CardDescription>
+                <CardTitle className="text-slate-900 dark:text-slate-100">User Management</CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">View and manage all users</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4 mb-6">
@@ -229,43 +229,52 @@ const AdminDashboardPage = () => {
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-2">Email</th>
-                            <th className="text-left p-2">Name</th>
-                            <th className="text-left p-2">Role</th>
-                            <th className="text-left p-2">Plan</th>
-                            <th className="text-left p-2">Subscription</th>
-                            <th className="text-left p-2">Storage</th>
-                            <th className="text-left p-2">Created</th>
-                            <th className="text-left p-2">Actions</th>
+                          <tr className="border-b border-slate-200 dark:border-slate-800">
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Email</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Name</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Role</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Plan</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Subscription</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Storage</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Created</th>
+                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {users.map((u) => (
-                            <tr key={u.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-900">
-                              <td className="p-2">{u.email}</td>
-                              <td className="p-2">{u.name}</td>
+                            <tr key={u.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                              <td className="p-2 text-slate-900 dark:text-slate-100">{u.email}</td>
+                              <td className="p-2 text-slate-900 dark:text-slate-100">{u.name}</td>
                               <td className="p-2">
-                                <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
+                                <Badge 
+                                  variant={u.role === 'admin' ? 'outline' : 'secondary'}
+                                  className={u.role === 'admin' ? 'border-indigo-500 text-indigo-700 dark:text-indigo-400' : ''}
+                                >
                                   {u.role || 'owner'}
                                 </Badge>
                               </td>
                               <td className="p-2">
-                                <Badge variant={u.plan?.name === 'pro' ? 'default' : 'outline'}>
+                                <Badge 
+                                  variant={u.plan?.name === 'pro' ? 'outline' : 'outline'}
+                                  className={u.plan?.name === 'pro' ? 'border-purple-500 text-purple-700 dark:text-purple-400' : 'border-slate-300 text-slate-600 dark:text-slate-400'}
+                                >
                                   {u.plan?.display_name || 'Free'}
                                 </Badge>
                               </td>
                               <td className="p-2">
                                 {u.subscription ? (
-                                  <Badge variant={u.subscription.status === 'active' ? 'default' : 'secondary'}>
+                                  <Badge 
+                                    variant={u.subscription.status === 'active' ? 'outline' : 'secondary'}
+                                    className={u.subscription.status === 'active' ? 'border-green-500 text-green-700 dark:text-green-400' : ''}
+                                  >
                                     {u.subscription.status}
                                   </Badge>
                                 ) : (
                                   <span className="text-slate-400">None</span>
                                 )}
                               </td>
-                              <td className="p-2">{formatBytes(u.storage_used || 0)}</td>
-                              <td className="p-2">{formatDate(u.created_at)}</td>
+                              <td className="p-2 text-slate-700 dark:text-slate-300">{formatBytes(u.storage_used || 0)}</td>
+                              <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(u.created_at)}</td>
                               <td className="p-2">
                                 <div className="flex gap-2">
                                   <Button
@@ -366,128 +375,128 @@ const AdminDashboardPage = () => {
               <div className="text-center py-8">Loading statistics...</div>
             ) : stats ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card>
+                <Card className="border-slate-200 dark:border-slate-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                      <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                       Users
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Total:</span>
-                        <strong>{stats.users.total}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.users.total}</strong>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Verified:</span>
-                        <strong>{stats.users.verified}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.users.verified}</strong>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Admins:</span>
-                        <strong>{stats.users.admins}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.users.admins}</strong>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-slate-200 dark:border-slate-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Crown className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                      <Crown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                       Plans
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       {Object.entries(stats.plans || {}).map(([name, data]) => (
-                        <div key={name} className="flex justify-between">
+                        <div key={name} className="flex justify-between text-slate-700 dark:text-slate-300">
                           <span>{data.display_name}:</span>
-                          <strong>{data.count}</strong>
+                          <strong className="text-slate-900 dark:text-slate-100">{data.count}</strong>
                         </div>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-slate-200 dark:border-slate-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                      <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       Subscriptions
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Active:</span>
-                        <strong>{stats.subscriptions.active}</strong>
+                        <strong className="text-green-600 dark:text-green-400">{stats.subscriptions.active}</strong>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Cancelled:</span>
-                        <strong>{stats.subscriptions.cancelled}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.subscriptions.cancelled}</strong>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Pending:</span>
-                        <strong>{stats.subscriptions.pending}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.subscriptions.pending}</strong>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-slate-200 dark:border-slate-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FolderOpen className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                      <FolderOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                       Workspaces
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{stats.workspaces.total}</div>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.workspaces.total}</div>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-slate-200 dark:border-slate-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                      <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                       Walkthroughs
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Total:</span>
-                        <strong>{stats.walkthroughs.total}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.walkthroughs.total}</strong>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Published:</span>
-                        <strong>{stats.walkthroughs.published}</strong>
+                        <strong className="text-green-600 dark:text-green-400">{stats.walkthroughs.published}</strong>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Draft:</span>
-                        <strong>{stats.walkthroughs.draft}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.walkthroughs.draft}</strong>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-slate-200 dark:border-slate-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <HardDrive className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                      <HardDrive className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Storage
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Total:</span>
-                        <strong>{formatBytes(stats.storage.total_bytes)}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{formatBytes(stats.storage.total_bytes)}</strong>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
                         <span>Files:</span>
-                        <strong>{stats.files.active}</strong>
+                        <strong className="text-slate-900 dark:text-slate-100">{stats.files.active}</strong>
                       </div>
                     </div>
                   </CardContent>
