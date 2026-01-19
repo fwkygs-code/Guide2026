@@ -223,7 +223,7 @@ const AdminDashboardPage = () => {
                 </div>
 
                 {usersLoading ? (
-                  <div className="text-center py-8">Loading users...</div>
+                  <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading users...</div>
                 ) : (
                   <>
                     <div className="overflow-x-auto">
@@ -372,7 +372,7 @@ const AdminDashboardPage = () => {
 
           <TabsContent value="stats" className="space-y-4">
             {statsLoading ? (
-              <div className="text-center py-8">Loading statistics...</div>
+              <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading statistics...</div>
             ) : stats ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card className="border-slate-200 dark:border-slate-800">
@@ -546,7 +546,7 @@ const AdminDashboardPage = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveUser} disabled={saving}>
+              <Button variant="default" onClick={handleSaveUser} disabled={saving}>
                 {saving ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
@@ -588,7 +588,7 @@ const AdminDashboardPage = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSubscriptionDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateSubscription} disabled={creatingSubscription}>
+              <Button variant="default" onClick={handleCreateSubscription} disabled={creatingSubscription}>
                 {creatingSubscription ? 'Creating...' : 'Create Subscription'}
               </Button>
             </DialogFooter>
