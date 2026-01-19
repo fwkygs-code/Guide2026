@@ -31,6 +31,7 @@ const WalkthroughsPage = () => {
   const [editingWalkthrough, setEditingWalkthrough] = useState(null);
   const [editSettings, setEditSettings] = useState({
     title: '',
+    slug: '',
     description: '',
     icon_url: '',
     category_ids: []
@@ -159,15 +160,17 @@ const WalkthroughsPage = () => {
     try {
       await api.updateWalkthrough(workspaceId, editingWalkthrough.id, {
         title: editSettings.title.trim(),
+        slug: editSettings.slug?.trim() || null,
         description: editSettings.description || '',
         category_ids: editSettings.category_ids || [],
         icon_url: editSettings.icon_url || null
       });
       
-      // Update local state
+      // Update local state (refresh from server to get updated slug)
+      const updatedResponse = await api.getWalkthrough(workspaceId, editingWalkthrough.id);
       setWalkthroughs(walkthroughs.map(w => 
         w.id === editingWalkthrough.id 
-          ? { ...w, ...editSettings }
+          ? { ...w, ...updatedResponse.data }
           : w
       ));
       
@@ -471,6 +474,39 @@ const WalkthroughsPage = () => {
                   />
                 </div>
 
+                {/* URL Slug */}
+                <div>
+                  <Label htmlFor="edit-slug" className="text-sm font-medium text-slate-900 mb-2 block">
+                    URL Name (Optional)
+                  </Label>
+                  <div className="space-y-2">
+                    <Input
+                      id="edit-slug"
+                      value={editSettings.slug}
+                      onChange={(e) => {
+                        // Auto-format: lowercase, replace spaces/underscores with hyphens
+                        const value = e.target.value.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '');
+                        setEditSettings(prev => ({ ...prev, slug: value }));
+                      }}
+                      placeholder="custom-url-name"
+                      className="w-full"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Custom name for the walkthrough URL. Leave empty to use the walkthrough ID.
+                      {editSettings.slug && workspace?.slug && (
+                        <span className="block mt-1 font-mono text-primary break-all">
+                          URL: {window.location.origin}/portal/{workspace.slug}/{editSettings.slug}
+                        </span>
+                      )}
+                      {!editSettings.slug && editingWalkthrough && (
+                        <span className="block mt-1 font-mono text-slate-400 text-xs">
+                          Current URL: {window.location.origin}/portal/{workspace?.slug}/{editingWalkthrough.id}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Description */}
                 <div>
                   <Label htmlFor="edit-description" className="text-sm font-medium text-slate-900 mb-2 block">
@@ -602,7 +638,9 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
     }
     return 'https://guide2026-backend.onrender.com';
   };
-  const walkthroughUrl = `${getBackendUrl()}/portal/${workspaceSlug}/${walkthrough.id}`;
+  // Use slug if available, otherwise fall back to ID
+  const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
+  const walkthroughUrl = `${getBackendUrl()}/portal/${workspaceSlug}/${walkthroughIdentifier}`;
   const embedUrl = `${window.location.origin}/embed/portal/${workspaceSlug}/${walkthrough.id}`;
   const iframeCode = `<iframe src="${embedUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
 

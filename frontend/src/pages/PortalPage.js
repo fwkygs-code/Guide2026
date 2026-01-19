@@ -470,7 +470,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
                         >
-                          <Link to={`/portal/${slug}/${walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
+                          <Link to={`/portal/${slug}/${walkthrough.slug || walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
                             <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-slate-200/50 hover:border-primary/30 group">
                               <div className="flex items-start gap-4 mb-4">
                                 {walkthrough.icon_url ? (

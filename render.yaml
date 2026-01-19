@@ -26,7 +26,12 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      # Email Configuration (SMTP - Resend/SendGrid compatible)
+      # Email Configuration (Resend HTTP API - SMTP is disabled)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: "auth@interguide.app"
+      # Note: SMTP configuration below is not used (Resend HTTP API is used instead)
       - key: SMTP_HOST
         value: "smtp.resend.com"
       - key: SMTP_PORT
@@ -36,7 +41,7 @@ services:
       - key: SMTP_PASSWORD
         sync: false
       - key: SMTP_FROM_EMAIL
-        value: "onboarding@resend.dev"
+        value: "auth@interguide.app"
       - key: SMTP_FROM_NAME
         value: "Guide2026"
       - key: FRONTEND_URL

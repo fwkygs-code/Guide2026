@@ -40,22 +40,12 @@ For production, you should verify your domain:
 ### Required Variables:
 
 ```
-SMTP_HOST = smtp.resend.com
-SMTP_PORT = 587
-SMTP_USER = resend
-SMTP_PASSWORD = <YOUR_RESEND_API_KEY>
-SMTP_FROM_EMAIL = onboarding@resend.dev
-SMTP_FROM_NAME = Guide2026
+RESEND_API_KEY = <YOUR_RESEND_API_KEY>
+RESEND_FROM_EMAIL = auth@interguide.app
 FRONTEND_URL = https://guide2026-frontend.onrender.com
 ```
 
-### If You Verified Your Domain:
-
-If you verified your domain in Resend, use your domain email:
-
-```
-SMTP_FROM_EMAIL = noreply@yourdomain.com
-```
+**Note:** The application uses Resend HTTP API (not SMTP). Make sure to verify the `interguide.app` domain in Resend before using `auth@interguide.app`.
 
 ## Step 5: Save and Redeploy
 
@@ -86,7 +76,7 @@ SMTP_FROM_EMAIL = noreply@yourdomain.com
 
 ### Emails Going to Spam?
 
-- Use a verified domain (not `onboarding@resend.dev`)
+- Use a verified domain (use `auth@interguide.app` after verifying interguide.app domain in Resend)
 - Add SPF/DKIM records from Resend to your domain
 - Wait 24-48 hours for domain reputation to build
 

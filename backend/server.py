@@ -105,9 +105,8 @@ if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
         "Please set the following environment variables:\n"
         "  - RESEND_API_KEY (get from https://resend.com/api-keys)\n"
         "  - RESEND_FROM_EMAIL (email address to send from)\n\n"
-        "For testing: Use onboarding@resend.dev (works immediately, no verification)\n"
         "For production: Verify your domain in Resend and use yourdomain.com email\n"
-        "  Example: noreply@yourdomain.com (must verify domain first)\n\n"
+        "  Example: auth@interguide.app (must verify domain first)\n\n"
         "=" * 80
     )
     logging.error(error_msg)
@@ -168,6 +167,20 @@ class FileStatus(str, Enum):
     FAILED = "failed"
     DELETING = "deleting"
 
+class InvitationStatus(str, Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+
+class NotificationType(str, Enum):
+    INVITE = "invite"
+    INVITE_ACCEPTED = "invite_accepted"
+    INVITE_DECLINED = "invite_declined"
+    WORKSPACE_CHANGE = "workspace_change"
+    FORCED_DISCONNECT = "forced_disconnect"
+    MEMBER_REMOVED = "member_removed"
+    WORKSPACE_DELETED = "workspace_deleted"
+
 # Models
 class UserCreate(BaseModel):
     email: EmailStr
@@ -224,6 +237,10 @@ class WorkspaceMember(BaseModel):
     workspace_id: str
     user_id: str
     role: UserRole
+    status: InvitationStatus = InvitationStatus.ACCEPTED  # For invitations: pending, accepted, declined
+    invited_by_user_id: Optional[str] = None  # User who sent the invitation
+    invited_at: Optional[datetime] = None  # When invitation was sent
+    responded_at: Optional[datetime] = None  # When invitation was accepted/declined
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CategoryCreate(BaseModel):
@@ -279,12 +296,14 @@ class WalkthroughCreate(BaseModel):
     status: Optional[WalkthroughStatus] = None
     navigation_type: NavigationType = NavigationType.NEXT_PREV
     navigation_placement: NavigationPlacement = NavigationPlacement.BOTTOM
+    slug: Optional[str] = None  # Custom URL slug for walkthrough
 
 class Walkthrough(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     workspace_id: str
     title: str
+    slug: Optional[str] = None  # Custom URL slug for walkthrough (optional, falls back to ID)
     description: Optional[str] = None
     icon_url: Optional[str] = None
     category_ids: List[str] = []
@@ -378,7 +397,47 @@ class File(BaseModel):
     size_bytes: int  # Authoritative file size
     url: str  # Cloudinary URL or local path
     public_id: Optional[str] = None  # Cloudinary public_id for deletion
-    resource_type: str  # "image", "video", "raw"
+    resource_type: str
+
+class Notification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Recipient user ID
+    type: NotificationType
+    title: str
+    message: str
+    metadata: Optional[Dict[str, Any]] = None  # JSON metadata (workspace_id, walkthrough_id, etc.)
+    is_read: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class WorkspaceLock(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    workspace_id: str
+    locked_by_user_id: str
+    locked_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expires_at: datetime  # TTL safety - auto-expires if user disconnects/crashes
+
+class WorkspaceAuditAction(str, Enum):
+    """Audit action types for workspace collaboration."""
+    INVITE_SENT = "invite_sent"
+    INVITE_ACCEPTED = "invite_accepted"
+    INVITE_DECLINED = "invite_declined"
+    MEMBER_REMOVED = "member_removed"
+    LOCK_ACQUIRED = "lock_acquired"
+    LOCK_FORCE_RELEASED = "lock_force_released"
+    WORKSPACE_DELETED = "workspace_deleted"
+
+class WorkspaceAuditLog(BaseModel):
+    """Lightweight audit log for workspace collaboration actions (append-only)."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    action_type: WorkspaceAuditAction
+    workspace_id: str
+    actor_user_id: str  # User who performed the action
+    target_user_id: Optional[str] = None  # User affected by the action (if applicable)
+    metadata: Optional[Dict[str, Any]] = None  # Additional context (JSON)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  # "image", "video", "raw"
     idempotency_key: str  # Unique key for deduplication
     reference_type: Optional[str] = None  # "walkthrough_icon", "step_media", "block_image", "workspace_logo", etc.
     reference_id: Optional[str] = None  # walkthrough_id, step_id, block_id, etc.
@@ -517,6 +576,92 @@ Guide2026
         logging.error(f"[EMAIL][FAILED] email={email} error={str(e)}", exc_info=True)
         return False
 
+def send_invitation_email(email: str, workspace_name: str, inviter_name: str) -> bool:
+    """
+    Send workspace invitation email via Resend HTTP API.
+    Returns True on success, False on failure.
+    Email contains notification only - no magic auth links.
+    """
+    if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
+        logging.warning(f"[EMAIL][FAILED] email={email} error=Resend not configured")
+        return False
+    
+    try:
+        # Plain text version
+        text_content = f"""Hi,
+
+{inviter_name} has invited you to collaborate on the workspace "{workspace_name}" in InterGuide.
+
+Please log in to your InterGuide account to accept or decline the invitation.
+
+If you don't have an account, you can sign up at {FRONTEND_URL}/signup.
+
+Best regards,
+InterGuide
+"""
+        
+        # HTML version
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .button {{ display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Workspace Invitation</h2>
+        <p>Hi,</p>
+        <p><strong>{inviter_name}</strong> has invited you to collaborate on the workspace <strong>"{workspace_name}"</strong> in InterGuide.</p>
+        <p>Please log in to your InterGuide account to accept or decline the invitation.</p>
+        <a href="{FRONTEND_URL}/login" class="button">Log In to InterGuide</a>
+        <p>If you don't have an account, you can <a href="{FRONTEND_URL}/signup">sign up here</a>.</p>
+        <div class="footer">
+            <p>Best regards,<br>InterGuide</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        headers = {
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "from": RESEND_FROM_EMAIL,
+            "to": [email],
+            "subject": f"Invitation to collaborate on {workspace_name}",
+            "text": text_content,
+            "html": html_content
+        }
+        
+        logging.info(f"[EMAIL][REQUEST] Invitation email to {email} for workspace {workspace_name}")
+        response = requests.post(RESEND_API_URL, json=payload, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            resend_id = response_data.get('id', 'unknown')
+            logging.info(f"[EMAIL][SUCCESS] Invitation email sent to {email} resend_id={resend_id}")
+            return True
+        else:
+            try:
+                error_data = response.json()
+                error_detail = error_data.get('message', str(error_data))
+            except:
+                error_detail = response.text or f"HTTP {response.status_code}"
+            logging.error(f"[EMAIL][FAILED] Invitation email to {email} status={response.status_code} error={error_detail}")
+            return False
+            
+    except Exception as e:
+        logging.error(f"[EMAIL][FAILED] Invitation email to {email} error={str(e)}", exc_info=True)
+        return False
+
 async def send_verification_email_background(user_id: str, email: str, name: str, token: str):
     """
     Background task to send verification email via Resend HTTP API.
@@ -640,14 +785,398 @@ async def get_current_user_optional(credentials: Optional[HTTPAuthorizationCrede
         return None
 
 async def get_workspace_member(workspace_id: str, user_id: str):
+    """Get workspace member record if user is a member."""
     member = await db.workspace_members.find_one(
         {"workspace_id": workspace_id, "user_id": user_id},
         {"_id": 0}
     )
     return WorkspaceMember(**member) if member else None
 
+async def is_workspace_owner(workspace_id: str, user_id: str) -> bool:
+    """Check if user is the owner of the workspace."""
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
+    if not workspace:
+        return False
+    return workspace.get("owner_id") == user_id
+
+async def check_workspace_access(workspace_id: str, user_id: str, require_owner: bool = False) -> WorkspaceMember:
+    """
+    Check if user has access to workspace.
+    Returns WorkspaceMember if access granted, raises HTTPException otherwise.
+    
+    For owners: They may not have a WorkspaceMember record (legacy), so check owner_id first.
+    For members: Must have ACCEPTED status in WorkspaceMember.
+    """
+    # Check if user is owner (owners may not have WorkspaceMember record)
+    if await is_workspace_owner(workspace_id, user_id):
+        if require_owner:
+            # Return a virtual WorkspaceMember for owner
+            return WorkspaceMember(
+                id="owner",
+                workspace_id=workspace_id,
+                user_id=user_id,
+                role=UserRole.OWNER,
+                status=InvitationStatus.ACCEPTED
+            )
+        else:
+            # Owner has access, return virtual member
+            return WorkspaceMember(
+                id="owner",
+                workspace_id=workspace_id,
+                user_id=user_id,
+                role=UserRole.OWNER,
+                status=InvitationStatus.ACCEPTED
+            )
+    
+    # Check if user is an accepted member
+    member = await get_workspace_member(workspace_id, user_id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied: You are not a member of this workspace")
+    
+    # Only ACCEPTED members have access (pending/declined cannot access)
+    if member.status != InvitationStatus.ACCEPTED:
+        raise HTTPException(status_code=403, detail="Access denied: Your invitation is pending or declined")
+    
+    if require_owner:
+        raise HTTPException(status_code=403, detail="Access denied: Only workspace owner can perform this action")
+    
+    return member
+
+async def get_workspace_members(workspace_id: str) -> List[WorkspaceMember]:
+    """Get all accepted members of a workspace."""
+    members = await db.workspace_members.find(
+        {"workspace_id": workspace_id, "status": InvitationStatus.ACCEPTED},
+        {"_id": 0}
+    ).to_list(1000)
+    return [WorkspaceMember(**m) for m in members]
+
+async def create_notification(
+    user_id: str,
+    notification_type: NotificationType,
+    title: str,
+    message: str,
+    metadata: Optional[Dict[str, Any]] = None
+) -> Notification:
+    """Create and persist a notification."""
+    notification = Notification(
+        user_id=user_id,
+        type=notification_type,
+        title=title,
+        message=message,
+        metadata=metadata
+    )
+    notification_dict = notification.model_dump()
+    notification_dict['created_at'] = notification_dict['created_at'].isoformat()
+    await db.notifications.insert_one(notification_dict)
+    return notification
+
+async def get_workspace_lock(workspace_id: str) -> Optional[WorkspaceLock]:
+    """Get current workspace lock if exists and not expired."""
+    lock = await db.workspace_locks.find_one({"workspace_id": workspace_id}, {"_id": 0})
+    if not lock:
+        return None
+    
+    # Check if lock is expired
+    expires_at = datetime.fromisoformat(lock['expires_at'].replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) > expires_at:
+        # Lock expired, remove it
+        await db.workspace_locks.delete_one({"workspace_id": workspace_id})
+        return None
+    
+    return WorkspaceLock(**lock)
+
+async def acquire_workspace_lock(workspace_id: str, user_id: str, force: bool = False) -> WorkspaceLock:
+    """
+    Acquire workspace lock. Returns lock if successful, raises HTTPException if locked by another user.
+    If force=True, releases existing lock and acquires new one.
+    """
+    existing_lock = await get_workspace_lock(workspace_id)
+    
+    if existing_lock:
+        if existing_lock.locked_by_user_id == user_id:
+            # Same user, extend lock
+            expires_at = datetime.now(timezone.utc) + timedelta(hours=2)
+            await db.workspace_locks.update_one(
+                {"workspace_id": workspace_id},
+                {"$set": {"expires_at": expires_at.isoformat()}}
+            )
+            existing_lock.expires_at = expires_at
+            return existing_lock
+        elif force:
+            # Force release existing lock and notify previous user
+            previous_user_id = existing_lock.locked_by_user_id
+            await db.workspace_locks.delete_one({"workspace_id": workspace_id})
+            
+            # Notify previous user they were disconnected
+            await create_notification(
+                user_id=previous_user_id,
+                notification_type=NotificationType.FORCED_DISCONNECT,
+                title="Workspace Access Interrupted",
+                message=f"Another user has entered the workspace. You were disconnected to prevent conflicts.",
+                metadata={"workspace_id": workspace_id}
+            )
+        else:
+            # Locked by another user
+            workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+            workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
+            locked_by_user = await db.users.find_one({"id": existing_lock.locked_by_user_id}, {"_id": 0, "name": 1})
+            locked_by_name = locked_by_user.get("name", "Another user") if locked_by_user else "Another user"
+            
+            raise HTTPException(
+                status_code=409,
+                detail=f"Another user ({locked_by_name}) is currently connected to this workspace. Entering now will force them out and may cause data loss."
+            )
+    
+    # Create new lock
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=2)  # 2 hour TTL
+    lock = WorkspaceLock(
+        workspace_id=workspace_id,
+        locked_by_user_id=user_id,
+        expires_at=expires_at
+    )
+    lock_dict = lock.model_dump()
+    lock_dict['locked_at'] = lock_dict['locked_at'].isoformat()
+    lock_dict['expires_at'] = lock_dict['expires_at'].isoformat()
+    await db.workspace_locks.insert_one(lock_dict)
+    
+    # HARDENING LAYER C: Audit log
+    await log_workspace_audit(
+        action_type=WorkspaceAuditAction.LOCK_ACQUIRED,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        metadata={"expires_at": expires_at.isoformat(), "force": force}
+    )
+    
+    return lock
+
+async def release_workspace_lock(workspace_id: str, user_id: str, force: bool = False, reason: Optional[str] = None):
+    """
+    Release workspace lock if held by user.
+    
+    Args:
+        workspace_id: Workspace ID
+        user_id: User ID releasing the lock
+        force: If True, release even if user_id doesn't match (for admin/removal scenarios)
+        reason: Optional reason for logging/audit
+    """
+    lock = await get_workspace_lock(workspace_id)
+    if lock and (lock.locked_by_user_id == user_id or force):
+        await db.workspace_locks.delete_one({"workspace_id": workspace_id})
+        
+        # Log audit entry if force-released
+        if force and lock.locked_by_user_id != user_id:
+            await log_workspace_audit(
+                action_type=WorkspaceAuditAction.LOCK_FORCE_RELEASED,
+                workspace_id=workspace_id,
+                actor_user_id=user_id,
+                target_user_id=lock.locked_by_user_id,
+                metadata={"reason": reason or "Member removed or access revoked"}
+            )
+        return True
+    return False
+
+async def log_workspace_audit(
+    action_type: WorkspaceAuditAction,
+    workspace_id: str,
+    actor_user_id: str,
+    target_user_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None
+):
+    """
+    Append-only audit log entry for workspace collaboration actions.
+    This is for dispute resolution and debugging only - no UI required.
+    """
+    audit_entry = WorkspaceAuditLog(
+        action_type=action_type,
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
+        target_user_id=target_user_id,
+        metadata=metadata
+    )
+    audit_dict = audit_entry.model_dump()
+    audit_dict['created_at'] = audit_dict['created_at'].isoformat()
+    await db.workspace_audit_logs.insert_one(audit_dict)
+
+async def check_membership_lock_invariant(workspace_id: str):
+    """
+    HARDENING LAYER A: Membership-Lock Invariant Check
+    
+    Log-only invariant check: If a user is not a member of a workspace but still holds a lock,
+    log a warning. This helps detect orphaned locks without crashing the server.
+    
+    This is called periodically or after membership changes to ensure consistency.
+    """
+    lock = await get_workspace_lock(workspace_id)
+    if not lock:
+        return
+    
+    # Check if lock holder is still a member (owner or accepted member)
+    is_owner = await is_workspace_owner(workspace_id, lock.locked_by_user_id)
+    if is_owner:
+        return  # Owner always has access
+    
+    member = await get_workspace_member(workspace_id, lock.locked_by_user_id)
+    if not member or member.status != InvitationStatus.ACCEPTED:
+        # Orphaned lock detected - user is not a member but holds a lock
+        logging.warning(
+            f"[STATE VALIDATION] orphaned workspace lock detected: "
+            f"workspace_id={workspace_id}, locked_by_user_id={lock.locked_by_user_id}, "
+            f"member_status={member.status if member else 'not_found'}"
+        )
+        # Auto-cleanup: Release orphaned lock
+        await db.workspace_locks.delete_one({"workspace_id": workspace_id})
+        logging.info(f"[STATE VALIDATION] Auto-released orphaned lock for workspace {workspace_id}")
+
+async def batch_notification_key(user_id: str, notification_type: NotificationType, workspace_id: str, changed_by_id: str) -> str:
+    """
+    Generate a batching key for notifications.
+    Returns a key that groups similar notifications together for batching.
+    """
+    if notification_type == NotificationType.WORKSPACE_CHANGE:
+        # Batch workspace changes by recipient, workspace, and actor within time window
+        return f"{user_id}:{notification_type}:{workspace_id}:{changed_by_id}"
+    # Don't batch other notification types
+    return None
+
+async def create_batched_notification(
+    user_id: str,
+    notification_type: NotificationType,
+    title: str,
+    message: str,
+    metadata: Optional[Dict[str, Any]] = None,
+    batch_window_seconds: int = 60
+) -> Notification:
+    """
+    HARDENING LAYER B: Notification Deduplication/Batching
+    
+    Create a notification, batching similar workspace_change notifications within a time window.
+    Only batches workspace_change notifications - other types are created immediately.
+    
+    Batching logic:
+    - Groups notifications by: user_id, notification_type, workspace_id, changed_by_id
+    - If a similar notification exists within batch_window_seconds, update the existing one
+    - Otherwise, create a new notification
+    
+    Returns the created/updated notification.
+    """
+    # Only batch workspace_change notifications
+    if notification_type != NotificationType.WORKSPACE_CHANGE:
+        # Create immediately for non-batchable types
+        return await create_notification(user_id, notification_type, title, message, metadata)
+    
+    # Check for existing notification within batch window
+    batch_key = await batch_notification_key(
+        user_id,
+        notification_type,
+        metadata.get("workspace_id") if metadata else None,
+        metadata.get("changed_by_id") if metadata else None
+    )
+    
+    if not batch_key:
+        # Can't batch - create immediately
+        return await create_notification(user_id, notification_type, title, message, metadata)
+    
+    # Look for recent similar notification
+    cutoff_time = datetime.now(timezone.utc) - timedelta(seconds=batch_window_seconds)
+    existing = await db.notifications.find_one(
+        {
+            "user_id": user_id,
+            "type": notification_type,
+            "is_read": False,
+            "created_at": {"$gte": cutoff_time.isoformat()},
+            "metadata.workspace_id": metadata.get("workspace_id") if metadata else None,
+            "metadata.changed_by_id": metadata.get("changed_by_id") if metadata else None
+        },
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    
+    if existing:
+        # Update existing notification with batched count
+        existing_count = existing.get("metadata", {}).get("batch_count", 1)
+        new_count = existing_count + 1
+        
+        # Update message to reflect batching
+        changed_by_name = metadata.get("changed_by_name", "Someone") if metadata else "Someone"
+        workspace_name = metadata.get("workspace_name", "Unknown") if metadata else "Unknown"
+        batched_title = f"{new_count} changes made by {changed_by_name}"
+        batched_message = f"{changed_by_name} made {new_count} changes in \"{workspace_name}\""
+        
+        updated_metadata = existing.get("metadata", {})
+        updated_metadata["batch_count"] = new_count
+        updated_metadata["last_change"] = metadata  # Store latest change metadata
+        
+        await db.notifications.update_one(
+            {"id": existing["id"]},
+            {
+                "$set": {
+                    "title": batched_title,
+                    "message": batched_message,
+                    "metadata": updated_metadata,
+                    "created_at": datetime.now(timezone.utc).isoformat()  # Update timestamp
+                }
+            }
+        )
+        
+        # Return updated notification
+        updated = await db.notifications.find_one({"id": existing["id"]}, {"_id": 0})
+        return Notification(**updated) if updated else await create_notification(user_id, notification_type, title, message, metadata)
+    
+    # No existing notification - create new one with batch_count=1
+    batched_metadata = metadata.copy() if metadata else {}
+    batched_metadata["batch_count"] = 1
+    
+    return await create_notification(user_id, notification_type, title, message, batched_metadata)
+
 def create_slug(name: str) -> str:
+    """Create URL-friendly slug from name."""
     return name.lower().replace(' ', '-').replace('_', '-')[:50]
+
+def validate_walkthrough_slug(slug: str) -> str:
+    """Validate and normalize walkthrough slug. Returns normalized slug or raises HTTPException."""
+    if not slug:
+        return None
+    
+    # Normalize: lowercase, replace spaces/underscores with hyphens, remove special chars
+    normalized = slug.lower().strip()
+    normalized = normalized.replace(' ', '-').replace('_', '-')
+    # Remove any characters that aren't alphanumeric or hyphens
+    normalized = ''.join(c if c.isalnum() or c == '-' else '' for c in normalized)
+    # Remove multiple consecutive hyphens
+    normalized = '-'.join(filter(None, normalized.split('-')))
+    # Limit length
+    normalized = normalized[:50]
+    
+    if not normalized:
+        raise HTTPException(status_code=400, detail="Invalid slug: must contain at least one alphanumeric character")
+    
+    return normalized
+
+async def ensure_unique_walkthrough_slug(workspace_id: str, slug: str, exclude_walkthrough_id: Optional[str] = None) -> str:
+    """Ensure walkthrough slug is unique within workspace. Returns unique slug (may append number if needed)."""
+    if not slug:
+        return None
+    
+    base_slug = slug
+    counter = 1
+    unique_slug = base_slug
+    
+    while True:
+        query = {"workspace_id": workspace_id, "slug": unique_slug, "archived": {"$ne": True}}
+        if exclude_walkthrough_id:
+            query["id"] = {"$ne": exclude_walkthrough_id}
+        
+        existing = await db.walkthroughs.find_one(query, {"_id": 0, "id": 1})
+        if not existing:
+            return unique_slug
+        
+        # Slug exists, try with counter
+        unique_slug = f"{base_slug}-{counter}"
+        counter += 1
+        
+        # Safety limit
+        if counter > 1000:
+            raise HTTPException(status_code=400, detail="Unable to generate unique slug. Please try a different name.")
 
 # Quota & Subscription Helper Functions
 async def get_user_plan(user_id: str) -> Optional[Plan]:
@@ -1279,6 +1808,348 @@ async def get_me(current_user: User = Depends(get_current_user)):
         user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
     return User(**user_doc)
 
+# Notification Routes
+@api_router.get("/notifications")
+async def get_notifications(current_user: User = Depends(get_current_user)):
+    """Get all notifications for current user, ordered by created_at descending."""
+    notifications = await db.notifications.find(
+        {"user_id": current_user.id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return [Notification(**n) for n in notifications]
+
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, current_user: User = Depends(get_current_user)):
+    """Mark a notification as read."""
+    notification = await db.notifications.find_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {"_id": 0}
+    )
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    await db.notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"is_read": True}}
+    )
+    return {"success": True, "message": "Notification marked as read"}
+
+# Workspace Invitation Routes
+class InviteRequest(BaseModel):
+    email: EmailStr
+
+@api_router.post("/workspaces/{workspace_id}/invite")
+async def invite_user_to_workspace(
+    workspace_id: str,
+    invite_data: InviteRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Invite a user to a workspace by email.
+    Only workspace owner can invite users.
+    """
+    # Check if user is owner
+    if not await is_workspace_owner(workspace_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Only workspace owner can invite users")
+    
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    # Find user by email
+    invitee = await db.users.find_one({"email": invite_data.email}, {"_id": 0})
+    if not invitee:
+        raise HTTPException(status_code=404, detail="User with this email not found. User must have an account to be invited.")
+    
+    invitee_user_id = invitee['id']
+    
+    # Prevent inviting yourself
+    if invitee_user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot invite yourself")
+    
+    # Check for existing pending or accepted invitation
+    existing_member = await db.workspace_members.find_one(
+        {
+            "workspace_id": workspace_id,
+            "user_id": invitee_user_id,
+            "status": {"$in": [InvitationStatus.PENDING, InvitationStatus.ACCEPTED]}
+        },
+        {"_id": 0}
+    )
+    if existing_member:
+        if existing_member['status'] == InvitationStatus.ACCEPTED:
+            raise HTTPException(status_code=400, detail="User is already a member of this workspace")
+        else:
+            raise HTTPException(status_code=400, detail="User already has a pending invitation")
+    
+    # Create invitation (WorkspaceMember with PENDING status)
+    invited_at = datetime.now(timezone.utc)
+    member = WorkspaceMember(
+        workspace_id=workspace_id,
+        user_id=invitee_user_id,
+        role=UserRole.EDITOR,  # Shared users are members with EDITOR role
+        status=InvitationStatus.PENDING,
+        invited_by_user_id=current_user.id,
+        invited_at=invited_at
+    )
+    member_dict = member.model_dump()
+    member_dict['invited_at'] = member_dict['invited_at'].isoformat()
+    member_dict['joined_at'] = member_dict['joined_at'].isoformat()
+    await db.workspace_members.insert_one(member_dict)
+    
+    # HARDENING LAYER C: Audit log
+    await log_workspace_audit(
+        action_type=WorkspaceAuditAction.INVITE_SENT,
+        workspace_id=workspace_id,
+        actor_user_id=current_user.id,
+        target_user_id=invitee_user_id,
+        metadata={"invitee_email": invite_data.email, "inviter_name": current_user.name}
+    )
+    
+    # Create notification for invitee (not batched - invitations are never batched)
+    await create_notification(
+        user_id=invitee_user_id,
+        notification_type=NotificationType.INVITE,
+        title="Workspace Invitation",
+        message=f"{current_user.name} has invited you to collaborate on the workspace \"{workspace['name']}\"",
+        metadata={"workspace_id": workspace_id, "inviter_id": current_user.id, "inviter_name": current_user.name}
+    )
+    
+    # Send invitation email (background task)
+    background_tasks.add_task(
+        send_invitation_email,
+        invite_data.email,
+        workspace['name'],
+        current_user.name
+    )
+    
+    return {
+        "success": True,
+        "message": f"Invitation sent to {invite_data.email}",
+        "invitation_id": member.id
+    }
+
+@api_router.post("/workspaces/{workspace_id}/invitations/{invitation_id}/accept")
+async def accept_invitation(
+    workspace_id: str,
+    invitation_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Accept a workspace invitation."""
+    # Find invitation
+    member = await db.workspace_members.find_one(
+        {
+            "id": invitation_id,
+            "workspace_id": workspace_id,
+            "user_id": current_user.id,
+            "status": InvitationStatus.PENDING
+        },
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Invitation not found or already responded to")
+    
+    # Update invitation status
+    responded_at = datetime.now(timezone.utc)
+    await db.workspace_members.update_one(
+        {"id": invitation_id},
+        {
+            "$set": {
+                "status": InvitationStatus.ACCEPTED,
+                "responded_at": responded_at.isoformat(),
+                "joined_at": responded_at.isoformat()
+            }
+        }
+    )
+    
+    # HARDENING LAYER C: Audit log
+    await log_workspace_audit(
+        action_type=WorkspaceAuditAction.INVITE_ACCEPTED,
+        workspace_id=workspace_id,
+        actor_user_id=current_user.id,
+        target_user_id=member.get('invited_by_user_id'),
+        metadata={"accepted_by_name": current_user.name}
+    )
+    
+    # Get workspace and inviter info
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+    inviter_id = member.get('invited_by_user_id')
+    inviter = await db.users.find_one({"id": inviter_id}, {"_id": 0, "name": 1}) if inviter_id else None
+    inviter_name = inviter.get("name", "Someone") if inviter else "Someone"
+    
+    # Notify inviter (not batched - invitation events are never batched)
+    if inviter_id:
+        await create_notification(
+            user_id=inviter_id,
+            notification_type=NotificationType.INVITE_ACCEPTED,
+            title="Invitation Accepted",
+            message=f"{current_user.name} has accepted your invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
+            metadata={"workspace_id": workspace_id, "accepted_by_id": current_user.id, "accepted_by_name": current_user.name}
+        )
+    
+    return {
+        "success": True,
+        "message": "Invitation accepted successfully",
+        "workspace_id": workspace_id
+    }
+
+@api_router.post("/workspaces/{workspace_id}/invitations/{invitation_id}/decline")
+async def decline_invitation(
+    workspace_id: str,
+    invitation_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Decline a workspace invitation."""
+    # Find invitation
+    member = await db.workspace_members.find_one(
+        {
+            "id": invitation_id,
+            "workspace_id": workspace_id,
+            "user_id": current_user.id,
+            "status": InvitationStatus.PENDING
+        },
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Invitation not found or already responded to")
+    
+    # Update invitation status
+    responded_at = datetime.now(timezone.utc)
+    await db.workspace_members.update_one(
+        {"id": invitation_id},
+        {
+            "$set": {
+                "status": InvitationStatus.DECLINED,
+                "responded_at": responded_at.isoformat()
+            }
+        }
+    )
+    
+    # HARDENING LAYER C: Audit log
+    await log_workspace_audit(
+        action_type=WorkspaceAuditAction.INVITE_DECLINED,
+        workspace_id=workspace_id,
+        actor_user_id=current_user.id,
+        target_user_id=member.get('invited_by_user_id'),
+        metadata={"declined_by_name": current_user.name}
+    )
+    
+    # HARDENING LAYER A: Check and release lock if user had one (declined invite means no access)
+    await release_workspace_lock(workspace_id, current_user.id, force=True, reason="Invitation declined - access revoked")
+    
+    # HARDENING LAYER A: Invariant check
+    await check_membership_lock_invariant(workspace_id)
+    
+    # Get workspace and inviter info
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+    inviter_id = member.get('invited_by_user_id')
+    inviter = await db.users.find_one({"id": inviter_id}, {"_id": 0, "name": 1}) if inviter_id else None
+    inviter_name = inviter.get("name", "Someone") if inviter else "Someone"
+    
+    # Notify inviter (not batched - invitation events are never batched)
+    if inviter_id:
+        await create_notification(
+            user_id=inviter_id,
+            notification_type=NotificationType.INVITE_DECLINED,
+            title="Invitation Declined",
+            message=f"{current_user.name} has declined your invitation to collaborate on \"{workspace.get('name', 'Unknown')}\"",
+            metadata={"workspace_id": workspace_id, "declined_by_id": current_user.id, "declined_by_name": current_user.name}
+        )
+    
+    return {
+        "success": True,
+        "message": "Invitation declined"
+    }
+
+# Workspace Lock Routes
+@api_router.post("/workspaces/{workspace_id}/lock")
+async def lock_workspace(
+    workspace_id: str,
+    force: bool = Query(False, description="Force release existing lock if another user has it"),
+    current_user: User = Depends(get_current_user)
+):
+    """Acquire workspace lock. Returns lock info or error if locked by another user."""
+    # Check workspace access first
+    await check_workspace_access(workspace_id, current_user.id)
+    
+    lock = await acquire_workspace_lock(workspace_id, current_user.id, force=force)
+    return {
+        "success": True,
+        "locked_by_user_id": lock.locked_by_user_id,
+        "locked_at": lock.locked_at.isoformat(),
+        "expires_at": lock.expires_at.isoformat()
+    }
+
+@api_router.delete("/workspaces/{workspace_id}/lock")
+async def unlock_workspace(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Release workspace lock."""
+    await release_workspace_lock(workspace_id, current_user.id)
+    return {"success": True, "message": "Workspace lock released"}
+
+# Workspace Member Management
+@api_router.delete("/workspaces/{workspace_id}/members/{user_id}")
+async def remove_workspace_member(
+    workspace_id: str,
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Remove a member from workspace.
+    Only workspace owner can remove members.
+    Removed member is notified and loses access immediately.
+    """
+    # Only owner can remove members
+    await check_workspace_access(workspace_id, current_user.id, require_owner=True)
+    
+    # Cannot remove yourself
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot remove yourself from workspace")
+    
+    # Find member to remove
+    member = await db.workspace_members.find_one(
+        {"workspace_id": workspace_id, "user_id": user_id},
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Get workspace info
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+    workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
+    
+    # HARDENING LAYER A: Force-release lock BEFORE removing member (invariant enforcement)
+    lock_released = await release_workspace_lock(workspace_id, user_id, force=True, reason="Member removed from workspace")
+    
+    # Remove member
+    await db.workspace_members.delete_one({"workspace_id": workspace_id, "user_id": user_id})
+    
+    # HARDENING LAYER A: Invariant check after removal
+    await check_membership_lock_invariant(workspace_id)
+    
+    # HARDENING LAYER C: Audit log
+    await log_workspace_audit(
+        action_type=WorkspaceAuditAction.MEMBER_REMOVED,
+        workspace_id=workspace_id,
+        actor_user_id=current_user.id,
+        target_user_id=user_id,
+        metadata={"removed_by_name": current_user.name, "workspace_name": workspace_name, "lock_released": lock_released}
+    )
+    
+    # Notify removed member (not batched - member removal events are never batched)
+    await create_notification(
+        user_id=user_id,
+        notification_type=NotificationType.MEMBER_REMOVED,
+        title="Removed from Workspace",
+        message=f"You have been removed from the workspace \"{workspace_name}\" by {current_user.name}",
+        metadata={"workspace_id": workspace_id, "removed_by_id": current_user.id, "removed_by_name": current_user.name}
+    )
+    
+    return {"success": True, "message": "Member removed successfully"}
+
 # Workspace Routes
 @api_router.post("/workspaces", response_model=Workspace)
 async def create_workspace(workspace_data: WorkspaceCreate, current_user: User = Depends(get_current_user)):
@@ -1337,10 +2208,29 @@ async def create_workspace(workspace_data: WorkspaceCreate, current_user: User =
 
 @api_router.get("/workspaces", response_model=List[Workspace])
 async def get_workspaces(current_user: User = Depends(get_current_user)):
-    members = await db.workspace_members.find({"user_id": current_user.id}, {"_id": 0}).to_list(100)
-    workspace_ids = [m['workspace_id'] for m in members]
+    """
+    Get all workspaces user has access to:
+    - Workspaces owned by user (owner_id = user_id)
+    - Workspaces where user is an accepted member (status = ACCEPTED)
+    Pending/declined invitations are excluded.
+    """
+    # Get owned workspaces
+    owned_workspaces = await db.workspaces.find({"owner_id": current_user.id}, {"_id": 0}).to_list(100)
+    owned_ids = [w['id'] for w in owned_workspaces]
     
-    workspaces = await db.workspaces.find({"id": {"$in": workspace_ids}}, {"_id": 0}).to_list(100)
+    # Get accepted shared workspaces
+    accepted_members = await db.workspace_members.find(
+        {"user_id": current_user.id, "status": InvitationStatus.ACCEPTED},
+        {"_id": 0, "workspace_id": 1}
+    ).to_list(100)
+    shared_workspace_ids = [m['workspace_id'] for m in accepted_members]
+    
+    # Combine and fetch all workspaces
+    all_workspace_ids = list(set(owned_ids + shared_workspace_ids))
+    if not all_workspace_ids:
+        return []
+    
+    workspaces = await db.workspaces.find({"id": {"$in": all_workspace_ids}}, {"_id": 0}).to_list(100)
     return [Workspace(**w) for w in workspaces]
 
 @api_router.get("/workspaces/{workspace_id}", response_model=Workspace)
@@ -1352,19 +2242,16 @@ async def get_workspace(workspace_id: str, current_user: User = Depends(get_curr
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    # Use the actual workspace ID for member check
+    # Use the actual workspace ID for access check
     actual_workspace_id = workspace['id']
-    member = await get_workspace_member(actual_workspace_id, current_user.id)
-    if not member:
-        raise HTTPException(status_code=403, detail="Access denied")
+    await check_workspace_access(actual_workspace_id, current_user.id)
     
     return Workspace(**workspace)
 
 @api_router.put("/workspaces/{workspace_id}", response_model=Workspace)
 async def update_workspace(workspace_id: str, workspace_data: WorkspaceCreate, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role not in [UserRole.OWNER, UserRole.ADMIN]:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Only owner can update workspace settings
+    await check_workspace_access(workspace_id, current_user.id, require_owner=True)
     
     update_data = workspace_data.model_dump()
     update_data['slug'] = create_slug(workspace_data.name)
@@ -1375,6 +2262,19 @@ async def update_workspace(workspace_id: str, workspace_data: WorkspaceCreate, c
     )
     
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+    
+    # Notify all members of workspace change (HARDENING LAYER B: Uses batched notifications)
+    members = await get_workspace_members(workspace_id)
+    for member in members:
+        if member.user_id != current_user.id:  # Don't notify self
+            await create_batched_notification(
+                user_id=member.user_id,
+                notification_type=NotificationType.WORKSPACE_CHANGE,
+                title="Workspace Updated",
+                message=f"{current_user.name} has updated workspace settings for \"{workspace['name']}\"",
+                metadata={"workspace_id": workspace_id, "workspace_name": workspace['name'], "changed_by_id": current_user.id, "changed_by_name": current_user.name}
+            )
+    
     return Workspace(**workspace)
 
 @api_router.delete("/workspaces/{workspace_id}")
@@ -1386,14 +2286,45 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
     - All categories
     - All workspace files (logo, background)
     - All workspace members
+    Only workspace owner can delete workspace.
+    All members are notified when workspace is deleted.
     """
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role != UserRole.OWNER:
-        raise HTTPException(status_code=403, detail="Only workspace owner can delete workspace")
+    # Only owner can delete workspace
+    await check_workspace_access(workspace_id, current_user.id, require_owner=True)
+    
+    # Get workspace name for notifications
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+    workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
+    
+    # Get all members to notify
+    members = await get_workspace_members(workspace_id)
     
     workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    # HARDENING LAYER A: Force-release all locks before deletion
+    all_locks = await db.workspace_locks.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(100)
+    for lock_doc in all_locks:
+        await release_workspace_lock(workspace_id, lock_doc['locked_by_user_id'], force=True, reason="Workspace deleted")
+    
+    # HARDENING LAYER C: Audit log
+    await log_workspace_audit(
+        action_type=WorkspaceAuditAction.WORKSPACE_DELETED,
+        workspace_id=workspace_id,
+        actor_user_id=current_user.id,
+        metadata={"workspace_name": workspace_name, "deleted_by_name": current_user.name, "member_count": len(members)}
+    )
+    
+    # Notify all members that workspace is being deleted (not batched - workspace deletion is never batched)
+    for member in members:
+        await create_notification(
+            user_id=member.user_id,
+            notification_type=NotificationType.WORKSPACE_DELETED,
+            title="Workspace Deleted",
+            message=f"The workspace \"{workspace_name}\" has been deleted by {current_user.name}. You no longer have access to this workspace.",
+            metadata={"workspace_id": workspace_id, "deleted_by_id": current_user.id, "deleted_by_name": current_user.name}
+        )
     
     # Get all walkthroughs in workspace for cascade file deletion
     walkthroughs = await db.walkthroughs.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(10000)
@@ -1454,9 +2385,10 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
 # Category Routes
 @api_router.post("/workspaces/{workspace_id}/categories", response_model=Category)
 async def create_category(workspace_id: str, category_data: CategoryCreate, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access (members can create categories, viewers cannot)
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot create categories")
     
     # Check category count limit
     plan = await get_user_plan(current_user.id)
@@ -1483,22 +2415,35 @@ async def create_category(workspace_id: str, category_data: CategoryCreate, curr
     category_dict['created_at'] = category_dict['created_at'].isoformat()
     await db.categories.insert_one(category_dict)
     
+    # Notify all members of category creation (HARDENING LAYER B: Uses batched notifications)
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+    members = await get_workspace_members(workspace_id)
+    for m in members:
+        if m.user_id != current_user.id:
+            await create_batched_notification(
+                user_id=m.user_id,
+                notification_type=NotificationType.WORKSPACE_CHANGE,
+                title="Category Created",
+                message=f"{current_user.name} created a new category \"{category_data.name}\" in \"{workspace.get('name', 'Unknown')}\"",
+                metadata={"workspace_id": workspace_id, "workspace_name": workspace.get('name', 'Unknown'), "category_id": category.id, "changed_by_id": current_user.id, "changed_by_name": current_user.name}
+            )
+    
     return category
 
 @api_router.get("/workspaces/{workspace_id}/categories", response_model=List[Category])
 async def get_categories(workspace_id: str, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access
+    await check_workspace_access(workspace_id, current_user.id)
     
     categories = await db.categories.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(1000)
     return [Category(**c) for c in categories]
 
 @api_router.put("/workspaces/{workspace_id}/categories/{category_id}", response_model=Category)
 async def update_category(workspace_id: str, category_id: str, category_data: CategoryUpdate, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access (members can update, viewers cannot)
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot update categories")
     
     category = await db.categories.find_one({"id": category_id, "workspace_id": workspace_id}, {"_id": 0})
     if not category:
@@ -1524,17 +2469,34 @@ async def update_category(workspace_id: str, category_id: str, category_data: Ca
         )
         category.update(update_dict)
     
+    # Notify all members of category update
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+    members = await get_workspace_members(workspace_id)
+    category_name = category.get("name", "Unknown")
+    for m in members:
+        if m.user_id != current_user.id:
+            await create_notification(
+                user_id=m.user_id,
+                notification_type=NotificationType.WORKSPACE_CHANGE,
+                title="Category Updated",
+                message=f"{current_user.name} updated category \"{category_name}\" in \"{workspace.get('name', 'Unknown')}\"",
+                metadata={"workspace_id": workspace_id, "category_id": category_id, "changed_by_id": current_user.id, "changed_by_name": current_user.name}
+            )
+    
     return Category(**category)
 
 @api_router.delete("/workspaces/{workspace_id}/categories/{category_id}")
 async def delete_category(workspace_id: str, category_id: str, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access (members can delete, viewers cannot)
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot delete categories")
     
     category = await db.categories.find_one({"id": category_id, "workspace_id": workspace_id}, {"_id": 0})
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
+    
+    category_name = category.get("name", "Unknown")
     
     # Get all child categories
     child_categories = await db.categories.find({"parent_id": category_id, "workspace_id": workspace_id}, {"_id": 0}).to_list(1000)
@@ -1554,14 +2516,28 @@ async def delete_category(workspace_id: str, category_id: str, current_user: Use
     # Delete the category itself
     await db.categories.delete_one({"id": category_id, "workspace_id": workspace_id})
     
+    # Notify all members of category deletion
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+    members = await get_workspace_members(workspace_id)
+    for m in members:
+        if m.user_id != current_user.id:
+            await create_notification(
+                user_id=m.user_id,
+                notification_type=NotificationType.WORKSPACE_CHANGE,
+                title="Category Deleted",
+                message=f"{current_user.name} deleted category \"{category_name}\" in \"{workspace.get('name', 'Unknown')}\"",
+                metadata={"workspace_id": workspace_id, "category_id": category_id, "changed_by_id": current_user.id, "changed_by_name": current_user.name}
+            )
+    
     return {"message": "Category deleted. Walkthroughs are now uncategorized."}
 
 # Walkthrough Routes
 @api_router.post("/workspaces/{workspace_id}/walkthroughs", response_model=Walkthrough)
 async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access (members can create, viewers cannot)
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot create walkthroughs")
     
     # Check walkthrough count limit
     plan = await get_user_plan(current_user.id)
@@ -1585,9 +2561,20 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
     # CRITICAL: Preserve icon_url even if None
     icon_url = walkthrough_data.icon_url if walkthrough_data.icon_url is not None else None
     
+    # Handle slug: validate and ensure uniqueness
+    slug = None
+    if walkthrough_data.slug:
+        slug = validate_walkthrough_slug(walkthrough_data.slug)
+        slug = await ensure_unique_walkthrough_slug(workspace_id, slug)
+    elif walkthrough_data.title:
+        # Auto-generate slug from title if not provided
+        auto_slug = create_slug(walkthrough_data.title)
+        slug = await ensure_unique_walkthrough_slug(workspace_id, auto_slug)
+    
     walkthrough = Walkthrough(
         workspace_id=workspace_id,
         title=walkthrough_data.title,
+        slug=slug,
         description=walkthrough_data.description,
         icon_url=icon_url,  # Explicitly set, even if None
         category_ids=walkthrough_data.category_ids,
@@ -1616,13 +2603,34 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
             walkthrough.id
         )
     
+    # Notify all members of walkthrough creation (only if published)
+    if walkthrough.status == WalkthroughStatus.PUBLISHED:
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+        members = await get_workspace_members(workspace_id)
+        for m in members:
+            if m.user_id != current_user.id:
+                await create_notification(
+                    user_id=m.user_id,
+                    notification_type=NotificationType.WORKSPACE_CHANGE,
+                    title="Walkthrough Published",
+                    message=f"{current_user.name} published a new walkthrough \"{walkthrough_data.title}\" in \"{workspace.get('name', 'Unknown')}\"",
+                    metadata={"workspace_id": workspace_id, "walkthrough_id": walkthrough.id, "changed_by_id": current_user.id, "changed_by_name": current_user.name}
+                )
+    
+    # Fetch from database to ensure all fields (including slug) are included
+    created_walkthrough = await db.walkthroughs.find_one({"id": walkthrough.id}, {"_id": 0})
+    if created_walkthrough:
+        # Ensure icon_url exists
+        if "icon_url" not in created_walkthrough:
+            created_walkthrough["icon_url"] = None
+        return Walkthrough(**created_walkthrough)
+    
     return walkthrough
 
 @api_router.get("/workspaces/{workspace_id}/walkthroughs", response_model=List[Walkthrough])
 async def get_walkthroughs(workspace_id: str, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access
+    await check_workspace_access(workspace_id, current_user.id)
     
     walkthroughs = await db.walkthroughs.find(
         {"workspace_id": workspace_id, "archived": {"$ne": True}},
@@ -1695,15 +2703,25 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
 async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access (members can update, viewers cannot)
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot update walkthroughs")
     
     existing = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
     update_data = walkthrough_data.model_dump(exclude_none=True)
+    
+    # Handle slug update: validate and ensure uniqueness
+    if "slug" in update_data:
+        if update_data["slug"]:
+            update_data["slug"] = validate_walkthrough_slug(update_data["slug"])
+            update_data["slug"] = await ensure_unique_walkthrough_slug(workspace_id, update_data["slug"], exclude_walkthrough_id=walkthrough_id)
+        else:
+            # Empty slug means remove it (fall back to ID)
+            update_data["slug"] = None
     
     # CRITICAL: Preserve icon_url if it's not being updated (don't overwrite with None)
     if "icon_url" not in update_data or update_data.get("icon_url") is None:
@@ -1731,12 +2749,18 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
     is_publish_request = update_data.get("status") == WalkthroughStatus.PUBLISHED
     if is_publish_request:
         next_version = int(existing.get("version", 1)) + 1
+        # Get user display name for attribution
+        user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0, "name": 1})
+        changed_by_name = user_doc.get("name", "Unknown") if user_doc else "Unknown"
+        
         version_doc = {
             "id": str(uuid.uuid4()),
             "workspace_id": workspace_id,
             "walkthrough_id": walkthrough_id,
             "version": next_version,
             "created_by": current_user.id,
+            "changed_by_user_id": current_user.id,  # For attribution
+            "changed_by_name": changed_by_name,  # User display name
             "created_at": datetime.now(timezone.utc).isoformat(),
             "snapshot": sanitize_public_walkthrough(existing) | {
                 # snapshot should include private fields needed for rollback, but never password hash
@@ -1771,7 +2795,7 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
                 "walkthrough_id": walkthrough_id,
                 "version": {"$nin": versions_to_keep}
             })
-            logger.info(f"Auto-cleaned up versions for walkthrough {walkthrough_id}: kept {len(versions_to_keep)}, deleted {len(all_versions) - len(versions_to_keep)}")
+            logging.info(f"Auto-cleaned up versions for walkthrough {walkthrough_id}: kept {len(versions_to_keep)}, deleted {len(all_versions) - len(versions_to_keep)}")
 
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
@@ -1791,13 +2815,34 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
         )
     
     walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id}, {"_id": 0})
+    
+    # Notify all members of walkthrough update (only if published or just published)
+    was_published = existing.get("status") == WalkthroughStatus.PUBLISHED
+    is_now_published = walkthrough.get("status") == WalkthroughStatus.PUBLISHED
+    if is_now_published:
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+        members = await get_workspace_members(workspace_id)
+        walkthrough_title = walkthrough.get("title", "Unknown")
+        for m in members:
+            if m.user_id != current_user.id:
+                if was_published:
+                    message = f"{current_user.name} updated walkthrough \"{walkthrough_title}\" in \"{workspace.get('name', 'Unknown')}\""
+                else:
+                    message = f"{current_user.name} published walkthrough \"{walkthrough_title}\" in \"{workspace.get('name', 'Unknown')}\""
+                await create_notification(
+                    user_id=m.user_id,
+                    notification_type=NotificationType.WORKSPACE_CHANGE,
+                    title="Walkthrough Updated" if was_published else "Walkthrough Published",
+                    message=message,
+                    metadata={"workspace_id": workspace_id, "walkthrough_id": walkthrough_id, "changed_by_id": current_user.id, "changed_by_name": current_user.name}
+                )
+    
     return Walkthrough(**walkthrough)
 
 @api_router.get("/workspaces/{workspace_id}/walkthroughs-archived", response_model=List[Walkthrough])
 async def get_archived_walkthroughs(workspace_id: str, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access
+    await check_workspace_access(workspace_id, current_user.id)
     
     walkthroughs = await db.walkthroughs.find(
         {"workspace_id": workspace_id, "archived": True},
@@ -1807,9 +2852,10 @@ async def get_archived_walkthroughs(workspace_id: str, current_user: User = Depe
 
 @api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/archive")
 async def archive_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
-    member = await get_workspace_member(workspace_id, current_user.id)
-    if not member or member.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Check workspace access (members can archive, viewers cannot)
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot archive walkthroughs")
     
     res = await db.walkthroughs.update_one(
         {"id": walkthrough_id, "workspace_id": workspace_id},
@@ -2405,7 +3451,7 @@ async def update_step(workspace_id: str, walkthrough_id: str, step_id: str, step
     import logging
     
     logger = logging.getLogger(__name__)
-    logger.info(f"[update_step] Step {step_id}: Existing blocks count: {len(existing_blocks)}")
+    logging.info(f"[update_step] Step {step_id}: Existing blocks count: {len(existing_blocks)}")
     
     if step_data.blocks is not None:
         # Blocks were explicitly provided - use them (even if empty array)
@@ -2667,14 +3713,25 @@ async def get_portal(slug: str):
 
 @api_router.get("/portal/{slug}/walkthroughs/{walkthrough_id}")
 async def get_public_walkthrough(slug: str, walkthrough_id: str):
+    """
+    Get public walkthrough by workspace slug and walkthrough ID or slug.
+    Supports both UUID and custom slug for walkthrough_id parameter.
+    """
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
     
+    # Try slug first, then UUID
     walkthrough = await db.walkthroughs.find_one(
-        {"id": walkthrough_id, "workspace_id": workspace['id'], "status": "published", "archived": {"$ne": True}},
+        {"slug": walkthrough_id, "workspace_id": workspace['id'], "status": "published", "archived": {"$ne": True}},
         {"_id": 0}
     )
+    if not walkthrough:
+        # Fall back to UUID lookup
+        walkthrough = await db.walkthroughs.find_one(
+            {"id": walkthrough_id, "workspace_id": workspace['id'], "status": "published", "archived": {"$ne": True}},
+            {"_id": 0}
+        )
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
@@ -2706,10 +3763,17 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
 
+    # Try slug first, then UUID
     walkthrough = await db.walkthroughs.find_one(
-        {"id": walkthrough_id, "workspace_id": workspace["id"], "status": "published", "archived": {"$ne": True}},
+        {"slug": walkthrough_id, "workspace_id": workspace["id"], "status": "published", "archived": {"$ne": True}},
         {"_id": 0}
     )
+    if not walkthrough:
+        # Fall back to UUID lookup
+        walkthrough = await db.walkthroughs.find_one(
+            {"id": walkthrough_id, "workspace_id": workspace["id"], "status": "published", "archived": {"$ne": True}},
+            {"_id": 0}
+        )
     if not walkthrough or walkthrough.get("privacy") != "password":
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
@@ -5572,7 +6636,7 @@ async def add_cors_headers(request: Request, call_next):
         else:
             allowed_origin = cors_origins[0] if cors_origins else "*"
         
-        logger.error(f"Request error: {e}", exc_info=True)
+        logging.error(f"Request error: {e}", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={"detail": "Internal server error"},
@@ -5655,7 +6719,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def global_exception_handler(request: Request, exc: Exception):
     """Ensure CORS headers are sent even when exceptions occur"""
     import traceback
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    logging.error(f"Unhandled exception: {exc}", exc_info=True)
     
     # Get CORS origins from environment
     raw_cors_origins = os.environ.get("CORS_ORIGINS", "*")
