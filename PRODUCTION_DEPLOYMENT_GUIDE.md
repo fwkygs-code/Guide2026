@@ -27,7 +27,7 @@
 2. Create product: "Pro Plan - Monthly"
 3. Create billing plan with:
    - **Trial period**: 14 days
-   - **Recurring amount**: $19.90 USD/month
+   - **Recurring amount**: $5 USD/month
    - **Billing cycle**: Monthly
 4. Copy the **Plan ID** (starts with `P-`)
 

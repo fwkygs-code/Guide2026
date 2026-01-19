@@ -101,7 +101,7 @@ const BillingInfo = () => {
                   Your trial ends on {formatDate(trial_period_end)}
                 </div>
                 <div className="text-xs text-blue-600 mt-1">
-                  After the trial, billing will occur at $19.90/month as determined by PayPal.
+                  After the trial, billing will occur at $5/month as determined by PayPal.
                 </div>
               </div>
             </div>

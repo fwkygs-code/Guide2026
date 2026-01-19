@@ -61,7 +61,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
       name: 'pro',
       displayName: 'Pro',
       price: '14 days free trial',
-      priceAfter: '$19.90/month',
+      priceAfter: '$5/month',
       features: [
         '3 workspaces',
         'Unlimited categories',
