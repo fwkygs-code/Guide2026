@@ -5301,7 +5301,11 @@ async def share_workspace(slug: str, request: Request):
     Generate Open Graph HTML preview for workspace sharing.
     This route is used by social media crawlers (WhatsApp, Facebook, etc.) to display
     rich previews when workspace links are shared.
+    
+    CRITICAL: Uses workspace.logo exactly as stored in database - no transformations.
     """
+    import html as html_module
+    
     # Look up workspace by slug (public route, no auth required)
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     
@@ -5313,22 +5317,38 @@ async def share_workspace(slug: str, request: Request):
         )
     
     workspace_name = workspace.get("name", "Untitled Workspace")
+    # CRITICAL: Get logo exactly as stored - no modifications
     workspace_logo = workspace.get("logo")
+    
+    # Log the exact logo value for debugging
+    logging.info(f"[share_workspace] Workspace '{slug}': logo value from DB = {repr(workspace_logo)}")
     
     # Build URLs
     workspace_url = f"{FRONTEND_URL}/workspace/{slug}/walkthroughs"
     share_url = f"{request.url.scheme}://{request.url.netloc}/share/workspace/{slug}"
     
-    # Default image fallback (use the site's og-image.png if workspace has no logo)
-    og_image_url = workspace_logo if workspace_logo else f"{FRONTEND_URL}/og-image.png"
+    # CRITICAL: Use logo exactly as stored, or fallback to site OG image
+    # Do NOT transform, modify, or rebuild the URL
+    if workspace_logo:
+        # Use the exact stored URL - Cloudinary URLs are already HTTPS secure_url
+        og_image_url = workspace_logo.strip() if isinstance(workspace_logo, str) else workspace_logo
+        logging.info(f"[share_workspace] Using workspace logo: {og_image_url}")
+    else:
+        # Fallback to site OG image
+        og_image_url = f"{FRONTEND_URL}/og-image.png"
+        logging.info(f"[share_workspace] No workspace logo, using fallback: {og_image_url}")
     
-    # Ensure Cloudinary URLs are HTTPS
-    if workspace_logo and workspace_logo.startswith("http://"):
-        og_image_url = workspace_logo.replace("http://", "https://", 1)
-    
-    # Build Open Graph HTML
+    # Build Open Graph HTML with proper escaping
     og_title = f"InterGuide – {workspace_name}"
     og_description = f"InterGuide – {workspace_name}"
+    
+    # Escape HTML entities for safety
+    og_title_escaped = html_module.escape(og_title)
+    og_description_escaped = html_module.escape(og_description)
+    og_image_url_escaped = html_module.escape(og_image_url)
+    share_url_escaped = html_module.escape(share_url)
+    workspace_url_escaped = html_module.escape(workspace_url)
+    workspace_name_escaped = html_module.escape(workspace_name)
     
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -5337,35 +5357,38 @@ async def share_workspace(slug: str, request: Request):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="{og_title}">
-    <meta property="og:description" content="{og_description}">
-    <meta property="og:image" content="{og_image_url}">
+    <meta property="og:title" content="{og_title_escaped}">
+    <meta property="og:description" content="{og_description_escaped}">
+    <meta property="og:image" content="{og_image_url_escaped}">
+    <meta property="og:image:secure_url" content="{og_image_url_escaped}">
     <meta property="og:image:type" content="image/png">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{share_url}">
+    <meta property="og:url" content="{share_url_escaped}">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{og_title}">
-    <meta name="twitter:description" content="{og_description}">
-    <meta name="twitter:image" content="{og_image_url}">
+    <meta name="twitter:title" content="{og_title_escaped}">
+    <meta name="twitter:description" content="{og_description_escaped}">
+    <meta name="twitter:image" content="{og_image_url_escaped}">
     
     <!-- Standard Meta Tags -->
-    <title>{og_title}</title>
-    <meta name="description" content="{og_description}">
+    <title>{og_title_escaped}</title>
+    <meta name="description" content="{og_description_escaped}">
     
     <!-- Redirect real users to the SPA workspace URL -->
-    <meta http-equiv="refresh" content="0;url={workspace_url}">
+    <!-- Crawlers will read meta tags before redirect executes -->
+    <meta http-equiv="refresh" content="0;url={workspace_url_escaped}">
     <script>
         // Immediate redirect for browsers (crawlers will read meta tags first)
-        window.location.replace("{workspace_url}");
+        window.location.replace("{workspace_url_escaped}");
     </script>
 </head>
 <body>
-    <p>Redirecting to <a href="{workspace_url}">{workspace_name}</a>...</p>
+    <p>Redirecting to <a href="{workspace_url_escaped}">{workspace_name_escaped}</a>...</p>
 </body>
 </html>"""
     
+    logging.info(f"[share_workspace] Generated OG HTML for '{slug}' with image: {og_image_url}")
     return HTMLResponse(content=html_content)
 
 # Include router AFTER CORS middleware
