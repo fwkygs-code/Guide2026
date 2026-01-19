@@ -41,10 +41,94 @@ const PortalPage = ({ isEmbedded = false }) => {
     fetchPortal();
   }, [slug]);
 
+  // Update page title, favicon, and meta tags when portal data loads
+  useEffect(() => {
+    if (portal?.workspace?.name) {
+      const workspace = portal.workspace;
+      const workspaceName = workspace.name;
+      const logoUrl = workspace.logo ? normalizeImageUrl(workspace.logo) : null;
+      
+      // Update page title
+      document.title = `InterGuide – ${workspaceName}`;
+      
+      // Update favicon to workspace logo (if available)
+      if (logoUrl) {
+        let favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
+        if (!favicon) {
+          favicon = document.createElement('link');
+          favicon.setAttribute('rel', 'icon');
+          document.head.appendChild(favicon);
+        }
+        favicon.setAttribute('href', logoUrl);
+        favicon.setAttribute('type', logoUrl.includes('.svg') ? 'image/svg+xml' : 'image/png');
+        
+        // Also update apple-touch-icon
+        let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+        if (!appleIcon) {
+          appleIcon = document.createElement('link');
+          appleIcon.setAttribute('rel', 'apple-touch-icon');
+          document.head.appendChild(appleIcon);
+        }
+        appleIcon.setAttribute('href', logoUrl);
+      }
+      
+      // Update meta tags for Open Graph (for social sharing)
+      const updateMetaTag = (property, content) => {
+        let meta = document.querySelector(`meta[property="${property}"]`) || 
+                   document.querySelector(`meta[name="${property}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          if (property.startsWith('og:')) {
+            meta.setAttribute('property', property);
+          } else {
+            meta.setAttribute('name', property);
+          }
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+      
+      const portalUrl = `${window.location.origin}/portal/${slug}`;
+      const ogImageUrl = logoUrl || `${window.location.origin}/og-image.png`;
+      
+      // Update Open Graph tags
+      updateMetaTag('og:title', `InterGuide – ${workspaceName}`);
+      updateMetaTag('og:description', `InterGuide – ${workspaceName}`);
+      updateMetaTag('og:image', ogImageUrl);
+      updateMetaTag('og:image:secure_url', ogImageUrl);
+      updateMetaTag('og:url', portalUrl);
+      
+      // Update Twitter tags
+      updateMetaTag('twitter:title', `InterGuide – ${workspaceName}`);
+      updateMetaTag('twitter:description', `InterGuide – ${workspaceName}`);
+      updateMetaTag('twitter:image', ogImageUrl);
+      
+      // Update standard meta tags
+      updateMetaTag('title', `InterGuide – ${workspaceName}`);
+      const descMeta = document.querySelector('meta[name="description"]');
+      if (descMeta) {
+        descMeta.setAttribute('content', `InterGuide – ${workspaceName}`);
+      }
+    }
+    
+    // Cleanup: reset title and favicon when component unmounts
+    return () => {
+      document.title = 'InterGuide';
+      // Don't reset favicon on unmount - let it persist or reset on next page load
+    };
+  }, [portal, slug]);
+
   const fetchPortal = async () => {
     try {
       const response = await axios.get(`${API}/portal/${slug}`);
       setPortal(response.data);
+      // Debug: Log workspace logo
+      if (response.data?.workspace?.logo) {
+        console.log('Workspace logo URL:', response.data.workspace.logo);
+        console.log('Normalized logo URL:', normalizeImageUrl(response.data.workspace.logo));
+      } else {
+        console.log('No workspace logo found in response');
+      }
     } catch (error) {
       toast.error('Portal not found');
     } finally {
@@ -148,8 +232,22 @@ const PortalPage = ({ isEmbedded = false }) => {
           <div className="flex items-center justify-between gap-3 sm:gap-6 mb-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
               {workspace.logo ? (
-                <img src={normalizeImageUrl(workspace.logo)} alt={workspace.name} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0" />
-              ) : (
+                <img 
+                  src={normalizeImageUrl(workspace.logo)} 
+                  alt={workspace.name} 
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0"
+                  onError={(e) => {
+                    console.error('Failed to load workspace logo:', workspace.logo);
+                    e.target.style.display = 'none';
+                    // Show fallback initial circle
+                    const fallback = e.target.nextElementSibling;
+                    if (fallback) {
+                      fallback.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
+              {!workspace.logo && (
                 <div
                   className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0"
                   style={{ backgroundColor: primaryColor }}
