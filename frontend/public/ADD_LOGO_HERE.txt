@@ -1,0 +1,31 @@
+⚠️ IMPORTANT: ADD YOUR LOGO FILE HERE ⚠️
+
+To make the InterGuide logo appear everywhere in your app:
+
+1. Save your logo image as: interguide-logo.png
+2. Place it in this folder: frontend/public/
+3. The exact path should be: frontend/public/interguide-logo.png
+
+File Requirements:
+- Name: interguide-logo.png (exactly this name)
+- Format: PNG
+- Recommended size: 512x512 pixels (square) or larger
+- Background: Transparent background works best
+
+After adding the file:
+1. The logo will automatically appear on:
+   - Landing page navigation
+   - Login page
+   - Signup page
+   - Dashboard header
+   - Browser favicon (tab icon)
+   - Social media previews when sharing links
+
+2. You may need to:
+   - Clear your browser cache (Ctrl+Shift+R or Cmd+Shift+R)
+   - Restart your dev server if running locally
+   - Redeploy if on production
+
+Current Status:
+❌ Logo file not found - App is showing BookOpen icon as fallback
+✅ Code is ready - Will use logo once file is added
