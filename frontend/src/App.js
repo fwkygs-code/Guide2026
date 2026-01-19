@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TextSizeProvider } from './contexts/TextSizeContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
 import './i18n/config'; // Initialize i18n
 import LandingPage from './pages/LandingPage';
@@ -61,11 +62,12 @@ const AppContent = () => {
   }, [i18n.language]);
 
   return (
-    <TextSizeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-        <WorkspaceProvider>
-        <Routes>
+    <ThemeProvider>
+      <TextSizeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+          <WorkspaceProvider>
+          <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
@@ -87,11 +89,12 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         </Routes>
-        </WorkspaceProvider>
-        </BrowserRouter>
-        <Toaster position={i18n.language === 'he' ? 'top-left' : 'top-right'} />
-      </AuthProvider>
-    </TextSizeProvider>
+          </WorkspaceProvider>
+          </BrowserRouter>
+          <Toaster position={i18n.language === 'he' ? 'top-left' : 'top-right'} />
+        </AuthProvider>
+      </TextSizeProvider>
+    </ThemeProvider>
   );
 };
 

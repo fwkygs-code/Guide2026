@@ -182,7 +182,7 @@ const DashboardPage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => setNewWorkspaceLogo('')}
-                          className="absolute top-0 right-0 h-6 w-6 p-0 text-destructive bg-white/90 hover:bg-white"
+                          className="absolute top-0 right-0 h-6 w-6 p-0 text-destructive bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800"
                         >
                           <X className="w-3 h-3" />
                         </Button>
@@ -227,7 +227,7 @@ const DashboardPage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => setNewWorkspaceBackground('')}
-                          className="absolute top-2 right-2 text-destructive bg-white/90 hover:bg-white"
+                          className="absolute top-2 right-2 text-destructive bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800"
                         >
                           <X className="w-4 h-4" />
                         </Button>

@@ -1079,22 +1079,22 @@ const CanvasBuilderPage = () => {
   return (
     <DashboardLayout>
       <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} workspaceId={workspaceId} />
-      <div className="h-[calc(100vh-4rem)] flex flex-col bg-white overflow-hidden">
+      <div className="h-[calc(100vh-4rem)] flex flex-col bg-white dark:bg-black overflow-hidden">
         {(isSaving || isPublishing) && (
           <div
             className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center"
             style={{ pointerEvents: 'auto' }}
           >
-            <div className="bg-white rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-soft-lg px-6 py-5 flex items-center gap-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              <div className="text-sm text-slate-700">
+              <div className="text-sm text-slate-700 dark:text-slate-300">
                 {isPublishing ? t('builder.publishing') : t('builder.saving')} {t('builder.pleaseWait')}
               </div>
             </div>
           </div>
         )}
         {/* Top Bar */}
-        <div className="h-16 flex-shrink-0 border-b border-slate-200 bg-white flex items-center justify-between px-6">
+        <div className="h-16 flex-shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -1121,7 +1121,7 @@ const CanvasBuilderPage = () => {
                 <div className="h-6 w-px bg-slate-200" />
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500 font-medium">{t('builder.navigationType')}:</span>
-                  <div className="flex items-center gap-1 bg-slate-100 rounded-md p-1">
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-md p-1">
                     <Button
                       variant={(walkthrough.steps[currentStepIndex]?.navigation_type || 'next_prev') === 'next_prev' ? 'default' : 'ghost'}
                       size="sm"
@@ -1365,7 +1365,7 @@ const CanvasBuilderPage = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden fixed left-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
+                className="lg:hidden fixed left-4 top-20 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-10 w-10 p-0 rounded-full"
                 onClick={() => setLeftPanelVisible(true)}
                 title="Show walkthrough settings"
               >
@@ -1378,7 +1378,7 @@ const CanvasBuilderPage = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden fixed right-4 top-20 z-30 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-10 w-10 p-0 rounded-full"
+                className="lg:hidden fixed right-4 top-20 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-10 w-10 p-0 rounded-full"
                 onClick={() => setRightPanelVisible(true)}
                 title="Show element settings"
               >
@@ -1408,7 +1408,7 @@ const CanvasBuilderPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-left-10' : '-right-10'}`}
+                          className={`absolute top-4 z-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-8 w-8 p-0 ${isRTL ? '-left-10' : '-right-10'}`}
                           onClick={() => setLeftPanelVisible(false)}
                           title="Hide walkthrough settings"
                         >
@@ -1469,7 +1469,7 @@ const CanvasBuilderPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`absolute top-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0 ${isRTL ? '-right-10' : '-left-10'}`}
+                          className={`absolute top-4 z-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-8 w-8 p-0 ${isRTL ? '-right-10' : '-left-10'}`}
                           onClick={() => setRightPanelVisible(false)}
                           title="Hide element settings"
                         >
@@ -1486,7 +1486,7 @@ const CanvasBuilderPage = () => {
             <div className="lg:hidden">
               {leftPanelVisible && (
                 <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setLeftPanelVisible(false)}>
-                  <div className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+                  <div className="absolute left-0 top-0 bottom-0 w-80 bg-white dark:bg-slate-900 shadow-xl" onClick={(e) => e.stopPropagation()}>
                     <div className="relative h-full">
                       <LeftSidebar
                         walkthrough={walkthrough}
@@ -1504,7 +1504,7 @@ const CanvasBuilderPage = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-4 right-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                        className="absolute top-4 right-4 z-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-8 w-8 p-0"
                         onClick={() => setLeftPanelVisible(false)}
                         title="Close"
                       >
@@ -1562,7 +1562,7 @@ const CanvasBuilderPage = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-4 right-4 z-10 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-8 w-8 p-0"
+                        className="absolute top-4 right-4 z-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-8 w-8 p-0"
                         onClick={() => setRightPanelVisible(false)}
                         title="Close"
                       >
@@ -1579,7 +1579,7 @@ const CanvasBuilderPage = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'right-0 rounded-l-lg' : 'left-0 rounded-r-lg'}`}
+                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'right-0 rounded-l-lg' : 'left-0 rounded-r-lg'}`}
                 onClick={() => setLeftPanelVisible(true)}
                 title="Show walkthrough settings"
               >
@@ -1591,7 +1591,7 @@ const CanvasBuilderPage = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'left-0 rounded-r-lg' : 'right-0 rounded-l-lg'}`}
+                className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 h-12 w-8 p-0 lg:flex hidden ${isRTL ? 'left-0 rounded-r-lg' : 'right-0 rounded-l-lg'}`}
                 onClick={() => setRightPanelVisible(true)}
                 title="Show element settings"
               >
@@ -1704,7 +1704,7 @@ const CanvasBuilderPage = () => {
           {diagnosisData ? (
             <div className="space-y-4 mt-4">
               {/* Current Status */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                 <h3 className="font-semibold text-slate-900 mb-2">{t('builder.currentStatus')}</h3>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
@@ -1735,7 +1735,7 @@ const CanvasBuilderPage = () => {
               </div>
 
               {/* Version Snapshots */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                 <h3 className="font-semibold text-slate-900 mb-2">{t('builder.versionSnapshots')}</h3>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
@@ -1750,7 +1750,7 @@ const CanvasBuilderPage = () => {
                 {diagnosisData.version_snapshots_status.version_details.length > 0 && (
                   <div className="mt-3 space-y-2">
                     {diagnosisData.version_snapshots_status.version_details.map((version, idx) => (
-                      <div key={idx} className="p-3 bg-white rounded-lg border border-slate-200">
+                      <div key={idx} className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-medium text-slate-900">Version {version.version}</span>
                           <span className="text-xs text-slate-500">{new Date(version.created_at).toLocaleDateString()}</span>

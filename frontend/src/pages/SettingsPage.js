@@ -406,7 +406,7 @@ const SettingsPage = () => {
             <p className="text-xs text-slate-500 mb-4">Add buttons with external links that will appear at the top of your portal (e.g., link to your website, support page, etc.)</p>
             <div className="space-y-3">
               {portalLinks.map((link, index) => (
-                <div key={index} className="flex gap-2 items-start p-3 bg-slate-50/50 rounded-lg border border-slate-200/50">
+                <div key={index} className="flex gap-2 items-start p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
                   <div className="flex-1 space-y-2">
                     <Input
                       placeholder="Button Label (e.g., Visit Website)"

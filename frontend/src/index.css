@@ -89,6 +89,11 @@ body {
   color: #1D1D1F;
 }
 
+.dark body {
+  background-color: #000000;
+  color: #FFFFFF;
+}
+
 code {
   font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
@@ -156,7 +161,7 @@ code {
 @layer utilities {
   /* Apple-style glassmorphism */
   .glass {
-    @apply bg-white/80 backdrop-blur-xl border border-gray-200/50;
+    @apply bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50;
   }
   .glass-dark {
     @apply bg-black/80 backdrop-blur-xl border border-gray-800/50;

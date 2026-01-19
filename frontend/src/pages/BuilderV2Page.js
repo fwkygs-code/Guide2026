@@ -491,7 +491,7 @@ const BuilderV2Page = () => {
 
   if (loading || workspaceLoading || !workspaceId) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-slate-50">
+      <div className="w-screen h-screen flex items-center justify-center bg-slate-50 dark:bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -638,7 +638,7 @@ const BuilderV2Page = () => {
   }
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-slate-50 overflow-hidden" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh' }}>
+    <div className="w-screen h-screen flex flex-col bg-slate-50 dark:bg-black overflow-hidden" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh' }}>
       {/* Zone 1: Top Command Bar (Fixed Height) */}
       <div className="h-14 flex-shrink-0 border-b border-slate-200 bg-white flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
@@ -787,7 +787,7 @@ const BuilderV2Page = () => {
         />
 
         {/* Zone 3: Canvas Stage (Center - ONLY Scrollable Area) */}
-        <div className="flex-1 overflow-y-auto bg-slate-100 min-w-0">
+        <div className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 min-w-0">
           <CanvasStage
             currentStep={currentStep}
             blocks={blocks}
@@ -1541,7 +1541,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
   return (
     <div className="space-y-4">
       {/* Carousel Display */}
-      <div className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 space-y-0">
+      <div className="relative border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900 space-y-0">
         {/* Navigation Arrows */}
         {slides.length > 1 && (
           <>
@@ -1569,7 +1569,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
         )}
 
         {/* Slide Content */}
-        <div className="aspect-video relative bg-slate-100">
+        <div className="aspect-video relative bg-slate-100 dark:bg-slate-800">
           {currentSlide?.url ? (
             <>
               {currentSlide.media_type === 'video' ? (

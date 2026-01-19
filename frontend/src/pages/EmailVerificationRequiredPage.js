@@ -38,7 +38,7 @@ const EmailVerificationRequiredPage = () => {
   // Show loading while checking
   if (checking || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-black dark:to-slate-900">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -67,7 +67,7 @@ const EmailVerificationRequiredPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-black dark:to-slate-900 p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <AlertCircle className="w-12 h-12 mx-auto mb-4 text-blue-600" />

@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { api } from '../lib/api';
 import LanguageSwitcher from './LanguageSwitcher';
+import DarkModeToggle from './DarkModeToggle';
 
 const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
   const { t } = useTranslation();
@@ -58,7 +59,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
         <div className="fixed inset-0 bg-white/90 backdrop-blur-sm -z-10" />
       )}
       {/* Top Navigation */}
-      <nav className="glass border-b border-slate-200/50 sticky top-0 z-50">
+      <nav className="glass border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-50">
         <div className="px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <Button
@@ -114,6 +115,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               </Button>
             )}
             <LanguageSwitcher />
+            <DarkModeToggle />
             <Button
               variant="ghost"
               size="sm"
