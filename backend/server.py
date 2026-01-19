@@ -196,6 +196,7 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
     name: str
+    role: UserRole = UserRole.OWNER  # Default to OWNER, can be ADMIN, EDITOR, VIEWER
     subscription_id: Optional[str] = None
     plan_id: Optional[str] = None  # Denormalized for performance
     trial_ends_at: Optional[datetime] = None  # App-level Pro trial end date (14 days from start)
@@ -742,6 +743,20 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return User(**user)
+
+async def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to require admin role for admin-only endpoints.
+    """
+    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    user_role = user_doc.get("role", UserRole.OWNER.value)
+    if user_role != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    return current_user
 
 async def require_email_verified(current_user: User = Depends(get_current_user)) -> User:
     """
@@ -6699,16 +6714,13 @@ async def get_workspace_quota(workspace_id: str, current_user: User = Depends(ge
 async def reconcile_quota(
     user_id: Optional[str] = Query(None, description="Specific user ID to reconcile (optional, admin only)"),
     fix_discrepancies: bool = Query(False, description="Whether to fix discrepancies automatically"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """
     Reconcile quota usage by recalculating storage from file records.
     Compares calculated storage with expected values and reports discrepancies.
-    Admin-only endpoint (can be called by any authenticated user for now, but should be restricted in production).
+    Admin-only endpoint.
     """
-    # TODO: Add admin role check in production
-    # if current_user.role != "admin":
-    #     raise HTTPException(status_code=403, detail="Admin access required")
     
     discrepancies = []
     fixed_count = 0
@@ -6767,17 +6779,14 @@ async def cleanup_files(
     pending_hours: int = Query(24, description="Delete PENDING files older than this many hours"),
     failed_days: int = Query(7, description="Delete FAILED files older than this many days"),
     dry_run: bool = Query(True, description="If True, only report what would be deleted without actually deleting"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """
     Cleanup old PENDING and FAILED file records.
     - PENDING files older than pending_hours are likely abandoned uploads
     - FAILED files older than failed_days are failed uploads that won't be retried
-    Admin-only endpoint (can be called by any authenticated user for now, but should be restricted in production).
+    Admin-only endpoint.
     """
-    # TODO: Add admin role check in production
-    # if current_user.role != "admin":
-    #     raise HTTPException(status_code=403, detail="Admin access required")
     
     now = datetime.now(timezone.utc)
     pending_threshold = now - timedelta(hours=pending_hours)
@@ -7285,7 +7294,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Admin-only email diagnostic endpoint
 @api_router.get("/admin/email/config")
-async def get_email_config(current_user: User = Depends(get_current_user)):
+async def get_email_config(current_user: User = Depends(require_admin)):
     """
     Get email configuration status (for debugging).
     Shows what's configured without exposing sensitive data.
@@ -7303,16 +7312,13 @@ async def get_email_config(current_user: User = Depends(get_current_user)):
 @api_router.post("/admin/email/test")
 async def test_email(
     email: str = Body(..., description="Email address to send test email to"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """
     Send a test email via Resend HTTP API.
     Admin-only endpoint for testing email configuration without creating users.
     Returns detailed Resend API response for debugging.
     """
-    # TODO: Add admin role check when admin system is implemented
-    # For now, any authenticated user can test email
-    
     logging.info(f"[EMAIL][TEST] Admin test email requested by user_id={current_user.id} to={email}")
     
     # Check configuration
@@ -7442,7 +7448,7 @@ Guide2026
 @api_router.get("/admin/paypal/audit/{subscription_id}")
 async def get_paypal_audit_logs(
     subscription_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """
     Get full PayPal audit log for a subscription.
@@ -7450,8 +7456,6 @@ async def get_paypal_audit_logs(
     
     Returns chronological audit trail of all PayPal interactions for this subscription.
     """
-    # TODO: Add admin role check when admin system is implemented
-    # For now, any authenticated user can access (should be restricted in production)
     
     # Get subscription to verify it exists
     subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
@@ -7475,7 +7479,7 @@ async def get_paypal_audit_logs(
 @api_router.get("/admin/paypal/state/{subscription_id}")
 async def get_paypal_state(
     subscription_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """
     Get last verified PayPal status for a subscription.
@@ -7487,7 +7491,7 @@ async def get_paypal_state(
     - Timestamp of last verification
     - Full audit trail summary
     """
-    # TODO: Add admin role check when admin system is implemented
+    # Admin role check enforced via require_admin dependency
     
     # Get subscription
     subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
@@ -7645,6 +7649,373 @@ async def cleanup_duplicate_workspace_locks():
         logging.error(f"[startup] Failed to cleanup duplicate workspace locks: {e}", exc_info=True)
         logging.warning("[startup] Continuing without cleanup - duplicates will be handled by unique index")
         return 0
+
+# ============================================================================
+# ADMIN ENDPOINTS - User & Subscription Management
+# ============================================================================
+
+@api_router.get("/admin/users")
+async def list_users(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search by email or name"),
+    current_user: User = Depends(require_admin)
+):
+    """
+    List all users with pagination and search.
+    Admin-only endpoint.
+    """
+    skip = (page - 1) * limit
+    
+    # Build query
+    query = {}
+    if search:
+        query = {
+            "$or": [
+                {"email": {"$regex": search, "$options": "i"}},
+                {"name": {"$regex": search, "$options": "i"}}
+            ]
+        }
+    
+    # Get total count
+    total = await db.users.count_documents(query)
+    
+    # Get users
+    users_cursor = db.users.find(query, {"_id": 0, "password_hash": 0}).skip(skip).limit(limit).sort("created_at", -1)
+    users = await users_cursor.to_list(limit)
+    
+    # Enrich with plan and subscription info
+    enriched_users = []
+    for user in users:
+        user_dict = dict(user)
+        
+        # Get plan
+        plan_id = user.get('plan_id')
+        if plan_id:
+            plan = await db.plans.find_one({"id": plan_id}, {"_id": 0, "name": 1, "display_name": 1})
+            user_dict["plan"] = plan
+        
+        # Get subscription
+        subscription_id = user.get('subscription_id')
+        if subscription_id:
+            subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0, "status": 1, "started_at": 1})
+            user_dict["subscription"] = subscription
+        
+        # Get storage usage
+        user_dict["storage_used"] = await get_user_storage_usage(user.get("id"))
+        
+        enriched_users.append(user_dict)
+    
+    return {
+        "users": enriched_users,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/admin/users/{user_id}")
+async def get_user_details(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """
+    Get detailed user information including workspaces, walkthroughs, and quota.
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user_dict = dict(user)
+    
+    # Get plan
+    plan_id = user.get('plan_id')
+    if plan_id:
+        plan = await db.plans.find_one({"id": plan_id}, {"_id": 0})
+        user_dict["plan"] = plan
+    
+    # Get subscription
+    subscription_id = user.get('subscription_id')
+    if subscription_id:
+        subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
+        user_dict["subscription"] = subscription
+    
+    # Get workspaces
+    workspaces = await db.workspaces.find({"owner_id": user_id}, {"_id": 0}).to_list(1000)
+    user_dict["workspaces"] = workspaces
+    user_dict["workspace_count"] = len(workspaces)
+    
+    # Get walkthroughs
+    workspace_ids = [w["id"] for w in workspaces]
+    walkthrough_count = 0
+    if workspace_ids:
+        walkthrough_count = await db.walkthroughs.count_documents({"workspace_id": {"$in": workspace_ids}})
+    user_dict["walkthrough_count"] = walkthrough_count
+    
+    # Get storage usage
+    user_dict["storage_used"] = await get_user_storage_usage(user_id)
+    
+    # Get quota info
+    plan = await get_user_plan(user_id)
+    if plan:
+        user_dict["quota"] = {
+            "storage_allowed": plan.storage_bytes,
+            "storage_used": user_dict["storage_used"],
+            "workspaces_limit": plan.max_workspaces,
+            "workspaces_used": user_dict["workspace_count"],
+            "walkthroughs_limit": plan.max_walkthroughs,
+            "walkthroughs_used": walkthrough_count
+        }
+    
+    return user_dict
+
+@api_router.put("/admin/users/{user_id}/role")
+async def update_user_role(
+    user_id: str,
+    role: UserRole = Body(..., description="New role for user"),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Update user role.
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": role.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} updated role for user {user_id} to {role.value}")
+    
+    return {"success": True, "user_id": user_id, "role": role.value}
+
+@api_router.put("/admin/users/{user_id}/plan")
+async def admin_update_user_plan(
+    user_id: str,
+    plan_name: str = Body(..., description="Plan name to assign"),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Admin endpoint to update user's plan.
+    Bypasses PayPal subscription requirement - use for testing or manual upgrades.
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get plan
+    plan = await db.plans.find_one({"name": plan_name}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
+    
+    # Update user plan
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"plan_id": plan["id"], "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} updated plan for user {user_id} to {plan_name}")
+    
+    return {"success": True, "user_id": user_id, "plan_name": plan_name, "plan_id": plan["id"]}
+
+@api_router.post("/admin/users/{user_id}/subscription/manual")
+async def create_manual_subscription(
+    user_id: str,
+    plan_name: str = Body(..., description="Plan name for subscription"),
+    duration_days: Optional[int] = Body(None, description="Subscription duration in days (None = permanent)"),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Create a manual subscription for a user (bypasses PayPal).
+    Useful for testing, promotions, or manual upgrades.
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get plan
+    plan = await db.plans.find_one({"name": plan_name}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"Plan '{plan_name}' not found")
+    
+    # Create subscription
+    subscription_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    expires_at = None
+    if duration_days:
+        expires_at = now + timedelta(days=duration_days)
+    
+    subscription = {
+        "id": subscription_id,
+        "user_id": user_id,
+        "plan_id": plan["id"],
+        "status": SubscriptionStatus.ACTIVE.value,
+        "provider_subscription_id": None,  # Manual subscription, no PayPal
+        "extra_storage_bytes": 0,
+        "started_at": now.isoformat(),
+        "cancelled_at": None,
+        "cancel_at_period_end": False,
+        "paypal_verified_status": None,
+        "last_verified_at": None,
+        "cancellation_requested_at": None,
+        "effective_end_date": expires_at.isoformat() if expires_at else None,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+    
+    await db.subscriptions.insert_one(subscription)
+    
+    # Update user
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "subscription_id": subscription_id,
+            "plan_id": plan["id"],
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} created manual subscription for user {user_id} (plan: {plan_name}, duration: {duration_days} days)")
+    
+    return {
+        "success": True,
+        "subscription_id": subscription_id,
+        "user_id": user_id,
+        "plan_name": plan_name,
+        "expires_at": expires_at.isoformat() if expires_at else None
+    }
+
+@api_router.delete("/admin/users/{user_id}/subscription")
+async def cancel_user_subscription(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """
+    Cancel a user's subscription (admin override).
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    subscription_id = user.get('subscription_id')
+    if not subscription_id:
+        raise HTTPException(status_code=404, detail="User has no subscription")
+    
+    # Update subscription
+    await db.subscriptions.update_one(
+        {"id": subscription_id},
+        {"$set": {
+            "status": SubscriptionStatus.CANCELLED.value,
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update user plan to free
+    free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+    if free_plan:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "plan_id": free_plan["id"],
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    logging.info(f"[ADMIN] User {current_user.id} cancelled subscription for user {user_id}")
+    
+    return {"success": True, "user_id": user_id, "subscription_id": subscription_id}
+
+@api_router.get("/admin/stats")
+async def get_admin_stats(
+    current_user: User = Depends(require_admin)
+):
+    """
+    Get system-wide statistics.
+    Admin-only endpoint.
+    """
+    # User stats
+    total_users = await db.users.count_documents({})
+    verified_users = await db.users.count_documents({"email_verified": True})
+    admin_users = await db.users.count_documents({"role": UserRole.ADMIN.value})
+    
+    # Plan distribution
+    plan_distribution = {}
+    users_by_plan = await db.users.aggregate([
+        {"$group": {"_id": "$plan_id", "count": {"$sum": 1}}}
+    ]).to_list(100)
+    
+    for item in users_by_plan:
+        plan_id = item.get("_id")
+        if plan_id:
+            plan = await db.plans.find_one({"id": plan_id}, {"_id": 0, "name": 1, "display_name": 1})
+            if plan:
+                plan_distribution[plan["name"]] = {
+                    "display_name": plan["display_name"],
+                    "count": item.get("count", 0)
+                }
+    
+    # Subscription stats
+    active_subscriptions = await db.subscriptions.count_documents({"status": SubscriptionStatus.ACTIVE.value})
+    cancelled_subscriptions = await db.subscriptions.count_documents({"status": SubscriptionStatus.CANCELLED.value})
+    pending_subscriptions = await db.subscriptions.count_documents({"status": SubscriptionStatus.PENDING.value})
+    
+    # Workspace stats
+    total_workspaces = await db.workspaces.count_documents({})
+    
+    # Walkthrough stats
+    total_walkthroughs = await db.walkthroughs.count_documents({})
+    published_walkthroughs = await db.walkthroughs.count_documents({"status": WalkthroughStatus.PUBLISHED.value})
+    
+    # File stats
+    total_files = await db.files.count_documents({})
+    active_files = await db.files.count_documents({"status": FileStatus.ACTIVE})
+    
+    # Storage stats
+    active_file_records = await db.files.find({"status": FileStatus.ACTIVE}, {"size_bytes": 1}).to_list(10000)
+    total_storage = sum(f.get("size_bytes", 0) for f in active_file_records)
+    
+    return {
+        "users": {
+            "total": total_users,
+            "verified": verified_users,
+            "admins": admin_users,
+            "unverified": total_users - verified_users
+        },
+        "plans": plan_distribution,
+        "subscriptions": {
+            "active": active_subscriptions,
+            "cancelled": cancelled_subscriptions,
+            "pending": pending_subscriptions,
+            "total": active_subscriptions + cancelled_subscriptions + pending_subscriptions
+        },
+        "workspaces": {
+            "total": total_workspaces
+        },
+        "walkthroughs": {
+            "total": total_walkthroughs,
+            "published": published_walkthroughs,
+            "draft": total_walkthroughs - published_walkthroughs
+        },
+        "files": {
+            "total": total_files,
+            "active": active_files,
+            "pending": await db.files.count_documents({"status": FileStatus.PENDING.value}),
+            "failed": await db.files.count_documents({"status": FileStatus.FAILED.value})
+        },
+        "storage": {
+            "total_bytes": total_storage,
+            "total_gb": round(total_storage / (1024 ** 3), 2)
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 @app.on_event("startup")
 async def startup_event():

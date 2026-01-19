@@ -196,5 +196,39 @@ export const api = {
       throw error;
     }
   },
-  unlockWorkspace: (workspaceId) => axios.delete(`${API}/workspaces/${workspaceId}/lock`)
+  unlockWorkspace: (workspaceId) => axios.delete(`${API}/workspaces/${workspaceId}/lock`),
+  
+  // Admin endpoints
+  // Users
+  adminListUsers: (page = 1, limit = 50, search = null) => {
+    const params = { page, limit };
+    if (search) params.search = search;
+    return axios.get(`${API}/admin/users`, { params });
+  },
+  adminGetUser: (userId) => axios.get(`${API}/admin/users/${userId}`),
+  adminUpdateUserRole: (userId, role) => axios.put(`${API}/admin/users/${userId}/role`, { role }),
+  adminUpdateUserPlan: (userId, planName) => axios.put(`${API}/admin/users/${userId}/plan`, { plan_name: planName }),
+  
+  // Subscriptions
+  adminCreateManualSubscription: (userId, planName, durationDays = null) => 
+    axios.post(`${API}/admin/users/${userId}/subscription/manual`, { plan_name: planName, duration_days: durationDays }),
+  adminCancelSubscription: (userId) => axios.delete(`${API}/admin/users/${userId}/subscription`),
+  
+  // Stats
+  adminGetStats: () => axios.get(`${API}/admin/stats`),
+  
+  // Existing admin endpoints
+  adminReconcileQuota: (userId = null, fixDiscrepancies = false) => {
+    const params = { fix_discrepancies: fixDiscrepancies };
+    if (userId) params.user_id = userId;
+    return axios.post(`${API}/admin/reconcile-quota`, null, { params });
+  },
+  adminCleanupFiles: (pendingHours = 24, failedDays = 7, dryRun = true) => 
+    axios.post(`${API}/admin/cleanup-files`, null, { 
+      params: { pending_hours: pendingHours, failed_days: failedDays, dry_run: dryRun } 
+    }),
+  adminGetEmailConfig: () => axios.get(`${API}/admin/email/config`),
+  adminTestEmail: (email) => axios.post(`${API}/admin/email/test`, email),
+  adminGetPayPalAudit: (subscriptionId) => axios.get(`${API}/admin/paypal/audit/${subscriptionId}`),
+  adminGetPayPalState: (subscriptionId) => axios.get(`${API}/admin/paypal/state/${subscriptionId}`)
 };

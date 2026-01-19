@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink, Database } from 'lucide-react';
+import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink, Database, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '../contexts/AuthContext';
@@ -151,6 +151,17 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                   <QuotaDisplay workspaceId={workspaceId} showWarnings={true} />
                 </DialogContent>
               </Dialog>
+            )}
+            {user && user.role === 'admin' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/admin')}
+                title="Admin Dashboard"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
             )}
             <LanguageSwitcher />
             <NotificationsMenu />

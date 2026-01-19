@@ -24,6 +24,8 @@ import PrivacyPage from './pages/PrivacyPage';
 import BillingPolicyPage from './pages/BillingPolicyPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import EmailVerificationRequiredPage from './pages/EmailVerificationRequiredPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminRoute from './components/AdminRoute';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -81,6 +83,7 @@ const AppContent = () => {
           <Route path="/embed/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage isEmbedded={true} />} />
           
           <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+          <Route path="/admin" element={<PrivateRoute><AdminRoute><AdminDashboardPage /></AdminRoute></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/walkthroughs" element={<PrivateRoute><WalkthroughsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/walkthroughs/new" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
