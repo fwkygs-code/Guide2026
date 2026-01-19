@@ -7122,8 +7122,7 @@ async def share_portal(slug: str, request: Request):
     logging.info(f"[share_portal] Redirecting real user to portal: {portal_url}")
     return RedirectResponse(url=portal_url, status_code=302)
 
-# Include router AFTER CORS middleware
-app.include_router(api_router)
+# Router will be included at the end of the file, after all routes are defined
 
 # Add middleware to handle OPTIONS requests and ensure CORS headers on all responses
 @app.middleware("http")
@@ -8035,3 +8034,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# Include router at the END, after all routes are defined
+# This ensures all routes (including admin routes) are registered
+app.include_router(api_router)
