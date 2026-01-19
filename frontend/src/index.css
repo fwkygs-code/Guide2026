@@ -107,19 +107,19 @@ code {
     --card-foreground: 29 29 31;
     --popover: 255 255 255;
     --popover-foreground: 29 29 31;
-    --primary: 0 122 255; /* Apple Blue */
-    --primary-foreground: 255 255 255;
-    --secondary: 245 245 247; /* Apple Light Gray */
-    --secondary-foreground: 29 29 31;
-    --muted: 245 245 247;
-    --muted-foreground: 110 110 115;
-    --accent: 0 122 255;
-    --accent-foreground: 255 255 255;
-    --destructive: 255 59 48; /* Apple Red */
-    --destructive-foreground: 255 255 255;
-    --border: 210 210 215; /* Apple Border Gray */
-    --input: 210 210 215;
-    --ring: 0 122 255;
+    --primary: 214 100% 50%; /* Apple Blue - HSL format for hsl(var(--primary)) */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%; /* Apple Light Gray - HSL format */
+    --secondary-foreground: 0 0% 12%;
+    --muted: 240 5% 96%; /* Light gray - HSL format */
+    --muted-foreground: 240 4% 44%; /* Medium gray - HSL format */
+    --accent: 214 100% 50%; /* Apple Blue - HSL format */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 4 90% 59%; /* Apple Red - HSL format */
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 83%; /* Apple Border Gray - HSL format */
+    --input: 240 5% 83%; /* HSL format */
+    --ring: 214 100% 50%; /* Apple Blue - HSL format */
     --radius: 1rem; /* More rounded like Apple */
   }
 
@@ -130,19 +130,19 @@ code {
     --card-foreground: 255 255 255;
     --popover: 28 28 30;
     --popover-foreground: 255 255 255;
-    --primary: 10 132 255; /* Apple Blue (darker) */
-    --primary-foreground: 255 255 255;
-    --secondary: 44 44 46;
-    --secondary-foreground: 255 255 255;
-    --muted: 44 44 46;
-    --muted-foreground: 142 142 147;
-    --accent: 10 132 255;
-    --accent-foreground: 255 255 255;
-    --destructive: 255 69 58;
-    --destructive-foreground: 255 255 255;
-    --border: 58 58 60;
-    --input: 58 58 60;
-    --ring: 10 132 255;
+    --primary: 214 100% 52%; /* Apple Blue (darker) - HSL format */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 18%; /* Dark gray - HSL format */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 18%; /* Dark gray - HSL format */
+    --muted-foreground: 0 0% 56%; /* Medium gray - HSL format */
+    --accent: 214 100% 52%; /* Apple Blue (darker) - HSL format */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 4 90% 61%; /* Apple Red - HSL format */
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 23%; /* Dark gray - HSL format */
+    --input: 0 0% 23%; /* HSL format */
+    --ring: 214 100% 52%; /* Apple Blue (darker) - HSL format */
   }
 }
 

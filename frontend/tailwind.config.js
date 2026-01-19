@@ -15,27 +15,29 @@ module.exports = {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#007AFF', // Apple Blue
+          DEFAULT: 'hsl(var(--primary))', // Uses CSS variable - Apple Blue
+          foreground: 'hsl(var(--primary-foreground))',
+          // Keep shade variants for explicit usage (e.g., primary-500)
           50: '#E3F2FD',
           100: '#BBDEFB',
           500: '#007AFF',
           600: '#0051D5',
           700: '#003D9E',
-          900: '#001F4F',
-          foreground: '#ffffff'
+          900: '#001F4F'
         },
         secondary: {
-          DEFAULT: '#F5F5F7', // Apple Light Gray
+          DEFAULT: 'hsl(var(--secondary))', // Uses CSS variable
+          foreground: 'hsl(var(--secondary-foreground))',
+          // Keep shade variants for explicit usage
           50: '#FAFAFA',
           100: '#F5F5F7',
           200: '#E5E5E7',
           800: '#3A3A3C',
-          900: '#1D1D1F',
-          foreground: '#1D1D1F'
+          900: '#1D1D1F'
         },
         accent: {
-          DEFAULT: '#0ea5e9',
-          foreground: '#ffffff'
+          DEFAULT: 'hsl(var(--accent))', // Uses CSS variable
+          foreground: 'hsl(var(--accent-foreground))'
         },
         success: {
           DEFAULT: '#10b981',
@@ -54,8 +56,8 @@ module.exports = {
           foreground: '#ffffff'
         },
         destructive: {
-          DEFAULT: '#FF3B30', // Apple Red
-          foreground: '#ffffff'
+          DEFAULT: 'hsl(var(--destructive))', // Uses CSS variable - Apple Red
+          foreground: 'hsl(var(--destructive-foreground))'
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
