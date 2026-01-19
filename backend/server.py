@@ -398,6 +398,12 @@ class File(BaseModel):
     url: str  # Cloudinary URL or local path
     public_id: Optional[str] = None  # Cloudinary public_id for deletion
     resource_type: str
+    idempotency_key: str  # Unique key for deduplication
+    reference_type: Optional[str] = None  # "walkthrough_icon", "step_media", "block_image", "workspace_logo", etc.
+    reference_id: Optional[str] = None  # walkthrough_id, step_id, block_id, etc.
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    deleted_at: Optional[datetime] = None
 
 class Notification(BaseModel):
     model_config = ConfigDict(extra="ignore")
