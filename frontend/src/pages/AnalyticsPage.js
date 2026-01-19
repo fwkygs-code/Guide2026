@@ -4,6 +4,9 @@ import { motion } from 'framer-motion';
 import { BarChart3, Eye, Play, CheckCircle, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { useWorkspaceLock } from '../hooks/useWorkspaceLock';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, Users } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 
@@ -103,6 +106,23 @@ const AnalyticsPage = () => {
 
   return (
     <DashboardLayout>
+      {/* Lock status indicator */}
+      {lockStatus && lockStatus.locked && lockStatus.is_current_user && (
+        <Alert className="mb-4 border-blue-200 bg-blue-50">
+          <Users className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            <strong>You have exclusive access</strong> to this workspace. Other users will be notified if they try to enter.
+          </AlertDescription>
+        </Alert>
+      )}
+      {lockStatus && lockStatus.locked && !lockStatus.is_current_user && (
+        <Alert className="mb-4 border-red-200 bg-red-50">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-900">
+            <strong>Warning:</strong> Another user ({lockStatus.locked_by_name}) is currently in this workspace. You may be redirected.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-heading font-bold text-slate-900">Analytics</h1>
