@@ -42,7 +42,7 @@ const BuilderV2Page = () => {
   const isEditing = !!walkthroughId && walkthroughId !== 'new';
   
   // Resolve workspace slug to ID
-  const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
+  const { workspaceId, loading: workspaceLoading, error: workspaceError } = useWorkspaceSlug(workspaceSlug);
   const { canUploadFile } = useQuota(workspaceId);
 
   // Core state
@@ -110,8 +110,29 @@ const BuilderV2Page = () => {
     };
   }, [workspaceId, workspaceSlug, navigate]);
 
+  // Show error if workspace fetch failed
+  useEffect(() => {
+    if (workspaceError && !workspaceLoading) {
+      const errorMessage = workspaceError.message || 'Failed to load workspace';
+      const errorStatus = workspaceError.status;
+      
+      if (errorStatus === 403) {
+        toast.error('Access denied: You do not have permission to access this workspace');
+      } else if (errorStatus === 404) {
+        toast.error('Workspace not found');
+      } else {
+        toast.error(errorMessage);
+      }
+      
+      navigate('/dashboard');
+    }
+  }, [workspaceError, workspaceLoading, navigate]);
+
   // Load categories and walkthrough if editing
   useEffect(() => {
+    if (!workspaceId || workspaceLoading) return; // Wait for workspace ID to be resolved
+    if (workspaceError) return; // Don't fetch if there was an error
+    
     const loadCategories = async () => {
       try {
         const response = await api.getCategories(workspaceId);
@@ -160,7 +181,7 @@ const BuilderV2Page = () => {
       };
       loadWalkthrough();
     }
-  }, [isEditing, walkthroughId, workspaceId, navigate]);
+  }, [isEditing, walkthroughId, workspaceId, navigate, workspaceLoading, workspaceError]);
 
   // Save walkthrough
   const saveWalkthrough = async () => {

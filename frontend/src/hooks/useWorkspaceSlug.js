@@ -27,7 +27,14 @@ export const useWorkspaceSlug = (workspaceSlug) => {
         setWorkspaceId(workspaceData.id);
       } catch (err) {
         console.error('Failed to fetch workspace:', err);
-        setError(err);
+        // Provide more detailed error information
+        const errorMessage = err.response?.data?.detail || err.message || 'Failed to load workspace';
+        const errorStatus = err.response?.status;
+        setError({
+          message: errorMessage,
+          status: errorStatus,
+          originalError: err
+        });
         setWorkspace(null);
         setWorkspaceId(null);
       } finally {

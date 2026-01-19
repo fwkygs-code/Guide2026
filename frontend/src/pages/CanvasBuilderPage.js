@@ -28,9 +28,34 @@ const CanvasBuilderPage = () => {
   const isEditing = !!walkthroughId;
   
   // Resolve workspace slug to ID
-  const { workspace, workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
+  const { workspace: workspaceFromHook, workspaceId, loading: workspaceLoading, error: workspaceError } = useWorkspaceSlug(workspaceSlug);
   
   const draftKey = workspaceId ? `interguide:draft:${workspaceId}` : null;
+  
+  // Set workspace from hook
+  useEffect(() => {
+    if (workspaceFromHook) {
+      setWorkspace(workspaceFromHook);
+    }
+  }, [workspaceFromHook]);
+  
+  // Show error if workspace fetch failed
+  useEffect(() => {
+    if (workspaceError && !workspaceLoading) {
+      const errorMessage = workspaceError.message || 'Failed to load workspace';
+      const errorStatus = workspaceError.status;
+      
+      if (errorStatus === 403) {
+        toast.error('Access denied: You do not have permission to access this workspace');
+      } else if (errorStatus === 404) {
+        toast.error('Workspace not found');
+      } else {
+        toast.error(errorMessage);
+      }
+      
+      navigate('/dashboard');
+    }
+  }, [workspaceError, workspaceLoading, navigate]);
 
   // Core state
   const [walkthrough, setWalkthrough] = useState({
@@ -145,8 +170,12 @@ const CanvasBuilderPage = () => {
       });
     }
   }
-  fetchData();
-}, [workspaceId, walkthroughId]);
+  
+  // Only fetch data if workspace is loaded and valid
+  if (workspaceId && !workspaceLoading && !workspaceError) {
+    fetchData();
+  }
+}, [workspaceId, walkthroughId, workspaceLoading, workspaceError]);
 
   // Restore draft for new walkthroughs (prevents losing long edits on refresh)
   // Only restore if we're not explicitly on /new route
@@ -200,6 +229,8 @@ const CanvasBuilderPage = () => {
   }, [walkthrough, isEditing, loading]);
 
   const fetchData = async () => {
+    if (!workspaceId || workspaceError) return; // Don't fetch if workspace ID is invalid or there was an error
+    
     try {
       const [wsResponse, catResponse] = await Promise.all([
         api.getWorkspace(workspaceId),

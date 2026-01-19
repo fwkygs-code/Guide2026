@@ -26,7 +26,7 @@ const WalkthroughBuilderPage = () => {
   const isEditing = !!walkthroughId;
   
   // Resolve workspace slug to ID
-  const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
+  const { workspace: workspaceFromHook, workspaceId, loading: workspaceLoading, error: workspaceError } = useWorkspaceSlug(workspaceSlug);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -41,21 +41,41 @@ const WalkthroughBuilderPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [workspace, setWorkspace] = useState(null);
 
-  useEffect(() => {
-    if (!workspaceId) return; // Wait for workspace ID to be resolved
-    fetchCategories();
-    if (isEditing) {
-      fetchWalkthrough();
-    }
-  }, [workspaceId, walkthroughId]);
-  
-  // Get workspace from hook
-  const { workspace: workspaceFromHook } = useWorkspaceSlug(workspaceSlug);
+  // Set workspace from hook
   useEffect(() => {
     if (workspaceFromHook) {
       setWorkspace(workspaceFromHook);
     }
   }, [workspaceFromHook]);
+
+  // Show error if workspace fetch failed
+  useEffect(() => {
+    if (workspaceError && !workspaceLoading) {
+      const errorMessage = workspaceError.message || 'Failed to load workspace';
+      const errorStatus = workspaceError.status;
+      
+      if (errorStatus === 403) {
+        toast.error('Access denied: You do not have permission to access this workspace');
+      } else if (errorStatus === 404) {
+        toast.error('Workspace not found');
+      } else {
+        toast.error(errorMessage);
+      }
+      
+      // Navigate back to dashboard if workspace access failed
+      navigate('/dashboard');
+    }
+  }, [workspaceError, workspaceLoading, navigate]);
+
+  useEffect(() => {
+    if (!workspaceId || workspaceLoading) return; // Wait for workspace ID to be resolved and loading to complete
+    if (workspaceError) return; // Don't fetch if there was an error
+    
+    fetchCategories();
+    if (isEditing) {
+      fetchWalkthrough();
+    }
+  }, [workspaceId, walkthroughId, workspaceLoading, workspaceError]);
 
   const fetchCategories = async () => {
     if (!workspaceId) return; // Wait for workspace ID to be resolved
@@ -318,11 +338,31 @@ const WalkthroughBuilderPage = () => {
     updateStep(index, 'content', event.target.innerHTML);
   };
 
-  if (loading || !workspaceId) {
+  if (workspaceLoading || loading || !workspaceId) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (workspaceError) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Failed to Load Workspace</h2>
+            <p className="text-slate-600 mb-4">
+              {workspaceError.status === 403 
+                ? 'You do not have permission to access this workspace'
+                : workspaceError.message || 'An error occurred while loading the workspace'}
+            </p>
+            <Button onClick={() => navigate('/dashboard')}>
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
       </DashboardLayout>
     );
