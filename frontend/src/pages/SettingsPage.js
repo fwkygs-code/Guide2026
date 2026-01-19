@@ -59,9 +59,25 @@ const SettingsPage = () => {
       setPortalPhone(workspace.portal_phone || '');
       setPortalWorkingHours(workspace.portal_working_hours || '');
       setPortalWhatsapp(workspace.portal_whatsapp || '');
+      
+      // Check if user is owner directly from workspace object
+      if (user && workspace.owner_id) {
+        setIsOwner(workspace.owner_id === user.id);
+      } else if (user && workspaceId) {
+        // Fallback: if owner_id not in workspace object, fetch it
+        checkOwnership();
+      }
+      
       setLoading(false);
     }
-  }, [workspace]);
+  }, [workspace, user]);
+
+  // Fetch workspace members
+  useEffect(() => {
+    if (workspaceId && user) {
+      fetchMembers();
+    }
+  }, [workspaceId, user]);
   
   const fetchWorkspace = async () => {
     // Workspace is already loaded from useWorkspaceSlug hook, this function may not be needed
@@ -113,6 +129,63 @@ const SettingsPage = () => {
       toast.success('Background uploaded!');
     } catch (error) {
       toast.error('Failed to upload background');
+    }
+  };
+
+  const checkOwnership = async () => {
+    if (!workspaceId || !user) return;
+    try {
+      // Fetch workspace to get owner_id
+      const response = await api.getWorkspace(workspaceId);
+      if (response.data?.owner_id) {
+        setIsOwner(response.data.owner_id === user.id);
+      }
+    } catch (error) {
+      console.error('Failed to check ownership:', error);
+    }
+  };
+
+  const fetchMembers = async () => {
+    if (!workspaceId || !user) return;
+    setLoadingMembers(true);
+    try {
+      const response = await api.getWorkspaceMembers(workspaceId);
+      const membersList = response.data || [];
+      setMembers(membersList);
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+      setMembers([]);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleInvite = async () => {
+    if (!inviteEmail || !workspaceId) return;
+    setInviting(true);
+    try {
+      await api.inviteUserToWorkspace(workspaceId, inviteEmail);
+      toast.success(`Invitation sent to ${inviteEmail}`);
+      setInviteEmail('');
+      fetchMembers(); // Refresh members list
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Failed to send invitation';
+      toast.error(errorMsg);
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!workspaceId) return;
+    if (!confirm('Are you sure you want to remove this member?')) return;
+    try {
+      await api.removeWorkspaceMember(workspaceId, userId);
+      toast.success('Member removed');
+      fetchMembers();
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Failed to remove member';
+      toast.error(errorMsg);
     }
   };
 
