@@ -4129,18 +4129,39 @@ async def upload_file(
     
     Idempotent: If idempotency_key provided and file exists, returns existing file.
     """
+    try:
+        logging.info(f"[upload_file] Upload request received: user={current_user.id}, workspace_id={workspace_id}, reference_type={reference_type}, reference_id={reference_id}, filename={file.filename}")
+    except Exception as log_error:
+        logging.error(f"[upload_file] Failed to log upload request: {log_error}", exc_info=True)
     # Generate idempotency key if not provided
     if not idempotency_key:
         idempotency_key = str(uuid.uuid4())
     
+    # Get workspace_id from request or use first workspace if not provided
+    # IMPORTANT: Verify workspace access BEFORE using workspace data
+    if not workspace_id:
+        # Get user's first workspace (for backward compatibility)
+        workspace = await db.workspaces.find_one({"owner_id": current_user.id}, {"_id": 0, "id": 1, "owner_id": 1})
+        if not workspace:
+            raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
+        workspace_id = workspace['id']
+    else:
+        # Verify user has access to workspace (handles both owners and members)
+        try:
+            await check_workspace_access(workspace_id, current_user.id)
+        except HTTPException:
+            raise
+        except Exception as access_error:
+            logging.error(f"Failed to check workspace access: {access_error}", exc_info=True)
+            raise HTTPException(status_code=403, detail="Access denied to workspace")
+    
     # Get workspace to determine owner for idempotency check
-    # Note: workspace_id might not be set yet, so we'll check after workspace verification
-    workspace_for_idempotency = None
-    if workspace_id:
-        workspace_for_idempotency = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
+    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
     
     # For idempotency check, use workspace owner's user_id if shared user, otherwise current user
-    idempotency_user_id = workspace_for_idempotency['owner_id'] if (workspace_for_idempotency and workspace_for_idempotency['owner_id'] != current_user.id) else current_user.id
+    idempotency_user_id = workspace['owner_id'] if workspace['owner_id'] != current_user.id else current_user.id
     
     # Check for existing file with same idempotency key (idempotency check)
     existing_file = await db.files.find_one(
@@ -4179,27 +4200,7 @@ async def upload_file(
             detail=f"File size ({file_size} bytes) exceeds maximum allowed ({plan.max_file_size_bytes} bytes) for your plan"
         )
     
-    # Get workspace_id from request or use first workspace if not provided
-    if not workspace_id:
-        # Get user's first workspace (for backward compatibility)
-        workspace = await db.workspaces.find_one({"owner_id": current_user.id}, {"_id": 0})
-        if not workspace:
-            raise HTTPException(status_code=400, detail="No workspace found. Please specify workspace_id.")
-        workspace_id = workspace['id']
-    else:
-        # Verify user has access to workspace (handles both owners and members)
-        try:
-            await check_workspace_access(workspace_id, current_user.id)
-        except HTTPException:
-            raise
-        except Exception as access_error:
-            logging.error(f"Failed to check workspace access: {access_error}", exc_info=True)
-            raise HTTPException(status_code=403, detail="Access denied to workspace")
-    
-    # Get workspace to determine owner
-    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1})
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    # Workspace is already fetched above for idempotency check
     
     # For shared users, count storage against workspace owner's quota
     # For owners, use their own quota
@@ -4400,17 +4401,26 @@ async def upload_file(
         
     except Exception as e:
         # Mark file as failed if upload fails
-        logging.error(f"Cloudinary upload failed for file {file_id}: {str(e)}")
-        await db.files.update_one(
-            {"id": file_id},
-            {"$set": {
-                "status": FileStatus.FAILED,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
+        logging.error(f"[upload_file] Cloudinary upload failed for file {file_id}: {str(e)}", exc_info=True)
+        try:
+            await db.files.update_one(
+                {"id": file_id},
+                {"$set": {
+                    "status": FileStatus.FAILED,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        except Exception as update_error:
+            logging.error(f"[upload_file] Failed to update file record status to FAILED: {update_error}", exc_info=True)
+        
+        # Re-raise HTTPExceptions as-is (they already have proper status codes)
+        if isinstance(e, HTTPException):
+            raise
+        # For other exceptions, wrap in 500 error with detailed logging
+        logging.error(f"[upload_file] Unexpected error during upload: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"File upload to Cloudinary failed: {str(e)}. Please try again or contact support."
+            detail=f"File upload failed: {str(e)}. Please try again or contact support."
         )
 
 # Media serving route (fallback for local storage)
