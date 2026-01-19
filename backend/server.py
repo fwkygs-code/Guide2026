@@ -1934,7 +1934,11 @@ async def invite_user_to_workspace(
             # Don't fail the invitation if notification creation fails
     except Exception as e:
         logging.error(f"Failed to create invitation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to create invitation: {str(e)}")
+        # Provide more specific error message
+        error_detail = str(e)
+        if "duplicate key" in error_detail.lower() or "E11000" in error_detail:
+            raise HTTPException(status_code=400, detail="User already has a pending or accepted invitation")
+        raise HTTPException(status_code=500, detail=f"Failed to create invitation: {error_detail}")
     
     # Send invitation email (background task)
     background_tasks.add_task(
