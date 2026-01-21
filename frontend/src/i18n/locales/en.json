@@ -389,7 +389,7 @@
     "clickToNavigate": "Click the highlighted button to continue",
     "clickToOpen": "Click the highlighted button to open the form",
     "fillAndSubmit": "Fill in the required fields and submit the form",
-    "languageAvailable": "Language switcher available",
+    "languageAvailable": "You can switch languages anytime using the 🌐 button in the top-right menu. The tour will update instantly!",
     "steps": {
       "createWorkspace": {
         "title": "Create Your First Workspace",

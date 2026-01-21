@@ -21,13 +21,15 @@ const OnboardingTour = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [tourActive, setTourActive] = useState(false);
   const [highlightedElement, setHighlightedElement] = useState(null);
+  const [spotlightRect, setSpotlightRect] = useState(null);
   const observerRef = useRef(null);
+  const previousHighlightRef = useRef(null);
   
   // Determine text direction
   const isRTL = i18n.language === 'he';
 
-  // Define tour steps with actions to wait for
-  const steps = [
+  // Define tour steps with actions to wait for - using function to get fresh translations
+  const getSteps = useCallback(() => [
     {
       id: 'welcome',
       route: '/dashboard',
@@ -126,8 +128,9 @@ const OnboardingTour = () => {
       description: t('onboarding.steps.complete.description'),
       action: 'complete',
     },
-  ];
+  ], [t]);
 
+  const steps = getSteps();
   const currentStepData = steps[currentStep];
 
   // Check if user should see onboarding
@@ -152,26 +155,69 @@ const OnboardingTour = () => {
     return true;
   }, [location.pathname]);
 
-  // Highlight target element
+  // Highlight target element and update spotlight
   useEffect(() => {
     if (!tourActive || !currentStepData) return;
 
-    // Clear previous highlight
-    if (highlightedElement) {
-      highlightedElement.style.position = '';
-      highlightedElement.style.zIndex = '';
-      setHighlightedElement(null);
+    // Restore previous element's styles
+    if (previousHighlightRef.current) {
+      const prev = previousHighlightRef.current;
+      prev.element.style.position = prev.originalPosition;
+      prev.element.style.zIndex = prev.originalZIndex;
+      prev.element.style.pointerEvents = prev.originalPointerEvents;
+      previousHighlightRef.current = null;
     }
+
+    setHighlightedElement(null);
+    setSpotlightRect(null);
 
     // Wait for target element
     if (currentStepData.target) {
       const checkElement = () => {
         const element = document.querySelector(currentStepData.target);
         if (element) {
-          setHighlightedElement(element);
-          // Highlight it
+          // Store original styles
+          const originalPosition = element.style.position;
+          const originalZIndex = element.style.zIndex;
+          const originalPointerEvents = element.style.pointerEvents;
+          
+          previousHighlightRef.current = {
+            element,
+            originalPosition,
+            originalZIndex,
+            originalPointerEvents
+          };
+
+          // Highlight it - place ABOVE all tour elements
           element.style.position = 'relative';
-          element.style.zIndex = '10001';
+          element.style.zIndex = '10006';
+          element.style.pointerEvents = 'auto';
+          
+          setHighlightedElement(element);
+          
+          // Update spotlight position
+          const updateSpotlight = () => {
+            if (element && document.body.contains(element)) {
+              const rect = element.getBoundingClientRect();
+              setSpotlightRect({
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height
+              });
+            }
+          };
+          
+          updateSpotlight();
+          
+          // Update on scroll/resize
+          window.addEventListener('scroll', updateSpotlight, true);
+          window.addEventListener('resize', updateSpotlight);
+          
+          return () => {
+            window.removeEventListener('scroll', updateSpotlight, true);
+            window.removeEventListener('resize', updateSpotlight);
+          };
         } else {
           setTimeout(checkElement, 500);
         }
@@ -180,9 +226,11 @@ const OnboardingTour = () => {
     }
 
     return () => {
-      if (highlightedElement) {
-        highlightedElement.style.position = '';
-        highlightedElement.style.zIndex = '';
+      if (previousHighlightRef.current) {
+        const prev = previousHighlightRef.current;
+        prev.element.style.position = prev.originalPosition;
+        prev.element.style.zIndex = prev.originalZIndex;
+        prev.element.style.pointerEvents = prev.originalPointerEvents;
       }
     };
   }, [tourActive, currentStep, currentStepData]);
@@ -284,6 +332,20 @@ const OnboardingTour = () => {
 
   return (
     <>
+      {/* Pulse animation styles */}
+      <style>{`
+        @keyframes tour-pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.02);
+          }
+        }
+      `}</style>
+
       {/* Dark overlay */}
       <div className="fixed inset-0 bg-black/60 z-[9999] pointer-events-none" />
 
@@ -335,7 +397,7 @@ const OnboardingTour = () => {
 
           {/* Language switch reminder */}
           <div className="text-xs text-slate-500 italic border-t pt-3 border-slate-200 dark:border-slate-700 mb-4">
-            💡 {t('onboarding.languageSwitchTip')}
+            🌐 {t('onboarding.languageAvailable')}
           </div>
 
           {/* Skip button */}
@@ -351,27 +413,22 @@ const OnboardingTour = () => {
       </div>
 
       {/* Spotlight effect on target element */}
-      {highlightedElement && (
+      {spotlightRect && (
         <div
-          className="fixed pointer-events-none z-[10000]"
+          className="fixed pointer-events-none z-[10005]"
           style={{
-            top: highlightedElement.getBoundingClientRect().top - 8,
-            left: highlightedElement.getBoundingClientRect().left - 8,
-            width: highlightedElement.getBoundingClientRect().width + 16,
-            height: highlightedElement.getBoundingClientRect().height + 16,
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 20px rgba(79, 70, 229, 0.5)',
+            top: spotlightRect.top - 8,
+            left: spotlightRect.left - 8,
+            width: spotlightRect.width + 16,
+            height: spotlightRect.height + 16,
+            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px 5px rgba(79, 70, 229, 0.8)',
             borderRadius: '12px',
+            border: '3px solid rgba(79, 70, 229, 0.9)',
             transition: 'all 0.3s ease',
+            animation: 'tour-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }}
         />
       )}
-
-      {/* Always visible language switcher hint - floating near top nav */}
-      <div className={`fixed top-20 ${isRTL ? 'left-4' : 'right-4'} z-[10003]`}>
-        <div className="bg-primary text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-pulse">
-          🌐 {t('onboarding.languageAvailable')}
-        </div>
-      </div>
     </>
   );
 };

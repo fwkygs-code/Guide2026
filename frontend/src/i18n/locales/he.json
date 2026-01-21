@@ -542,7 +542,7 @@
     "clickToNavigate": "לחץ על הכפתור המודגש כדי להמשיך",
     "clickToOpen": "לחץ על הכפתור המודגש כדי לפתוח את הטופס",
     "fillAndSubmit": "מלא את השדות הנדרשים ושלח את הטופס",
-    "languageAvailable": "מחליף שפה זמין",
+    "languageAvailable": "אתה יכול להחליף שפות בכל עת באמצעות כפתור 🌐 בתפריט העליון. הסיור יתעדכן מיד!",
     "steps": {
       "createWorkspace": {
         "title": "צור את אזור העבודה הראשון שלך",
