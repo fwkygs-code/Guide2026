@@ -18,6 +18,7 @@ import OverQuotaBanner from '../components/OverQuotaBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
 import WorkspaceLockModal from '../components/WorkspaceLockModal';
+import OnboardingTour from '../components/OnboardingTour';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -135,6 +136,7 @@ const DashboardPage = () => {
 
   return (
     <DashboardLayout backgroundUrl={dashboardBackground}>
+      <OnboardingTour />
       <div className="p-8">
         <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
         <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />

@@ -377,6 +377,70 @@
     "startBuildingNow": "Start Building Now",
     "copyright": "© 2025 InterGuide. All rights reserved."
   },
+  "onboarding": {
+    "welcome": "Welcome to InterGuide!",
+    "startTour": "Start Tour",
+    "skipTour": "Skip Onboarding",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Finish",
+    "skip": "Skip",
+    "step": "Step {{current}} of {{total}}",
+    "steps": {
+      "createWorkspace": {
+        "title": "Create Your First Workspace",
+        "description": "Start by creating a workspace. This will be your container for guides and categories. Click the \"+ New Workspace\" button to begin."
+      },
+      "workspaceForm": {
+        "title": "Fill Workspace Details",
+        "description": "Enter a workspace name (required) and brand color (required). Logo and background images are optional - you can add them later in Settings."
+      },
+      "enterWorkspace": {
+        "title": "Enter Your Workspace",
+        "description": "Great! Now click on your newly created workspace card to enter it."
+      },
+      "guidesTab": {
+        "title": "This is the Guides Tab",
+        "description": "You're now in the Guides tab (default view). This is where you'll see and manage all your walkthroughs."
+      },
+      "navigateToCategories": {
+        "title": "Navigate to Categories",
+        "description": "Before creating a walkthrough, let's create a category to organize it. Click the \"Categories\" tab."
+      },
+      "createCategory": {
+        "title": "Create Your First Category",
+        "description": "Categories help organize your walkthroughs. Click \"+ New Category\" to create one."
+      },
+      "categoryForm": {
+        "title": "Fill Category Details",
+        "description": "Enter a category name (required) and description (required). Icon and NotebookLM/Gemini link are optional. For \"Parent Category\", keep it as \"None\" to create a top-level category."
+      },
+      "navigateToGuides": {
+        "title": "Back to Guides",
+        "description": "Perfect! Now let's create your first walkthrough. Click the \"Guides\" tab to go back."
+      },
+      "createWalkthrough": {
+        "title": "Create Your First Walkthrough",
+        "description": "Click \"+ New Walkthrough\" to create an interactive guide."
+      },
+      "walkthroughForm": {
+        "title": "Configure Walkthrough",
+        "description": "Enter a walkthrough name, description, and icon (optional). Select the category you just created from the dropdown."
+      },
+      "addSteps": {
+        "title": "Add Steps to Your Walkthrough",
+        "description": "Click the \"+\" button to add steps. Each step can have a name and multiple content blocks (text, images, GIFs, videos, etc.)."
+      },
+      "complete": {
+        "title": "You're All Set!",
+        "description": "Congratulations! You've created your first workspace, category, and walkthrough. Explore the interface and start building amazing guides!"
+      }
+    },
+    "languageSwitchTip": "The language button remains accessible throughout this tour. Try switching to see the tour in different languages!",
+    "waitingForElement": "Waiting for element to be ready...",
+    "elementNotFound": "Element not found. Please navigate to the correct location to continue.",
+    "pausedForNavigation": "Tour paused. Please complete the action to continue."
+  },
   "toast": {
     "welcomeBack": "Welcome back!",
     "accountCreated": "Account created successfully!",

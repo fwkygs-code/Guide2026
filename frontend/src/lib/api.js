@@ -71,6 +71,9 @@ export const api = {
   submitFeedback: (data) => axios.post(`${API}/feedback`, data),
   getFeedback: (workspaceId, walkthroughId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/feedback`),
 
+  // Onboarding
+  completeOnboarding: () => axios.post(`${API}/auth/complete-onboarding`),
+
   // Upload
   uploadFile: (file, options = {}) => {
     console.log('[API] uploadFile called:', {

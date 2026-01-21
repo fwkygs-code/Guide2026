@@ -573,6 +573,7 @@ const BuilderV2Page = () => {
                     onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Enter walkthrough name"
                     className="w-full"
+                    data-testid="walkthrough-name-input"
                   />
                 </div>
 

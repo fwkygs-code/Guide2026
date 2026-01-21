@@ -211,6 +211,7 @@ class User(BaseModel):
     custom_storage_bytes: Optional[int] = None  # Admin-set custom storage quota override (None = use plan)
     custom_max_workspaces: Optional[int] = None  # Admin-set custom workspace limit override (None = use plan)
     custom_max_walkthroughs: Optional[int] = None  # Admin-set custom walkthrough limit override (None = use plan)
+    onboarding_completed: bool = False  # Track if user completed onboarding tour
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None  # Track modifications
 
@@ -2112,6 +2113,22 @@ async def get_me(current_user: User = Depends(get_current_user)):
         # Refresh user data
         user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
     return User(**user_doc)
+
+@api_router.post("/auth/complete-onboarding")
+async def complete_onboarding(current_user: User = Depends(get_current_user)):
+    """
+    Mark the user's onboarding tour as completed.
+    This is called when user completes or skips the onboarding tour.
+    """
+    try:
+        await db.users.update_one(
+            {"id": current_user.id},
+            {"$set": {"onboarding_completed": True, "updated_at": datetime.now(timezone.utc)}}
+        )
+        return {"success": True, "message": "Onboarding marked as completed"}
+    except Exception as error:
+        logging.error(f"Failed to mark onboarding as completed: {error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to update onboarding status")
 
 # Notification Routes
 @api_router.get("/notifications")
