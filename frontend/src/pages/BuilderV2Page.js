@@ -671,7 +671,7 @@ const BuilderV2Page = () => {
                 <div className="flex gap-3 pt-4">
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`.replace(/\/+/g, '/'))}
+                    onClick={() => navigate('/dashboard')}
                   >
                     Cancel
                   </Button>
@@ -697,7 +697,7 @@ const BuilderV2Page = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}
+            onClick={() => navigate('/dashboard')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             {t('common.back')}

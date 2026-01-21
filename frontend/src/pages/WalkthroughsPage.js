@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy, Settings, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy, Settings, Upload, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -270,15 +270,26 @@ const WalkthroughsPage = () => {
     <DashboardLayout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-slate-900 glass rounded-xl px-6 py-3 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg inline-block"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
-                }}>
-              {workspace?.name} - {t('workspace.walkthroughs')}
-            </h1>
-            <p className="text-slate-600 mt-1">{t('walkthrough.createAndManage')}</p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t('common.backToWorkspace', 'Back to Workspace')}
+            </Button>
+            <div>
+              <h1 className="text-3xl font-heading font-bold text-slate-900 glass rounded-xl px-6 py-3 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg inline-block"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
+                  }}>
+                {workspace?.name} - {t('workspace.walkthroughs')}
+              </h1>
+              <p className="text-slate-600 mt-1">{t('walkthrough.createAndManage')}</p>
+            </div>
           </div>
           <div className="flex gap-3">
             <Button
