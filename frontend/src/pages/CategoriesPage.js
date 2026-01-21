@@ -560,7 +560,7 @@ const CategoriesPage = () => {
 
         {/* Edit Category Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t('category.edit')}</DialogTitle>
             </DialogHeader>
