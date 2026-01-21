@@ -33,7 +33,7 @@ const OnboardingTour = () => {
     {
       id: 'welcome',
       route: '/dashboard',
-      target: null,
+      target: '[data-testid="create-workspace-button"]',
       title: t('onboarding.steps.createWorkspace.title'),
       description: t('onboarding.steps.createWorkspace.description'),
       action: 'wait_for_dialog', // Wait for create workspace dialog
@@ -190,7 +190,7 @@ const OnboardingTour = () => {
 
           // Highlight it - place ABOVE all tour elements
           element.style.position = 'relative';
-          element.style.zIndex = '10006';
+          element.style.zIndex = '10010';
           element.style.pointerEvents = 'auto';
           
           setHighlightedElement(element);
@@ -211,12 +211,13 @@ const OnboardingTour = () => {
           updateSpotlight();
           
           // Update on scroll/resize
-          window.addEventListener('scroll', updateSpotlight, true);
-          window.addEventListener('resize', updateSpotlight);
+          const handleUpdate = () => updateSpotlight();
+          window.addEventListener('scroll', handleUpdate, true);
+          window.addEventListener('resize', handleUpdate);
           
           return () => {
-            window.removeEventListener('scroll', updateSpotlight, true);
-            window.removeEventListener('resize', updateSpotlight);
+            window.removeEventListener('scroll', handleUpdate, true);
+            window.removeEventListener('resize', handleUpdate);
           };
         } else {
           setTimeout(checkElement, 500);
@@ -336,29 +337,87 @@ const OnboardingTour = () => {
       <style>{`
         @keyframes tour-pulse {
           0%, 100% {
-            opacity: 1;
-            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7);
           }
           50% {
-            opacity: 0.8;
-            transform: scale(1.02);
+            box-shadow: 0 0 0 15px rgba(79, 70, 229, 0);
           }
+        }
+        
+        .tour-spotlight-ring {
+          animation: tour-pulse 2s infinite;
         }
       `}</style>
 
-      {/* Dark overlay */}
-      <div className="fixed inset-0 bg-black/60 z-[9999] pointer-events-none" />
+      {/* Dark overlay with SVG mask for spotlight */}
+      <div 
+        className="fixed inset-0 z-[10000]" 
+        style={{ pointerEvents: 'auto' }}
+        onClick={(e) => {
+          // Block all clicks on overlay
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        {spotlightRect ? (
+          <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
+            <defs>
+              <mask id="spotlight-mask">
+                {/* White rectangle covering everything */}
+                <rect x="0" y="0" width="100%" height="100%" fill="white" />
+                {/* Black hole for the spotlight (cutout) */}
+                <rect
+                  x={spotlightRect.left - 8}
+                  y={spotlightRect.top - 8}
+                  width={spotlightRect.width + 16}
+                  height={spotlightRect.height + 16}
+                  rx="12"
+                  fill="black"
+                />
+              </mask>
+            </defs>
+            {/* Dark overlay with mask */}
+            <rect 
+              x="0" 
+              y="0" 
+              width="100%" 
+              height="100%" 
+              fill="rgba(0, 0, 0, 0.75)"
+              mask="url(#spotlight-mask)"
+            />
+          </svg>
+        ) : (
+          // No spotlight, just dark overlay
+          <div className="absolute inset-0 bg-black/75" />
+        )}
+      </div>
+
+      {/* Spotlight border and glow */}
+      {spotlightRect && (
+        <div
+          className="fixed pointer-events-none z-[10001] tour-spotlight-ring"
+          style={{
+            top: spotlightRect.top - 8,
+            left: spotlightRect.left - 8,
+            width: spotlightRect.width + 16,
+            height: spotlightRect.height + 16,
+            border: '3px solid rgba(79, 70, 229, 0.9)',
+            borderRadius: '12px',
+            transition: 'all 0.3s ease',
+          }}
+        />
+      )}
 
       {/* Floating instruction card */}
       <div
-        className={`fixed ${isRTL ? 'left-4' : 'right-4'} top-4 z-[10002] max-w-md`}
+        className={`fixed ${isRTL ? 'left-4' : 'right-4'} top-20 z-[10005] max-w-md pointer-events-auto`}
         style={{ direction: isRTL ? 'rtl' : 'ltr' }}
       >
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border-2 border-primary p-6 relative animate-in slide-in-from-top duration-500">
           {/* Close button */}
           <button
             onClick={handleSkip}
-            className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} text-slate-400 hover:text-slate-600 transition-colors`}
+            className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} text-slate-400 hover:text-slate-600 transition-colors z-10`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -411,24 +470,6 @@ const OnboardingTour = () => {
           </Button>
         </div>
       </div>
-
-      {/* Spotlight effect on target element */}
-      {spotlightRect && (
-        <div
-          className="fixed pointer-events-none z-[10005]"
-          style={{
-            top: spotlightRect.top - 8,
-            left: spotlightRect.left - 8,
-            width: spotlightRect.width + 16,
-            height: spotlightRect.height + 16,
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px 5px rgba(79, 70, 229, 0.8)',
-            borderRadius: '12px',
-            border: '3px solid rgba(79, 70, 229, 0.9)',
-            transition: 'all 0.3s ease',
-            animation: 'tour-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          }}
-        />
-      )}
     </>
   );
 };

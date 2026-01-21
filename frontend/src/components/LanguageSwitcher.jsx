@@ -29,7 +29,7 @@ const LanguageSwitcher = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 relative z-[10006]"
           data-testid="language-switcher-button"
         >
           <Languages className="w-4 h-4" />
@@ -38,7 +38,7 @@ const LanguageSwitcher = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align={i18n.language === 'he' ? 'start' : 'end'}
-        className="bg-white border-slate-200 text-slate-900 z-[10005]"
+        className="bg-white border-slate-200 text-slate-900 z-[10006]"
       >
         {languages.map((lang) => (
           <DropdownMenuItem
