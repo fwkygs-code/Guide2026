@@ -24,10 +24,17 @@ const VerifyEmailPage = () => {
   const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
   const [message, setMessage] = useState('');
   const [resending, setResending] = useState(false);
+  const verificationAttempted = React.useRef(false);
 
   useEffect(() => {
+    // Prevent double verification attempts (React StrictMode or re-renders)
+    if (verificationAttempted.current) {
+      return;
+    }
+
     const token = searchParams.get('token');
     if (token) {
+      verificationAttempted.current = true;
       verifyEmail(token);
     } else {
       setStatus('error');
@@ -41,24 +48,49 @@ const VerifyEmailPage = () => {
         params: { token }
       });
       
+      // Check if already verified
+      const alreadyVerified = response.data.already_verified;
+      const successMessage = alreadyVerified 
+        ? 'Your email is already verified!'
+        : 'Email verified successfully!';
+      
       setStatus('success');
-      setMessage(response.data.message || 'Email verified successfully!');
+      setMessage(response.data.message || successMessage);
       
       // Refresh user data to get updated email_verified status
       if (refreshUser) {
         await refreshUser();
       }
       
-      toast.success('Email verified successfully!');
+      toast.success(successMessage);
       
-      // Redirect to dashboard after 2 seconds
+      // Redirect to dashboard after a short delay
       setTimeout(() => {
         navigate('/dashboard');
-      }, 2000);
+      }, alreadyVerified ? 1500 : 2000);
     } catch (error) {
-      setStatus('error');
-      setMessage(error.response?.data?.detail || 'Verification failed. The token may be invalid or expired.');
-      toast.error('Email verification failed');
+      const errorDetail = error.response?.data?.detail || '';
+      
+      // Check if error message indicates already verified (fallback for old backend)
+      if (errorDetail.toLowerCase().includes('already verified')) {
+        setStatus('success');
+        setMessage('Your email is already verified!');
+        toast.success('Email already verified!');
+        
+        // Refresh user and redirect
+        if (refreshUser) {
+          await refreshUser();
+        }
+        
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1500);
+      } else {
+        // Actual error - token invalid or expired
+        setStatus('error');
+        setMessage(errorDetail || 'Verification failed. The token may be invalid or expired.');
+        toast.error('Email verification failed. Please try again or request a new link.');
+      }
     }
   };
 

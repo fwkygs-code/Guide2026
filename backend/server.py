@@ -1995,8 +1995,34 @@ async def verify_email(token: str = Query(..., description="Email verification t
     if not token:
         raise HTTPException(status_code=400, detail="Verification token is required")
     
-    # Find user with this verification token
-    # We need to check all users and verify the token against the hash
+    # First, check if user with this token is already verified
+    # This handles the case where verification succeeds but frontend makes duplicate request
+    all_users_cursor = db.users.find(
+        {
+            "email_verification_token": {"$ne": None}
+        },
+        {"_id": 0}
+    )
+    
+    already_verified_user = None
+    async for user_doc in all_users_cursor:
+        stored_hash = user_doc.get('email_verification_token')
+        if stored_hash and verify_verification_token(token, stored_hash):
+            if user_doc.get('email_verified'):
+                already_verified_user = user_doc
+                break
+    
+    if already_verified_user:
+        # Token is valid but user is already verified - return success
+        logging.info(f"Email verification attempted for already verified user {already_verified_user['id']} ({already_verified_user['email']})")
+        return {
+            "success": True,
+            "message": "Email already verified. You can access the dashboard.",
+            "email": already_verified_user['email'],
+            "already_verified": True
+        }
+    
+    # Find user with this verification token who is NOT yet verified
     users_cursor = db.users.find(
         {
             "email_verified": False,
