@@ -8644,6 +8644,35 @@ async def soft_delete_user(
     logging.info(f"[ADMIN] User {current_user.id} soft deleted user {user_id}")
     return {"success": True, "user_id": user_id, "deleted_at": datetime.now(timezone.utc).isoformat()}
 
+@api_router.put("/admin/users/{user_id}/restore")
+async def restore_user(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Restore a soft-deleted user. Admin-only endpoint."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.get('deleted_at'):
+        raise HTTPException(status_code=400, detail="User is not soft deleted")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {
+                "disabled": False,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$unset": {
+                "deleted_at": ""
+            }
+        }
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} restored user {user_id}")
+    return {"success": True, "user_id": user_id, "message": "User restored successfully"}
+
 @api_router.delete("/admin/users/{user_id}")
 async def hard_delete_user(
     user_id: str,
