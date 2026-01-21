@@ -421,8 +421,404 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
           </div>
         );
 
+      case BLOCK_TYPES.CHECKLIST:
+        return (
+          <div className="space-y-2" dir={isRTL ? 'rtl' : 'ltr'}>
+            {(block.data?.items || []).map((item, index) => (
+              <div key={item.id || index} className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={item.checked || false}
+                  onChange={(e) => {
+                    const updatedItems = [...(block.data.items || [])];
+                    updatedItems[index] = { ...item, checked: e.target.checked };
+                    onUpdate({ ...block, data: { ...block.data, items: updatedItems } });
+                  }}
+                  className="w-4 h-4"
+                />
+                <Input
+                  value={item.text || ''}
+                  onChange={(e) => {
+                    const updatedItems = [...(block.data.items || [])];
+                    updatedItems[index] = { ...item, text: e.target.value };
+                    onUpdate({ ...block, data: { ...block.data, items: updatedItems } });
+                  }}
+                  placeholder="Checklist item"
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const updatedItems = (block.data.items || []).filter((_, i) => i !== index);
+                    onUpdate({ ...block, data: { ...block.data, items: updatedItems } });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const newItem = { id: Date.now().toString(), text: '', checked: false };
+                onUpdate({ ...block, data: { ...block.data, items: [...(block.data.items || []), newItem] } });
+              }}
+              className="w-full"
+            >
+              + Add item
+            </Button>
+          </div>
+        );
+
+      case BLOCK_TYPES.CALLOUT:
+        const calloutVariants = {
+          tip: { icon: '💡', bg: 'bg-blue-50/50', border: 'border-blue-400', text: 'text-blue-900' },
+          warning: { icon: '⚠️', bg: 'bg-yellow-50/50', border: 'border-yellow-400', text: 'text-yellow-900' },
+          important: { icon: '❗', bg: 'bg-red-50/50', border: 'border-red-400', text: 'text-red-900' },
+          info: { icon: 'ℹ️', bg: 'bg-gray-50/50', border: 'border-gray-400', text: 'text-gray-900' }
+        };
+        const variant = calloutVariants[block.data?.variant || 'tip'];
+        return (
+          <div>
+            <Select
+              value={block.data?.variant || 'tip'}
+              onValueChange={(value) => onUpdate({ ...block, data: { ...block.data, variant: value } })}
+            >
+              <SelectTrigger className="w-32 mb-2 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tip">💡 Tip</SelectItem>
+                <SelectItem value="warning">⚠️ Warning</SelectItem>
+                <SelectItem value="important">❗ Important</SelectItem>
+                <SelectItem value="info">ℹ️ Info</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className={`${variant.bg} ${variant.border} border-l-4 p-4 rounded-xl`} dir={isRTL ? 'rtl' : 'ltr'}>
+              <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-2xl">{variant.icon}</span>
+                <Input
+                  value={block.data?.content || ''}
+                  onChange={(e) => onUpdate({ ...block, data: { ...block.data, content: e.target.value } })}
+                  placeholder="Callout message"
+                  className={`flex-1 bg-white ${variant.text}`}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case BLOCK_TYPES.ANNOTATED_IMAGE:
+        return (
+          <div>
+            {block.data?.url ? (
+              <div className="relative">
+                <img
+                  src={normalizeImageUrl(block.data.url)}
+                  alt={block.data.alt || ''}
+                  className="w-full rounded-lg"
+                  onError={(e) => {
+                    console.error('[BlockComponent] Annotated image failed to load');
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <div className="absolute inset-0">
+                  {(block.data?.markers || []).map((marker, index) => (
+                    <div
+                      key={marker.id || index}
+                      className="absolute w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:scale-110 transition-transform"
+                      style={{ left: `${marker.x}%`, top: `${marker.y}%`, transform: 'translate(-50%, -50%)' }}
+                      title={marker.text}
+                      onClick={() => {
+                        const newText = prompt('Marker text:', marker.text);
+                        if (newText !== null) {
+                          const updatedMarkers = [...(block.data.markers || [])];
+                          updatedMarkers[index] = { ...marker, text: newText };
+                          onUpdate({ ...block, data: { ...block.data, markers: updatedMarkers } });
+                        }
+                      }}
+                    >
+                      {index + 1}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 space-y-1">
+                  {(block.data?.markers || []).map((marker, index) => (
+                    <div key={marker.id || index} className="flex items-center gap-2 text-sm">
+                      <span className="font-bold">{index + 1}.</span>
+                      <span className="flex-1">{marker.text}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const updatedMarkers = (block.data.markers || []).filter((_, i) => i !== index);
+                          onUpdate({ ...block, data: { ...block.data, markers: updatedMarkers } });
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newMarker = {
+                      id: Date.now().toString(),
+                      x: 50,
+                      y: 50,
+                      text: 'New marker'
+                    };
+                    onUpdate({ ...block, data: { ...block.data, markers: [...(block.data.markers || []), newMarker] } });
+                  }}
+                  className="mt-2 w-full"
+                >
+                  + Add marker
+                </Button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => e.target.files[0] && handleMediaUpload(e.target.files[0])}
+                  className="mb-2"
+                />
+                <p className="text-sm text-slate-500 mt-2">or</p>
+                <Input
+                  placeholder="Paste image URL"
+                  onBlur={(e) => {
+                    if (e.target.value) {
+                      const normalizedUrl = normalizeImageUrl(e.target.value);
+                      onUpdate({ ...block, data: { ...block.data, url: normalizedUrl } });
+                    }
+                  }}
+                  className="mt-2"
+                />
+              </div>
+            )}
+          </div>
+        );
+
+      case BLOCK_TYPES.EMBED:
+        return (
+          <div className="space-y-3">
+            <Select
+              value={block.data?.provider || 'youtube'}
+              onValueChange={(value) => onUpdate({ ...block, data: { ...block.data, provider: value } })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="youtube">YouTube</SelectItem>
+                <SelectItem value="vimeo">Vimeo</SelectItem>
+                <SelectItem value="loom">Loom</SelectItem>
+                <SelectItem value="figma">Figma</SelectItem>
+                <SelectItem value="google_docs">Google Docs</SelectItem>
+                <SelectItem value="notebooklm">NotebookLM</SelectItem>
+                <SelectItem value="gemini">Gemini</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              value={block.data?.url || ''}
+              onChange={(e) => onUpdate({ ...block, data: { ...block.data, url: e.target.value } })}
+              placeholder="Paste embed URL"
+            />
+            <Select
+              value={block.data?.aspectRatio || '16:9'}
+              onValueChange={(value) => onUpdate({ ...block, data: { ...block.data, aspectRatio: value } })}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="16:9">16:9</SelectItem>
+                <SelectItem value="4:3">4:3</SelectItem>
+                <SelectItem value="1:1">1:1</SelectItem>
+              </SelectContent>
+            </Select>
+            {block.data?.url && (
+              <div className={`${block.data.aspectRatio === '16:9' ? 'aspect-video' : block.data.aspectRatio === '4:3' ? 'aspect-[4/3]' : 'aspect-square'} bg-slate-100 rounded-lg flex items-center justify-center`}>
+                <p className="text-sm text-slate-500">Embed preview ({block.data.provider})</p>
+              </div>
+            )}
+          </div>
+        );
+
+      case BLOCK_TYPES.SECTION:
+        return (
+          <div className="border border-slate-200 rounded-lg p-4" dir={isRTL ? 'rtl' : 'ltr'}>
+            <Input
+              value={block.data?.title || ''}
+              onChange={(e) => onUpdate({ ...block, data: { ...block.data, title: e.target.value } })}
+              placeholder="Section title"
+              className="mb-3 font-medium"
+            />
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                checked={block.data?.collapsible || false}
+                onChange={(e) => onUpdate({ ...block, data: { ...block.data, collapsible: e.target.checked } })}
+                className="w-4 h-4"
+              />
+              <Label className="text-sm">Collapsible</Label>
+            </div>
+            <div className="bg-slate-50 rounded p-3 text-sm text-slate-600">
+              Section content (nested blocks) will appear here in preview
+            </div>
+          </div>
+        );
+
+      case BLOCK_TYPES.CONFIRMATION:
+        return (
+          <div className="space-y-3" dir={isRTL ? 'rtl' : 'ltr'}>
+            <Select
+              value={block.data?.style || 'checkbox'}
+              onValueChange={(value) => onUpdate({ ...block, data: { ...block.data, style: value } })}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="checkbox">Checkbox</SelectItem>
+                <SelectItem value="button">Button</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              value={block.data?.message || ''}
+              onChange={(e) => onUpdate({ ...block, data: { ...block.data, message: e.target.value } })}
+              placeholder="Confirmation message"
+            />
+            <Input
+              value={block.data?.buttonText || 'I understand'}
+              onChange={(e) => onUpdate({ ...block, data: { ...block.data, buttonText: e.target.value } })}
+              placeholder="Button/checkbox text"
+            />
+            <div className="border border-slate-200 bg-slate-50 rounded-lg p-4">
+              <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {block.data?.style === 'checkbox' ? (
+                  <input type="checkbox" className="w-4 h-4" disabled />
+                ) : (
+                  <Button size="sm" disabled>{block.data?.buttonText || 'I understand'}</Button>
+                )}
+                <span className="text-sm">{block.data?.message || 'Confirmation message'}</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case BLOCK_TYPES.EXTERNAL_LINK:
+        return (
+          <div className="space-y-3" dir={isRTL ? 'rtl' : 'ltr'}>
+            <Input
+              value={block.data?.text || 'Learn more'}
+              onChange={(e) => onUpdate({ ...block, data: { ...block.data, text: e.target.value } })}
+              placeholder="Link text"
+            />
+            <Input
+              value={block.data?.url || ''}
+              onChange={(e) => onUpdate({ ...block, data: { ...block.data, url: e.target.value } })}
+              placeholder="https://..."
+            />
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={block.data?.openInNewTab !== false}
+                onChange={(e) => onUpdate({ ...block, data: { ...block.data, openInNewTab: e.target.checked } })}
+                className="w-4 h-4"
+              />
+              <Label className="text-sm">Open in new tab</Label>
+            </div>
+            <Select
+              value={block.data?.style || 'default'}
+              onValueChange={(value) => onUpdate({ ...block, data: { ...block.data, style: value } })}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default</SelectItem>
+                <SelectItem value="primary">Primary</SelectItem>
+                <SelectItem value="secondary">Secondary</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex">
+              <Button
+                variant={block.data?.style === 'primary' ? 'default' : block.data?.style === 'secondary' ? 'secondary' : 'outline'}
+                size="sm"
+                disabled
+              >
+                {block.data?.text || 'Learn more'} →
+              </Button>
+            </div>
+          </div>
+        );
+
+      case BLOCK_TYPES.CODE:
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Select
+                value={block.data?.language || 'bash'}
+                onValueChange={(value) => onUpdate({ ...block, data: { ...block.data, language: value } })}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bash">Bash</SelectItem>
+                  <SelectItem value="javascript">JavaScript</SelectItem>
+                  <SelectItem value="python">Python</SelectItem>
+                  <SelectItem value="html">HTML</SelectItem>
+                  <SelectItem value="css">CSS</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                  <SelectItem value="sql">SQL</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={block.data?.showLineNumbers || false}
+                  onChange={(e) => onUpdate({ ...block, data: { ...block.data, showLineNumbers: e.target.checked } })}
+                  className="w-4 h-4"
+                />
+                <Label className="text-sm">Line numbers</Label>
+              </div>
+            </div>
+            <div className="relative" dir="ltr">
+              <textarea
+                value={block.data?.code || ''}
+                onChange={(e) => onUpdate({ ...block, data: { ...block.data, code: e.target.value } })}
+                placeholder="Enter code or command..."
+                className="w-full min-h-[120px] p-3 font-mono text-sm bg-slate-900 text-slate-100 rounded-lg border-0 resize-y"
+                style={{ direction: 'ltr' }}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 text-slate-400 hover:text-slate-100"
+                onClick={() => {
+                  navigator.clipboard.writeText(block.data?.code || '');
+                  toast.success('Copied to clipboard!');
+                }}
+              >
+                Copy
+              </Button>
+            </div>
+          </div>
+        );
+
       default:
-        return <div className="text-slate-400">Unknown block type: {block.type}</div>;
+        return (
+          <div className="border-2 border-dashed border-amber-300 bg-amber-50/50 rounded-lg p-4 text-center">
+            <p className="text-sm text-amber-800 font-medium">Unsupported block type: {block.type}</p>
+            <p className="text-xs text-amber-600 mt-1">This block will be preserved but cannot be edited</p>
+          </div>
+        );
     }
   };
 

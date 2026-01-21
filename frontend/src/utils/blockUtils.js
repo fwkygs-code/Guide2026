@@ -11,7 +11,16 @@ export const BLOCK_TYPES = {
   PROBLEM: 'problem',
   COLUMNS: 'columns',
   HTML: 'html',
-  CAROUSEL: 'carousel'
+  CAROUSEL: 'carousel',
+  // New block types (2026-01-21)
+  CHECKLIST: 'checklist',
+  CALLOUT: 'callout',
+  ANNOTATED_IMAGE: 'annotated_image',
+  EMBED: 'embed',
+  SECTION: 'section',
+  CONFIRMATION: 'confirmation',
+  EXTERNAL_LINK: 'external_link',
+  CODE: 'code'
 };
 
 export const createBlock = (type, data = {}) => {
@@ -64,6 +73,47 @@ export const createBlock = (type, data = {}) => {
     },
     [BLOCK_TYPES.CAROUSEL]: {
       slides: [] // Array of { slide_id, file_id, url, media_type, caption }
+    },
+    // New block types (2026-01-21)
+    [BLOCK_TYPES.CHECKLIST]: {
+      items: [] // Array of { id, text, checked }
+    },
+    [BLOCK_TYPES.CALLOUT]: {
+      variant: 'tip', // tip, warning, important, info
+      content: ''
+    },
+    [BLOCK_TYPES.ANNOTATED_IMAGE]: {
+      url: '',
+      alt: '',
+      markers: [] // Array of { id, x, y, text }
+    },
+    [BLOCK_TYPES.EMBED]: {
+      provider: 'youtube', // youtube, vimeo, loom, figma, google_docs, notebooklm, gemini
+      url: '',
+      aspectRatio: '16:9', // 16:9, 4:3, 1:1
+      title: ''
+    },
+    [BLOCK_TYPES.SECTION]: {
+      title: '',
+      collapsible: false,
+      defaultCollapsed: false,
+      blocks: []
+    },
+    [BLOCK_TYPES.CONFIRMATION]: {
+      message: '',
+      buttonText: 'I understand',
+      style: 'checkbox' // checkbox, button
+    },
+    [BLOCK_TYPES.EXTERNAL_LINK]: {
+      text: 'Learn more',
+      url: '',
+      openInNewTab: true,
+      style: 'default' // default, primary, secondary
+    },
+    [BLOCK_TYPES.CODE]: {
+      code: '',
+      language: 'bash',
+      showLineNumbers: false
     }
   };
 
@@ -107,7 +157,15 @@ export const getBlockIcon = (type) => {
     problem: '❗',
     columns: '📊',
     html: '💻',
-    carousel: '🎠'
+    carousel: '🎠',
+    checklist: '☑️',
+    callout: '💬',
+    annotated_image: '📌',
+    embed: '📺',
+    section: '📂',
+    confirmation: '✅',
+    external_link: '🔗',
+    code: '💻'
   };
   return icons[type] || '📦';
 };
@@ -125,7 +183,15 @@ export const getBlockLabel = (type) => {
     problem: 'Problem',
     columns: 'Columns',
     html: 'HTML',
-    carousel: 'Carousel'
+    carousel: 'Carousel',
+    checklist: 'Checklist',
+    callout: 'Callout',
+    annotated_image: 'Annotated Image',
+    embed: 'Embed',
+    section: 'Section',
+    confirmation: 'Confirmation',
+    external_link: 'External Link',
+    code: 'Code/Command'
   };
   return labels[type] || type;
 };

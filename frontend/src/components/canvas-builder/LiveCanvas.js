@@ -117,6 +117,14 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
     { type: BLOCK_TYPES.DIVIDER, label: getBlockLabel(BLOCK_TYPES.DIVIDER), icon: getBlockIcon(BLOCK_TYPES.DIVIDER) },
     { type: BLOCK_TYPES.SPACER, label: getBlockLabel(BLOCK_TYPES.SPACER), icon: getBlockIcon(BLOCK_TYPES.SPACER) },
     { type: BLOCK_TYPES.PROBLEM, label: getBlockLabel(BLOCK_TYPES.PROBLEM), icon: getBlockIcon(BLOCK_TYPES.PROBLEM) },
+    { type: BLOCK_TYPES.CHECKLIST, label: getBlockLabel(BLOCK_TYPES.CHECKLIST), icon: getBlockIcon(BLOCK_TYPES.CHECKLIST) },
+    { type: BLOCK_TYPES.CALLOUT, label: getBlockLabel(BLOCK_TYPES.CALLOUT), icon: getBlockIcon(BLOCK_TYPES.CALLOUT) },
+    { type: BLOCK_TYPES.ANNOTATED_IMAGE, label: getBlockLabel(BLOCK_TYPES.ANNOTATED_IMAGE), icon: getBlockIcon(BLOCK_TYPES.ANNOTATED_IMAGE) },
+    { type: BLOCK_TYPES.EMBED, label: getBlockLabel(BLOCK_TYPES.EMBED), icon: getBlockIcon(BLOCK_TYPES.EMBED) },
+    { type: BLOCK_TYPES.SECTION, label: getBlockLabel(BLOCK_TYPES.SECTION), icon: getBlockIcon(BLOCK_TYPES.SECTION) },
+    { type: BLOCK_TYPES.CONFIRMATION, label: getBlockLabel(BLOCK_TYPES.CONFIRMATION), icon: getBlockIcon(BLOCK_TYPES.CONFIRMATION) },
+    { type: BLOCK_TYPES.EXTERNAL_LINK, label: getBlockLabel(BLOCK_TYPES.EXTERNAL_LINK), icon: getBlockIcon(BLOCK_TYPES.EXTERNAL_LINK) },
+    { type: BLOCK_TYPES.CODE, label: getBlockLabel(BLOCK_TYPES.CODE), icon: getBlockIcon(BLOCK_TYPES.CODE) },
   ];
 
   if (!currentStep) {
@@ -194,7 +202,7 @@ const LiveCanvas = ({ walkthrough, currentStepIndex, selectedElement, onSelectEl
                     Add block
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80" align="start">
+                <PopoverContent className="w-80 max-h-[500px] overflow-y-auto" align="start">
                   <div className="grid grid-cols-2 gap-2">
                     {blockTypes.map(({ type, label, icon }) => (
                       <Button
