@@ -259,7 +259,7 @@ const CategoriesPage = () => {
                 {t('category.newCategory')}
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {creatingForParent 
@@ -274,7 +274,7 @@ const CategoriesPage = () => {
                     id="category-name"
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="Getting Started"
+                    placeholder={t('category.gettingStarted', 'Getting Started')}
                     required
                     data-testid="category-name-input"
                     className="mt-1.5"
@@ -286,7 +286,7 @@ const CategoriesPage = () => {
                     id="category-desc"
                     value={newCategoryDesc}
                     onChange={(e) => setNewCategoryDesc(e.target.value)}
-                    placeholder="Guides for new users"
+                    placeholder={t('category.guidesForNewUsers', 'Guides for new users')}
                     rows={3}
                     data-testid="category-description-input"
                     className="mt-1.5"
@@ -314,7 +314,7 @@ const CategoriesPage = () => {
                         type="url"
                         value={newCategoryIcon}
                         onChange={(e) => setNewCategoryIcon(e.target.value)}
-                        placeholder="Icon/Photo URL"
+                        placeholder={t('category.iconUrl', 'Icon/Photo URL')}
                         className="h-9"
                         data-testid="category-icon-url-input"
                       />
@@ -340,16 +340,16 @@ const CategoriesPage = () => {
                 </div>
                 {!creatingForParent && (
                   <div>
-                    <Label htmlFor="category-parent">Parent Category (Optional)</Label>
+                    <Label htmlFor="category-parent">{t('category.parentCategory')}</Label>
                     <Select 
                       value={newCategoryParent || 'none'} 
                       onValueChange={(value) => setNewCategoryParent(value === 'none' ? undefined : value)}
                     >
                       <SelectTrigger className="mt-1.5" data-testid="category-parent-select">
-                        <SelectValue placeholder="None (Top-level category)" />
+                        <SelectValue placeholder={t('category.noneTopLevel', 'None (Top-level category)')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">None (Top-level category)</SelectItem>
+                        <SelectItem value="none">{t('category.noneTopLevel')}</SelectItem>
                         {parentCategories.map(cat => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name}
@@ -358,7 +358,7 @@ const CategoriesPage = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-slate-500 mt-1.5">
-                      {t('category.selectParent')}
+                      {t('category.selectParentHint', t('category.selectParent'))}
                     </p>
                   </div>
                 )}
@@ -389,7 +389,7 @@ const CategoriesPage = () => {
                     type="url"
                     value={newCategoryNotebooklmUrl}
                     onChange={(e) => setNewCategoryNotebooklmUrl(e.target.value)}
-                    placeholder="https://notebooklm.google.com/notebook/..."
+                    placeholder={t('category.notebooklmExample', 'https://notebooklm.google.com/notebook/...')}
                     className="mt-1.5"
                     data-testid="category-notebooklm-url-input"
                   />
