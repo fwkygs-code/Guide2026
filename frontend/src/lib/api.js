@@ -230,6 +230,8 @@ export const api = {
       max_workspaces: maxWorkspaces, 
       max_walkthroughs: maxWalkthroughs 
     }),
+  adminSoftDeleteUser: (userId) => axios.put(`${API}/admin/users/${userId}/soft-delete`),
+  adminRestoreUser: (userId) => axios.put(`${API}/admin/users/${userId}/restore`),
   
   // Stats
   adminGetStats: () => axios.get(`${API}/admin/stats`),

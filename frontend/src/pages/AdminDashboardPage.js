@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Database, BarChart3, Edit, Trash2, Crown, HardDrive, FileText, FolderOpen, Ban, CheckCircle, ArrowDown, ArrowUp, Clock, Settings } from 'lucide-react';
+import { Users, Database, BarChart3, Edit, Trash2, Crown, HardDrive, FileText, FolderOpen, Ban, CheckCircle, ArrowDown, ArrowUp, Clock, Settings, MoreVertical, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -434,6 +435,42 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const handleSoftDeleteUser = async (userId) => {
+    try {
+      await api.adminSoftDeleteUser(userId);
+      toast.success('User soft deleted successfully');
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to soft delete user:', error);
+      let errorMessage = 'Failed to soft delete user';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : errorMessage;
+      }
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleRestoreUser = async (userId) => {
+    try {
+      await api.adminRestoreUser(userId);
+      toast.success('User restored successfully');
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to restore user:', error);
+      let errorMessage = 'Failed to restore user';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : errorMessage;
+      }
+      toast.error(errorMessage);
+    }
+  };
+
   const formatBytes = (bytes) => {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -631,176 +668,116 @@ const AdminDashboardPage = () => {
                               </td>
                               <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(u.created_at)}</td>
                               <td className="p-2">
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditUser(u)}
-                                    title="Edit user"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-56">
+                                    {/* Edit */}
+                                    <DropdownMenuItem onClick={() => handleEditUser(u)}>
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit User
+                                    </DropdownMenuItem>
+                                    
+                                    {/* View Memberships */}
+                                    <DropdownMenuItem onClick={() => {
                                       setSelectedUser(u);
                                       setMembershipsDialogOpen(true);
                                       setMembershipsPage(1);
                                       fetchUserMemberships(u.id, 1);
-                                    }}
-                                    title="View memberships"
-                                  >
-                                    <Users className="w-4 h-4" />
-                                  </Button>
-                                  {!u.subscription && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
+                                    }}>
+                                      <Users className="w-4 h-4 mr-2" />
+                                      View Memberships
+                                    </DropdownMenuItem>
+                                    
+                                    <DropdownMenuSeparator />
+                                    
+                                    {/* Subscription Actions */}
+                                    {!u.subscription && (
+                                      <DropdownMenuItem onClick={() => {
                                         setSelectedUser(u);
                                         setSubscriptionForm({ planName: 'pro', durationDays: null });
                                         setSubscriptionDialogOpen(true);
-                                      }}
-                                      title="Create subscription"
-                                    >
-                                      <Crown className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                  {u.subscription && u.subscription.status === 'active' && (
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          title="Cancel subscription"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to cancel the subscription for {u.email}? 
-                                            This will downgrade them to the Free plan.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => {
-                                              setSelectedUser(u);
-                                              handleCancelSubscription();
-                                            }}
-                                            disabled={cancellingSubscription}
-                                          >
-                                            {cancellingSubscription ? 'Cancelling...' : 'Cancel Subscription'}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
-                                  {!u.disabled && (
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          title="Disable user"
-                                        >
-                                          <Ban className="w-4 h-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Disable User</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to disable {u.email}? 
-                                            They will not be able to log in until re-enabled.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => {
-                                              setSelectedUser(u);
-                                              handleDisableUser();
-                                            }}
-                                            disabled={disablingUser}
-                                          >
-                                            {disablingUser ? 'Disabling...' : 'Disable User'}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
-                                  {u.disabled && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
+                                      }}>
+                                        <Crown className="w-4 h-4 mr-2" />
+                                        Create Subscription
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    {u.subscription && u.subscription.status === 'active' && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedUser(u);
+                                          if (window.confirm(`Cancel subscription for ${u.email}?`)) {
+                                            handleCancelSubscription();
+                                          }
+                                        }}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Cancel Subscription
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    <DropdownMenuSeparator />
+                                    
+                                    {/* Plan Actions */}
+                                    {u.plan?.name === 'pro' && (
+                                      <DropdownMenuItem onClick={() => {
                                         setSelectedUser(u);
-                                        handleEnableUser();
-                                      }}
-                                      disabled={enablingUser}
-                                      title="Enable user"
-                                    >
-                                      <CheckCircle className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                  {u.plan?.name === 'pro' && (
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          title="Force downgrade to Free"
-                                        >
-                                          <ArrowDown className="w-4 h-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Force Downgrade to Free</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to force downgrade {u.email} to the Free plan? 
-                                            This will freeze their workspace memberships and apply Free plan quotas immediately.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => {
-                                              setSelectedUser(u);
-                                              handleDowngradeUser();
-                                            }}
-                                            disabled={downgradingUser}
-                                          >
-                                            {downgradingUser ? 'Downgrading...' : 'Downgrade to Free'}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
-                                  {u.plan?.name === 'free' && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
+                                        if (window.confirm(`Force downgrade ${u.email} to Free plan?`)) {
+                                          handleDowngradeUser();
+                                        }
+                                      }}>
+                                        <ArrowDown className="w-4 h-4 mr-2" />
+                                        Downgrade to Free
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    {u.plan?.name === 'free' && (
+                                      <DropdownMenuItem onClick={() => {
                                         setSelectedUser(u);
                                         handleUpgradeUser();
-                                      }}
-                                      disabled={upgradingUser}
-                                      title="Force upgrade to Pro"
-                                    >
-                                      <ArrowUp className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
+                                      }}>
+                                        <ArrowUp className="w-4 h-4 mr-2" />
+                                        Upgrade to Pro
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    <DropdownMenuSeparator />
+                                    
+                                    {/* Account Status */}
+                                    {!u.disabled && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedUser(u);
+                                          if (window.confirm(`Disable ${u.email}? They will not be able to log in.`)) {
+                                            handleDisableUser();
+                                          }
+                                        }}
+                                        className="text-red-600"
+                                      >
+                                        <Ban className="w-4 h-4 mr-2" />
+                                        Disable User
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    {u.disabled && (
+                                      <DropdownMenuItem onClick={() => {
+                                        setSelectedUser(u);
+                                        handleEnableUser();
+                                      }}>
+                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                        Enable User
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    <DropdownMenuSeparator />
+                                    
+                                    {/* Settings */}
+                                    <DropdownMenuItem onClick={() => {
                                       setSelectedUser(u);
                                       setGracePeriodForm({ 
                                         gracePeriodEndsAt: u.grace_period_ends_at 
@@ -808,15 +785,12 @@ const AdminDashboardPage = () => {
                                           : '' 
                                       });
                                       setGracePeriodDialogOpen(true);
-                                    }}
-                                    title="Set grace period"
-                                  >
-                                    <Clock className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
+                                    }}>
+                                      <Clock className="w-4 h-4 mr-2" />
+                                      Set Grace Period
+                                    </DropdownMenuItem>
+                                    
+                                    <DropdownMenuItem onClick={() => {
                                       setSelectedUser(u);
                                       setQuotaForm({
                                         storageBytes: u.custom_storage_bytes ? String(u.custom_storage_bytes) : '',
@@ -824,12 +798,38 @@ const AdminDashboardPage = () => {
                                         maxWalkthroughs: u.custom_max_walkthroughs !== null && u.custom_max_walkthroughs !== undefined ? String(u.custom_max_walkthroughs) : ''
                                       });
                                       setQuotaDialogOpen(true);
-                                    }}
-                                    title="Set custom quotas"
-                                  >
-                                    <Settings className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                                    }}>
+                                      <Settings className="w-4 h-4 mr-2" />
+                                      Set Custom Quotas
+                                    </DropdownMenuItem>
+                                    
+                                    <DropdownMenuSeparator />
+                                    
+                                    {/* Delete/Restore */}
+                                    {!u.deleted_at && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          if (window.confirm(`Soft delete ${u.email}? This will mark the user as deleted but preserve their data.`)) {
+                                            handleSoftDeleteUser(u.id);
+                                          }
+                                        }}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Soft Delete User
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    {u.deleted_at && (
+                                      <DropdownMenuItem onClick={() => {
+                                        handleRestoreUser(u.id);
+                                      }}>
+                                        <RotateCcw className="w-4 h-4 mr-2" />
+                                        Restore User
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </td>
                             </tr>
                             );
