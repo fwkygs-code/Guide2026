@@ -425,7 +425,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
         return (
           <div className="space-y-2" dir={isRTL ? 'rtl' : 'ltr'}>
             {(block.data?.items || []).map((item, index) => (
-              <div key={item.id || index} className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div key={item.id || index} className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <input
                   type="checkbox"
                   checked={item.checked || false}
@@ -434,18 +434,21 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
                     updatedItems[index] = { ...item, checked: e.target.checked };
                     onUpdate({ ...block, data: { ...block.data, items: updatedItems } });
                   }}
-                  className="w-4 h-4"
+                  className="w-4 h-4 mt-1"
                 />
-                <Input
-                  value={item.text || ''}
-                  onChange={(e) => {
-                    const updatedItems = [...(block.data.items || [])];
-                    updatedItems[index] = { ...item, text: e.target.value };
-                    onUpdate({ ...block, data: { ...block.data, items: updatedItems } });
-                  }}
-                  placeholder="Checklist item"
-                  className="flex-1"
-                />
+                <div className="flex-1">
+                  <InlineRichEditor
+                    content={item.text || ''}
+                    onChange={(html) => {
+                      const updatedItems = [...(block.data.items || [])];
+                      updatedItems[index] = { ...item, text: html };
+                      onUpdate({ ...block, data: { ...block.data, items: updatedItems } });
+                    }}
+                    placeholder="Checklist item"
+                    isRTL={isRTL}
+                    textSize="text-base"
+                  />
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -499,12 +502,13 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
             <div className={`${variant.bg} ${variant.border} border-l-4 p-4 rounded-xl`} dir={isRTL ? 'rtl' : 'ltr'}>
               <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span className="text-2xl">{variant.icon}</span>
-                <Input
-                  value={block.data?.content || ''}
-                  onChange={(e) => onUpdate({ ...block, data: { ...block.data, content: e.target.value } })}
-                  placeholder="Callout message"
-                  className={`flex-1 bg-white ${variant.text}`}
-                />
+                <div className="flex-1">
+                  <RichTextEditor
+                    content={block.data?.content || ''}
+                    onChange={(content) => onUpdate({ ...block, data: { ...block.data, content } })}
+                    isRTL={isRTL}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -652,11 +656,14 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       case BLOCK_TYPES.SECTION:
         return (
           <div className="border border-slate-200 rounded-lg p-4" dir={isRTL ? 'rtl' : 'ltr'}>
-            <Input
-              value={block.data?.title || ''}
-              onChange={(e) => onUpdate({ ...block, data: { ...block.data, title: e.target.value } })}
+            <InlineRichEditor
+              content={block.data?.title || ''}
+              onChange={(html) => onUpdate({ ...block, data: { ...block.data, title: html } })}
               placeholder="Section title"
-              className="mb-3 font-medium"
+              isRTL={isRTL}
+              textSize="text-lg"
+              isBold={true}
+              className="mb-3"
             />
             <div className="flex items-center gap-2 mb-3">
               <input
@@ -688,11 +695,14 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
                 <SelectItem value="button">Button</SelectItem>
               </SelectContent>
             </Select>
-            <Input
-              value={block.data?.message || ''}
-              onChange={(e) => onUpdate({ ...block, data: { ...block.data, message: e.target.value } })}
-              placeholder="Confirmation message"
-            />
+            <div>
+              <Label className="text-sm mb-1 block">Confirmation message</Label>
+              <RichTextEditor
+                content={block.data?.message || ''}
+                onChange={(content) => onUpdate({ ...block, data: { ...block.data, message: content } })}
+                isRTL={isRTL}
+              />
+            </div>
             <Input
               value={block.data?.buttonText || 'I understand'}
               onChange={(e) => onUpdate({ ...block, data: { ...block.data, buttonText: e.target.value } })}
@@ -705,7 +715,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
                 ) : (
                   <Button size="sm" disabled>{block.data?.buttonText || 'I understand'}</Button>
                 )}
-                <span className="text-sm">{block.data?.message || 'Confirmation message'}</span>
+                <div className="text-sm flex-1" dangerouslySetInnerHTML={{ __html: block.data?.message || 'Confirmation message' }} />
               </div>
             </div>
           </div>
@@ -714,11 +724,16 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
       case BLOCK_TYPES.EXTERNAL_LINK:
         return (
           <div className="space-y-3" dir={isRTL ? 'rtl' : 'ltr'}>
-            <Input
-              value={block.data?.text || 'Learn more'}
-              onChange={(e) => onUpdate({ ...block, data: { ...block.data, text: e.target.value } })}
-              placeholder="Link text"
-            />
+            <div>
+              <Label className="text-sm mb-1 block">Link text</Label>
+              <InlineRichEditor
+                content={block.data?.text || 'Learn more'}
+                onChange={(html) => onUpdate({ ...block, data: { ...block.data, text: html } })}
+                placeholder="Link text"
+                isRTL={isRTL}
+                textSize="text-base"
+              />
+            </div>
             <Input
               value={block.data?.url || ''}
               onChange={(e) => onUpdate({ ...block, data: { ...block.data, url: e.target.value } })}
@@ -752,7 +767,7 @@ const BlockComponent = ({ block, isSelected, onSelect, onUpdate, onDelete, onDup
                 size="sm"
                 disabled
               >
-                {block.data?.text || 'Learn more'} →
+                <span dangerouslySetInnerHTML={{ __html: block.data?.text || 'Learn more' }} /> →
               </Button>
             </div>
           </div>
