@@ -2960,98 +2960,159 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
     Only workspace owner can delete workspace.
     All members are notified when workspace is deleted.
     """
-    # Only owner can delete workspace
-    await check_workspace_access(workspace_id, current_user.id, require_owner=True)
+    try:
     
     # Get workspace name for notifications
-    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
-    workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
-    
+    try:
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+        workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
+    except Exception as db_error:
+        logging.error(f"Failed to get workspace name: {db_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database error while accessing workspace")
+
     # Get all members to notify
-    members = await get_workspace_members(workspace_id)
-    
-    workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    try:
+        members = await get_workspace_members(workspace_id)
+    except Exception as member_error:
+        logging.error(f"Failed to get workspace members: {member_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database error while getting workspace members")
+
+    try:
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+        if not workspace:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+    except Exception as workspace_error:
+        logging.error(f"Failed to get workspace details: {workspace_error}", exc_info=True)
+        raise
     
     # HARDENING LAYER A: Force-release all locks before deletion
-    all_locks = await db.workspace_locks.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(100)
-    for lock_doc in all_locks:
-        await release_workspace_lock(workspace_id, lock_doc['locked_by_user_id'], force=True, reason="Workspace deleted")
-    
+    try:
+        all_locks = await db.workspace_locks.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(100)
+        for lock_doc in all_locks:
+            await release_workspace_lock(workspace_id, lock_doc['locked_by_user_id'], force=True, reason="Workspace deleted")
+    except Exception as lock_error:
+        logging.error(f"Failed to release workspace locks: {lock_error}", exc_info=True)
+        # Continue with deletion even if lock release fails
+
     # HARDENING LAYER C: Audit log
-    await log_workspace_audit(
-        action_type=WorkspaceAuditAction.WORKSPACE_DELETED,
-        workspace_id=workspace_id,
-        actor_user_id=current_user.id,
-        metadata={"workspace_name": workspace_name, "deleted_by_name": current_user.name, "member_count": len(members)}
-    )
+    try:
+        await log_workspace_audit(
+            action_type=WorkspaceAuditAction.WORKSPACE_DELETED,
+            workspace_id=workspace_id,
+            actor_user_id=current_user.id,
+            metadata={"workspace_name": workspace_name, "deleted_by_name": current_user.name, "member_count": len(members)}
+        )
+    except Exception as audit_error:
+        logging.error(f"Failed to log workspace deletion audit: {audit_error}", exc_info=True)
+        # Continue with deletion even if audit logging fails
     
     # Notify all members that workspace is being deleted (not batched - workspace deletion is never batched)
     for member in members:
-        await create_notification(
-            user_id=member.user_id,
-            notification_type=NotificationType.WORKSPACE_DELETED,
-            title="Workspace Deleted",
-            message=f"The workspace \"{workspace_name}\" has been deleted by {current_user.name}. You no longer have access to this workspace.",
-            metadata={"workspace_id": workspace_id, "deleted_by_id": current_user.id, "deleted_by_name": current_user.name}
-        )
+        try:
+            await create_notification(
+                user_id=member.user_id,
+                notification_type=NotificationType.WORKSPACE_DELETED,
+                title="Workspace Deleted",
+                message=f"The workspace \"{workspace_name}\" has been deleted by {current_user.name}. You no longer have access to this workspace.",
+                metadata={"workspace_id": workspace_id, "deleted_by_id": current_user.id, "deleted_by_name": current_user.name}
+            )
+        except Exception as notification_error:
+            logging.error(f"Failed to notify member {member.user_id}: {notification_error}", exc_info=True)
+            # Continue with deletion even if notification fails
     
     # Get all walkthroughs in workspace for cascade file deletion
-    walkthroughs = await db.walkthroughs.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(10000)
-    
+    try:
+        walkthroughs = await db.walkthroughs.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(10000)
+    except Exception as walkthrough_error:
+        logging.error(f"Failed to get walkthroughs for deletion: {walkthrough_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database error while accessing walkthroughs")
+
     # Delete all files associated with walkthroughs
     total_deleted_files = 0
     for walkthrough in walkthroughs:
-        file_urls = await extract_file_urls_from_walkthrough(walkthrough)
-        deleted_count = await delete_files_by_urls(file_urls, workspace_id)
-        total_deleted_files += deleted_count
-    
+        try:
+            file_urls = await extract_file_urls_from_walkthrough(walkthrough)
+            deleted_count = await delete_files_by_urls(file_urls, workspace_id)
+            total_deleted_files += deleted_count
+        except Exception as file_error:
+            logging.error(f"Failed to delete files for walkthrough {walkthrough.get('id')}: {file_error}", exc_info=True)
+            # Continue with other walkthroughs
+
     # Delete workspace logo and background files
     workspace_file_urls = []
     if workspace.get('logo'):
         workspace_file_urls.append(workspace['logo'])
     if workspace.get('portal_background_url'):
         workspace_file_urls.append(workspace['portal_background_url'])
-    
+
     if workspace_file_urls:
-        deleted_count = await delete_files_by_urls(workspace_file_urls, workspace_id)
-        total_deleted_files += deleted_count
+        try:
+            deleted_count = await delete_files_by_urls(workspace_file_urls, workspace_id)
+            total_deleted_files += deleted_count
+        except Exception as workspace_file_error:
+            logging.error(f"Failed to delete workspace files: {workspace_file_error}", exc_info=True)
+            # Continue with deletion
     
     # Delete all walkthroughs (including archived)
-    await db.walkthroughs.delete_many({"workspace_id": workspace_id})
-    
+    try:
+        await db.walkthroughs.delete_many({"workspace_id": workspace_id})
+    except Exception as delete_error:
+        logging.error(f"Failed to delete walkthroughs: {delete_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database error while deleting walkthroughs")
+
     # Delete all walkthrough versions
-    await db.walkthrough_versions.delete_many({"workspace_id": workspace_id})
-    
+    try:
+        await db.walkthrough_versions.delete_many({"workspace_id": workspace_id})
+    except Exception as version_error:
+        logging.error(f"Failed to delete walkthrough versions: {version_error}", exc_info=True)
+        # Continue with deletion
+
     # Delete all categories (cascade deletes sub-categories)
     # First get all categories to handle parent-child relationships
-    all_categories = await db.categories.find({"workspace_id": workspace_id}, {"_id": 0, "id": 1}).to_list(1000)
-    category_ids = [c["id"] for c in all_categories]
-    
-    # Delete category icon files
-    for cat in all_categories:
-        cat_full = await db.categories.find_one({"id": cat["id"]}, {"_id": 0})
-        if cat_full and cat_full.get('icon_url'):
-            await delete_files_by_urls([cat_full['icon_url']], workspace_id)
-    
-    # Delete all categories (including sub-categories)
-    await db.categories.delete_many({"workspace_id": workspace_id})
-    
+    try:
+        all_categories = await db.categories.find({"workspace_id": workspace_id}, {"_id": 0, "id": 1}).to_list(1000)
+        category_ids = [c["id"] for c in all_categories]
+
+        # Delete category icon files
+        for cat in all_categories:
+            try:
+                cat_full = await db.categories.find_one({"id": cat["id"]}, {"_id": 0})
+                if cat_full and cat_full.get('icon_url'):
+                    await delete_files_by_urls([cat_full['icon_url']], workspace_id)
+            except Exception as cat_file_error:
+                logging.error(f"Failed to delete category icon files: {cat_file_error}", exc_info=True)
+
+        # Delete all categories (including sub-categories)
+        await db.categories.delete_many({"workspace_id": workspace_id})
+    except Exception as category_error:
+        logging.error(f"Failed to delete categories: {category_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database error while deleting categories")
+
     # Delete all workspace members
-    await db.workspace_members.delete_many({"workspace_id": workspace_id})
-    
+    try:
+        await db.workspace_members.delete_many({"workspace_id": workspace_id})
+    except Exception as member_delete_error:
+        logging.error(f"Failed to delete workspace members: {member_delete_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database error while deleting workspace members")
+
     # Finally delete the workspace
-    await db.workspaces.delete_one({"id": workspace_id})
+    try:
+        await db.workspaces.delete_one({"id": workspace_id})
+    except Exception as workspace_delete_error:
+        logging.error(f"Failed to delete workspace: {workspace_delete_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database error while deleting workspace")
     
     logging.info(f"Deleted workspace {workspace_id} and {total_deleted_files} associated files")
-    
+
     return {
         "message": "Workspace deleted successfully",
         "deleted_files": total_deleted_files,
         "deleted_walkthroughs": len(walkthroughs),
         "deleted_categories": len(category_ids)
     }
+    except Exception as unexpected_error:
+        logging.error(f"Unexpected error during workspace deletion: {unexpected_error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while deleting the workspace. Please try again or contact support.")
 
 # Category Routes
 @api_router.post("/workspaces/{workspace_id}/categories", response_model=Category)
