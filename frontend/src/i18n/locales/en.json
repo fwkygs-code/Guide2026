@@ -377,6 +377,12 @@
     "startBuildingNow": "Start Building Now",
     "copyright": "© 2025 InterGuide. All rights reserved."
   },
+  "blocked": {
+    "title": "Account Disabled",
+    "message": "Your account has been disabled or deleted.",
+    "contactSupport": "Please contact support:",
+    "backToLogin": "Back to Login"
+  },
   "onboarding": {
     "welcome": "Welcome to InterGuide!",
     "startTour": "Start Tour",

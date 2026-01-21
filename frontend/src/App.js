@@ -24,11 +24,12 @@ import PrivacyPage from './pages/PrivacyPage';
 import BillingPolicyPage from './pages/BillingPolicyPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import EmailVerificationRequiredPage from './pages/EmailVerificationRequiredPage';
+import AccountBlockedPage from './pages/AccountBlockedPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminRoute from './components/AdminRoute';
 
 const PrivateRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isBlocked } = useAuth();
   
   if (loading) {
     return (
@@ -36,6 +37,11 @@ const PrivateRoute = ({ children }) => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
+  }
+  
+  // Show blocked page if account is disabled/deleted
+  if (isBlocked) {
+    return <AccountBlockedPage />;
   }
   
   if (!user) {

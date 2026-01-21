@@ -471,6 +471,24 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const handleHardDeleteUser = async (userId) => {
+    try {
+      await api.adminHardDeleteUser(userId);
+      toast.success('User permanently deleted');
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to hard delete user:', error);
+      let errorMessage = 'Failed to hard delete user';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : errorMessage;
+      }
+      toast.error(errorMessage);
+    }
+  };
+
   const formatBytes = (bytes) => {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -821,12 +839,46 @@ const AdminDashboardPage = () => {
                                     )}
                                     
                                     {u.deleted_at && (
-                                      <DropdownMenuItem onClick={() => {
-                                        handleRestoreUser(u.id);
-                                      }}>
-                                        <RotateCcw className="w-4 h-4 mr-2" />
-                                        Restore User
-                                      </DropdownMenuItem>
+                                      <>
+                                        <DropdownMenuItem onClick={() => {
+                                          handleRestoreUser(u.id);
+                                        }}>
+                                          <RotateCcw className="w-4 h-4 mr-2" />
+                                          Restore User
+                                        </DropdownMenuItem>
+                                        
+                                        <DropdownMenuSeparator />
+                                        
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            const confirmed = window.confirm(
+                                              `PERMANENT DELETE: ${u.email}\n\n` +
+                                              `This will PERMANENTLY delete:\n` +
+                                              `- User account\n` +
+                                              `- All workspaces owned by user\n` +
+                                              `- All walkthroughs and categories\n` +
+                                              `- All uploaded files\n` +
+                                              `- All subscriptions and data\n\n` +
+                                              `This action CANNOT be undone!\n\n` +
+                                              `Type the user's email to confirm deletion.`
+                                            );
+                                            if (confirmed) {
+                                              const emailConfirm = window.prompt(
+                                                `Type "${u.email}" to confirm permanent deletion:`
+                                              );
+                                              if (emailConfirm === u.email) {
+                                                handleHardDeleteUser(u.id);
+                                              } else if (emailConfirm !== null) {
+                                                toast.error('Email did not match. Deletion cancelled.');
+                                              }
+                                            }
+                                          }}
+                                          className="text-red-600 font-bold"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          PERMANENT DELETE
+                                        </DropdownMenuItem>
+                                      </>
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>

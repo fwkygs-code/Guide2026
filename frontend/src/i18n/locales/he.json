@@ -530,6 +530,12 @@
     "startBuildingNow": "התחל לבנות עכשיו",
     "copyright": "© 2025 InterGuide. כל הזכויות שמורות."
   },
+  "blocked": {
+    "title": "חשבון מושבת",
+    "message": "החשבון שלך הושבת או נמחק.",
+    "contactSupport": "אנא צור קשר עם התמיכה:",
+    "backToLogin": "חזרה להתחברות"
+  },
   "onboarding": {
     "welcome": "ברוכים הבאים ל-InterGuide!",
     "startTour": "התחל סיור",

@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -58,6 +59,12 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
+      // Check if account is disabled or deleted (403)
+      if (error.response?.status === 403) {
+        setIsBlocked(true);
+        setLoading(false);
+        return;
+      }
       // Only logout on actual auth errors (401), not timeouts or network errors
       if (error.response?.status === 401) {
         logout();
@@ -171,6 +178,12 @@ export const AuthProvider = ({ children }) => {
         apiBase: API_BASE
       });
       
+      // Check if account is blocked (403)
+      if (error.response?.status === 403) {
+        setIsBlocked(true);
+        throw new Error('Account is disabled or deleted. Please contact support at support@interguide.app');
+      }
+      
       // Re-throw with better error message
       if (error.message === 'Login request timeout' || error.code === 'ECONNABORTED') {
         throw new Error(`Backend server is not responding. The server at ${API_BASE} may be sleeping or unavailable. Please try again in a moment.`);
@@ -221,6 +234,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setIsBlocked(false);
     delete axios.defaults.headers.common['Authorization'];
   };
 
@@ -231,7 +245,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser, isBlocked }}>
       {children}
     </AuthContext.Provider>
   );

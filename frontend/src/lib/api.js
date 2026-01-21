@@ -232,6 +232,7 @@ export const api = {
     }),
   adminSoftDeleteUser: (userId) => axios.put(`${API}/admin/users/${userId}/soft-delete`),
   adminRestoreUser: (userId) => axios.put(`${API}/admin/users/${userId}/restore`),
+  adminHardDeleteUser: (userId) => axios.delete(`${API}/admin/users/${userId}?confirm=true`),
   
   // Stats
   adminGetStats: () => axios.get(`${API}/admin/stats`),
