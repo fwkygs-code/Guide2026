@@ -38,7 +38,7 @@ const LanguageSwitcher = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align={i18n.language === 'he' ? 'start' : 'end'}
-        className="bg-white border-slate-200 text-slate-900"
+        className="bg-white border-slate-200 text-slate-900 z-[10005]"
       >
         {languages.map((lang) => (
           <DropdownMenuItem

@@ -539,6 +539,10 @@
     "finish": "סיים",
     "skip": "דלג",
     "step": "שלב {{current}} מתוך {{total}}",
+    "clickToNavigate": "לחץ על הכפתור המודגש כדי להמשיך",
+    "clickToOpen": "לחץ על הכפתור המודגש כדי לפתוח את הטופס",
+    "fillAndSubmit": "מלא את השדות הנדרשים ושלח את הטופס",
+    "languageAvailable": "מחליף שפה זמין",
     "steps": {
       "createWorkspace": {
         "title": "צור את אזור העבודה הראשון שלך",

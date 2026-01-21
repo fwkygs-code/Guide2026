@@ -386,6 +386,10 @@
     "finish": "Finish",
     "skip": "Skip",
     "step": "Step {{current}} of {{total}}",
+    "clickToNavigate": "Click the highlighted button to continue",
+    "clickToOpen": "Click the highlighted button to open the form",
+    "fillAndSubmit": "Fill in the required fields and submit the form",
+    "languageAvailable": "Language switcher available",
     "steps": {
       "createWorkspace": {
         "title": "Create Your First Workspace",
