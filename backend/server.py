@@ -2007,6 +2007,7 @@ async def verify_email(token: str = Query(..., description="Email verification t
     already_verified_user = None
     async for user_doc in all_users_cursor:
         stored_hash = user_doc.get('email_verification_token')
+        # Check if this user has/had this token AND is already verified
         if stored_hash and verify_verification_token(token, stored_hash):
             if user_doc.get('email_verified'):
                 already_verified_user = user_doc
@@ -2045,14 +2046,14 @@ async def verify_email(token: str = Query(..., description="Email verification t
             detail="Invalid or expired verification token. Please request a new verification email."
         )
     
-    # Mark email as verified and clear verification token fields
+    # Mark email as verified but DON'T clear verification token yet
+    # Keep the token so duplicate requests can detect "already verified" state
+    # The token will naturally become unusable as email_verified is now True
     await db.users.update_one(
         {"id": verified_user['id']},
         {
             "$set": {
-                "email_verified": True,
-                "email_verification_token": None,
-                "email_verification_expires_at": None
+                "email_verified": True
             }
         }
     )
