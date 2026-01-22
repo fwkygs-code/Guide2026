@@ -2995,11 +2995,11 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     </>
                   )}
 
-                  {/* Rotation handle - show when editing/selected */}
+                  {/* Rotation handle - positioned using line normal vector */}
                   {editingMarker === idx && (
                     <circle
-                      cx={`${centerX}%`}
-                      cy={`${centerY - 25}%`}
+                      cx={`${centerX + Math.cos(lineRotation + Math.PI/2) * 25}%`}
+                      cy={`${centerY + Math.sin(lineRotation + Math.PI/2) * 25}%`}
                       r="7"
                       fill={markerColor}
                       stroke="white"
