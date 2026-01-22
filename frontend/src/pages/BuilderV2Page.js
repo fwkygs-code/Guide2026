@@ -2033,8 +2033,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   };
   
   const updateMarker = (index, updates) => {
+    console.log('[updateMarker] called', { index, updates, currentMarker: markers[index] });
     const newMarkers = [...markers];
     newMarkers[index] = { ...newMarkers[index], ...updates };
+    console.log('[updateMarker] newMarker', newMarkers[index]);
     onUpdate({ data: { ...block.data, markers: newMarkers } });
   };
   
@@ -2081,6 +2083,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
   // Dot-specific resize handle pointer down
   const handleDotResizePointerDown = (e, index, marker) => {
+    console.log('[Dot Resize] Handle pointer down', { index, marker, currentMode: interactionMode });
     e.stopPropagation();
     e.preventDefault();
     // Set pointer capture so resize continues even outside bounds
@@ -2100,6 +2103,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       centerX: marker.x,
       centerY: marker.y
     };
+    console.log('[Dot Resize] Stored dragStartPos', dragStartPos.current);
   };
   
   const handleImagePointerMove = (e) => {
@@ -2130,7 +2134,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       
       animationFrameRef.current = requestAnimationFrame(() => {
         const marker = markers[resizingMarker];
-        if (!marker || !dragStartPos.current) return;
+        if (!marker || !dragStartPos.current) {
+          console.log('[Dot Resize] Early return - marker or dragStartPos missing');
+          return;
+        }
         
         const rect = imageRef.current.getBoundingClientRect();
         const currentX = ((e.clientX - rect.left) / rect.width) * 100;
@@ -2146,6 +2153,15 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         // New radius, clamped to min/max
         const newRadius = Math.max(0.25, Math.min(7.5, distance));
         const newSize = newRadius * 2; // diameter
+        
+        console.log('[Dot Resize]', {
+          currentX, currentY,
+          centerX, centerY,
+          distance,
+          newRadius,
+          newSize,
+          currentSize: marker.size
+        });
         
         // Update only size, center stays fixed
         updateMarker(resizingMarker, { size: newSize });
