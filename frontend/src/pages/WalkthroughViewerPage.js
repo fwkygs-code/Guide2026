@@ -1036,19 +1036,27 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           />
                         </div>
                       )}
-                      {block.type === 'external_link' && block.data?.url && (
-                        <a
-                          href={block.data.url}
-                          target={block.data?.newTab !== false ? '_blank' : '_self'}
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                        >
-                          {block.data?.text || 'Visit Link'}
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      )}
+                      {block.type === 'external_link' && block.data?.url && (() => {
+                        // Normalize URL to ensure it has a protocol
+                        let normalizedUrl = block.data.url;
+                        if (normalizedUrl && !/^https?:\/\//i.test(normalizedUrl)) {
+                          normalizedUrl = `https://${normalizedUrl}`;
+                        }
+                        
+                        return (
+                          <a
+                            href={normalizedUrl}
+                            target={block.data?.newTab !== false ? '_blank' : '_self'}
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                          >
+                            {block.data?.text || 'Visit Link'}
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        );
+                      })()}
                       {block.type === 'code' && (
                         <div className="bg-slate-900 text-slate-100 rounded-xl overflow-hidden">
                           <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
@@ -1430,19 +1438,25 @@ const AnnotatedImageViewer = ({ block }) => {
         if (markerShape === 'rectangle') {
           // Rectangle marker
           return (
-            <div key={marker.id || idx} className="absolute">
+            <div 
+              key={marker.id || idx} 
+              className="absolute"
+              style={{
+                position: 'absolute',
+                left: `${marker.x}%`,
+                top: `${marker.y}%`,
+                width: `${markerWidth}%`,
+                height: `${markerHeight}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
               <div
-                className={`border-2 flex items-center justify-center cursor-pointer transition-all select-none ${
+                className={`w-full h-full border-2 flex items-center justify-center cursor-pointer transition-all select-none ${
                   isActive
                     ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
                     : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
                 }`}
                 style={{
-                  left: `${marker.x}%`,
-                  top: `${marker.y}%`,
-                  width: `${markerWidth}%`,
-                  height: `${markerHeight}%`,
-                  transform: 'translate(-50%, -50%)',
                   userSelect: 'none',
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
@@ -1455,9 +1469,9 @@ const AnnotatedImageViewer = ({ block }) => {
                 <div
                   className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                   style={{
-                    left: `${marker.x}%`,
-                    top: `${marker.y}%`,
-                    transform: 'translate(-50%, calc(-100% - 20px))',
+                    left: '50%',
+                    top: '0',
+                    transform: 'translate(-50%, calc(-100% - 10px))',
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -1475,18 +1489,27 @@ const AnnotatedImageViewer = ({ block }) => {
         
         // Dot marker (now % based)
         return (
-          <div key={marker.id || idx} className="absolute">
+          <div 
+            key={marker.id || idx} 
+            className="absolute"
+            style={{
+              position: 'absolute',
+              left: `${marker.x}%`,
+              top: `${marker.y}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
             <button
-              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all transform -translate-x-1/2 -translate-y-1/2 select-none ${
+              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all select-none ${
                 isActive
                   ? 'bg-primary text-white scale-110 shadow-lg ring-2 ring-primary/30'
                   : 'bg-primary text-white hover:scale-110 shadow-md'
               }`}
               style={{
-                left: `${marker.x}%`,
-                top: `${marker.y}%`,
-                width: `${markerSize}%`,
-                height: `${markerSize}%`,
+                width: `${markerSize}vw`,
+                height: `${markerSize}vw`,
+                minWidth: '24px',
+                minHeight: '24px',
                 aspectRatio: '1',
                 userSelect: 'none',
               }}
@@ -1498,8 +1521,8 @@ const AnnotatedImageViewer = ({ block }) => {
               <div
                 className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                 style={{
-                  left: `${marker.x}%`,
-                  top: `${marker.y}%`,
+                  left: '50%',
+                  top: '0',
                   transform: 'translate(-50%, calc(-100% - 10px))',
                 }}
                 onClick={(e) => e.stopPropagation()}

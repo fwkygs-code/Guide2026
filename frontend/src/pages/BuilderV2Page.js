@@ -1853,6 +1853,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   
   // Drag handlers - smooth with RAF
   const handleMarkerMouseDown = (e, index) => {
+    // Don't start dragging if clicking on a resize handle
+    if (e.target.closest('[data-resize-handle]')) {
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
     setDraggingMarker(index);
@@ -2046,7 +2050,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       {['nw', 'ne', 'sw', 'se'].map((corner) => (
                         <div
                           key={corner}
-                          className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full cursor-nwse-resize hover:scale-125 transition-transform"
+                          data-resize-handle="true"
+                          className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full cursor-nwse-resize hover:scale-125 transition-transform z-10"
                           style={{
                             [corner.includes('n') ? 'top' : 'bottom']: '-6px',
                             [corner.includes('w') ? 'left' : 'right']: '-6px',
