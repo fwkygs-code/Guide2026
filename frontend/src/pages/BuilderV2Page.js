@@ -2049,7 +2049,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   // Drag handlers - smooth with RAF
   const handleMarkerMouseDown = (e, index) => {
     // Don't start dragging if clicking on a resize handle
-    if (e.target.closest('[data-resize-handle]')) {
+    if (e.target.hasAttribute('data-resize-handle') || e.target.closest('[data-resize-handle]')) {
       return;
     }
     e.stopPropagation();
@@ -2213,7 +2213,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             return (
               <div key={marker.id || idx}>
                 <div
-                  className={`absolute border-2 flex items-center justify-center text-xs font-bold cursor-move select-none ${
+                  className={`absolute border-2 cursor-move select-none ${
                     isActive
                       ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
                       : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
@@ -2227,15 +2227,31 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
                   }}
-                  onMouseDown={(e) => handleMarkerMouseDown(e, idx)}
+                  onMouseDown={(e) => {
+                    // Check if clicking directly on a resize handle
+                    if (e.target.hasAttribute('data-resize-handle')) {
+                      return; // Let the handle's own handler deal with it
+                    }
+                    handleMarkerMouseDown(e, idx);
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (draggingMarker === null && resizingMarker === null) {
+                    if (draggingMarker === null && resizingMarker === null && !e.target.hasAttribute('data-resize-handle')) {
                       setEditingMarker(editingMarker === idx ? null : idx);
                     }
                   }}
                 >
-                  <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold pointer-events-none">
+                  {/* Number badge positioned outside top-right corner like an exponent */}
+                  <span 
+                    className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      top: '-9px',
+                      right: '-9px',
+                      fontSize: '10px'
+                    }}
+                  >
                     {idx + 1}
                   </span>
                   
@@ -2246,13 +2262,22 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                         <div
                           key={corner}
                           data-resize-handle="true"
-                          className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full cursor-nwse-resize hover:scale-125 transition-transform z-10"
+                          className="absolute w-4 h-4 bg-white border-2 border-primary rounded-full hover:scale-125 transition-transform"
                           style={{
-                            [corner.includes('n') ? 'top' : 'bottom']: '-6px',
-                            [corner.includes('w') ? 'left' : 'right']: '-6px',
+                            [corner.includes('n') ? 'top' : 'bottom']: '-8px',
+                            [corner.includes('w') ? 'left' : 'right']: '-8px',
                             cursor: corner === 'nw' || corner === 'se' ? 'nwse-resize' : 'nesw-resize',
+                            zIndex: 20,
+                            pointerEvents: 'auto'
                           }}
-                          onMouseDown={(e) => handleResizeMouseDown(e, idx, corner)}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleResizeMouseDown(e, idx, corner);
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
                         />
                       ))}
                     </>
@@ -2264,7 +2289,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   <Popover open={true} onOpenChange={() => setEditingMarker(null)}>
                     <PopoverTrigger asChild>
                       <div 
-                        className="absolute"
+                        className="absolute z-[250]"
                         style={{ 
                           left: `${marker.x}%`, 
                           top: `${marker.y}%`,
@@ -2274,9 +2299,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       />
                     </PopoverTrigger>
                     <PopoverContent 
-                      className="w-80 p-3 z-[200]" 
-                      side="right" 
-                      align="start"
+                      className="w-80 p-3 z-[300] bg-white shadow-2xl" 
+                      side="top" 
+                      align="center"
+                      sideOffset={10}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="space-y-3">
@@ -2308,25 +2334,25 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                         />
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <Label className="text-xs text-slate-600 mb-1 block">Width %</Label>
+                            <Label className="text-xs text-slate-600 mb-1 block">Width (% of image)</Label>
                             <Input
                               type="number"
                               value={marker.width || 10}
-                              onChange={(e) => updateMarker(idx, { width: Math.max(5, Math.min(50, parseInt(e.target.value) || 10)) })}
-                              min={5}
-                              max={50}
+                              onChange={(e) => updateMarker(idx, { width: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
+                              min={3}
+                              max={80}
                               className="h-7 text-xs"
                               onClick={(e) => e.stopPropagation()}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-slate-600 mb-1 block">Height %</Label>
+                            <Label className="text-xs text-slate-600 mb-1 block">Height (% of image)</Label>
                             <Input
                               type="number"
                               value={marker.height || 10}
-                              onChange={(e) => updateMarker(idx, { height: Math.max(5, Math.min(50, parseInt(e.target.value) || 10)) })}
-                              min={5}
-                              max={50}
+                              onChange={(e) => updateMarker(idx, { height: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
+                              min={3}
+                              max={80}
                               className="h-7 text-xs"
                               onClick={(e) => e.stopPropagation()}
                             />
@@ -2399,7 +2425,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 <Popover open={true} onOpenChange={() => setEditingMarker(null)}>
                   <PopoverTrigger asChild>
                     <div 
-                      className="absolute"
+                      className="absolute z-[250]"
                       style={{ 
                         left: `${marker.x}%`, 
                         top: `${marker.y}%`,
@@ -2409,9 +2435,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     />
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-80 p-3 z-[200]" 
-                    side="right" 
-                    align="start"
+                    className="w-80 p-3 z-[300] bg-white shadow-2xl" 
+                    side="top" 
+                    align="center"
+                    sideOffset={10}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="space-y-3">
@@ -2442,13 +2469,13 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                         onClick={(e) => e.stopPropagation()}
                       />
                       <div>
-                        <Label className="text-xs text-slate-600 mb-1 block">Size %</Label>
+                        <Label className="text-xs text-slate-600 mb-1 block">Size (% of image)</Label>
                         <Input
                           type="number"
                           value={marker.size || 3}
-                          onChange={(e) => updateMarker(idx, { size: Math.max(1, Math.min(10, parseFloat(e.target.value) || 3)) })}
-                          min={1}
-                          max={10}
+                          onChange={(e) => updateMarker(idx, { size: Math.max(0.5, Math.min(15, parseFloat(e.target.value) || 3)) })}
+                          min={0.5}
+                          max={15}
                           step={0.5}
                           className="h-7 text-xs"
                           onClick={(e) => e.stopPropagation()}
