@@ -200,7 +200,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     <div className="space-y-4">
       {/* Plan Badge and Upgrade Button */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900">{t('quota.usage')}</h3>
+        <h3 className="text-lg font-semibold text-white">{t('quota.usage')}</h3>
         <div className="flex items-center gap-2">
           {onUpgrade && (
             <Button size="sm" variant="default" onClick={onUpgrade}>

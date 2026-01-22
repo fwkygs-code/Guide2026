@@ -504,7 +504,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                               </div>
                               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                                 <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge variant="outline" className="text-xs text-white border-white/50">
                                     {walkthrough.steps?.length || 0} steps
                                   </Badge>
                                   {walkthrough.privacy === 'password' && (
@@ -569,7 +569,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                         </div>
                         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs text-white border-white/50">
                               {walkthrough.steps?.length || 0} steps
                             </Badge>
                             {walkthrough.privacy === 'password' && (

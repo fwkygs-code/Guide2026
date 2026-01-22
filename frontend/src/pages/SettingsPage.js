@@ -323,10 +323,10 @@ const SettingsPage = () => {
             <div className="space-y-6">
           {/* Basic Settings */}
           <Card interactive={true} className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-white">Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <Card.Header>
+              <Card.Title className="text-white">Basic Information</Card.Title>
+            </Card.Header>
+            <Card.Content>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="workspace-name" className="text-white">Workspace Name</Label>
@@ -382,7 +382,7 @@ const SettingsPage = () => {
                 </div>
               </div>
             </div>
-            </CardContent>
+            </Card.Content>
           </Card>
 
           {/* Portal Branding */}

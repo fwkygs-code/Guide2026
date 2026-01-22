@@ -400,10 +400,10 @@ const WalkthroughsPage = () => {
                         </div>
 
                         <div className="flex items-center gap-2 mb-4">
-                          <Badge variant="outline" className={walkthrough.status === 'published' ? 'border-green-400 text-green-300' : 'border-slate-500 text-slate-400'}>
+                          <Badge variant="outline" className={walkthrough.status === 'published' ? 'border-green-400 text-green-300 bg-transparent' : 'border-slate-500 text-slate-400 bg-transparent'}>
                             {walkthrough.status === 'published' ? t('builder.status.published') : t('builder.status.draft')}
                           </Badge>
-                          <Badge variant="outline" className="border-slate-500 text-slate-400">
+                          <Badge variant="outline" className="border-slate-500 text-slate-400 bg-transparent">
                             {walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}
                           </Badge>
                         </div>
@@ -469,7 +469,7 @@ const WalkthroughsPage = () => {
 
         {/* Settings Edit Dialog */}
         <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto glass z-[1000]">
+          <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto glass z-[9999]">
             <DialogHeader>
               <DialogTitle className="text-white">Edit Walkthrough Settings</DialogTitle>
               <DialogDescription className="text-slate-400">

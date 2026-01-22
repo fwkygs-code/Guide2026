@@ -176,7 +176,11 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
         </div>
 
         {/* Walkthrough Stats */}
-        <div className="glass rounded-xl p-6">
+        <Card interactive={true} className="mb-6">
+          <Card.Header>
+            <Card.Title className="text-white">Walkthrough Performance</Card.Title>
+          </Card.Header>
+          <Card.Content>
           
           {walkthroughs.length > 0 ? (
             <div className="space-y-4">
@@ -261,10 +265,11 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
           ) : (
             <div className="text-center py-12">
               <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600">No published walkthroughs yet</p>
+              <p className="text-slate-400">No published walkthroughs yet</p>
             </div>
           )}
-        </div>
+          </Card.Content>
+        </Card>
 
         {/* Basic Workspace Stats */}
         <div className="grid md:grid-cols-3 gap-6 mt-8">
