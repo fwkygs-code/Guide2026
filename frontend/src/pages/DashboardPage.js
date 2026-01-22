@@ -320,111 +320,121 @@ const DashboardPage = () => {
               }}
               data-testid={`workspace-card-${workspace.id}`}
             >
-              <div className="flex items-start gap-4">
-                {workspace.logo ? (
-                  <img 
-                    src={normalizeImageUrl(workspace.logo)} 
-                    alt={workspace.name} 
-                    className="w-12 h-12 rounded-lg object-cover border border-slate-200"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      if (e.target.nextSibling) {
-                        e.target.nextSibling.style.display = 'flex';
-                      }
-                    }}
-                  />
-                ) : null}
-                <div
-                  className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold ${workspace.logo ? 'hidden' : ''}`}
-                  style={{ backgroundColor: workspace.brand_color }}
-                >
-                  {workspace.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-heading font-semibold text-white">
-                      {workspace.name}
-                    </h3>
-                    {workspace.owner_id && workspace.owner_id !== user?.id && (
-                      <Users className="w-4 h-4 text-slate-400" title="Shared workspace" />
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500">/{workspace.slug}</p>
-                </div>
-              </div>
+              {/* Animated background effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-col h-auto py-3"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    // Check lock before navigating
-                    const lockResult = await api.lockWorkspace(workspace.id, false);
-                    if (lockResult.locked) {
-                      setLockedBy(lockResult.locked_by);
-                      setPendingWorkspace(workspace);
-                      setLockModalOpen(true);
-                    } else {
-                      navigate(`/workspace/${workspace.slug}/walkthroughs`);
-                    }
-                  }}
-                  data-testid={`workspace-walkthroughs-${workspace.id}`}
-                >
-                  <BookOpen className="w-4 h-4 mb-1" />
-                  <span className="text-xs">{t('workspace.guides')}</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-col h-auto py-3"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    // Check if workspace is locked (read-only check, don't acquire lock)
-                    try {
-                      const lockResult = await api.checkWorkspaceLock(workspace.id);
-                      if (lockResult.locked) {
-                        setLockedBy(lockResult.locked_by);
-                        setPendingWorkspace(workspace);
-                        setLockModalOpen(true);
-                      } else {
-                        // Not locked, navigate - workspace page will acquire lock
-                        navigate(`/workspace/${workspace.slug}/categories`);
-                      }
-                    } catch (error) {
-                      // If lock check fails, still navigate - workspace page will handle it
-                      console.error('Lock check failed:', error);
-                      navigate(`/workspace/${workspace.slug}/categories`);
-                    }
-                  }}
-                  data-testid={`workspace-categories-${workspace.id}`}
-                >
-                  <FolderOpen className="w-4 h-4 mb-1" />
-                  <span className="text-xs">{t('workspace.categories')}</span>
-                </Button>
-                {workspace.owner_id === user?.id && (
+              <CardContent className="relative p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    {workspace.logo ? (
+                      <img
+                        src={normalizeImageUrl(workspace.logo)}
+                        alt={workspace.name}
+                        className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center text-white text-xl shadow-lg"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center text-white text-xl shadow-lg"
+                        style={{ backgroundColor: workspace.brand_color }}
+                      >
+                        {workspace.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors mb-1">
+                        {workspace.name}
+                      </h3>
+                      <p className="text-slate-300 text-sm leading-relaxed">
+                        /{workspace.slug}
+                        {workspace.owner_id && workspace.owner_id !== user?.id && (
+                          <span className="ml-2 text-slate-400">(Shared)</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-sm font-medium text-blue-400">
+                    Active
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-col h-auto py-3"
-                    onClick={(e) => {
+                    className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      navigate(`/workspace/${workspace.slug}/settings`);
+                      // Check if workspace is locked (read-only check, don't acquire lock)
+                      try {
+                        const lockResult = await api.checkWorkspaceLock(workspace.id);
+                        if (lockResult.locked) {
+                          setLockedBy(lockResult.locked_by);
+                          setPendingWorkspace(workspace);
+                          setLockModalOpen(true);
+                        } else {
+                          // Not locked, navigate - workspace page will acquire lock
+                          navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                        }
+                      } catch (error) {
+                        // If lock check fails, still navigate - workspace page will handle it
+                        console.error('Lock check failed:', error);
+                        navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                      }
                     }}
-                    data-testid={`workspace-settings-${workspace.id}`}
                   >
-                    <Settings className="w-4 h-4 mb-1" />
-                    <span className="text-xs">{t('workspace.settings')}</span>
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Guides
                   </Button>
-                )}
-                {workspace.owner_id !== user?.id && (
-                  <div className="flex-col h-auto py-3 flex items-center justify-center opacity-50">
-                    <Settings className="w-4 h-4 mb-1" />
-                    <span className="text-xs">{t('workspace.settings')}</span>
-                  </div>
-                )}
-              </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      // Check if workspace is locked (read-only check, don't acquire lock)
+                      try {
+                        const lockResult = await api.checkWorkspaceLock(workspace.id);
+                        if (lockResult.locked) {
+                          setLockedBy(lockResult.locked_by);
+                          setPendingWorkspace(workspace);
+                          setLockModalOpen(true);
+                        } else {
+                          // Not locked, navigate - workspace page will acquire lock
+                          navigate(`/workspace/${workspace.slug}/categories`);
+                        }
+                      } catch (error) {
+                        // If lock check fails, still navigate - workspace page will handle it
+                        console.error('Lock check failed:', error);
+                        navigate(`/workspace/${workspace.slug}/categories`);
+                      }
+                    }}
+                  >
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    Categories
+                  </Button>
+                  {workspace.owner_id === user?.id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/workspace/${workspace.slug}/settings`);
+                      }}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>

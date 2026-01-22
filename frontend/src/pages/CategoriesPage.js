@@ -434,87 +434,110 @@ const CategoriesPage = () => {
                 transition={{ delay: index * 0.1 }}
                 data-testid={`category-card-${category.id}`}
               >
-                <Card interactive={true} className="p-6">
-                <div className="flex items-start gap-4">
-                  {category.icon_url ? (
-                    <img
-                      src={category.icon_url}
-                      alt={category.name}
-                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <FolderOpen className="w-6 h-6 text-primary" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">
-                        {category.name}
-                      </h3>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openEditDialog(category)}
-                          data-testid={`edit-category-${category.id}`}
-                          className="h-7 w-7 p-0 text-white hover:text-slate-300"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteCategory(category.id, category.name)}
-                          data-testid={`delete-category-${category.id}`}
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-600 mb-3">
-                      {category.description || 'No description'}
-                    </p>
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-medium text-slate-500">
-                          {category.children.length > 0 ? 'Sub-categories:' : 'No sub-categories yet'}
+                <Card className="relative overflow-hidden border border-slate-700/50 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 group">
+                  {/* Animated background effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
+                  <CardContent className="relative p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        {category.icon_url ? (
+                          <img
+                            src={category.icon_url}
+                            alt={category.name}
+                            className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center text-white text-xl shadow-lg"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center text-white text-xl shadow-lg">
+                            <FolderOpen className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors mb-1">
+                            {category.name}
+                          </h3>
+                          <p className="text-slate-300 text-sm leading-relaxed">
+                            {category.description || 'No description'}
+                          </p>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openCreateSubCategory(category.id, category.name)}
-                          className="h-7 text-xs"
-                          data-testid={`create-subcategory-${category.id}`}
-                        >
-                          <Plus className="w-3 h-3 mr-1" />
-                          Add Sub-category
-                        </Button>
                       </div>
-                      {category.children.length > 0 && (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+
+                      <div className="text-sm font-medium text-green-400">
+                        Active
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex justify-between text-sm mb-4">
+                      <span className="text-slate-400">Sub-categories:</span>
+                      <span className="text-white font-medium">{category.children.length}</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                        onClick={() => openCreateSubCategory(category.id, category.name)}
+                        data-testid={`create-subcategory-${category.id}`}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Sub-category
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(category)}
+                        className="bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                        data-testid={`edit-category-${category.id}`}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCategory(category.id, category.name)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200"
+                        data-testid={`delete-category-${category.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
+
+                    {/* Sub-categories */}
+                    {category.children.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-2 mt-4 pt-4 border-t border-white/20"
+                      >
+                        <div className="text-sm font-medium text-slate-300 mb-2">Sub-categories:</div>
+                        <div className="grid grid-cols-1 gap-2">
                           {category.children.map((subCat) => (
                             <div
                               key={subCat.id}
-                              className="flex items-center gap-2 p-3 glass rounded-xl group"
+                              className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg group/sub"
                             >
-                              {subCat.icon_url ? (
-                                <img
-                                  src={subCat.icon_url}
-                                  alt={subCat.name}
-                                  className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-slate-200"
-                                />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{subCat.name}</div>
-                                {subCat.description && (
-                                  <div className="text-xs text-slate-400 truncate">{subCat.description}</div>
+                              <div className="flex items-center gap-3">
+                                {subCat.icon_url ? (
+                                  <img
+                                    src={subCat.icon_url}
+                                    alt={subCat.name}
+                                    className="w-6 h-6 rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-slate-400" />
                                 )}
+                                <div>
+                                  <div className="text-sm font-medium text-white">{subCat.name}</div>
+                                  {subCat.description && (
+                                    <div className="text-xs text-slate-400 truncate">{subCat.description}</div>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 group-hover/sub:opacity-100 transition-opacity">
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -537,10 +560,9 @@ const CategoriesPage = () => {
                             </div>
                           ))}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                      </motion.div>
+                    )}
+                  </CardContent>
                 </Card>
               </motion.div>
             ))}

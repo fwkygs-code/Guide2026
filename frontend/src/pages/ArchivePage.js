@@ -121,46 +121,59 @@ const ArchivePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card interactive={true} className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors mb-1">
-                      {walkthrough.title}
-                    </h3>
-                    <p className="text-sm text-slate-400 line-clamp-2">
-                      {walkthrough.description || t('walkthrough.noDescription')}
-                    </p>
-                  </div>
-                </div>
+                <Card className="relative overflow-hidden border border-slate-700/50 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 group">
+                  {/* Animated background effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge variant="secondary">
-                    <Archive className="w-3 h-3 mr-1" />
-                    {t('walkthrough.archived')}
-                  </Badge>
-                  <Badge variant="outline" className="text-white border-white/50">{walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}</Badge>
-                </div>
+                  <CardContent className="relative p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-white text-xl shadow-lg">
+                          <Archive className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors mb-1">
+                            {walkthrough.title}
+                          </h3>
+                          <p className="text-slate-300 text-sm leading-relaxed line-clamp-2">
+                            {walkthrough.description || t('walkthrough.noDescription')}
+                          </p>
+                        </div>
+                      </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleRestore(walkthrough.id)}
-                    data-testid={`restore-walkthrough-${walkthrough.id}`}
-                  >
-                    <RotateCcw className="w-3 h-3 mr-1" />
-                    {t('walkthrough.restore')}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteForever(walkthrough.id)}
-                    data-testid={`delete-forever-walkthrough-${walkthrough.id}`}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
+                      <div className="text-sm font-medium text-amber-400">
+                        Archived
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex justify-between text-sm mb-4">
+                      <span className="text-slate-400">Steps:</span>
+                      <span className="text-white font-medium">{walkthrough.steps?.length || 0}</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                        onClick={() => handleRestore(walkthrough.id)}
+                        data-testid={`restore-walkthrough-${walkthrough.id}`}
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        {t('walkthrough.restore')}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={() => handleDeleteForever(walkthrough.id)}
+                        data-testid={`delete-forever-walkthrough-${walkthrough.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Forever
+                      </Button>
+                    </div>
+                  </CardContent>
                 </Card>
               </motion.div>
             ))}

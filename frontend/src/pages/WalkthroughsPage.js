@@ -371,73 +371,73 @@ const WalkthroughsPage = () => {
                             </div>
                           </div>
                         </div>
-                        <Card interactive={true} className="p-6">
+                        <Card className="relative overflow-hidden border border-slate-700/50 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 group">
+                          {/* Animated background effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-                        <div className="flex items-start gap-3 mb-4">
-                          {walkthrough.icon_url ? (
-                            <img
-                              src={normalizeImageUrl(walkthrough.icon_url)}
-                              alt={walkthrough.title}
-                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200"
-                              onError={(e) => {
-                                console.error('Failed to load icon:', walkthrough.icon_url);
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <BookOpen className="w-6 h-6 text-primary" />
+                          <CardContent className="relative p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-center gap-4">
+                                {walkthrough.icon_url ? (
+                                  <img
+                                    src={normalizeImageUrl(walkthrough.icon_url)}
+                                    alt={walkthrough.title}
+                                    className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-white text-xl shadow-lg"
+                                    onError={(e) => {
+                                      console.error('Failed to load icon:', walkthrough.icon_url);
+                                      e.target.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-white text-xl shadow-lg">
+                                    <BookOpen className="w-6 h-6" />
+                                  </div>
+                                )}
+                                <div>
+                                  <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors mb-1">
+                                    {walkthrough.title}
+                                  </h3>
+                                  <p className="text-slate-300 text-sm leading-relaxed line-clamp-2">
+                                    {walkthrough.description || t('walkthrough.noDescription')}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className={`text-sm font-medium ${walkthrough.status === 'published' ? 'text-green-400' : 'text-slate-500'}`}>
+                                {walkthrough.status === 'published' ? 'Published' : 'Draft'}
+                              </div>
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors mb-1">
-                              {walkthrough.title}
-                            </h3>
-                            <p className="text-sm text-slate-400 line-clamp-2">
-                              {walkthrough.description || t('walkthrough.noDescription')}
-                            </p>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 mb-4">
-                          <Badge variant="outline" className={walkthrough.status === 'published' ? 'border-green-400 text-green-300 bg-transparent' : 'border-slate-500 text-slate-400 bg-transparent'}>
-                            {walkthrough.status === 'published' ? t('builder.status.published') : t('builder.status.draft')}
-                          </Badge>
-                          <Badge variant="outline" className="border-slate-500 text-slate-400 bg-transparent">
-                            {walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}
-                          </Badge>
-                        </div>
+                            {/* Stats */}
+                            <div className="flex justify-between text-sm mb-4">
+                              <span className="text-slate-400">Steps:</span>
+                              <span className="text-white font-medium">{walkthrough.steps?.length || 0}</span>
+                            </div>
 
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenSettings(walkthrough)}
-                            title="Edit Settings"
-                            className="px-2"
-                          >
-                            <Settings className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/${walkthrough.id}/edit`)}
-                            data-testid={`edit-walkthrough-${walkthrough.id}`}
-                          >
-                            <Edit className="w-3 h-3 mr-1" />
-                            {t('common.edit')}
-                          </Button>
-                          <WalkthroughShareButton walkthrough={walkthrough} workspaceSlug={workspaceSlug} />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(walkthrough.id)}
-                            data-testid={`delete-walkthrough-${walkthrough.id}`}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+                            {/* Action Buttons */}
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenSettings(walkthrough)}
+                                title="Edit Settings"
+                                className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                              >
+                                <Settings className="w-4 h-4 mr-2" />
+                                Settings
+                              </Button>
+                              <Button
+                                onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/${walkthrough.id}/edit`)}
+                                className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                                variant="outline"
+                                data-testid={`edit-walkthrough-${walkthrough.id}`}
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                              </Button>
+                              <WalkthroughShareButton walkthrough={walkthrough} workspaceSlug={workspaceSlug} />
+                            </div>
+                          </CardContent>
                         </Card>
                       </motion.div>
                     ))}
