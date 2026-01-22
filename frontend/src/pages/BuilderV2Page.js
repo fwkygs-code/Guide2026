@@ -150,17 +150,27 @@ const BuilderV2Page = () => {
           setLoading(true);
           const response = await api.getWalkthrough(workspaceId, walkthroughId);
           const normalized = normalizeImageUrlsInObject(response.data);
+          
+          console.log('[BuilderV2] Loaded walkthrough:', walkthroughId);
+          console.log('[BuilderV2] Steps count:', normalized.steps?.length || 0);
+          
           // Ensure blocks array exists and is properly structured
           if (normalized.steps) {
-            normalized.steps = normalized.steps.map(step => ({
-              ...step,
-              blocks: (step.blocks || []).map(block => ({
+            normalized.steps = normalized.steps.map((step, idx) => {
+              const blocks = (step.blocks || []).map(block => ({
                 id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 type: block.type || 'text',
                 data: block.data || {},
                 settings: block.settings || {}
-              }))
-            }));
+              }));
+              
+              console.log(`[BuilderV2] Step ${idx + 1} has ${blocks.length} blocks:`, blocks.map(b => b.type));
+              
+              return {
+                ...step,
+                blocks
+              };
+            });
           }
           setWalkthrough(normalized);
           setSetupData({
@@ -215,14 +225,30 @@ const BuilderV2Page = () => {
       // Save all steps with their blocks
       if (finalWalkthroughId && walkthrough.steps) {
         for (const step of walkthrough.steps) {
+          // CRITICAL: Ensure blocks are properly structured before sending
+          const blocks = (step.blocks || []).map(block => {
+            if (!block || typeof block !== 'object') {
+              console.warn('[BuilderV2] Invalid block found:', block);
+              return null;
+            }
+            return {
+              id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: block.type || 'text',
+              data: block.data || {},
+              settings: block.settings || {}
+            };
+          }).filter(b => b !== null); // Remove null blocks
+          
           const stepData = {
             title: step.title || '',
             content: step.content || '', // Required by backend StepCreate model
-            blocks: step.blocks || [],
+            blocks: blocks,
             navigation_type: step.navigation_type || 'next_prev',
             order: step.order || 0,
             common_problems: step.common_problems || [],
           };
+
+          console.log(`[BuilderV2] Saving step ${step.id} with ${blocks.length} blocks:`, blocks.map(b => b.type));
 
           if (step.id && !step.id.startsWith('step-')) {
             // Existing step - update via API
@@ -729,7 +755,7 @@ const BuilderV2Page = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.open(`/portal/${workspaceId}/${walkthroughId || 'preview'}`, '_blank')}
+            onClick={() => window.open(`/portal/${workspaceSlug}/${walkthroughId || 'preview'}`, '_blank')}
           >
             <Eye className="w-4 h-4 mr-2" />
             Preview
@@ -1608,6 +1634,73 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       );
 
     case BLOCK_TYPES.EMBED:
+      // Transform URL based on provider
+      const getEmbedUrl = (url, provider) => {
+        if (!url) return '';
+        
+        try {
+          switch (provider) {
+            case 'youtube':
+              // Convert YouTube watch URLs to embed format
+              if (url.includes('youtube.com/watch')) {
+                const videoId = url.split('v=')[1]?.split('&')[0];
+                return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+              } else if (url.includes('youtu.be/')) {
+                const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+              } else if (url.includes('youtube.com/embed/')) {
+                return url; // Already in embed format
+              }
+              return url;
+              
+            case 'vimeo':
+              // Convert Vimeo URLs to embed format
+              if (url.includes('vimeo.com/') && !url.includes('/video/')) {
+                const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+                return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
+              }
+              return url;
+              
+            case 'loom':
+              // Loom share URLs to embed format
+              if (url.includes('loom.com/share/')) {
+                const videoId = url.split('/share/')[1]?.split('?')[0];
+                return videoId ? `https://www.loom.com/embed/${videoId}` : url;
+              }
+              return url;
+              
+            case 'figma':
+              // Figma URLs need embed parameter
+              if (url.includes('figma.com/') && !url.includes('embed')) {
+                return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
+              }
+              return url;
+              
+            case 'google_docs':
+              // Google Docs need /preview or /pub?embedded=true
+              if (url.includes('docs.google.com/document/')) {
+                const docId = url.split('/d/')[1]?.split('/')[0];
+                return docId ? `https://docs.google.com/document/d/${docId}/preview` : url;
+              } else if (url.includes('docs.google.com/presentation/')) {
+                const docId = url.split('/d/')[1]?.split('/')[0];
+                return docId ? `https://docs.google.com/presentation/d/${docId}/embed` : url;
+              } else if (url.includes('docs.google.com/spreadsheets/')) {
+                const docId = url.split('/d/')[1]?.split('/')[0];
+                return docId ? `https://docs.google.com/spreadsheets/d/${docId}/preview` : url;
+              }
+              return url;
+              
+            default:
+              return url;
+          }
+        } catch (error) {
+          console.error('Error transforming embed URL:', error);
+          return url;
+        }
+      };
+      
+      const embedUrl = getEmbedUrl(block.data?.url, block.data?.provider || 'youtube');
+      
       return (
         <div className="space-y-3">
           <Select
@@ -1630,14 +1723,15 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           <Input
             value={block.data?.url || ''}
             onChange={(e) => onUpdate({ data: { ...block.data, url: e.target.value } })}
-            placeholder="Embed URL"
+            placeholder={`Paste ${block.data?.provider || 'YouTube'} URL`}
           />
           {block.data?.url && (
-            <div className="aspect-video border border-slate-200 rounded-lg overflow-hidden">
+            <div className="aspect-video border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
               <iframe
-                src={block.data.url}
+                src={embedUrl}
                 className="w-full h-full"
                 allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               />
             </div>
           )}
