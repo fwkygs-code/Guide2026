@@ -120,7 +120,7 @@ const ArchivePage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700"
+                className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
