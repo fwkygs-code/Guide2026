@@ -2081,7 +2081,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
   };
 
-  // Dot-specific resize handle pointer down
+  // Dot resize handle handlers (must be on the handle itself due to pointer capture)
   const handleDotResizePointerDown = (e, index, marker) => {
     console.log('[Dot Resize] Handle pointer down', { index, marker, currentMode: interactionMode });
     e.stopPropagation();
@@ -2092,18 +2092,65 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     setResizingMarker(index);
     setResizeCorner('dot');
     setEditingMarker(null);
-    const rect = imageRef.current.getBoundingClientRect();
     const markerSize = marker.size || 3;
     const radius = markerSize / 2;
     dragStartPos.current = { 
-      x: e.clientX, 
-      y: e.clientY, 
-      rect,
       initialRadius: radius,
       centerX: marker.x,
       centerY: marker.y
     };
     console.log('[Dot Resize] Stored dragStartPos', dragStartPos.current);
+  };
+
+  const handleDotResizePointerMove = (e, index) => {
+    if (interactionMode !== 'resizing-dot') return;
+    
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (!imageRef.current || !dragStartPos.current) return;
+    
+    const rect = imageRef.current.getBoundingClientRect();
+    const currentX = ((e.clientX - rect.left) / rect.width) * 100;
+    const currentY = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Calculate distance from stored center to current pointer
+    const centerX = dragStartPos.current.centerX;
+    const centerY = dragStartPos.current.centerY;
+    const deltaX = currentX - centerX;
+    const deltaY = currentY - centerY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // New radius, clamped to min/max
+    const newRadius = Math.max(0.25, Math.min(7.5, distance));
+    const newSize = newRadius * 2; // diameter
+    
+    console.log('[Dot Resize]', {
+      currentX, currentY,
+      centerX, centerY,
+      distance,
+      newRadius,
+      newSize
+    });
+    
+    // Update only size, center stays fixed
+    updateMarker(index, { size: newSize });
+  };
+
+  const handleDotResizePointerUp = (e) => {
+    console.log('[Dot Resize] Pointer up, releasing capture');
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Release pointer capture
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    
+    setInteractionMode('idle');
+    setResizingMarker(null);
+    setResizeCorner(null);
+    dragStartPos.current = null;
   };
   
   const handleImagePointerMove = (e) => {
@@ -2126,41 +2173,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           y: Math.max(0, Math.min(100, y))
         });
       });
-    } else if (interactionMode === 'resizing-dot' && resizingMarker !== null) {
-      // Handle dot resizing (direct update without RAF for responsiveness)
-      const marker = markers[resizingMarker];
-      if (!marker || !dragStartPos.current) {
-        console.log('[Dot Resize] Early return - marker or dragStartPos missing');
-        return;
-      }
-      
-      const rect = imageRef.current.getBoundingClientRect();
-      const currentX = ((e.clientX - rect.left) / rect.width) * 100;
-      const currentY = ((e.clientY - rect.top) / rect.height) * 100;
-      
-      // Calculate distance from stored center to current pointer
-      const centerX = dragStartPos.current.centerX || marker.x;
-      const centerY = dragStartPos.current.centerY || marker.y;
-      const deltaX = currentX - centerX;
-      const deltaY = currentY - centerY;
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      
-      // New radius, clamped to min/max
-      const newRadius = Math.max(0.25, Math.min(7.5, distance));
-      const newSize = newRadius * 2; // diameter
-      
-      console.log('[Dot Resize]', {
-        currentX, currentY,
-        centerX, centerY,
-        distance,
-        newRadius,
-        newSize,
-        currentSize: marker.size
-      });
-      
-      // Update only size, center stays fixed (direct update for immediate feedback)
-      updateMarker(resizingMarker, { size: newSize });
     } else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
+      // Dot resizing is handled by the handle element itself (not here)
+      // This only handles rectangle resizing
       // Handle rectangle resizing
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -2407,6 +2422,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       touchAction: 'none'
                     }}
                     onPointerDown={(e) => handleDotResizePointerDown(e, idx, marker)}
+                    onPointerMove={(e) => handleDotResizePointerMove(e, idx)}
+                    onPointerUp={(e) => handleDotResizePointerUp(e)}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
