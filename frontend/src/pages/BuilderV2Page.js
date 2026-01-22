@@ -2093,9 +2093,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     setResizeCorner('dot');
     setEditingMarker(null);
     const markerSize = marker.size || 3; // Keep default for resize calculation
-    const radius = markerSize / 2;
-    dragStartPos.current = { 
-      initialRadius: radius,
+    dragStartPos.current = {
+      initialDiameter: markerSize,
       centerX: marker.x,
       centerY: marker.y
     };
@@ -2120,16 +2119,15 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     const deltaX = currentX - centerX;
     const deltaY = currentY - centerY;
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    // New radius, clamped to min/max
-    const newRadius = Math.max(0.25, Math.min(7.5, distance));
-    const newSize = newRadius * 2; // diameter
+
+    // Convert distance directly to diameter, then clamp the final size
+    const newSize = Math.max(0.5, Math.min(15, distance * 2));
     
     console.log('[Dot Resize]', {
       currentX, currentY,
       centerX, centerY,
       distance,
-      newRadius,
+      rawDiameter: distance * 2,
       newSize
     });
     
