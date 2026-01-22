@@ -432,7 +432,7 @@ const CategoriesPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 hover:shadow-lg transition-all"
+className="glass rounded-xl p-6 hover:shadow-lg transition-all"
                 data-testid={`category-card-${category.id}`}
               >
                 <div className="flex items-start gap-4">
@@ -497,7 +497,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
                           {category.children.map((subCat) => (
                             <div
                               key={subCat.id}
-                              className="flex items-center gap-2 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl border border-gray-200/50 group"
+                              className="flex items-center gap-2 p-3 glass rounded-xl group"
                             >
                               {subCat.icon_url ? (
                                 <img

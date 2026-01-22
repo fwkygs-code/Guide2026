@@ -322,8 +322,8 @@ const SettingsPage = () => {
 
             <div className="space-y-6">
           {/* Basic Settings */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-            <h2 className="text-xl font-heading font-semibold mb-4">Basic Information</h2>
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4">Basic Information</h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="workspace-name">Workspace Name</Label>
@@ -382,8 +382,8 @@ const SettingsPage = () => {
           </div>
 
           {/* Portal Branding */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-            <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
               <Globe className="w-5 h-5" />
               Portal Branding
             </h2>
@@ -474,8 +474,8 @@ const SettingsPage = () => {
           </div>
 
           {/* Portal Contact Information */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-            <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
               <Phone className="w-5 h-5" />
               Portal Contact Information
             </h2>
@@ -526,8 +526,8 @@ const SettingsPage = () => {
           </div>
 
           {/* Portal Links */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-            <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
               <ExternalLink className="w-5 h-5" />
               Portal External Links
             </h2>
@@ -589,8 +589,8 @@ const SettingsPage = () => {
           </div>
 
           {/* Plan Management */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-            <h2 className="text-xl font-heading font-semibold mb-4">Plan Management</h2>
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4">Plan Management</h2>
             <div className="space-y-4">
               <div>
                 <Label>Current Plan</Label>
@@ -609,8 +609,8 @@ const SettingsPage = () => {
           </div>
 
           {/* Danger Zone - Delete Workspace */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-red-900/20 to-red-800/20 border-2 border-red-500/50">
-            <h2 className="text-xl font-heading font-semibold mb-4 text-red-900">Danger Zone</h2>
+          <div className="glass rounded-xl p-6 border-2 border-red-500/50">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4">Danger Zone</h2>
             <div className="space-y-4">
               <div>
                 <Label className="text-red-900">Delete Workspace</Label>
@@ -661,8 +661,8 @@ const SettingsPage = () => {
           </div>
 
           {/* Text Size Settings */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-            <h2 className="text-xl font-heading font-semibold mb-4">Text Size</h2>
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4">Text Size</h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="text-size">Text Size Preference</Label>
@@ -695,8 +695,8 @@ const SettingsPage = () => {
 
           {/* Workspace Sharing */}
           {workspace && workspaceId && user && isOwner && (
-            <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-              <h2 className="text-xl font-heading font-semibold mb-4">Workspace Sharing</h2>
+            <div className="glass rounded-xl p-6">
+              <h2 className="text-xl font-heading font-semibold text-white mb-4">Workspace Sharing</h2>
               <div className="space-y-4">
                 <div>
                   <Label>Invite User by Email</Label>
@@ -771,8 +771,8 @@ const SettingsPage = () => {
           )}
 
           {/* Portal Settings */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-            <h2 className="text-xl font-heading font-semibold mb-4">Public Portal</h2>
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-xl font-heading font-semibold text-white mb-4">Public Portal</h2>
             <Tabs defaultValue="share" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="share">
@@ -903,7 +903,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Save Button at Bottom */}
-          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 border-t-2 border-primary/20">
+          <div className="glass rounded-xl p-6 border-t-2 border-primary/20">
             <div className="flex gap-2 justify-end">
               <Button 
                 variant="outline" 

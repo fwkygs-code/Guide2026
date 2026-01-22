@@ -161,7 +161,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700"
+            className="glass rounded-xl p-6"
           >
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-warning/20 backdrop-blur-sm border border-warning/30 flex items-center justify-center shadow-[0_2px_8px_rgba(90,200,250,0.2)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent before:pointer-events-none">

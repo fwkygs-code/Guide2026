@@ -355,7 +355,7 @@ const WalkthroughsPage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
-                        className="rounded-xl p-6 transition-all relative bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700"
+                        className="glass rounded-xl p-6 transition-all relative"
                         data-testid={`walkthrough-card-${walkthrough.id}`}
                       >
                         {/* Transparent 3D Bubble with Category and Company Name */}
