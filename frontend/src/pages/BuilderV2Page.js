@@ -2382,15 +2382,16 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               >
                 {idx + 1}
                 
-                {/* Single resize handle positioned on perimeter (bottom-right at 45°) */}
+                {/* Single resize handle positioned at rightmost point (cx + radius, cy) */}
                 {isActive && (
                   <div
                     data-resize-handle="true"
                     className="absolute w-4 h-4 bg-white border-2 border-primary rounded-full hover:scale-125 transition-transform"
                     style={{
-                      bottom: '-2px',
-                      right: '-2px',
-                      cursor: 'nwse-resize',
+                      right: '-8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      cursor: 'ew-resize',
                       zIndex: 20,
                       pointerEvents: 'auto',
                       touchAction: 'none'
