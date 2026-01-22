@@ -1606,17 +1606,28 @@ const AnnotatedImageViewer = ({ block }) => {
               }}
             >
               <div
-                className={`w-full h-full border-2 flex items-center justify-center cursor-pointer transition-all select-none ${
+                className={`w-full h-full border-2 cursor-pointer transition-all select-none ${
                   isActive
                     ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
                     : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
                 }`}
                 style={{
                   userSelect: 'none',
+                  position: 'relative',
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold pointer-events-none">
+                {/* Number badge positioned outside top-right corner like an exponent */}
+                <span 
+                  className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    top: '-9px',
+                    right: '-9px',
+                    fontSize: '10px'
+                  }}
+                >
                   {idx + 1}
                 </span>
               </div>
