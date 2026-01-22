@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
-import { PageHeader, PageSurface } from '../components/ui/design-system';
+import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
 
 const ArchivePage = () => {
   const { t } = useTranslation();
@@ -120,8 +120,8 @@ const ArchivePage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="glass rounded-xl p-6"
               >
+                <Card interactive={true} className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-heading font-semibold text-white mb-1">
@@ -161,6 +161,7 @@ const ArchivePage = () => {
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
+                </Card>
               </motion.div>
             ))}
           </div>

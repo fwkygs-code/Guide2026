@@ -14,7 +14,7 @@ import { api } from '../lib/api';
 import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
-import { PageHeader, PageSurface } from '../components/ui/design-system';
+import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -432,9 +432,9 @@ const CategoriesPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-className="glass rounded-xl p-6 hover:shadow-lg transition-all"
                 data-testid={`category-card-${category.id}`}
               >
+                <Card interactive={true} className="p-6">
                 <div className="flex items-start gap-4">
                   {category.icon_url ? (
                     <img
@@ -541,6 +541,7 @@ className="glass rounded-xl p-6 hover:shadow-lg transition-all"
                     </div>
                   </div>
                 </div>
+                </Card>
               </motion.div>
             ))}
           </div>

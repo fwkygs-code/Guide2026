@@ -355,9 +355,10 @@ const WalkthroughsPage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
-                        className="glass rounded-xl p-6 transition-all relative"
+                        className="transition-all relative"
                         data-testid={`walkthrough-card-${walkthrough.id}`}
                       >
+                        <Card interactive={true} className="p-6 relative">
                         {/* Transparent 3D Bubble with Category and Company Name */}
                         <div
                           className="absolute -top-3 -right-3 z-10 px-3 py-1.5 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 shadow-lg transform hover:scale-105 transition-transform"
@@ -444,6 +445,7 @@ const WalkthroughsPage = () => {
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
+                        </Card>
                       </motion.div>
                     ))}
                   </div>

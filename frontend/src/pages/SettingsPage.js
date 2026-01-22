@@ -322,8 +322,11 @@ const SettingsPage = () => {
 
             <div className="space-y-6">
           {/* Basic Settings */}
-          <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4">Basic Information</h2>
+          <Card interactive={true} className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-white">Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="workspace-name" className="text-white">Workspace Name</Label>
@@ -379,7 +382,8 @@ const SettingsPage = () => {
                 </div>
               </div>
             </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Portal Branding */}
           <div className="glass rounded-xl p-6">

@@ -93,7 +93,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
 
   if (loading) {
     return (
-      <Card className="glass">
+      <Card interactive={true}>
         <CardHeader>
           <CardTitle className="text-white">{t('quota.usage')}</CardTitle>
         </CardHeader>
@@ -109,7 +109,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
 
   if (error || !quotaData) {
     return (
-      <Card className="glass">
+      <Card interactive={true}>
         <CardHeader>
           <CardTitle className="text-white">{t('quota.usage')}</CardTitle>
         </CardHeader>
@@ -340,7 +340,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       )}
 
       {/* Storage Usage */}
-      <Card className="glass">
+      <Card interactive={true}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -366,7 +366,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       </Card>
 
       {/* Workspaces Usage */}
-      <Card className="glass">
+      <Card interactive={true}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -396,7 +396,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       </Card>
 
       {/* Walkthroughs Usage */}
-      <Card className="glass">
+      <Card interactive={true}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       </Card>
 
       {/* Categories Usage */}
-      <Card className="glass">
+      <Card interactive={true}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -482,7 +482,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       )}
 
       {/* Plan Limits Info */}
-      <Card className="glass">
+      <Card interactive={true}>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-white">{t('quota.planLimits')}</CardTitle>
         </CardHeader>
