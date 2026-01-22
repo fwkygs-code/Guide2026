@@ -1449,6 +1449,20 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       );
 
     case BLOCK_TYPES.BUTTON:
+      // Default button text based on action
+      const getDefaultButtonText = (action) => {
+        const defaults = {
+          next: 'Next Step',
+          go_to_step: 'Go to Step',
+          end: 'End Walkthrough',
+          restart: 'Restart',
+          support: 'Get Support',
+          link: 'Visit Link',
+          check: 'Continue'
+        };
+        return defaults[action] || 'Button';
+      };
+      
       return (
         <div className="space-y-3">
           <div>
@@ -1456,7 +1470,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             <Input
               value={block.data.text || ''}
               onChange={(e) => onUpdate({ data: { ...block.data, text: e.target.value } })}
-              placeholder="Button text"
+              placeholder={getDefaultButtonText(block.data.action || 'next')}
             />
           </div>
           
@@ -1464,7 +1478,24 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             <Label className="text-xs text-slate-600 mb-1.5 block">Action</Label>
             <Select
               value={block.data.action || 'next'}
-              onValueChange={(value) => onUpdate({ data: { ...block.data, action: value } })}
+              onValueChange={(value) => {
+                // Auto-fill button text if empty or matches previous default
+                const currentAction = block.data.action || 'next';
+                const currentText = block.data.text || '';
+                const previousDefault = getDefaultButtonText(currentAction);
+                const newDefault = getDefaultButtonText(value);
+                
+                // Update text if it's empty or still using the previous default
+                const shouldUpdateText = !currentText || currentText === previousDefault;
+                
+                onUpdate({ 
+                  data: { 
+                    ...block.data, 
+                    action: value,
+                    text: shouldUpdateText ? newDefault : currentText
+                  } 
+                });
+              }}
             >
               <SelectTrigger>
                 <SelectValue />

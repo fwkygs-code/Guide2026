@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Check, X, Smile, Meh, Frown, LogIn, UserPlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Smile, Meh, Frown, LogIn, UserPlus, MessageCircle, Phone, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +49,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [portalPassword, setPortalPassword] = useState('');
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [showSupportDialog, setShowSupportDialog] = useState(false);
+  const [supportContactInfo, setSupportContactInfo] = useState(null);
   
   // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
   const isGif = (url, mediaType = null) => {
@@ -916,21 +918,25 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 customPhone: block.data?.supportPhone
                               });
                               
-                              // Use portal contact info or custom fields
-                              if (block.data?.usePortalContactInfo !== false && walkthrough?.workspace?.contact_whatsapp) {
-                                const number = walkthrough.workspace.contact_whatsapp.replace(/[^0-9]/g, '');
-                                console.log('[Get Support] Opening WhatsApp with portal number:', number);
-                                window.open(`https://wa.me/${number}`, '_blank');
-                              } else if (block.data?.supportWhatsapp) {
-                                const number = block.data.supportWhatsapp.replace(/[^0-9]/g, '');
-                                console.log('[Get Support] Opening WhatsApp with custom number:', number);
-                                window.open(`https://wa.me/${number}`, '_blank');
-                              } else if (block.data?.supportPhone) {
-                                console.log('[Get Support] Opening phone dialer:', block.data.supportPhone);
-                                window.open(`tel:${block.data.supportPhone}`, '_self');
+                              // Prepare contact info and show dialog
+                              const contactInfo = {};
+                              
+                              if (block.data?.usePortalContactInfo !== false && walkthrough?.workspace) {
+                                contactInfo.whatsapp = walkthrough.workspace.contact_whatsapp;
+                                contactInfo.phone = walkthrough.workspace.contact_phone;
+                                contactInfo.hours = walkthrough.workspace.contact_hours;
                               } else {
+                                contactInfo.whatsapp = block.data?.supportWhatsapp;
+                                contactInfo.phone = block.data?.supportPhone;
+                                contactInfo.hours = block.data?.supportHours;
+                              }
+                              
+                              if (!contactInfo.whatsapp && !contactInfo.phone) {
                                 console.warn('[Get Support] No contact info configured');
                                 alert('Support contact information not configured. Please contact the walkthrough creator.');
+                              } else {
+                                setSupportContactInfo(contactInfo);
+                                setShowSupportDialog(true);
                               }
                               break;
                               
@@ -955,7 +961,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         };
                         
                         return (
-                          <div className="flex flex-col gap-2">
+                          <div className="flex">
                             <Button 
                               variant={getButtonVariant()}
                               className="rounded-full"
@@ -964,28 +970,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             >
                               {block.data?.text || 'Button'}
                             </Button>
-                            
-                            {/* Show support info if support button and custom fields */}
-                            {action === 'support' && block.data?.usePortalContactInfo === false && (
-                              <div className="text-xs text-slate-500 space-y-0.5">
-                                {block.data?.supportPhone && (
-                                  <div>📞 {block.data.supportPhone}</div>
-                                )}
-                                {block.data?.supportHours && (
-                                  <div>🕐 {block.data.supportHours}</div>
-                                )}
-                              </div>
-                            )}
-                            {action === 'support' && block.data?.usePortalContactInfo !== false && walkthrough?.workspace?.contact_phone && (
-                              <div className="text-xs text-slate-500 space-y-0.5">
-                                {walkthrough.workspace.contact_phone && (
-                                  <div>📞 {walkthrough.workspace.contact_phone}</div>
-                                )}
-                                {walkthrough.workspace.contact_hours && (
-                                  <div>🕐 {walkthrough.workspace.contact_hours}</div>
-                                )}
-                              </div>
-                            )}
                           </div>
                         );
                       })()}
@@ -1464,6 +1448,61 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Support Contact Dialog */}
+      <Dialog open={showSupportDialog} onOpenChange={setShowSupportDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contact Support</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {supportContactInfo?.whatsapp && (
+              <Button
+                variant="default"
+                className="w-full justify-start gap-3 h-auto py-4"
+                onClick={() => {
+                  const number = supportContactInfo.whatsapp.replace(/[^0-9]/g, '');
+                  window.open(`https://wa.me/${number}`, '_blank');
+                  setShowSupportDialog(false);
+                }}
+              >
+                <MessageCircle className="w-5 h-5" />
+                <div className="text-left flex-1">
+                  <div className="font-semibold">WhatsApp</div>
+                  <div className="text-sm opacity-90">{supportContactInfo.whatsapp}</div>
+                </div>
+              </Button>
+            )}
+            
+            {supportContactInfo?.phone && (
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-auto py-4"
+                onClick={() => {
+                  window.open(`tel:${supportContactInfo.phone}`, '_self');
+                  setShowSupportDialog(false);
+                }}
+              >
+                <Phone className="w-5 h-5" />
+                <div className="text-left flex-1">
+                  <div className="font-semibold">Phone</div>
+                  <div className="text-sm opacity-90">{supportContactInfo.phone}</div>
+                </div>
+              </Button>
+            )}
+            
+            {supportContactInfo?.hours && (
+              <div className="flex items-start gap-3 px-4 py-3 bg-slate-50 rounded-lg">
+                <Clock className="w-5 h-5 text-slate-600 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium text-sm text-slate-900">Working Hours</div>
+                  <div className="text-sm text-slate-600">{supportContactInfo.hours}</div>
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

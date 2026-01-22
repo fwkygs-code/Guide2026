@@ -48,7 +48,7 @@ export const createBlock = (type, data = {}) => {
       type: ''
     },
     [BLOCK_TYPES.BUTTON]: {
-      text: 'Button',
+      text: 'Next Step',
       action: 'next', // next, link, check, go_to_step, end, restart, support
       url: '',
       targetStepId: '', // For go_to_step action
