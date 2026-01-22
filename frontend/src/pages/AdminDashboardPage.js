@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Database, BarChart3, Edit, Trash2, Crown, HardDrive, FileText, FolderOpen, Ban, CheckCircle, ArrowDown, ArrowUp, Clock, Settings, MoreVertical, RotateCcw } from 'lucide-react';
+import { Users, Database, BarChart3, Edit, Trash2, Crown, HardDrive, FileText, FolderOpen, Ban, CheckCircle, ArrowDown, ArrowUp, Clock, Settings, MoreVertical, RotateCcw, Lock, Calendar, Send, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
@@ -68,6 +69,19 @@ const AdminDashboardPage = () => {
   const [quotaDialogOpen, setQuotaDialogOpen] = useState(false);
   const [quotaForm, setQuotaForm] = useState({ storageBytes: '', maxWorkspaces: '', maxWalkthroughs: '' });
   const [settingQuota, setSettingQuota] = useState(false);
+  
+  // Enhanced subscription management
+  const [manageSubDialogOpen, setManageSubDialogOpen] = useState(false);
+  const [subscriptionDetails, setSubscriptionDetails] = useState(null);
+  const [loadingSubscriptionDetails, setLoadingSubscriptionDetails] = useState(false);
+  const [subscriptionEditForm, setSubscriptionEditForm] = useState({
+    startedAt: '',
+    effectiveEndDate: '',
+    status: 'active',
+    isPermanent: false
+  });
+  const [updatingSubscription, setUpdatingSubscription] = useState(false);
+  const [sendingPaymentReminder, setSendingPaymentReminder] = useState(false);
 
   useEffect(() => {
     // Check if user is admin (role field from backend)
@@ -270,6 +284,77 @@ const AdminDashboardPage = () => {
       toast.error(errorMessage);
     } finally {
       setCancellingSubscription(false);
+    }
+  };
+
+  const fetchSubscriptionDetails = async (userId) => {
+    try {
+      setLoadingSubscriptionDetails(true);
+      const response = await api.adminGetSubscription(userId);
+      setSubscriptionDetails(response.data);
+      
+      // Populate form if subscription exists
+      if (response.data.has_subscription && response.data.subscription) {
+        const sub = response.data.subscription;
+        setSubscriptionEditForm({
+          startedAt: sub.started_at || '',
+          effectiveEndDate: sub.effective_end_date || '',
+          status: sub.status || 'active',
+          isPermanent: !sub.effective_end_date
+        });
+      } else {
+        // Reset form for new subscription
+        setSubscriptionEditForm({
+          startedAt: new Date().toISOString(),
+          effectiveEndDate: '',
+          status: 'active',
+          isPermanent: false
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription details:', error);
+      toast.error('Failed to load subscription details');
+    } finally {
+      setLoadingSubscriptionDetails(false);
+    }
+  };
+
+  const handleUpdateSubscription = async () => {
+    if (!selectedUser || !subscriptionDetails) return;
+    
+    try {
+      setUpdatingSubscription(true);
+      await api.adminUpdateSubscription(
+        selectedUser.id,
+        subscriptionEditForm.startedAt,
+        subscriptionEditForm.isPermanent ? null : subscriptionEditForm.effectiveEndDate,
+        subscriptionEditForm.status
+      );
+      toast.success('Subscription updated successfully');
+      await fetchSubscriptionDetails(selectedUser.id);
+      await fetchUsers();
+      await fetchStats();
+    } catch (error) {
+      console.error('Failed to update subscription:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to update subscription';
+      toast.error(errorMessage);
+    } finally {
+      setUpdatingSubscription(false);
+    }
+  };
+
+  const handleSendPaymentReminder = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      setSendingPaymentReminder(true);
+      await api.adminSendPaymentReminder(selectedUser.id);
+      toast.success('Payment reminder sent successfully');
+    } catch (error) {
+      console.error('Failed to send payment reminder:', error);
+      toast.error('Failed to send payment reminder');
+    } finally {
+      setSendingPaymentReminder(false);
     }
   };
 
@@ -713,6 +798,15 @@ const AdminDashboardPage = () => {
                                     <DropdownMenuSeparator />
                                     
                                     {/* Subscription Actions */}
+                                    <DropdownMenuItem onClick={() => {
+                                      setSelectedUser(u);
+                                      fetchSubscriptionDetails(u.id);
+                                      setManageSubDialogOpen(true);
+                                    }}>
+                                      <Calendar className="w-4 h-4 mr-2" />
+                                      Manage Subscription
+                                    </DropdownMenuItem>
+                                    
                                     {!u.subscription && (
                                       <DropdownMenuItem onClick={() => {
                                         setSelectedUser(u);
@@ -720,7 +814,7 @@ const AdminDashboardPage = () => {
                                         setSubscriptionDialogOpen(true);
                                       }}>
                                         <Crown className="w-4 h-4 mr-2" />
-                                        Create Subscription
+                                        Create Subscription (Old)
                                       </DropdownMenuItem>
                                     )}
                                     
@@ -1202,6 +1296,277 @@ const AdminDashboardPage = () => {
               <Button variant="default" onClick={handleCreateSubscription} disabled={creatingSubscription}>
                 {creatingSubscription ? 'Creating...' : 'Create Subscription'}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Enhanced Subscription Management Dialog */}
+        <Dialog open={manageSubDialogOpen} onOpenChange={setManageSubDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Manage Subscription</DialogTitle>
+              <DialogDescription>
+                {selectedUser && `${selectedUser.email} - ${selectedUser.name}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {loadingSubscriptionDetails ? (
+              <div className="flex justify-center py-8 text-slate-600">
+                Loading subscription details...
+              </div>
+            ) : (
+              <div className="space-y-6 py-4">
+                {/* Subscription Type Badge */}
+                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                  <Badge 
+                    variant={subscriptionDetails?.is_paypal_managed ? "default" : "secondary"}
+                    className="text-sm"
+                  >
+                    {subscriptionDetails?.is_paypal_managed ? (
+                      <>
+                        <Lock className="w-3 h-3 mr-1" />
+                        PayPal Managed
+                      </>
+                    ) : (
+                      'Manual Subscription'
+                    )}
+                  </Badge>
+                  
+                  {subscriptionDetails?.has_subscription && (
+                    <Badge 
+                      variant={subscriptionDetails?.subscription?.status === 'active' ? 'outline' : 'secondary'}
+                      className={`text-sm ${
+                        subscriptionDetails?.subscription?.status === 'active' 
+                          ? 'border-green-500 text-green-700' 
+                          : subscriptionDetails?.subscription?.status === 'expired'
+                          ? 'border-red-500 text-red-700'
+                          : 'border-slate-400 text-slate-700'
+                      }`}
+                    >
+                      {subscriptionDetails?.subscription?.status?.toUpperCase() || 'NONE'}
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Warning for PayPal subscriptions */}
+                {subscriptionDetails?.is_paypal_managed && (
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-amber-900 dark:text-amber-200">
+                      <strong>PayPal Managed Subscription</strong>
+                      <p className="mt-1">This subscription is managed through PayPal. The user must manage their subscription (cancel, change plan, etc.) through their PayPal account. You can view details but cannot edit.</p>
+                      {subscriptionDetails?.provider_subscription_id && (
+                        <div className="mt-2 font-mono text-xs bg-white dark:bg-slate-800 p-2 rounded">
+                          PayPal ID: {subscriptionDetails.provider_subscription_id}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Current Subscription Info */}
+                {subscriptionDetails?.has_subscription && subscriptionDetails?.subscription && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-slate-600">Current Plan</Label>
+                      <div className="font-semibold text-lg">
+                        {subscriptionDetails?.plan?.display_name || 'Free'}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Label className="text-xs text-slate-600">Started At</Label>
+                      <div className="text-sm">
+                        {subscriptionDetails.subscription.started_at 
+                          ? formatDateTime(subscriptionDetails.subscription.started_at)
+                          : 'Not set'}
+                      </div>
+                    </div>
+                    
+                    {subscriptionDetails.subscription.effective_end_date && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-slate-600">Expires / Renews At</Label>
+                        <div className="text-sm font-medium">
+                          {formatDateTime(subscriptionDetails.subscription.effective_end_date)}
+                        </div>
+                        {new Date(subscriptionDetails.subscription.effective_end_date) < new Date() && (
+                          <div className="text-xs text-red-600">⚠️ Expired</div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {!subscriptionDetails.subscription.effective_end_date && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-slate-600">Duration</Label>
+                        <Badge variant="outline" className="border-purple-500 text-purple-700">
+                          Permanent
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* No Subscription */}
+                {!subscriptionDetails?.has_subscription && (
+                  <div className="text-center py-8 text-slate-500">
+                    <Crown className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p className="font-medium">No subscription found</p>
+                    <p className="text-sm mt-1">Create a manual subscription to manage this user's plan</p>
+                  </div>
+                )}
+                
+                {/* Editable Fields (Manual Subscriptions Only) */}
+                {subscriptionDetails?.can_edit && subscriptionDetails?.has_subscription && (
+                  <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                    <h4 className="font-semibold text-sm">Edit Subscription Dates & Status</h4>
+                    
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <Input
+                        type="datetime-local"
+                        value={subscriptionEditForm.startedAt ? new Date(subscriptionEditForm.startedAt).toISOString().slice(0, 16) : ''}
+                        onChange={(e) => {
+                          const isoDate = e.target.value ? new Date(e.target.value).toISOString() : '';
+                          setSubscriptionEditForm({...subscriptionEditForm, startedAt: isoDate});
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Checkbox
+                          id="permanent-sub"
+                          checked={subscriptionEditForm.isPermanent}
+                          onCheckedChange={(checked) => setSubscriptionEditForm({...subscriptionEditForm, isPermanent: checked})}
+                        />
+                        <Label htmlFor="permanent-sub" className="cursor-pointer">
+                          Permanent Subscription (No expiration)
+                        </Label>
+                      </div>
+                      
+                      {!subscriptionEditForm.isPermanent && (
+                        <>
+                          <Label>End Date / Renewal Date</Label>
+                          <Input
+                            type="datetime-local"
+                            value={subscriptionEditForm.effectiveEndDate ? new Date(subscriptionEditForm.effectiveEndDate).toISOString().slice(0, 16) : ''}
+                            onChange={(e) => {
+                              const isoDate = e.target.value ? new Date(e.target.value).toISOString() : '';
+                              setSubscriptionEditForm({...subscriptionEditForm, effectiveEndDate: isoDate});
+                            }}
+                          />
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select 
+                        value={subscriptionEditForm.status}
+                        onValueChange={(value) => setSubscriptionEditForm({...subscriptionEditForm, status: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-slate-500">
+                        Setting status to "expired" or "cancelled" will downgrade user to Free plan
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Create New Subscription (when none exists) */}
+                {!subscriptionDetails?.has_subscription && (
+                  <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                    <h4 className="font-semibold text-sm">Create Manual Subscription</h4>
+                    
+                    <div className="space-y-2">
+                      <Label>Plan</Label>
+                      <Select 
+                        value={subscriptionForm.planName}
+                        onValueChange={(value) => setSubscriptionForm({...subscriptionForm, planName: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free</SelectItem>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="enterprise">Enterprise</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Duration (days)</Label>
+                      <Input
+                        type="number"
+                        value={subscriptionForm.durationDays || ''}
+                        onChange={(e) => setSubscriptionForm({...subscriptionForm, durationDays: e.target.value ? parseInt(e.target.value) : null})}
+                        placeholder="365 or leave empty for permanent"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Leave empty for permanent subscription with no expiration date
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1 flex gap-2">
+                {subscriptionDetails?.has_subscription && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSendPaymentReminder}
+                    disabled={sendingPaymentReminder}
+                    className="flex-1"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    {sendingPaymentReminder ? 'Sending...' : 'Send Payment Reminder'}
+                  </Button>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setManageSubDialogOpen(false);
+                    setSubscriptionDetails(null);
+                  }}
+                >
+                  Close
+                </Button>
+                
+                {!subscriptionDetails?.has_subscription && (
+                  <Button
+                    variant="default"
+                    onClick={handleCreateSubscription}
+                    disabled={creatingSubscription}
+                  >
+                    {creatingSubscription ? 'Creating...' : 'Create Subscription'}
+                  </Button>
+                )}
+                
+                {subscriptionDetails?.can_edit && subscriptionDetails?.has_subscription && (
+                  <Button
+                    variant="default"
+                    onClick={handleUpdateSubscription}
+                    disabled={updatingSubscription}
+                  >
+                    {updatingSubscription ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                )}
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>

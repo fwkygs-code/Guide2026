@@ -8469,6 +8469,199 @@ async def cancel_user_subscription(
     
     return {"success": True, "user_id": user_id, "subscription_id": subscription_id}
 
+class UpdateSubscriptionRequest(BaseModel):
+    started_at: Optional[str] = None
+    effective_end_date: Optional[str] = None
+    status: Optional[str] = None
+
+@api_router.put("/admin/users/{user_id}/subscription")
+async def update_manual_subscription(
+    user_id: str,
+    request: UpdateSubscriptionRequest,
+    current_user: User = Depends(require_admin)
+):
+    """
+    Update manual subscription details (dates, status).
+    ONLY works for manual subscriptions (no PayPal subscription ID).
+    Cannot modify PayPal-managed subscriptions.
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    subscription_id = user.get('subscription_id')
+    if not subscription_id:
+        raise HTTPException(status_code=404, detail="User has no subscription")
+    
+    subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    # Check if this is a PayPal-managed subscription
+    if subscription.get('provider_subscription_id'):
+        raise HTTPException(
+            status_code=403, 
+            detail="Cannot modify PayPal-managed subscription. User must manage subscription through PayPal."
+        )
+    
+    # Build update dict
+    update_dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if request.started_at:
+        try:
+            # Validate date format
+            datetime.fromisoformat(request.started_at.replace('Z', '+00:00'))
+            update_dict["started_at"] = request.started_at
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid started_at format. Use ISO 8601 format.")
+    
+    if request.effective_end_date:
+        try:
+            # Validate date format (can be null for permanent subscriptions)
+            datetime.fromisoformat(request.effective_end_date.replace('Z', '+00:00'))
+            update_dict["effective_end_date"] = request.effective_end_date
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid effective_end_date format. Use ISO 8601 format.")
+    
+    if request.status:
+        # Validate status
+        valid_statuses = [s.value for s in SubscriptionStatus]
+        if request.status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+        update_dict["status"] = request.status
+        
+        # If setting to expired or cancelled, update user plan to free
+        if request.status in [SubscriptionStatus.EXPIRED.value, SubscriptionStatus.CANCELLED.value]:
+            free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
+            if free_plan:
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {
+                        "plan_id": free_plan["id"],
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+    
+    # Update subscription
+    await db.subscriptions.update_one(
+        {"id": subscription_id},
+        {"$set": update_dict}
+    )
+    
+    logging.info(f"[ADMIN] User {current_user.id} updated manual subscription for user {user_id}: {update_dict}")
+    
+    return {"success": True, "user_id": user_id, "subscription_id": subscription_id, "updates": update_dict}
+
+class PaymentReminderRequest(BaseModel):
+    message: Optional[str] = None
+
+@api_router.post("/admin/users/{user_id}/payment-reminder")
+async def send_payment_reminder(
+    user_id: str,
+    request: PaymentReminderRequest = Body(default=PaymentReminderRequest()),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Send payment reminder to user.
+    Creates a system notification for the user.
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get subscription info for context
+    subscription_id = user.get('subscription_id')
+    subscription = None
+    if subscription_id:
+        subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
+    
+    # Create notification
+    notification_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    default_message = "Your subscription requires payment. Please contact support at support@interguide.app to complete your payment and continue enjoying Pro features."
+    
+    if subscription and subscription.get('effective_end_date'):
+        end_date = datetime.fromisoformat(subscription['effective_end_date'].replace('Z', '+00:00'))
+        default_message = f"Your subscription expires on {end_date.strftime('%Y-%m-%d')}. Please renew to continue enjoying Pro features. Contact support@interguide.app"
+    
+    message = request.message or default_message
+    
+    notification = {
+        "id": notification_id,
+        "user_id": user_id,
+        "type": "payment_reminder",
+        "title": "Payment Reminder",
+        "message": message,
+        "read": False,
+        "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(days=30)).isoformat()
+    }
+    
+    await db.notifications.insert_one(notification)
+    
+    logging.info(f"[ADMIN] User {current_user.id} sent payment reminder to user {user_id}")
+    
+    return {
+        "success": True,
+        "user_id": user_id,
+        "notification_id": notification_id,
+        "message": message
+    }
+
+@api_router.get("/admin/users/{user_id}/subscription")
+async def get_user_subscription_details(
+    user_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """
+    Get detailed subscription information for a user.
+    Shows whether subscription is PayPal-managed or manual.
+    Admin-only endpoint.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    subscription_id = user.get('subscription_id')
+    if not subscription_id:
+        return {
+            "has_subscription": False,
+            "user_id": user_id,
+            "plan_name": "free"
+        }
+    
+    subscription = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
+    if not subscription:
+        return {
+            "has_subscription": False,
+            "user_id": user_id,
+            "plan_name": "free"
+        }
+    
+    # Get plan details
+    plan_id = subscription.get('plan_id')
+    plan = None
+    if plan_id:
+        plan = await db.plans.find_one({"id": plan_id}, {"_id": 0})
+    
+    # Check if PayPal-managed
+    is_paypal_managed = bool(subscription.get('provider_subscription_id'))
+    
+    result = {
+        "has_subscription": True,
+        "user_id": user_id,
+        "subscription": subscription,
+        "plan": plan,
+        "is_paypal_managed": is_paypal_managed,
+        "can_edit": not is_paypal_managed,  # Can only edit manual subscriptions
+        "provider_subscription_id": subscription.get('provider_subscription_id')
+    }
+    
+    return result
+
 @api_router.get("/admin/stats")
 async def get_admin_stats(
     current_user: User = Depends(require_admin)

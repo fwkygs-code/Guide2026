@@ -216,6 +216,15 @@ export const api = {
   adminCreateManualSubscription: (userId, planName, durationDays = null) => 
     axios.post(`${API}/admin/users/${userId}/subscription/manual`, { plan_name: planName, duration_days: durationDays }),
   adminCancelSubscription: (userId) => axios.delete(`${API}/admin/users/${userId}/subscription`),
+  adminGetSubscription: (userId) => axios.get(`${API}/admin/users/${userId}/subscription`),
+  adminUpdateSubscription: (userId, startedAt, effectiveEndDate, status) => 
+    axios.put(`${API}/admin/users/${userId}/subscription`, { 
+      started_at: startedAt, 
+      effective_end_date: effectiveEndDate, 
+      status: status 
+    }),
+  adminSendPaymentReminder: (userId, message = null) => 
+    axios.post(`${API}/admin/users/${userId}/payment-reminder`, { message }),
   
   // User management
   adminDisableUser: (userId) => axios.put(`${API}/admin/users/${userId}/disable`),
