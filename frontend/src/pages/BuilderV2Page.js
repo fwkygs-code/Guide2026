@@ -73,6 +73,7 @@ const BuilderV2Page = () => {
     category_ids: []
   });
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [workspaceData, setWorkspaceData] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -80,6 +81,21 @@ const BuilderV2Page = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Fetch workspace data for contact info
+  useEffect(() => {
+    const fetchWorkspaceData = async () => {
+      if (!workspaceId) return;
+      try {
+        const response = await api.getWorkspace(workspaceId);
+        setWorkspaceData(response.data);
+      } catch (error) {
+        console.error('Failed to fetch workspace data:', error);
+      }
+    };
+
+    fetchWorkspaceData();
+  }, [workspaceId]);
 
   // Acquire workspace lock on mount
   useEffect(() => {
@@ -1550,20 +1566,39 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           )}
           
           {/* Support: Show contact options */}
-          {block.data.action === 'support' && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={block.data.usePortalContactInfo !== false}
-                  onCheckedChange={(checked) => onUpdate({ data: { ...block.data, usePortalContactInfo: checked } })}
-                  id={`use-portal-${block.id}`}
-                />
-                <Label htmlFor={`use-portal-${block.id}`} className="text-xs cursor-pointer">
-                  Use workspace portal contact info
-                </Label>
-              </div>
+          {block.data.action === 'support' && (() => {
+            // Check if workspace has any contact info
+            const hasPortalContactInfo = workspaceData && (
+              workspaceData.contact_whatsapp || 
+              workspaceData.contact_phone || 
+              workspaceData.contact_hours
+            );
+            
+            return (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={block.data.usePortalContactInfo !== false && hasPortalContactInfo}
+                      onCheckedChange={(checked) => onUpdate({ data: { ...block.data, usePortalContactInfo: checked } })}
+                      id={`use-portal-${block.id}`}
+                      disabled={!hasPortalContactInfo}
+                    />
+                    <Label 
+                      htmlFor={`use-portal-${block.id}`} 
+                      className={`text-xs ${hasPortalContactInfo ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                    >
+                      Use workspace portal contact info
+                    </Label>
+                  </div>
+                  {!hasPortalContactInfo && (
+                    <p className="text-xs text-amber-600 ml-6">
+                      No workspace contact info configured. Go to workspace settings to add WhatsApp, phone, or working hours.
+                    </p>
+                  )}
+                </div>
               
-              {block.data.usePortalContactInfo === false && (
+              {(!hasPortalContactInfo || block.data.usePortalContactInfo === false) && (
                 <>
                   <div>
                     <Label className="text-xs text-slate-600 mb-1.5 block">WhatsApp Number</Label>
@@ -1592,7 +1627,8 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 </>
               )}
             </div>
-          )}
+            );
+          })()}
           
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">Button Style</Label>
