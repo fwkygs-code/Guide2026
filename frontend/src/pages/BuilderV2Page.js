@@ -2049,8 +2049,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   
   // Drag handlers - smooth with RAF
   const handleMarkerPointerDown = (e, index) => {
-    // Early return if already resizing
-    if (interactionMode === 'resizing') {
+    // Early return if already resizing (any mode)
+    if (interactionMode === 'resizing' || interactionMode === 'resizing-dot') {
       return;
     }
     // Don't start dragging if clicking on a resize handle
@@ -2079,57 +2079,27 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
   };
 
-  // Dot-specific pointer down handler with hit-testing for move vs resize
-  const handleDotPointerDown = (e, index, marker) => {
-    if (interactionMode === 'resizing') {
-      return;
-    }
+  // Dot-specific resize handle pointer down
+  const handleDotResizePointerDown = (e, index, marker) => {
     e.stopPropagation();
     e.preventDefault();
-
+    // Set pointer capture so resize continues even outside bounds
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setInteractionMode('resizing-dot');
+    setResizingMarker(index);
+    setResizeCorner('dot');
+    setEditingMarker(null);
     const rect = imageRef.current.getBoundingClientRect();
-    
-    // Calculate click position relative to image (percentage)
-    const clickX = ((e.clientX - rect.left) / rect.width) * 100;
-    const clickY = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    // Calculate distance from marker center to click point
-    const deltaX = clickX - marker.x;
-    const deltaY = clickY - marker.y;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    // Dot radius in percentage units
     const markerSize = marker.size || 3;
     const radius = markerSize / 2;
-    
-    // Define resize ring: clicks near the edge trigger resize
-    const HANDLE_SIZE = 0.8; // percentage units
-    const innerBoundary = Math.max(0, radius - HANDLE_SIZE);
-    
-    // Determine interaction mode based on distance
-    if (distance < innerBoundary) {
-      // Clicking in center area → move
-      e.currentTarget.setPointerCapture(e.pointerId);
-      setInteractionMode('dragging');
-      setDraggingMarker(index);
-      setEditingMarker(null);
-      dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
-    } else {
-      // Clicking in edge ring → resize
-      e.currentTarget.setPointerCapture(e.pointerId);
-      setInteractionMode('resizing');
-      setResizingMarker(index);
-      setResizeCorner('dot');
-      setEditingMarker(null);
-      dragStartPos.current = { 
-        x: e.clientX, 
-        y: e.clientY, 
-        rect,
-        initialRadius: radius,
-        centerX: marker.x,
-        centerY: marker.y
-      };
-    }
+    dragStartPos.current = { 
+      x: e.clientX, 
+      y: e.clientY, 
+      rect,
+      initialRadius: radius,
+      centerX: marker.x,
+      centerY: marker.y
+    };
   };
   
   const handleImagePointerMove = (e) => {
@@ -2152,53 +2122,67 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           y: Math.max(0, Math.min(100, y))
         });
       });
-    } else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
-      // Cancel any pending animation frame
+    } else if (interactionMode === 'resizing-dot' && resizingMarker !== null) {
+      // Handle dot resizing (isolated logic)
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       
-      // Use RAF for smooth resize
+      animationFrameRef.current = requestAnimationFrame(() => {
+        const marker = markers[resizingMarker];
+        if (!marker || !dragStartPos.current) return;
+        
+        const rect = imageRef.current.getBoundingClientRect();
+        const currentX = ((e.clientX - rect.left) / rect.width) * 100;
+        const currentY = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        // Calculate distance from stored center to current pointer
+        const centerX = dragStartPos.current.centerX || marker.x;
+        const centerY = dragStartPos.current.centerY || marker.y;
+        const deltaX = currentX - centerX;
+        const deltaY = currentY - centerY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // New radius, clamped to min/max
+        const newRadius = Math.max(0.25, Math.min(7.5, distance));
+        const newSize = newRadius * 2; // diameter
+        
+        // Update only size, center stays fixed
+        updateMarker(resizingMarker, { size: newSize });
+      });
+    } else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
+      // Handle rectangle resizing
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      
       animationFrameRef.current = requestAnimationFrame(() => {
         const marker = markers[resizingMarker];
         const rect = imageRef.current.getBoundingClientRect();
         const currentX = ((e.clientX - rect.left) / rect.width) * 100;
         const currentY = ((e.clientY - rect.top) / rect.height) * 100;
         
-        // Handle dot resizing
-        if (resizeCorner === 'dot') {
-          // Calculate distance from center to resize point
-          const deltaX = currentX - marker.x;
-          const deltaY = currentY - marker.y;
-          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-          
-          // Convert distance to size (double it since it's radius-based)
-          const newSize = Math.max(0.5, Math.min(15, distance * 2));
-          updateMarker(resizingMarker, { size: newSize });
-        } else if (resizeCorner === 'se' || resizeCorner === 'sw' || resizeCorner === 'ne' || resizeCorner === 'nw') {
-          // Handle rectangle resizing
-          const deltaX = currentX - marker.x;
-          const deltaY = currentY - marker.y;
-          
-          let newWidth = marker.width || 10;
-          let newHeight = marker.height || 10;
-          
-          if (resizeCorner === 'se') {
-            newWidth = Math.max(5, marker.width / 2 + deltaX);
-            newHeight = Math.max(5, marker.height / 2 + deltaY);
-          } else if (resizeCorner === 'sw') {
-            newWidth = Math.max(5, marker.width / 2 - deltaX);
-            newHeight = Math.max(5, marker.height / 2 + deltaY);
-          } else if (resizeCorner === 'ne') {
-            newWidth = Math.max(5, marker.width / 2 + deltaX);
-            newHeight = Math.max(5, marker.height / 2 - deltaY);
-          } else if (resizeCorner === 'nw') {
-            newWidth = Math.max(5, marker.width / 2 - deltaX);
-            newHeight = Math.max(5, marker.height / 2 - deltaY);
-          }
-          
-          updateMarker(resizingMarker, { width: newWidth, height: newHeight });
+        const deltaX = currentX - marker.x;
+        const deltaY = currentY - marker.y;
+        
+        let newWidth = marker.width || 10;
+        let newHeight = marker.height || 10;
+        
+        if (resizeCorner === 'se') {
+          newWidth = Math.max(5, marker.width / 2 + deltaX);
+          newHeight = Math.max(5, marker.height / 2 + deltaY);
+        } else if (resizeCorner === 'sw') {
+          newWidth = Math.max(5, marker.width / 2 - deltaX);
+          newHeight = Math.max(5, marker.height / 2 + deltaY);
+        } else if (resizeCorner === 'ne') {
+          newWidth = Math.max(5, marker.width / 2 + deltaX);
+          newHeight = Math.max(5, marker.height / 2 - deltaY);
+        } else if (resizeCorner === 'nw') {
+          newWidth = Math.max(5, marker.width / 2 - deltaX);
+          newHeight = Math.max(5, marker.height / 2 - deltaY);
         }
+        
+        updateMarker(resizingMarker, { width: newWidth, height: newHeight });
       });
     }
   };
@@ -2359,7 +2343,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             );
           }
           
-          // Dot marker with center-move, edge-resize interaction
+          // Dot marker with single resize handle on perimeter
           return (
             <div 
               key={marker.id || idx}
@@ -2371,7 +2355,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               }}
             >
               <button
-                className={`rounded-full flex items-center justify-center text-xs font-bold select-none ${
+                className={`rounded-full flex items-center justify-center text-xs font-bold cursor-move select-none ${
                   isActive
                     ? 'bg-primary text-white scale-110 shadow-lg ring-2 ring-primary/30'
                     : 'bg-primary text-white hover:scale-110 shadow-md hover:shadow-lg'
@@ -2386,9 +2370,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   position: 'relative',
                   minWidth: '30px',
                   minHeight: '30px',
-                  cursor: 'pointer',
                 }}
-                onPointerDown={(e) => handleDotPointerDown(e, idx, marker)}
+                onPointerDown={(e) => handleMarkerPointerDown(e, idx)}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (interactionMode === 'idle') {
@@ -2398,6 +2381,26 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 aria-label={`Annotation ${idx + 1}: ${marker.title || 'Untitled'}`}
               >
                 {idx + 1}
+                
+                {/* Single resize handle positioned on perimeter (bottom-right at 45°) */}
+                {isActive && (
+                  <div
+                    data-resize-handle="true"
+                    className="absolute w-4 h-4 bg-white border-2 border-primary rounded-full hover:scale-125 transition-transform"
+                    style={{
+                      bottom: '-2px',
+                      right: '-2px',
+                      cursor: 'nwse-resize',
+                      zIndex: 20,
+                      pointerEvents: 'auto',
+                      touchAction: 'none'
+                    }}
+                    onPointerDown={(e) => handleDotResizePointerDown(e, idx, marker)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                )}
               </button>
             </div>
           );
