@@ -281,7 +281,6 @@ const AnalyticsPage = () => {
             </div>
           </div>
         </div>
-      </div>
     </DashboardLayout>
   );
 };

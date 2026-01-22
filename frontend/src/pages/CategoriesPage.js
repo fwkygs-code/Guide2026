@@ -672,7 +672,6 @@ const CategoriesPage = () => {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
     </DashboardLayout>
   );
 };

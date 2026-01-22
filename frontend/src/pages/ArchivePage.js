@@ -170,7 +170,6 @@ const ArchivePage = () => {
             <p className="text-slate-600">{t('archive.emptyDescription')}</p>
           </div>
         )}
-      </div>
     </DashboardLayout>
   );
 };
