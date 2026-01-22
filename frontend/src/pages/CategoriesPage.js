@@ -14,6 +14,7 @@ import { api } from '../lib/api';
 import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
+import { PageHeader, PageSurface } from '../components/ui/design-system';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -236,29 +237,32 @@ const CategoriesPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-heading font-bold text-white">{t('workspace.categories')}</h1>
-          <p className="text-slate-400 mt-1">{t('category.organizeWalkthroughs')}</p>
-        </div>
-          <Dialog open={dialogOpen} onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) {
-              setCreatingForParent(null);
-              setNewCategoryParent(undefined);
-              setNewCategoryName('');
-              setNewCategoryDesc('');
-              setNewCategoryIcon('');
-              setNewCategoryNotebooklmUrl('');
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button data-testid="create-category-button">
+      <PageHeader
+        title={t('workspace.categories')}
+        description={t('category.organizeWalkthroughs')}
+        actions={
+          <Button onClick={() => setDialogOpen(true)} data-testid="create-category-button">
                 <Plus className="w-4 h-4 mr-2" />
                 {t('category.newCategory')}
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
+            }
+          }
+        }
+      />
+
+      <PageSurface>
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setCreatingForParent(null);
+            setNewCategoryParent(undefined);
+            setNewCategoryName('');
+            setNewCategoryDesc('');
+            setNewCategoryIcon('');
+            setNewCategoryNotebooklmUrl('');
+          }
+        }}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {creatingForParent 
@@ -431,7 +435,7 @@ const CategoriesPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all"
+className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 hover:shadow-lg transition-all"
                 data-testid={`category-card-${category.id}`}
               >
                 <div className="flex items-start gap-4">
@@ -672,6 +676,7 @@ const CategoriesPage = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </PageSurface>
     </DashboardLayout>
   );
 };

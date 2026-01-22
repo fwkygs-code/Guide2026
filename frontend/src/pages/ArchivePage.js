@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
+import { PageHeader, PageSurface } from '../components/ui/design-system';
 
 const ArchivePage = () => {
   const { t } = useTranslation();
@@ -99,17 +100,17 @@ const ArchivePage = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-heading font-bold text-white">
-            {workspace?.name} - {t('archive.title')}
-          </h1>
-          <p className="text-slate-400 mt-1">{t('archive.subtitle')}</p>
-        </div>
+      <PageHeader
+        title={`${workspace?.name} - ${t('archive.title')}`}
+        description={t('archive.subtitle')}
+        actions={
           <Button variant="outline" onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}>
             {t('archive.backToGuides')}
           </Button>
-        </div>
+        }
+      />
+
+      <PageSurface>
 
         {archived.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -119,7 +120,7 @@ const ArchivePage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="glass rounded-xl p-6"
+className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -170,6 +171,7 @@ const ArchivePage = () => {
             <p className="text-slate-600">{t('archive.emptyDescription')}</p>
           </div>
         )}
+      </PageSurface>
     </DashboardLayout>
   );
 };

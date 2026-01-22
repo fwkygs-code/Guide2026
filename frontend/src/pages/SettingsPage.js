@@ -16,7 +16,7 @@ import UpgradePrompt from '../components/UpgradePrompt';
 import PlanSelectionModal from '../components/PlanSelectionModal';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { useAuth } from '../contexts/AuthContext';
-import { Surface, Card, Button, Badge, Panel } from '../components/ui/design-system';
+import { PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
 
 const SettingsPage = () => {
   const { workspaceSlug } = useParams();
@@ -309,17 +309,20 @@ const SettingsPage = () => {
         onOpenChange={setPlanSelectionOpen}
         isSignup={false}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <PageHeader
+        title="Workspace Settings"
+        description="Manage your workspace configuration"
+      />
+
+      <PageSurface>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="mb-8">
-              <h1 className="text-3xl font-heading font-bold text-slate-900">Workspace Settings</h1>
-              <p className="text-slate-600 mt-1">Manage your workspace configuration</p>
-            </div>
 
             <div className="space-y-6">
           {/* Basic Settings */}
-          <div className="glass rounded-xl p-6">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
             <h2 className="text-xl font-heading font-semibold mb-4">Basic Information</h2>
             <div className="space-y-4">
               <div>
@@ -379,7 +382,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Portal Branding */}
-          <div className="glass rounded-xl p-6">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
             <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
               <Globe className="w-5 h-5" />
               Portal Branding
@@ -471,7 +474,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Portal Contact Information */}
-          <div className="glass rounded-xl p-6">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
             <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
               <Phone className="w-5 h-5" />
               Portal Contact Information
@@ -523,7 +526,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Portal Links */}
-          <div className="glass rounded-xl p-6">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
             <h2 className="text-xl font-heading font-semibold mb-4 flex items-center gap-2">
               <ExternalLink className="w-5 h-5" />
               Portal External Links
@@ -586,7 +589,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Plan Management */}
-          <div className="glass rounded-xl p-6">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
             <h2 className="text-xl font-heading font-semibold mb-4">Plan Management</h2>
             <div className="space-y-4">
               <div>
@@ -606,7 +609,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Danger Zone - Delete Workspace */}
-          <div className="glass rounded-xl p-6 border-2 border-red-200 bg-red-50/30">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-red-900/20 to-red-800/20 border-2 border-red-500/50">
             <h2 className="text-xl font-heading font-semibold mb-4 text-red-900">Danger Zone</h2>
             <div className="space-y-4">
               <div>
@@ -658,7 +661,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Text Size Settings */}
-          <div className="glass rounded-xl p-6">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
             <h2 className="text-xl font-heading font-semibold mb-4">Text Size</h2>
             <div className="space-y-4">
               <div>
@@ -692,7 +695,7 @@ const SettingsPage = () => {
 
           {/* Workspace Sharing */}
           {workspace && workspaceId && user && isOwner && (
-            <div className="glass rounded-xl p-6">
+            <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
               <h2 className="text-xl font-heading font-semibold mb-4">Workspace Sharing</h2>
               <div className="space-y-4">
                 <div>
@@ -768,7 +771,7 @@ const SettingsPage = () => {
           )}
 
           {/* Portal Settings */}
-          <div className="glass rounded-xl p-6">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
             <h2 className="text-xl font-heading font-semibold mb-4">Public Portal</h2>
             <Tabs defaultValue="share" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
@@ -900,7 +903,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Save Button at Bottom */}
-          <div className="glass rounded-xl p-6 border-t-2 border-primary/20">
+          <div className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 border-t-2 border-primary/20">
             <div className="flex gap-2 justify-end">
               <Button 
                 variant="outline" 
@@ -932,6 +935,7 @@ const SettingsPage = () => {
             <QuotaDisplay workspaceId={workspaceId} showWarnings={true} onUpgrade={() => setUpgradePromptOpen(true)} />
           </div>
         </div>
+      </PageSurface>
     </DashboardLayout>
   );
 };
