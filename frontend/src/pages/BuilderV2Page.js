@@ -1161,23 +1161,6 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
 // Add Block Button with Popover - Always visible, keyboard accessible
 const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
   const { t } = useTranslation();
-
-// Block editor component (needs access to translations)
-const BlockRenderer = ({
-  block,
-  isSelected,
-  isDragging,
-  onSelect,
-  onUpdate,
-  onDelete,
-  workspaceId,
-  walkthroughId,
-  stepId,
-  onMediaUpload,
-  canUploadFile,
-  walkthrough
-}) => {
-  const { t } = useTranslation();
   const blockTypes = [
     BLOCK_TYPES.HEADING,
     BLOCK_TYPES.TEXT,
