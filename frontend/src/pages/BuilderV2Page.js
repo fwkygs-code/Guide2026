@@ -2736,32 +2736,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               </Select>
             </div>
             
-            {markers[editingMarker].shape === 'rectangle' ? (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-slate-700 mb-1 block">Width (% of image)</Label>
-                  <Input
-                    type="number"
-                    value={markers[editingMarker].width || 10}
-                    onChange={(e) => updateMarker(editingMarker, { width: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
-                    min={3}
-                    max={80}
-                    className="h-9 text-sm"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-slate-700 mb-1 block">Height (% of image)</Label>
-                  <Input
-                    type="number"
-                    value={markers[editingMarker].height || 10}
-                    onChange={(e) => updateMarker(editingMarker, { height: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
-                    min={3}
-                    max={80}
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </div>
-            ) : markers[editingMarker].shape === 'arrow' ? (
+            {markers[editingMarker].shape === 'arrow' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-slate-700 mb-1 block">Length (pixels)</Label>
@@ -2793,19 +2768,6 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     className="h-9 text-sm"
                   />
                 </div>
-              </div>
-            ) : (
-              <div>
-                <Label className="text-xs text-slate-700 mb-1 block">Size (pixels)</Label>
-                <Input
-                  type="number"
-                  value={markers[editingMarker].size || 30}
-                  onChange={(e) => updateMarker(editingMarker, { size: Math.max(10, Math.min(200, parseFloat(e.target.value) || 30)) })}
-                  min={10}
-                  max={200}
-                  step={5}
-                  className="h-9 text-sm"
-                />
               </div>
             )}
             
