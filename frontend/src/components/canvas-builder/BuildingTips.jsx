@@ -127,6 +127,27 @@ const BuildingTips = () => {
 
   const currentLang = t('language') === 'עברית' ? 'he' : 'en';
 
+  // Block labels in both languages
+  const blockLabels = {
+    [BLOCK_TYPES.HEADING]: { en: 'Heading', he: 'כותרת' },
+    [BLOCK_TYPES.TEXT]: { en: 'Text', he: 'טקסט' },
+    [BLOCK_TYPES.IMAGE]: { en: 'Image/GIF', he: 'תמונה/GIF' },
+    [BLOCK_TYPES.VIDEO]: { en: 'Video', he: 'וידאו' },
+    [BLOCK_TYPES.CAROUSEL]: { en: 'Carousel', he: 'קרוסלה' },
+    [BLOCK_TYPES.BUTTON]: { en: 'Button', he: 'כפתור' },
+    [BLOCK_TYPES.DIVIDER]: { en: 'Divider', he: 'מפריד' },
+    [BLOCK_TYPES.SPACER]: { en: 'Spacer', he: 'רווח' },
+    [BLOCK_TYPES.PROBLEM]: { en: 'Problem', he: 'בעיה' },
+    [BLOCK_TYPES.CHECKLIST]: { en: 'Checklist', he: 'רשימת משימות' },
+    [BLOCK_TYPES.CALLOUT]: { en: 'Callout', he: 'קריאה' },
+    [BLOCK_TYPES.ANNOTATED_IMAGE]: { en: 'Annotated Image', he: 'תמונה עם הערות' },
+    [BLOCK_TYPES.EMBED]: { en: 'Embed', he: 'הטמעה' },
+    [BLOCK_TYPES.SECTION]: { en: 'Section', he: 'קטע' },
+    [BLOCK_TYPES.CONFIRMATION]: { en: 'Confirmation', he: 'אישור' },
+    [BLOCK_TYPES.EXTERNAL_LINK]: { en: 'External Link', he: 'קישור חיצוני' },
+    [BLOCK_TYPES.CODE]: { en: 'Code/Command', he: 'קוד/פקודה' }
+  };
+
   // Get all block types for reference
   const allBlocks = [
     BLOCK_TYPES.HEADING,
@@ -246,7 +267,7 @@ const BuildingTips = () => {
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-xl flex-shrink-0">{getBlockIcon(blockType)}</span>
                       <span className="font-medium text-sm text-slate-900 truncate">
-                        {getBlockLabel(blockType)}
+                        {blockLabels[blockType]?.[currentLang] || getBlockLabel(blockType)}
                       </span>
                     </div>
                     {selectedBlock === blockType ? (
