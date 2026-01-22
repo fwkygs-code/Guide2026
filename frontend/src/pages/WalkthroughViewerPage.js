@@ -855,24 +855,109 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           </a>
                         </div>
                       )}
-                      {block.type === 'button' && (
-                        <div className="flex">
-                          <Button 
-                            variant={block.data?.style === 'secondary' ? 'outline' : 'default'}
-                            className="rounded-full"
-                            onClick={() => {
-                              if (block.data?.action === 'link' && block.data?.url) {
-                                window.open(block.data.url, '_blank');
-                              } else if (block.data?.action === 'next') {
-                                handleNext();
+                      {block.type === 'button' && (() => {
+                        const action = block.data?.action || 'next';
+                        const buttonStyle = block.data?.style || 'primary';
+                        
+                        const getButtonVariant = () => {
+                          if (buttonStyle === 'secondary') return 'outline';
+                          if (buttonStyle === 'outline') return 'outline';
+                          return 'default';
+                        };
+                        
+                        const handleButtonClick = () => {
+                          switch (action) {
+                            case 'next':
+                              handleNext();
+                              break;
+                              
+                            case 'go_to_step':
+                              if (block.data?.targetStepId) {
+                                const targetIndex = walkthrough.steps.findIndex(s => s.id === block.data.targetStepId);
+                                if (targetIndex !== -1) {
+                                  setCurrentStepIndex(targetIndex);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
                               }
-                            }}
-                            disabled={block.data?.action === 'next' && !canProceedNext()}
-                          >
-                            {block.data?.text || 'Button'}
-                          </Button>
-                        </div>
-                      )}
+                              break;
+                              
+                            case 'end':
+                              // End walkthrough - show completion or navigate away
+                              if (window.confirm('Are you sure you want to end this walkthrough?')) {
+                                // Could add completion tracking here
+                                window.history.back();
+                              }
+                              break;
+                              
+                            case 'restart':
+                              if (window.confirm('Restart walkthrough from the beginning?')) {
+                                setCurrentStepIndex(0);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                              break;
+                              
+                            case 'support':
+                              // Use portal contact info or custom fields
+                              if (block.data?.usePortalContactInfo !== false && workspaceData?.contact_whatsapp) {
+                                window.open(`https://wa.me/${workspaceData.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank');
+                              } else if (block.data?.supportWhatsapp) {
+                                window.open(`https://wa.me/${block.data.supportWhatsapp.replace(/[^0-9]/g, '')}`, '_blank');
+                              } else if (block.data?.supportPhone) {
+                                window.open(`tel:${block.data.supportPhone}`, '_self');
+                              }
+                              break;
+                              
+                            case 'link':
+                              if (block.data?.url) {
+                                window.open(block.data.url, '_blank');
+                              }
+                              break;
+                              
+                            case 'check':
+                              // Checkpoint action (existing behavior)
+                              handleNext();
+                              break;
+                              
+                            default:
+                              handleNext();
+                          }
+                        };
+                        
+                        return (
+                          <div className="flex flex-col gap-2">
+                            <Button 
+                              variant={getButtonVariant()}
+                              className="rounded-full"
+                              onClick={handleButtonClick}
+                              disabled={action === 'next' && !canProceedNext()}
+                            >
+                              {block.data?.text || 'Button'}
+                            </Button>
+                            
+                            {/* Show support info if support button and custom fields */}
+                            {action === 'support' && block.data?.usePortalContactInfo === false && (
+                              <div className="text-xs text-slate-500 space-y-0.5">
+                                {block.data?.supportPhone && (
+                                  <div>📞 {block.data.supportPhone}</div>
+                                )}
+                                {block.data?.supportHours && (
+                                  <div>🕐 {block.data.supportHours}</div>
+                                )}
+                              </div>
+                            )}
+                            {action === 'support' && block.data?.usePortalContactInfo !== false && workspaceData?.contact_phone && (
+                              <div className="text-xs text-slate-500 space-y-0.5">
+                                {workspaceData.contact_phone && (
+                                  <div>📞 {workspaceData.contact_phone}</div>
+                                )}
+                                {workspaceData.contact_hours && (
+                                  <div>🕐 {workspaceData.contact_hours}</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {block.type === 'divider' && (
                         <hr className="border-slate-200" />
                       )}

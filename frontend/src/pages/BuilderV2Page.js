@@ -1446,11 +1446,134 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
     case BLOCK_TYPES.BUTTON:
       return (
         <div className="space-y-3">
-          <Input
-            value={block.data.text || ''}
-            onChange={(e) => onUpdate({ data: { ...block.data, text: e.target.value } })}
-            placeholder="Button text"
-          />
+          <div>
+            <Label className="text-xs text-slate-600 mb-1.5 block">Button Text</Label>
+            <Input
+              value={block.data.text || ''}
+              onChange={(e) => onUpdate({ data: { ...block.data, text: e.target.value } })}
+              placeholder="Button text"
+            />
+          </div>
+          
+          <div>
+            <Label className="text-xs text-slate-600 mb-1.5 block">Action</Label>
+            <Select
+              value={block.data.action || 'next'}
+              onValueChange={(value) => onUpdate({ data: { ...block.data, action: value } })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="next">Next Step</SelectItem>
+                <SelectItem value="go_to_step">Go to Specific Step</SelectItem>
+                <SelectItem value="end">End Walkthrough</SelectItem>
+                <SelectItem value="restart">Restart Walkthrough</SelectItem>
+                <SelectItem value="support">Get Support</SelectItem>
+                <SelectItem value="link">External Link</SelectItem>
+                <SelectItem value="check">Checkpoint (Check Progress)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Go to Step: Show step selector */}
+          {block.data.action === 'go_to_step' && (
+            <div>
+              <Label className="text-xs text-slate-600 mb-1.5 block">Target Step</Label>
+              <Select
+                value={block.data.targetStepId || ''}
+                onValueChange={(value) => onUpdate({ data: { ...block.data, targetStepId: value } })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select step..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(walkthrough?.steps || []).map((step, idx) => (
+                    <SelectItem key={step.id} value={step.id}>
+                      {idx + 1}. {step.name || 'Untitled Step'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(!walkthrough?.steps || walkthrough.steps.length === 0) && (
+                <p className="text-xs text-slate-500 mt-1">Add more steps to enable this action</p>
+              )}
+            </div>
+          )}
+          
+          {/* External Link: Show URL field */}
+          {block.data.action === 'link' && (
+            <div>
+              <Label className="text-xs text-slate-600 mb-1.5 block">URL</Label>
+              <Input
+                value={block.data.url || ''}
+                onChange={(e) => onUpdate({ data: { ...block.data, url: e.target.value } })}
+                placeholder="https://example.com"
+              />
+            </div>
+          )}
+          
+          {/* Support: Show contact options */}
+          {block.data.action === 'support' && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={block.data.usePortalContactInfo !== false}
+                  onCheckedChange={(checked) => onUpdate({ data: { ...block.data, usePortalContactInfo: checked } })}
+                  id={`use-portal-${block.id}`}
+                />
+                <Label htmlFor={`use-portal-${block.id}`} className="text-xs cursor-pointer">
+                  Use workspace portal contact info
+                </Label>
+              </div>
+              
+              {block.data.usePortalContactInfo === false && (
+                <>
+                  <div>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">WhatsApp Number</Label>
+                    <Input
+                      value={block.data.supportWhatsapp || ''}
+                      onChange={(e) => onUpdate({ data: { ...block.data, supportWhatsapp: e.target.value } })}
+                      placeholder="+1234567890"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">Phone Number</Label>
+                    <Input
+                      value={block.data.supportPhone || ''}
+                      onChange={(e) => onUpdate({ data: { ...block.data, supportPhone: e.target.value } })}
+                      placeholder="+1234567890"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">Working Hours</Label>
+                    <Input
+                      value={block.data.supportHours || ''}
+                      onChange={(e) => onUpdate({ data: { ...block.data, supportHours: e.target.value } })}
+                      placeholder="Mon-Fri 9AM-5PM"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          
+          <div>
+            <Label className="text-xs text-slate-600 mb-1.5 block">Button Style</Label>
+            <Select
+              value={block.data.style || 'primary'}
+              onValueChange={(value) => onUpdate({ data: { ...block.data, style: value } })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="primary">Primary</SelectItem>
+                <SelectItem value="secondary">Secondary</SelectItem>
+                <SelectItem value="outline">Outline</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       );
 

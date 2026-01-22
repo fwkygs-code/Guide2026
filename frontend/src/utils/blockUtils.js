@@ -49,9 +49,15 @@ export const createBlock = (type, data = {}) => {
     },
     [BLOCK_TYPES.BUTTON]: {
       text: 'Button',
-      action: 'next', // next, link, check
+      action: 'next', // next, link, check, go_to_step, end, restart, support
       url: '',
-      style: 'primary'
+      targetStepId: '', // For go_to_step action
+      style: 'primary',
+      // Support action fields
+      supportWhatsapp: '',
+      supportPhone: '',
+      supportHours: '',
+      usePortalContactInfo: true // Use workspace portal contact info or custom
     },
     [BLOCK_TYPES.DIVIDER]: {
       style: 'solid'
