@@ -16,7 +16,9 @@ const RichTextEditor = ({ content, onChange, placeholder = 'Start typing...', is
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Use StarterKit's built-in extensions without duplicates
+      }),
       Underline,
       TextStyle,
       Color,
@@ -26,6 +28,11 @@ const RichTextEditor = ({ content, onChange, placeholder = 'Start typing...', is
       }),
       Link.configure({
         openOnClick: false,
+        HTMLAttributes: {
+          // Ensure links open in new tab for safety
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
       }),
       Placeholder.configure({
         placeholder,
