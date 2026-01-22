@@ -137,11 +137,10 @@ const DashboardPage = () => {
   return (
     <DashboardLayout backgroundUrl={dashboardBackground}>
       <OnboardingTour />
-      <Panel variant="page" className="py-8">
-        <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
-        <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
+      <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
+      <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             <div className="flex items-center justify-between mb-8">
@@ -466,17 +465,19 @@ const DashboardPage = () => {
         />
 
         {workspaces.length === 0 && (
-          <Surface variant="floating" className="text-center py-16">
-            <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
-              {t('dashboard.noWorkspaces')}
-            </h3>
-            <p className="text-slate-600 mb-6">{t('dashboard.createFirst')}</p>
-            <Button variant="primary" onClick={() => setCreateDialogOpen(true)} data-testid="empty-create-workspace-button">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('dashboard.newWorkspace')}
-            </Button>
-          </Surface>
+          <div className="col-span-full">
+            <Surface variant="floating" className="text-center py-16">
+              <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-xl font-heading font-semibold text-white mb-2">
+                {t('dashboard.noWorkspaces')}
+              </h3>
+              <p className="text-slate-400 mb-6">{t('dashboard.createFirst')}</p>
+              <Button variant="primary" onClick={() => setCreateDialogOpen(true)} data-testid="empty-create-workspace-button">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('dashboard.newWorkspace')}
+              </Button>
+            </Surface>
+          </div>
         )}
           </div>
 
@@ -486,7 +487,6 @@ const DashboardPage = () => {
             <BillingInfo />
           </div>
         </div>
-      </Panel>
     </DashboardLayout>
   );
 };

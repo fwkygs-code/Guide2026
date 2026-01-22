@@ -267,8 +267,7 @@ const WalkthroughsPage = () => {
 
   return (
     <DashboardLayout>
-      <Panel variant="page" className="py-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -660,7 +659,7 @@ const WalkthroughsPage = () => {
             )}
           </DialogContent>
         </Dialog>
-      </Panel>
+      </div>
     </DashboardLayout>
   );
 };

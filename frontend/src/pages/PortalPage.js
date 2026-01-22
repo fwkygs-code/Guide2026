@@ -194,7 +194,7 @@ const PortalPage = ({ isEmbedded = false }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -202,11 +202,11 @@ const PortalPage = ({ isEmbedded = false }) => {
 
   if (!portal) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="text-center">
           <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-heading font-bold text-slate-900 mb-2">Portal Not Found</h1>
-          <p className="text-slate-600">The portal you're looking for doesn't exist.</p>
+          <h1 className="text-2xl font-heading font-bold text-white mb-2">Portal Not Found</h1>
+          <p className="text-slate-400">The portal you're looking for doesn't exist.</p>
         </div>
       </div>
     );
@@ -225,10 +225,10 @@ const PortalPage = ({ isEmbedded = false }) => {
     : {};
 
   return (
-      <div className={`min-h-screen ${inIframe ? 'iframe-mode' : ''}`} style={backgroundStyle}>
+      <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 ${inIframe ? 'iframe-mode' : ''}`} style={backgroundStyle}>
       {/* Overlay for background image readability */}
       {workspace.portal_background_url && (
-        <div className="fixed inset-0 bg-white/90 backdrop-blur-sm -z-10" />
+        <div className="fixed inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 -z-10" />
       )}
       
       {/* Header - Hide in iframe mode */}

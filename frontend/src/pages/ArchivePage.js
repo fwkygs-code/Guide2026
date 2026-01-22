@@ -99,14 +99,13 @@ const ArchivePage = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-slate-900">
-              {workspace?.name} - {t('archive.title')}
-            </h1>
-            <p className="text-slate-600 mt-1">{t('archive.subtitle')}</p>
-          </div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-heading font-bold text-white">
+            {workspace?.name} - {t('archive.title')}
+          </h1>
+          <p className="text-slate-400 mt-1">{t('archive.subtitle')}</p>
+        </div>
           <Button variant="outline" onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}>
             {t('archive.backToGuides')}
           </Button>

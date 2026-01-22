@@ -103,11 +103,10 @@ const AnalyticsPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-heading font-bold text-slate-900">Analytics</h1>
-          <p className="text-slate-600 mt-1">Track performance of your walkthroughs</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-heading font-bold text-white">Analytics</h1>
+        <p className="text-slate-400 mt-1">Track performance of your walkthroughs</p>
+      </div>
 
         {/* Overview Stats */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -120,9 +119,9 @@ const AnalyticsPage = () => {
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Eye className="w-5 h-5 text-primary" />
               </div>
-              <div className="text-sm text-slate-600">Total Views</div>
+              <div className="text-sm text-slate-400">Total Views</div>
             </div>
-            <div className="text-3xl font-heading font-bold text-slate-900">{totalViews}</div>
+            <div className="text-3xl font-heading font-bold text-white">{totalViews}</div>
           </motion.div>
 
           <motion.div
@@ -135,9 +134,9 @@ const AnalyticsPage = () => {
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                 <Play className="w-5 h-5 text-accent" />
               </div>
-              <div className="text-sm text-slate-600">Total Starts</div>
+              <div className="text-sm text-slate-400">Total Starts</div>
             </div>
-            <div className="text-3xl font-heading font-bold text-slate-900">{totalStarts}</div>
+            <div className="text-3xl font-heading font-bold text-white">{totalStarts}</div>
           </motion.div>
 
           <motion.div
@@ -186,28 +185,28 @@ const AnalyticsPage = () => {
                 const totalFeedback = happyCount + neutralCount + unhappyCount;
                 const pct = (n) => (totalFeedback > 0 ? Math.round((n / totalFeedback) * 100) : 0);
                 return (
-                  <div key={wt.id} className="border border-slate-200 rounded-lg p-4 bg-white">
+                  <div key={wt.id} className="border border-slate-700 rounded-lg p-4 bg-gradient-to-br from-slate-800 to-slate-900">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="font-heading font-semibold text-slate-900">{wt.title}</h3>
-                        <p className="text-sm text-slate-600">{wt.steps?.length || 0} steps</p>
+                        <h3 className="font-heading font-semibold text-white">{wt.title}</h3>
+                        <p className="text-sm text-slate-400">{wt.steps?.length || 0} steps</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-4 gap-4">
                       <div>
-                        <div className="text-xs text-slate-500">Views</div>
+                        <div className="text-xs text-slate-400">Views</div>
                         <div className="text-lg font-heading font-semibold">{analytics.views || 0}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Starts</div>
+                        <div className="text-xs text-slate-400">Starts</div>
                         <div className="text-lg font-heading font-semibold">{analytics.starts || 0}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Completions</div>
+                        <div className="text-xs text-slate-400">Completions</div>
                         <div className="text-lg font-heading font-semibold">{analytics.completions || 0}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Rate</div>
+                        <div className="text-xs text-slate-400">Rate</div>
                         <div className="text-lg font-heading font-semibold">
                           {analytics.completion_rate ? `${analytics.completion_rate.toFixed(1)}%` : '0%'}
                         </div>
@@ -244,11 +243,11 @@ const AnalyticsPage = () => {
                             </div>
                           ))}
                           {feedback.length > 3 && (
-                            <div className="text-xs text-slate-500">Showing latest 3</div>
+                            <div className="text-xs text-slate-400">Showing latest 3</div>
                           )}
                         </div>
                       ) : (
-                        <div className="mt-2 text-sm text-slate-500">No feedback yet</div>
+                        <div className="mt-2 text-sm text-slate-400">No feedback yet</div>
                       )}
                     </div>
                   </div>
@@ -266,8 +265,8 @@ const AnalyticsPage = () => {
         {/* Basic Workspace Stats */}
         <div className="grid md:grid-cols-3 gap-6 mt-8">
           <div className="glass rounded-xl p-6">
-            <div className="text-sm text-slate-600 mb-1">Total Walkthroughs</div>
-            <div className="text-2xl font-heading font-bold text-slate-900">{walkthroughs.length}</div>
+            <div className="text-sm text-slate-400 mb-1">Total Walkthroughs</div>
+            <div className="text-2xl font-heading font-bold text-white">{walkthroughs.length}</div>
           </div>
           <div className="glass rounded-xl p-6">
             <div className="text-sm text-slate-600 mb-1">Published</div>
@@ -276,8 +275,8 @@ const AnalyticsPage = () => {
             </div>
           </div>
           <div className="glass rounded-xl p-6">
-            <div className="text-sm text-slate-600 mb-1">Total Steps</div>
-            <div className="text-2xl font-heading font-bold text-slate-900">
+            <div className="text-sm text-slate-400 mb-1">Total Steps</div>
+            <div className="text-2xl font-heading font-bold text-white">
               {walkthroughs.reduce((sum, w) => sum + (w.steps?.length || 0), 0)}
             </div>
           </div>

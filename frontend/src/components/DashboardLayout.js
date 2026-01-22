@@ -61,15 +61,15 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
     : {};
 
   return (
-    <div className="min-h-screen bg-white" style={backgroundStyle}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={backgroundStyle}>
       {/* Overlay for background image readability */}
       {backgroundUrl && (
-        <Surface variant="glass" className="fixed inset-0 -z-10" />
+        <div className="fixed inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 -z-10" />
       )}
       {/* Top Navigation */}
       <nav className="sticky top-0 z-[9998]">
         <Surface variant="glass" className="border-b border-slate-200/50">
-          <div className="px-6 py-3 flex items-center justify-between gap-4">
+          <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <Button
               variant="ghost"
@@ -248,7 +248,9 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
       </nav>
 
       {/* Main Content */}
-      <main>{children}</main>
+      <main className="relative max-w-6xl mx-auto px-6 py-8">
+        {children}
+      </main>
     </div>
   );
 };
