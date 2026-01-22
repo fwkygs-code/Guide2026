@@ -1164,6 +1164,31 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
 // Add Block Button with Popover - Always visible, keyboard accessible
 const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
   const { t } = useTranslation();
+
+  // Create a mapping of block types to translated names
+  const getBlockDisplayName = (type) => {
+    const names = {
+      heading: t('walkthrough.blocks.heading'),
+      text: t('walkthrough.blocks.text'),
+      image: t('walkthrough.blocks.image'),
+      video: t('walkthrough.blocks.video'),
+      carousel: t('walkthrough.blocks.carousel'),
+      button: t('walkthrough.blocks.button'),
+      divider: t('walkthrough.blocks.divider'),
+      spacer: t('walkthrough.blocks.spacer'),
+      problem: t('walkthrough.blocks.problem'),
+      checklist: t('walkthrough.blocks.checklist'),
+      callout: t('walkthrough.blocks.callout'),
+      annotated_image: t('walkthrough.blocks.annotatedImage'),
+      embed: t('walkthrough.blocks.embed'),
+      section: t('walkthrough.blocks.section'),
+      confirmation: t('walkthrough.blocks.confirmation'),
+      external_link: t('walkthrough.blocks.externalLink'),
+      code: t('walkthrough.blocks.code')
+    };
+    return names[type] || type;
+  };
+
   const blockTypes = [
     BLOCK_TYPES.HEADING,
     BLOCK_TYPES.TEXT,
@@ -1241,7 +1266,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
                 type="button"
               >
                 <div className="text-lg mb-1">{getBlockIcon(type)}</div>
-                <div className="text-xs font-medium leading-tight">{t(`walkthrough.blocks.${type}`)}</div>
+                <div className="text-xs font-medium leading-tight">{getBlockDisplayName(type)}</div>
               </button>
             ))}
           </div>
