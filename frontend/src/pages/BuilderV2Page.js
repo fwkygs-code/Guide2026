@@ -763,10 +763,10 @@ const BuilderV2Page = () => {
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <div className="h-6 w-px bg-slate-200" />
-          <Button variant="ghost" size="sm" disabled title={t('walkthrough.buttons.undo')}>
+          <Button variant="ghost" size="sm" disabled title={t('builder.buttons.undo')}>
             <Undo2 className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" disabled title={t('walkthrough.buttons.redo')}>
+          <Button variant="ghost" size="sm" disabled title={t('builder.buttons.redo')}>
             <Redo2 className="w-4 h-4" />
           </Button>
           <Button
@@ -976,7 +976,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1"
-                      title={t('walkthrough.labels.deleteStep')}
+                      title={t('builder.labels.deleteStep')}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1216,7 +1216,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
               onOpenChange(true);
             }
           }}
-          aria-label={t('walkthrough.labels.addBlock')}
+          aria-label={t('builder.labels.addBlock')}
           type="button"
         >
           <Plus className="w-4 h-4 text-slate-400" />
@@ -1321,8 +1321,8 @@ const BlockRenderer = ({
           <button
             onClick={handleDelete}
             className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
-            title={t('walkthrough.labels.deleteBlock')}
-            aria-label={t('walkthrough.labels.deleteBlock')}
+            title={t('builder.labels.deleteBlock')}
+            aria-label={t('builder.labels.deleteBlock')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -1361,7 +1361,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 onUpdate({ data: { ...(block.data || {}), content } });
               }
             }}
-            placeholder={t('walkthrough.placeholders.headingText')}
+            placeholder={t('builder.placeholders.headingText')}
             textSize={headingSize}
             isBold={true}
             className="text-slate-900"
@@ -1398,7 +1398,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               <Input
                 value={block.data.caption || ''}
                 onChange={(e) => onUpdate({ data: { ...block.data, caption: e.target.value } })}
-                placeholder={t('walkthrough.placeholders.addCaption')}
+                placeholder={t('builder.placeholders.addCaption')}
                 className="text-sm"
               />
             </div>
@@ -1412,7 +1412,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               />
               <p className="text-sm text-slate-500 mt-2">or</p>
               <Input
-                placeholder={t('walkthrough.blockSettings.url')}
+                placeholder={t('builder.blockSettings.url')}
                 onBlur={(e) => {
                   if (e.target.value) {
                     onUpdate({ data: { ...block.data, url: normalizeImageUrl(e.target.value) } });
@@ -1450,9 +1450,9 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
                 className="mb-2"
               />
-              <p className="text-sm text-slate-500 mt-2">{t('walkthrough.messages.orYouTubeUrl')}</p>
+              <p className="text-sm text-slate-500 mt-2">{t('builder.messages.orYouTubeUrl')}</p>
               <Input
-                placeholder={t('walkthrough.blockSettings.url')}
+                placeholder={t('builder.blockSettings.url')}
                 onBlur={(e) => {
                   if (e.target.value) {
                     const isYoutube = e.target.value.includes('youtube') || e.target.value.includes('youtu.be');
@@ -1490,7 +1490,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       return (
         <div className="space-y-3">
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">{t('walkthrough.blockSettings.buttonText')}</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{t('builder.blockSettings.buttonText')}</Label>
             <Input
               value={block.data.text || ''}
               onChange={(e) => onUpdate({ data: { ...block.data, text: e.target.value } })}
@@ -1499,7 +1499,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           </div>
 
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">{t('walkthrough.blockSettings.action')}</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{t('builder.blockSettings.action')}</Label>
             <Select
               value={block.data.action || 'next'}
               onValueChange={(value) => {
@@ -1671,7 +1671,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             <InlineRichEditor
               content={block.data.title || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, title: html } })}
-              placeholder={t('walkthrough.placeholders.problemTitle')}
+              placeholder={t('builder.placeholders.problemTitle')}
               isRTL={false}
               textSize="text-base"
               isBold={true}
@@ -1684,7 +1684,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             <InlineRichEditor
               content={block.data.explanation || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, explanation: html } })}
-              placeholder={t('walkthrough.placeholders.explanation')}
+              placeholder={t('builder.placeholders.explanation')}
               isRTL={false}
               textSize="text-sm"
               isBold={false}
@@ -1728,7 +1728,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                   newItems[idx] = { ...item, text: e.target.value };
                   onUpdate({ data: { ...block.data, items: newItems } });
                 }}
-                placeholder={t('walkthrough.placeholders.checklistItem')}
+                placeholder={t('builder.placeholders.checklistItem')}
                 className="flex-1"
               />
               <button
@@ -2405,7 +2405,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center bg-slate-50">
         <div className="space-y-4">
           <div className="text-slate-600 font-medium">📌 Annotated Image Block</div>
-          <p className="text-sm text-slate-500">{t('walkthrough.messages.uploadImageToStart')}</p>
+          <p className="text-sm text-slate-500">{t('builder.messages.uploadImageToStart')}</p>
           <Input
             type="file"
             accept="image/*"
@@ -2414,7 +2414,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           />
           <p className="text-sm text-slate-500">or</p>
           <Input
-            placeholder={t('walkthrough.placeholders.pasteImageUrl')}
+            placeholder={t('builder.placeholders.pasteImageUrl')}
             onBlur={(e) => {
               if (e.target.value) {
                 onUpdate({ data: { ...block.data, url: normalizeImageUrl(e.target.value) } });
@@ -2836,8 +2836,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[1px]">
             <div className="bg-white rounded-lg shadow-lg p-6 text-center space-y-2">
               <div className="text-2xl">📌</div>
-              <div className="font-medium text-slate-900">{t('walkthrough.messages.clickAnywhereToAdd')}</div>
-              <div className="text-sm text-slate-500">{t('walkthrough.messages.interactiveMarkersAppear')}</div>
+              <div className="font-medium text-slate-900">{t('builder.messages.clickAnywhereToAdd')}</div>
+              <div className="text-sm text-slate-500">{t('builder.messages.interactiveMarkersAppear')}</div>
             </div>
           </div>
         )}
@@ -2888,10 +2888,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-slate-900 truncate">
-                      {marker.title || t('walkthrough.labels.untitled')}
+                      {marker.title || t('builder.labels.untitled')}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {marker.shape === 'rectangle' ? `◻ ${t('walkthrough.labels.rectangle')}` : marker.shape === 'arrow' ? `→ ${t('walkthrough.labels.arrow')}` : marker.shape === 'line' ? `━ ${t('walkthrough.labels.line')}` : `● ${t('walkthrough.labels.dot')}`} • {t('walkthrough.labels.clickToEdit')}
+                      {marker.shape === 'rectangle' ? `◻ ${t('builder.labels.rectangle')}` : marker.shape === 'arrow' ? `→ ${t('builder.labels.arrow')}` : marker.shape === 'line' ? `━ ${t('builder.labels.line')}` : `● ${t('builder.labels.dot')}`} • {t('builder.labels.clickToEdit')}
                     </div>
                   </div>
                 </div>
@@ -2906,7 +2906,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         <div className="border border-primary rounded-lg bg-primary/5 p-4">
           <div className="flex items-center justify-between mb-3 pb-3 border-b border-primary/20">
             <span className="font-semibold text-sm text-slate-900">
-              {t('walkthrough.labels.editingAnnotation', { number: editingMarker + 1 })}
+              {t('builder.labels.editingAnnotation', { number: editingMarker + 1 })}
             </span>
             <Button
               variant="ghost"
@@ -2920,28 +2920,28 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.title')}</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.title')}</Label>
               <Input
                 value={markers[editingMarker].title || ''}
                 onChange={(e) => updateMarker(editingMarker, { title: e.target.value })}
-                placeholder={t('walkthrough.placeholders.annotationTitle')}
+                placeholder={t('builder.placeholders.annotationTitle')}
                 className="text-sm"
               />
             </div>
             
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.description')}</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.description')}</Label>
               <Textarea
                 value={markers[editingMarker].description || ''}
                 onChange={(e) => updateMarker(editingMarker, { description: e.target.value })}
-                placeholder={t('walkthrough.placeholders.annotationDescription')}
+                placeholder={t('builder.placeholders.annotationDescription')}
                 rows={2}
                 className="text-sm"
               />
             </div>
 
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.color')}</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.color')}</Label>
               <input
                 type="color"
                 value={markers[editingMarker].color || '#3b82f6'}
@@ -2951,7 +2951,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             </div>
 
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.shape')}</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.shape')}</Label>
               <Select
                 value={markers[editingMarker].shape || 'dot'}
                 onValueChange={(shape) => updateMarker(editingMarker, { shape })}
@@ -2960,10 +2960,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dot">● {t('walkthrough.labels.dot')}</SelectItem>
-                  <SelectItem value="rectangle">◻ {t('walkthrough.labels.rectangle')}</SelectItem>
-                  <SelectItem value="arrow">→ {t('walkthrough.labels.arrow')}</SelectItem>
-                  <SelectItem value="line">━ {t('walkthrough.labels.line')}</SelectItem>
+                  <SelectItem value="dot">● {t('builder.labels.dot')}</SelectItem>
+                  <SelectItem value="rectangle">◻ {t('builder.labels.rectangle')}</SelectItem>
+                  <SelectItem value="arrow">→ {t('builder.labels.arrow')}</SelectItem>
+                  <SelectItem value="line">━ {t('builder.labels.line')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -3007,14 +3007,14 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               variant="destructive"
               size="sm"
               onClick={() => {
-                if (window.confirm(t('walkthrough.labels.deleteAnnotation') + '?')) {
+                if (window.confirm(t('builder.labels.deleteAnnotation') + '?')) {
                   deleteMarker(editingMarker);
                 }
               }}
               className="w-full"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              {t('walkthrough.labels.deleteAnnotation')}
+              {t('builder.labels.deleteAnnotation')}
             </Button>
           </div>
         </div>
@@ -3342,7 +3342,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
               <InlineRichEditor
                 content={currentSlide.caption || ''}
                 onChange={(html) => updateSlide(activeIndex, { caption: html })}
-                placeholder={t('walkthrough.placeholders.addSlideCaption')}
+                placeholder={t('builder.placeholders.addSlideCaption')}
                 isRTL={false}
                 textSize="text-sm"
                 isBold={false}
