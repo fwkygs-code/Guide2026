@@ -399,10 +399,10 @@ const WalkthroughsPage = () => {
                         </div>
 
                         <div className="flex items-center gap-2 mb-4">
-                          <Badge variant={walkthrough.status === 'published' ? 'default' : 'secondary'}>
+                          <Badge variant="outline" className={walkthrough.status === 'published' ? 'border-green-400 text-green-300' : 'border-slate-500 text-slate-400'}>
                             {walkthrough.status === 'published' ? t('builder.status.published') : t('builder.status.draft')}
                           </Badge>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="border-slate-500 text-slate-400">
                             {walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}
                           </Badge>
                         </div>
@@ -467,10 +467,10 @@ const WalkthroughsPage = () => {
 
         {/* Settings Edit Dialog */}
         <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto glass z-[1000]">
             <DialogHeader>
-              <DialogTitle>Edit Walkthrough Settings</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-white">Edit Walkthrough Settings</DialogTitle>
+              <DialogDescription className="text-slate-400">
                 Update walkthrough name, description, icon, and categories
               </DialogDescription>
             </DialogHeader>
@@ -479,8 +479,8 @@ const WalkthroughsPage = () => {
               <div className="space-y-6 mt-4">
                 {/* Walkthrough Name */}
                 <div>
-                  <Label htmlFor="edit-title" className="text-sm font-medium text-slate-900 mb-2 block">
-                    Walkthrough Name <span className="text-red-500">*</span>
+                  <Label htmlFor="edit-title" className="text-sm font-medium text-white mb-2 block">
+                    Walkthrough Name <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="edit-title"
@@ -493,7 +493,7 @@ const WalkthroughsPage = () => {
 
                 {/* URL Slug */}
                 <div>
-                  <Label htmlFor="edit-slug" className="text-sm font-medium text-slate-900 mb-2 block">
+                  <Label htmlFor="edit-slug" className="text-sm font-medium text-white mb-2 block">
                     URL Name (Optional)
                   </Label>
                   <div className="space-y-2">
@@ -508,7 +508,7 @@ const WalkthroughsPage = () => {
                       placeholder="custom-url-name"
                       className="w-full"
                     />
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       Custom name for the walkthrough URL. Leave empty to use the walkthrough ID.
                       {editSettings.slug && workspace?.slug && (
                         <span className="block mt-1 font-mono text-primary break-all">
@@ -526,7 +526,7 @@ const WalkthroughsPage = () => {
 
                 {/* Description */}
                 <div>
-                  <Label htmlFor="edit-description" className="text-sm font-medium text-slate-900 mb-2 block">
+                  <Label htmlFor="edit-description" className="text-sm font-medium text-white mb-2 block">
                     Description
                   </Label>
                   <Textarea
@@ -541,8 +541,8 @@ const WalkthroughsPage = () => {
 
                 {/* Icon/Photo */}
                 <div>
-                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
-                    Icon/Photo <span className="text-slate-500 font-normal">(Optional)</span>
+                  <Label className="text-sm font-medium text-white mb-2 block">
+                    Icon/Photo <span className="text-slate-400 font-normal">(Optional)</span>
                   </Label>
                   {editSettings.icon_url ? (
                     <div className="space-y-2">
@@ -572,7 +572,7 @@ const WalkthroughsPage = () => {
                         disabled={uploadingIcon}
                         className="w-full"
                       />
-                      <p className="text-sm text-slate-500">or</p>
+                      <p className="text-sm text-slate-400">or</p>
                       <Input
                         placeholder="Enter image URL"
                         value={editSettings.icon_url}
@@ -585,7 +585,7 @@ const WalkthroughsPage = () => {
 
                 {/* Categories */}
                 <div>
-                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
+                  <Label className="text-sm font-medium text-white mb-2 block">
                     Categories
                   </Label>
                   {parentCategories.length === 0 ? (

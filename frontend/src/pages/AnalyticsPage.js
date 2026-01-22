@@ -152,7 +152,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
               <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-success" />
               </div>
-              <div className="text-sm text-slate-600">Completions</div>
+              <div className="text-sm text-slate-400">Completions</div>
             </div>
             <div className="text-3xl font-heading font-bold text-white">{totalCompletions}</div>
           </motion.div>
@@ -167,7 +167,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
               <div className="w-10 h-10 rounded-lg bg-warning/20 backdrop-blur-sm border border-warning/30 flex items-center justify-center shadow-[0_2px_8px_rgba(90,200,250,0.2)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent before:pointer-events-none">
                 <TrendingUp className="w-5 h-5 text-warning-600 relative z-10" />
               </div>
-              <div className="text-sm text-slate-600">Completion Rate</div>
+              <div className="text-sm text-slate-400">Completion Rate</div>
             </div>
             <div className="text-3xl font-heading font-bold text-white">{avgCompletionRate}%</div>
           </motion.div>

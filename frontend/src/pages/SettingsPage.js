@@ -326,7 +326,7 @@ const SettingsPage = () => {
             <h2 className="text-xl font-heading font-semibold text-white mb-4">Basic Information</h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="workspace-name">Workspace Name</Label>
+                <Label htmlFor="workspace-name" className="text-white">Workspace Name</Label>
                 <Input
                   id="workspace-name"
                   value={name}
@@ -336,7 +336,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="logo">Workspace Logo</Label>
+                <Label htmlFor="logo" className="text-white">Workspace Logo</Label>
                 <div className="mt-1.5 space-y-2">
                   {logoUrl && (
                     <img src={logoUrl} alt="Logo" className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
@@ -360,7 +360,7 @@ const SettingsPage = () => {
                 </div>
               </div>
               <div>
-                <Label htmlFor="brand-color">Brand Color</Label>
+                <Label htmlFor="brand-color" className="text-white">Brand Color</Label>
                 <div className="flex gap-3 mt-1.5">
                   <Input
                     id="brand-color"
@@ -389,8 +389,8 @@ const SettingsPage = () => {
             </h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="portal-background">Portal Background Image</Label>
-                <p className="text-xs text-slate-500 mb-1.5">Custom background for your public portal</p>
+                <Label htmlFor="portal-background" className="text-white">Portal Background Image</Label>
+                <p className="text-xs text-slate-400 mb-1.5">Custom background for your public portal</p>
                 <div className="mt-1.5 space-y-2">
                   {portalBackgroundUrl && (
                     <div className="relative">
@@ -482,7 +482,7 @@ const SettingsPage = () => {
             <p className="text-xs text-slate-500 mb-4">Add contact information that will appear at the top of your portal</p>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="portal-phone" className="flex items-center gap-2">
+                <Label htmlFor="portal-phone" className="flex items-center gap-2 text-white">
                   <Phone className="w-4 h-4" />
                   Phone Number
                 </Label>
@@ -495,7 +495,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="portal-working-hours" className="flex items-center gap-2">
+                <Label htmlFor="portal-working-hours" className="flex items-center gap-2 text-white">
                   <Clock className="w-4 h-4" />
                   Working Hours
                 </Label>
@@ -508,7 +508,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="portal-whatsapp" className="flex items-center gap-2">
+                <Label htmlFor="portal-whatsapp" className="flex items-center gap-2 text-white">
                   <MessageCircle className="w-4 h-4" />
                   WhatsApp Link
                 </Label>
@@ -665,8 +665,8 @@ const SettingsPage = () => {
             <h2 className="text-xl font-heading font-semibold text-white mb-4">Text Size</h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="text-size">Text Size Preference</Label>
-                <p className="text-xs text-gray-500 mb-1.5">Adjust text size throughout the application</p>
+                <Label htmlFor="text-size" className="text-white">Text Size Preference</Label>
+                <p className="text-xs text-slate-400 mb-1.5">Adjust text size throughout the application</p>
                 <Select value={textSize} onValueChange={setTextSize} className="mt-1.5">
                   <SelectTrigger id="text-size" className="w-full">
                     <SelectValue />
@@ -741,7 +741,7 @@ const SettingsPage = () => {
                               <Mail className="w-4 h-4 text-primary" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                              <p className="text-sm font-medium text-white">
                                 {member.user_email || 'Member'}
                               </p>
                               <p className="text-xs text-slate-500 dark:text-slate-400">
