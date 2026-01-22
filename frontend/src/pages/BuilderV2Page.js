@@ -2127,45 +2127,39 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         });
       });
     } else if (interactionMode === 'resizing-dot' && resizingMarker !== null) {
-      // Handle dot resizing (isolated logic)
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      // Handle dot resizing (direct update without RAF for responsiveness)
+      const marker = markers[resizingMarker];
+      if (!marker || !dragStartPos.current) {
+        console.log('[Dot Resize] Early return - marker or dragStartPos missing');
+        return;
       }
       
-      animationFrameRef.current = requestAnimationFrame(() => {
-        const marker = markers[resizingMarker];
-        if (!marker || !dragStartPos.current) {
-          console.log('[Dot Resize] Early return - marker or dragStartPos missing');
-          return;
-        }
-        
-        const rect = imageRef.current.getBoundingClientRect();
-        const currentX = ((e.clientX - rect.left) / rect.width) * 100;
-        const currentY = ((e.clientY - rect.top) / rect.height) * 100;
-        
-        // Calculate distance from stored center to current pointer
-        const centerX = dragStartPos.current.centerX || marker.x;
-        const centerY = dragStartPos.current.centerY || marker.y;
-        const deltaX = currentX - centerX;
-        const deltaY = currentY - centerY;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        
-        // New radius, clamped to min/max
-        const newRadius = Math.max(0.25, Math.min(7.5, distance));
-        const newSize = newRadius * 2; // diameter
-        
-        console.log('[Dot Resize]', {
-          currentX, currentY,
-          centerX, centerY,
-          distance,
-          newRadius,
-          newSize,
-          currentSize: marker.size
-        });
-        
-        // Update only size, center stays fixed
-        updateMarker(resizingMarker, { size: newSize });
+      const rect = imageRef.current.getBoundingClientRect();
+      const currentX = ((e.clientX - rect.left) / rect.width) * 100;
+      const currentY = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      // Calculate distance from stored center to current pointer
+      const centerX = dragStartPos.current.centerX || marker.x;
+      const centerY = dragStartPos.current.centerY || marker.y;
+      const deltaX = currentX - centerX;
+      const deltaY = currentY - centerY;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      
+      // New radius, clamped to min/max
+      const newRadius = Math.max(0.25, Math.min(7.5, distance));
+      const newSize = newRadius * 2; // diameter
+      
+      console.log('[Dot Resize]', {
+        currentX, currentY,
+        centerX, centerY,
+        distance,
+        newRadius,
+        newSize,
+        currentSize: marker.size
       });
+      
+      // Update only size, center stays fixed (direct update for immediate feedback)
+      updateMarker(resizingMarker, { size: newSize });
     } else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
       // Handle rectangle resizing
       if (animationFrameRef.current) {
