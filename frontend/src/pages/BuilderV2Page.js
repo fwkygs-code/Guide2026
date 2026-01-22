@@ -613,7 +613,7 @@ const BuilderV2Page = () => {
                     id="title"
                     value={setupData.title}
                     onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter walkthrough name"
+                    placeholder={t('walkthrough.placeholders.walkthroughName')}
                     className="w-full"
                     data-testid="walkthrough-name-input"
                   />
@@ -622,13 +622,13 @@ const BuilderV2Page = () => {
                 {/* Description */}
                 <div>
                   <Label htmlFor="description" className="text-sm font-medium text-slate-900 mb-2 block">
-                    Description
+                    {t('walkthrough.labels.description')}
                   </Label>
                   <Textarea
                     id="description"
                     value={setupData.description}
                     onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter description (optional)"
+                    placeholder={t('walkthrough.placeholders.walkthroughDescription')}
                     rows={3}
                     className="w-full"
                   />
@@ -643,7 +643,7 @@ const BuilderV2Page = () => {
                     <div className="space-y-2">
                       <img
                         src={normalizeImageUrl(setupData.icon_url)}
-                        alt="Icon preview"
+                        alt={t('walkthrough.labels.iconPreview')}
                         className="w-24 h-24 rounded-lg object-cover border border-slate-200"
                       />
                       <Button
@@ -669,7 +669,7 @@ const BuilderV2Page = () => {
                       />
                       <p className="text-sm text-slate-500">or</p>
                       <Input
-                        placeholder="Enter image URL"
+                        placeholder={t('walkthrough.placeholders.imageUrl')}
                         value={setupData.icon_url}
                         onChange={(e) => setSetupData(prev => ({ ...prev, icon_url: e.target.value }))}
                         className="w-full"
@@ -762,10 +762,10 @@ const BuilderV2Page = () => {
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <div className="h-6 w-px bg-slate-200" />
-          <Button variant="ghost" size="sm" disabled title="Undo (coming soon)">
+          <Button variant="ghost" size="sm" disabled title={t('walkthrough.buttons.undo')}>
             <Undo2 className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" disabled title="Redo (coming soon)">
+          <Button variant="ghost" size="sm" disabled title={t('walkthrough.buttons.redo')}>
             <Redo2 className="w-4 h-4" />
           </Button>
           <Button
@@ -973,7 +973,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1"
-                      title="Delete step"
+                      title={t('walkthrough.labels.deleteStep')}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1230,7 +1230,7 @@ const BlockRenderer = ({
               onOpenChange(true);
             }
           }}
-          aria-label="Add block"
+          aria-label={t('walkthrough.labels.addBlock')}
           type="button"
         >
           <Plus className="w-4 h-4 text-slate-400" />
@@ -1333,8 +1333,8 @@ const BlockRenderer = ({
           <button
             onClick={handleDelete}
             className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
-            title="Delete block"
-            aria-label="Delete block"
+            title={t('walkthrough.labels.deleteBlock')}
+            aria-label={t('walkthrough.labels.deleteBlock')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -1371,7 +1371,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 onUpdate({ data: { ...(block.data || {}), content } });
               }
             }}
-            placeholder={t('walkthrough.blockSettings.content')}
+            placeholder={t('walkthrough.placeholders.headingText')}
             textSize={headingSize}
             isBold={true}
             className="text-slate-900"
@@ -1408,7 +1408,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               <Input
                 value={block.data.caption || ''}
                 onChange={(e) => onUpdate({ data: { ...block.data, caption: e.target.value } })}
-                placeholder={t('walkthrough.blockSettings.caption')}
+                placeholder={t('walkthrough.placeholders.addCaption')}
                 className="text-sm"
               />
             </div>
@@ -1460,7 +1460,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
                 className="mb-2"
               />
-              <p className="text-sm text-slate-500 mt-2">or YouTube URL</p>
+              <p className="text-sm text-slate-500 mt-2">{t('walkthrough.messages.orYouTubeUrl')}</p>
               <Input
                 placeholder={t('walkthrough.blockSettings.url')}
                 onBlur={(e) => {
@@ -1681,7 +1681,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             <InlineRichEditor
               content={block.data.title || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, title: html } })}
-              placeholder="Problem title"
+              placeholder={t('walkthrough.placeholders.problemTitle')}
               isRTL={false}
               textSize="text-base"
               isBold={true}
@@ -1694,7 +1694,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             <InlineRichEditor
               content={block.data.explanation || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, explanation: html } })}
-              placeholder="Explanation"
+              placeholder={t('walkthrough.placeholders.explanation')}
               isRTL={false}
               textSize="text-sm"
               isBold={false}
@@ -1738,7 +1738,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                   newItems[idx] = { ...item, text: e.target.value };
                   onUpdate({ data: { ...block.data, items: newItems } });
                 }}
-                placeholder="Checklist item"
+                placeholder={t('walkthrough.placeholders.checklistItem')}
                 className="flex-1"
               />
               <button
@@ -2367,7 +2367,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center bg-slate-50">
         <div className="space-y-4">
           <div className="text-slate-600 font-medium">📌 Annotated Image Block</div>
-          <p className="text-sm text-slate-500">Upload an image to start adding annotations</p>
+          <p className="text-sm text-slate-500">{t('walkthrough.messages.uploadImageToStart')}</p>
           <Input
             type="file"
             accept="image/*"
@@ -2376,7 +2376,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           />
           <p className="text-sm text-slate-500">or</p>
           <Input
-            placeholder="Paste image URL"
+            placeholder={t('walkthrough.placeholders.pasteImageUrl')}
             onBlur={(e) => {
               if (e.target.value) {
                 onUpdate({ data: { ...block.data, url: normalizeImageUrl(e.target.value) } });
@@ -2791,8 +2791,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[1px]">
             <div className="bg-white rounded-lg shadow-lg p-6 text-center space-y-2">
               <div className="text-2xl">📌</div>
-              <div className="font-medium text-slate-900">Click anywhere to add annotations</div>
-              <div className="text-sm text-slate-500">Interactive markers will appear on the image</div>
+              <div className="font-medium text-slate-900">{t('walkthrough.messages.clickAnywhereToAdd')}</div>
+              <div className="text-sm text-slate-500">{t('walkthrough.messages.interactiveMarkersAppear')}</div>
             </div>
           </div>
         )}
@@ -2879,17 +2879,17 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               <Input
                 value={markers[editingMarker].title || ''}
                 onChange={(e) => updateMarker(editingMarker, { title: e.target.value })}
-                placeholder="Annotation title"
+                placeholder={t('walkthrough.placeholders.annotationTitle')}
                 className="text-sm"
               />
             </div>
             
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">Description</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.description')}</Label>
               <Textarea
                 value={markers[editingMarker].description || ''}
                 onChange={(e) => updateMarker(editingMarker, { description: e.target.value })}
-                placeholder="Annotation description"
+                placeholder={t('walkthrough.placeholders.annotationDescription')}
                 rows={2}
                 className="text-sm"
               />
@@ -3295,7 +3295,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
               <InlineRichEditor
                 content={currentSlide.caption || ''}
                 onChange={(html) => updateSlide(activeIndex, { caption: html })}
-                placeholder="Add caption for this slide..."
+                placeholder={t('walkthrough.placeholders.addSlideCaption')}
                 isRTL={false}
                 textSize="text-sm"
                 isBold={false}

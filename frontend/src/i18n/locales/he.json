@@ -468,6 +468,48 @@
     "checkoffRequired": "סימון כשסיימת",
     "autoAdvance": "קידום אוטומטי",
     "deleteStep": "מחק שלב",
+    "placeholders": {
+      "walkthroughName": "הכנס שם מדריך",
+      "walkthroughDescription": "הכנס תיאור (אופציונלי)",
+      "imageUrl": "הכנס כתובת תמונה",
+      "pasteImageUrl": "הדבק כתובת תמונה",
+      "headingText": "טקסט כותרת...",
+      "addCaption": "הוסף כיתוב...",
+      "addSlideCaption": "הוסף כיתוב לשקופית זו...",
+      "annotationTitle": "כותרת הערה",
+      "annotationDescription": "תיאור הערה"
+    },
+    "buttons": {
+      "undo": "בטל (בקרוב)",
+      "redo": "בצע שוב (בקרוב)"
+    },
+    "messages": {
+      "orYouTubeUrl": "או כתובת YouTube",
+      "uploadImageToStart": "העלה תמונה כדי להתחיל להוסיף הערות",
+      "clickAnywhereToAdd": "לחץ בכל מקום כדי להוסיף הערות",
+      "interactiveMarkersAppear": "סמנים אינטראקטיביים יופיעו על התמונה"
+    },
+    "labels": {
+      "description": "תיאור",
+      "iconPreview": "תצוגה מקדימה של סמל",
+      "deleteStep": "מחק שלב",
+      "addBlock": "הוסף בלוק",
+      "deleteBlock": "מחק בלוק"
+    },
+    "placeholders": {
+      "walkthroughName": "הכנס שם מדריך",
+      "walkthroughDescription": "הכנס תיאור (אופציונלי)",
+      "imageUrl": "הכנס כתובת תמונה",
+      "pasteImageUrl": "הדבק כתובת תמונה",
+      "headingText": "טקסט כותרת...",
+      "addCaption": "הוסף כיתוב...",
+      "addSlideCaption": "הוסף כיתוב לשקופית זו...",
+      "annotationTitle": "כותרת הערה",
+      "annotationDescription": "תיאור הערה",
+      "problemTitle": "כותרת בעיה",
+      "explanation": "הסבר",
+      "checklistItem": "פריט ברשימת משימות"
+    },
     "blocks": {
       "heading": "כותרת",
       "text": "טקסט",

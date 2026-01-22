@@ -328,6 +328,37 @@
     "checkoffRequired": "Tick when done",
     "autoAdvance": "Auto Advance",
     "deleteStep": "Delete Step",
+    "buttons": {
+      "undo": "Undo (coming soon)",
+      "redo": "Redo (coming soon)"
+    },
+    "messages": {
+      "orYouTubeUrl": "or YouTube URL",
+      "uploadImageToStart": "Upload an image to start adding annotations",
+      "clickAnywhereToAdd": "Click anywhere to add annotations",
+      "interactiveMarkersAppear": "Interactive markers will appear on the image"
+    },
+    "labels": {
+      "description": "Description",
+      "iconPreview": "Icon preview",
+      "deleteStep": "Delete step",
+      "addBlock": "Add block",
+      "deleteBlock": "Delete block"
+    },
+    "placeholders": {
+      "walkthroughName": "Enter walkthrough name",
+      "walkthroughDescription": "Enter description (optional)",
+      "imageUrl": "Enter image URL",
+      "pasteImageUrl": "Paste image URL",
+      "headingText": "Heading text...",
+      "addCaption": "Add caption...",
+      "addSlideCaption": "Add caption for this slide...",
+      "annotationTitle": "Annotation title",
+      "annotationDescription": "Annotation description",
+      "problemTitle": "Problem title",
+      "explanation": "Explanation",
+      "checklistItem": "Checklist item"
+    },
     "blocks": {
       "heading": "Heading",
       "text": "Text",
