@@ -10,6 +10,7 @@ import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
+import { CardContent } from '@/components/ui/card';
 
 const ArchivePage = () => {
   const { t } = useTranslation();

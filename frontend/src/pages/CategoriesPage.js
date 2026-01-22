@@ -15,6 +15,7 @@ import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
+import { CardContent } from '@/components/ui/card';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
+import { CardContent } from '@/components/ui/card';
 
 const WalkthroughsPage = () => {
   const { t } = useTranslation();
