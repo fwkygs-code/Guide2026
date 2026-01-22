@@ -280,10 +280,10 @@ const WalkthroughsPage = () => {
             </Button>
             <div>
               <Surface variant="floating" className="inline-block px-6 py-3">
-                <h1 className="text-3xl font-heading font-bold text-slate-900">
+                <h1 className="text-3xl font-heading font-bold text-white">
                   {workspace?.name} - {t('workspace.walkthroughs')}
                 </h1>
-                <p className="text-slate-600 mt-1">{t('walkthrough.createAndManage')}</p>
+                <p className="text-slate-400 mt-1">{t('walkthrough.createAndManage')}</p>
               </Surface>
             </div>
           </div>
@@ -336,15 +336,11 @@ const WalkthroughsPage = () => {
                       />
                       <FolderOpen className="w-6 h-6 text-primary" />
                       <div className="text-left">
-                        <h2 className="text-2xl font-heading font-bold text-slate-900 group-hover:text-primary transition-colors glass rounded-xl px-4 py-2 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg"
-                            style={{
-                              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
-                              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
-                            }}>
+                        <h2 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">
                           {category.name}
                         </h2>
                         {category.description && (
-                          <p className="text-sm text-slate-600 mt-1">{category.description}</p>
+                          <p className="text-sm text-slate-400 mt-1">{category.description}</p>
                         )}
                         {category.children.length > 0 && (
                           <div className="flex gap-2 mt-2">
@@ -360,11 +356,7 @@ const WalkthroughsPage = () => {
                   </div>
                 ) : (
                   <div className="mb-6">
-                    <h2 className="text-2xl font-heading font-bold text-slate-900 glass rounded-xl px-4 py-2 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg inline-block group-hover:text-primary transition-colors"
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
-                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
-                        }}>{t('walkthrough.uncategorized')}</h2>
+                    <h2 className="text-2xl font-heading font-bold text-white inline-block group-hover:text-primary transition-colors">{t('walkthrough.uncategorized')}</h2>
                   </div>
                 )}
 
@@ -376,22 +368,18 @@ const WalkthroughsPage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
-                        className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all relative"
+                        className="rounded-xl p-6 transition-all relative bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700"
                         data-testid={`walkthrough-card-${walkthrough.id}`}
                       >
                         {/* Transparent 3D Bubble with Category and Company Name */}
-                        <div 
-                          className="absolute -top-3 -right-3 z-10 px-3 py-1.5 rounded-full backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg transform hover:scale-105 transition-transform"
-                          style={{
-                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset',
-                            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
-                          }}
+                        <div
+                          className="absolute -top-3 -right-3 z-10 px-3 py-1.5 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 shadow-lg transform hover:scale-105 transition-transform"
                         >
                           <div className="flex flex-col items-end gap-0.5">
-                            <div className="text-xs font-semibold text-slate-900 leading-tight">
+                            <div className="text-xs font-semibold text-white leading-tight">
                               {getWalkthroughCategoryNames(walkthrough).join(', ')}
                             </div>
-                            <div className="text-[10px] font-medium text-slate-600 leading-tight">
+                            <div className="text-[10px] font-medium text-slate-400 leading-tight">
                               {workspace?.name}
                             </div>
                           </div>
@@ -414,10 +402,10 @@ const WalkthroughsPage = () => {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-heading font-semibold text-slate-900 mb-1">
+                            <h3 className="text-lg font-heading font-semibold text-white mb-1">
                               {walkthrough.title}
                             </h3>
-                            <p className="text-sm text-slate-600 line-clamp-2">
+                            <p className="text-sm text-slate-400 line-clamp-2">
                               {walkthrough.description || t('walkthrough.noDescription')}
                             </p>
                           </div>
@@ -475,10 +463,10 @@ const WalkthroughsPage = () => {
         ) : (
           <div className="text-center py-16">
             <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
+            <h3 className="text-xl font-heading font-semibold text-white mb-2">
               {t('walkthrough.noWalkthroughs')}
             </h3>
-            <p className="text-slate-600 mb-6">{t('walkthrough.createFirst')}</p>
+            <p className="text-slate-400 mb-6">{t('walkthrough.createFirst')}</p>
             <Button onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/new`)} data-testid="empty-create-walkthrough-button">
               <Plus className="w-4 h-4 mr-2" />
               {t('walkthrough.createWalkthrough')}
