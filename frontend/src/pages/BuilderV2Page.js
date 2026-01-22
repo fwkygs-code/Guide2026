@@ -1999,7 +1999,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   const [draggingMarker, setDraggingMarker] = useState(null);
   const [resizingMarker, setResizingMarker] = useState(null);
   const [resizeCorner, setResizeCorner] = useState(null);
-  const [interactionMode, setInteractionMode] = useState('idle'); // 'idle' | 'dragging' | 'resizing'
+  const [interactionMode, setInteractionMode] = useState('idle'); // 'idle' | 'dragging' | 'resizing' | 'rotating'
   const imageRef = React.useRef(null);
   const dragStartPos = React.useRef(null);
   const animationFrameRef = React.useRef(null);
@@ -2019,10 +2019,12 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       x: Math.max(0, Math.min(100, x)),
       y: Math.max(0, Math.min(100, y)),
-      shape: 'dot', // 'dot' or 'rectangle'
+      shape: 'dot', // 'dot', 'rectangle', or 'arrow'
       size: 30, // Diameter in pixels for dot
       width: 10, // Width in % for rectangle
       height: 10, // Height in % for rectangle
+      length: 80, // Length in pixels for arrow
+      rotation: 0, // Rotation in radians for arrow (0-2π)
       title: '',
       description: ''
     };
@@ -2117,6 +2119,37 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
     console.log('[Dot Resize] Stored dragStartPos', dragStartPos.current);
   };
+
+  const handleArrowPointerDown = (e, index, action) => {
+    console.log('[Arrow] Handle pointer down', { index, action, currentMode: interactionMode });
+    e.stopPropagation();
+    e.preventDefault();
+    // Set pointer capture so interaction continues even outside bounds
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    if (action === 'move') {
+      setInteractionMode('dragging');
+      setDraggingMarker(index);
+      setEditingMarker(null);
+      const rect = imageRef.current.getBoundingClientRect();
+      dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
+    } else if (action === 'rotate') {
+      setInteractionMode('rotating');
+      setResizingMarker(index);
+      setEditingMarker(null);
+      const rect = imageRef.current.getBoundingClientRect();
+      dragStartPos.current = { x: e.clientX, y: e.clientY, rect, markerIndex: index };
+    } else if (action === 'resize') {
+      setInteractionMode('resizing');
+      setResizingMarker(index);
+      setResizeCorner('arrow');
+      setEditingMarker(null);
+      const rect = imageRef.current.getBoundingClientRect();
+      dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
+    }
+
+    console.log('[Arrow] Stored dragStartPos', dragStartPos.current);
+  };
   
   const handleImagePointerMove = (e) => {
     if (!imageRef.current) return;
@@ -2188,8 +2221,40 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           }
 
           updateMarker(resizingMarker, { width: newWidth, height: newHeight });
+        } else if (resizeCorner === 'arrow') {
+          // Arrow resize: change length
+          const marker = markers[resizingMarker];
+          const { x: startX, y: startY } = dragStartPos.current;
+
+          const startPointerX = ((startX - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
+          const startPointerY = ((startY - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
+
+          const currentDeltaX = currentX - startPointerX;
+          const currentDeltaY = currentY - startPointerY;
+          const distance = Math.sqrt(currentDeltaX * currentDeltaX + currentDeltaY * currentDeltaY);
+
+          const startLength = marker.length || 80;
+          const newLength = Math.max(20, Math.min(300, startLength + distance));
+
+          updateMarker(resizingMarker, { length: newLength });
         }
       });
+
+      // Handle arrow rotating
+      if (interactionMode === 'rotating' && resizingMarker !== null) {
+        const marker = markers[resizingMarker];
+        const centerX = marker.x;
+        const centerY = marker.y;
+
+        const deltaX = currentX - centerX;
+        const deltaY = currentY - centerY;
+        const rotation = Math.atan2(deltaY, deltaX);
+
+        // Normalize rotation to 0-2π
+        const normalizedRotation = rotation < 0 ? rotation + 2 * Math.PI : rotation;
+
+        updateMarker(resizingMarker, { rotation: normalizedRotation });
+      }
     }
   };
   
@@ -2201,6 +2266,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     setDraggingMarker(null);
     setResizingMarker(null);
     setResizeCorner(null);
+    dragStartPos.current = null;
   };
   
   // Cleanup RAF on unmount
@@ -2419,6 +2485,129 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               </div>
             </div>
           );
+
+          // Arrow marker with move, rotate, and resize interactions
+          if (markerShape === 'arrow') {
+            const arrowLength = marker.length || 80;
+            const arrowRotation = marker.rotation || 0;
+
+            return (
+              <div key={marker.id || idx}>
+                <div
+                  className="absolute cursor-move select-none"
+                  style={{
+                    left: `${marker.x}%`,
+                    top: `${marker.y}%`,
+                    transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                  }}
+                  onPointerDown={(e) => {
+                    // Check if clicking on handles
+                    if (e.target.hasAttribute('data-rotation-handle') || e.target.hasAttribute('data-resize-handle')) {
+                      return; // Let handle's own handler deal with it
+                    }
+                    handleArrowPointerDown(e, idx, 'move');
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (interactionMode === 'idle' && !e.target.hasAttribute('data-rotation-handle') && !e.target.hasAttribute('data-resize-handle')) {
+                      setEditingMarker(editingMarker === idx ? null : idx);
+                    }
+                  }}
+                >
+                  {/* Arrow shaft */}
+                  <div
+                    className={`absolute bg-primary ${isActive ? 'shadow-lg' : 'shadow-md'}`}
+                    style={{
+                      left: '50%',
+                      top: '50%',
+                      width: `${arrowLength}px`,
+                      height: '2px',
+                      transform: 'translate(-50%, -50%)',
+                      transformOrigin: 'left center',
+                    }}
+                  />
+
+                  {/* Arrowhead */}
+                  <div
+                    className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
+                    style={{
+                      left: `calc(50% + ${arrowLength}px)`,
+                      top: '50%',
+                      width: '0',
+                      height: '0',
+                      borderLeft: '8px solid var(--primary)',
+                      borderTop: '4px solid transparent',
+                      borderBottom: '4px solid transparent',
+                      transform: 'translate(-50%, -50%)',
+                      transformOrigin: 'left center',
+                    }}
+                  />
+
+                  {/* Number badge */}
+                  <span
+                    className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%) translateY(-20px)',
+                      fontSize: '10px'
+                    }}
+                  >
+                    {idx + 1}
+                  </span>
+
+                  {/* Rotation handle */}
+                  {isActive && (
+                    <div
+                      data-rotation-handle="true"
+                      className="absolute w-4 h-4 bg-blue-500 border-2 border-white rounded-full hover:scale-125 transition-transform shadow-md"
+                      style={{
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%) translateY(-30px)',
+                        cursor: 'alias',
+                        zIndex: 20,
+                        pointerEvents: 'auto',
+                        touchAction: 'none'
+                      }}
+                      onPointerDown={(e) => handleArrowPointerDown(e, idx, 'rotate')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    />
+                  )}
+
+                  {/* Resize handle at arrowhead */}
+                  {isActive && (
+                    <div
+                      data-resize-handle="true"
+                      className="absolute w-4 h-4 bg-green-500 border-2 border-white rounded-full hover:scale-125 transition-transform shadow-md"
+                      style={{
+                        left: `calc(50% + ${arrowLength + 8}px)`,
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        cursor: 'ew-resize',
+                        zIndex: 20,
+                        pointerEvents: 'auto',
+                        touchAction: 'none'
+                      }}
+                      onPointerDown={(e) => handleArrowPointerDown(e, idx, 'resize')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          // Fallback for unknown shapes
+          return null;
         })}
         
         {/* Empty state overlay */}
@@ -2481,7 +2670,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       {marker.title || 'Untitled'}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {marker.shape === 'rectangle' ? '◻ Rectangle' : '● Dot'} • Click to edit
+                      {marker.shape === 'rectangle' ? '◻ Rectangle' : marker.shape === 'arrow' ? '→ Arrow' : '● Dot'} • Click to edit
                     </div>
                   </div>
                 </div>
@@ -2542,6 +2731,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 <SelectContent>
                   <SelectItem value="dot">● Dot</SelectItem>
                   <SelectItem value="rectangle">◻ Rectangle</SelectItem>
+                  <SelectItem value="arrow">→ Arrow</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2567,6 +2757,39 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     onChange={(e) => updateMarker(editingMarker, { height: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
                     min={3}
                     max={80}
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+            ) : markers[editingMarker].shape === 'arrow' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-slate-700 mb-1 block">Length (pixels)</Label>
+                  <Input
+                    type="number"
+                    value={markers[editingMarker].length || 80}
+                    onChange={(e) => updateMarker(editingMarker, { length: Math.max(20, Math.min(300, parseInt(e.target.value) || 80)) })}
+                    min={20}
+                    max={300}
+                    step={10}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-700 mb-1 block">Rotation (degrees)</Label>
+                  <Input
+                    type="number"
+                    value={Math.round(((markers[editingMarker].rotation || 0) * 180) / Math.PI)}
+                    onChange={(e) => {
+                      const degrees = parseFloat(e.target.value) || 0;
+                      const radians = (degrees * Math.PI) / 180;
+                      // Normalize to 0-2π
+                      const normalized = radians < 0 ? radians + 2 * Math.PI : radians % (2 * Math.PI);
+                      updateMarker(editingMarker, { rotation: normalized });
+                    }}
+                    min={0}
+                    max={360}
+                    step={15}
                     className="h-9 text-sm"
                   />
                 </div>
