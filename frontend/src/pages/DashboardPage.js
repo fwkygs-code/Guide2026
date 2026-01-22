@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Plus, BookOpen, FolderOpen, BarChart3, Settings, Upload, X, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +18,7 @@ import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
 import WorkspaceLockModal from '../components/WorkspaceLockModal';
 import OnboardingTour from '../components/OnboardingTour';
+import { Surface, Card, Button, Panel } from '../components/ui/design-system';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -123,9 +123,9 @@ const DashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <Surface variant="glass" className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      </Surface>
     );
   }
 
@@ -137,10 +137,10 @@ const DashboardPage = () => {
   return (
     <DashboardLayout backgroundUrl={dashboardBackground}>
       <OnboardingTour />
-      <div className="p-8">
+      <Panel variant="page" className="py-8">
         <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
         <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -466,17 +466,17 @@ const DashboardPage = () => {
         />
 
         {workspaces.length === 0 && (
-          <div className="text-center py-16">
+          <Surface variant="floating" className="text-center py-16">
             <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
               {t('dashboard.noWorkspaces')}
             </h3>
             <p className="text-slate-600 mb-6">{t('dashboard.createFirst')}</p>
-            <Button onClick={() => setCreateDialogOpen(true)} data-testid="empty-create-workspace-button">
+            <Button variant="primary" onClick={() => setCreateDialogOpen(true)} data-testid="empty-create-workspace-button">
               <Plus className="w-4 h-4 mr-2" />
               {t('dashboard.newWorkspace')}
             </Button>
-          </div>
+          </Surface>
         )}
           </div>
 
@@ -486,7 +486,7 @@ const DashboardPage = () => {
             <BillingInfo />
           </div>
         </div>
-      </div>
+      </Panel>
     </DashboardLayout>
   );
 };

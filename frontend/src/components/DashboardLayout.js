@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink, Database, Shield } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -11,6 +10,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import DarkModeToggle from './DarkModeToggle';
 import NotificationsMenu from './NotificationsMenu';
 import QuotaDisplay from './QuotaDisplay';
+import { Surface, Button } from './ui/design-system';
 
 const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
   const { t } = useTranslation();
@@ -64,11 +64,12 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
     <div className="min-h-screen bg-white" style={backgroundStyle}>
       {/* Overlay for background image readability */}
       {backgroundUrl && (
-        <div className="fixed inset-0 bg-white/90 backdrop-blur-sm -z-10" />
+        <Surface variant="glass" className="fixed inset-0 -z-10" />
       )}
       {/* Top Navigation */}
-      <nav className="glass border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-[9998]">
-        <div className="px-6 py-3 flex items-center justify-between gap-4">
+      <nav className="sticky top-0 z-[9998]">
+        <Surface variant="glass" className="border-b border-slate-200/50">
+          <div className="px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <Button
               variant="ghost"
@@ -243,6 +244,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
             </div>
           </div>
         )}
+        </Surface>
       </nav>
 
       {/* Main Content */}

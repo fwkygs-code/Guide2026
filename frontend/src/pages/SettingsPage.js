@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle, UserPlus, Mail, X, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,6 +16,7 @@ import UpgradePrompt from '../components/UpgradePrompt';
 import PlanSelectionModal from '../components/PlanSelectionModal';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { useAuth } from '../contexts/AuthContext';
+import { Surface, Card, Button, Badge, Panel } from '../components/ui/design-system';
 
 const SettingsPage = () => {
   const { workspaceSlug } = useParams();
@@ -294,9 +294,9 @@ const SettingsPage = () => {
   if (loading || workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
-        <div className="min-h-screen flex items-center justify-center">
+        <Surface variant="glass" className="min-h-screen flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+        </Surface>
       </DashboardLayout>
     );
   }
@@ -309,7 +309,7 @@ const SettingsPage = () => {
         onOpenChange={setPlanSelectionOpen}
         isSignup={false}
       />
-      <div className="p-8">
+      <Panel variant="page" className="py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -933,7 +933,7 @@ const SettingsPage = () => {
             <QuotaDisplay workspaceId={workspaceId} showWarnings={true} onUpgrade={() => setUpgradePromptOpen(true)} />
           </div>
         </div>
-      </div>
+      </Panel>
     </DashboardLayout>
   );
 };
