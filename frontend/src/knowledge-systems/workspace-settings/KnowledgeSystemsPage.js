@@ -174,7 +174,7 @@ function KnowledgeSystemsPage() {
             </Alert>
           </motion.div>
         )}
-      </motion.div>
+      </div>
 
       {editingSystem && (
         <KnowledgeSystemEditor
