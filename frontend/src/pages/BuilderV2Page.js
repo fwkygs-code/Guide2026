@@ -2112,15 +2112,23 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         const currentX = ((e.clientX - rect.left) / rect.width) * 100;
         const currentY = ((e.clientY - rect.top) / rect.height) * 100;
         
-        let newWidth = marker.width || 10;
-        let newHeight = marker.height || 10;
-        let newX = marker.x;
-        let newY = marker.y;
-        
-        // Calculate new dimensions based on which corner is being dragged
-        if (resizeCorner === 'se' || resizeCorner === 'sw' || resizeCorner === 'ne' || resizeCorner === 'nw') {
+        // Handle dot resizing
+        if (resizeCorner === 'dot') {
+          // Calculate distance from center to resize point
           const deltaX = currentX - marker.x;
           const deltaY = currentY - marker.y;
+          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+          
+          // Convert distance to size (double it since it's radius-based)
+          const newSize = Math.max(0.5, Math.min(15, distance * 2));
+          updateMarker(resizingMarker, { size: newSize });
+        } else if (resizeCorner === 'se' || resizeCorner === 'sw' || resizeCorner === 'ne' || resizeCorner === 'nw') {
+          // Handle rectangle resizing
+          const deltaX = currentX - marker.x;
+          const deltaY = currentY - marker.y;
+          
+          let newWidth = marker.width || 10;
+          let newHeight = marker.height || 10;
           
           if (resizeCorner === 'se') {
             newWidth = Math.max(5, marker.width / 2 + deltaX);
@@ -2298,35 +2306,73 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             );
           }
           
-          // Dot marker with inline popup
+          // Dot marker with resize handle
           return (
-            <div key={marker.id || idx}>
+            <div 
+              key={marker.id || idx}
+              className="absolute"
+              style={{
+                left: `${marker.x}%`, 
+                top: `${marker.y}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
               <button
-                className={`absolute rounded-full flex items-center justify-center text-xs font-bold cursor-move transform -translate-x-1/2 -translate-y-1/2 select-none ${
+                className={`rounded-full flex items-center justify-center text-xs font-bold cursor-move select-none ${
                   isActive
                     ? 'bg-primary text-white scale-110 shadow-lg ring-2 ring-primary/30'
                     : 'bg-primary text-white hover:scale-110 shadow-md hover:shadow-lg'
                 }`}
                 style={{ 
-                  left: `${marker.x}%`, 
-                  top: `${marker.y}%`,
                   width: `${markerSize}%`,
                   height: `${markerSize}%`,
                   aspectRatio: '1',
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
-                  touchAction: 'none'
+                  touchAction: 'none',
+                  position: 'relative',
+                  minWidth: '30px',
+                  minHeight: '30px',
                 }}
-                onPointerDown={(e) => handleMarkerPointerDown(e, idx)}
+                onPointerDown={(e) => {
+                  if (e.target.hasAttribute('data-resize-handle')) {
+                    return;
+                  }
+                  handleMarkerPointerDown(e, idx);
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (interactionMode === 'idle') {
+                  if (interactionMode === 'idle' && !e.target.hasAttribute('data-resize-handle')) {
                     setEditingMarker(editingMarker === idx ? null : idx);
                   }
                 }}
                 aria-label={`Annotation ${idx + 1}: ${marker.title || 'Untitled'}`}
               >
                 {idx + 1}
+                
+                {/* Resize handle for dot (bottom-right) */}
+                {isActive && (
+                  <div
+                    data-resize-handle="true"
+                    className="absolute w-4 h-4 bg-white border-2 border-primary rounded-full hover:scale-125 transition-transform"
+                    style={{
+                      bottom: '-2px',
+                      right: '-2px',
+                      cursor: 'nwse-resize',
+                      zIndex: 20,
+                      pointerEvents: 'auto',
+                      touchAction: 'none'
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleResizePointerDown(e, idx, 'dot');
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                )}
               </button>
             </div>
           );
