@@ -933,6 +933,9 @@ const BuilderV2Page = () => {
 
 // Step Navigator Component
 const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDeleteStep, workspaceId, walkthroughId }) => {
+  const { t: rawT, ready } = useTranslation();
+  const t = (key, options) => ready ? rawT(key, options) : key;
+  
   const [hoveredIndex, setHoveredIndex] = useState(null);
   return (
     <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
@@ -1270,6 +1273,11 @@ const BlockRenderer = ({
   canUploadFile,
   walkthrough
 }) => {
+  const { t: rawT, ready } = useTranslation();
+  
+  // Safe translation function that falls back to key if translations not ready
+  const t = (key, options) => ready ? rawT(key, options) : key;
+  
   const {
     attributes,
     listeners,
@@ -1336,6 +1344,11 @@ const BlockRenderer = ({
 
 // Block Content Renderer
 const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, stepId, onMediaUpload, canUploadFile, walkthrough }) => {
+  const { t: rawT, ready } = useTranslation();
+
+  // Safe translation function that falls back to key if translations not ready
+  const t = (key, options) => ready ? rawT(key, options) : key;
+
   // Initialize guards for editors (hooks must be at top level)
   const [headingInitialized, setHeadingInitialized] = useState(false);
   const [textInitialized, setTextInitialized] = useState(false);
@@ -2002,6 +2015,9 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
 
 // Annotated Image Block Editor Component - ENHANCED: smooth drag, resize corners, inline popup
 const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFile }) => {
+  const { t: rawT, ready } = useTranslation();
+  const t = (key, options) => ready ? rawT(key, options) : key;
+  
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [editingMarker, setEditingMarker] = useState(null);
   const [draggingMarker, setDraggingMarker] = useState(null);
@@ -2980,6 +2996,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
 // Carousel Block Editor Component
 const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) => {
+  const { t: rawT, ready } = useTranslation();
+  const t = (key, options) => ready ? rawT(key, options) : key;
+  
   const [activeIndex, setActiveIndex] = useState(0);
   const [uploadingSlide, setUploadingSlide] = useState(null);
   const slides = block.data?.slides || [];
