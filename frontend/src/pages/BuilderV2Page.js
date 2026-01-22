@@ -2000,6 +2000,9 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
   }
 };
 
+// Supported annotation types - single source of truth
+const SUPPORTED_ANNOTATION_TYPES = ['dot', 'rectangle', 'arrow', 'line'];
+
 // Annotated Image Block Editor Component - ENHANCED: smooth drag, resize corners, inline popup
 const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFile }) => {
   const { t } = useTranslation();
@@ -2455,6 +2458,11 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           const markerHeight = marker.height || 10;
           const markerColor = marker.color || '#3b82f6';
           
+          // Safety guard: validate annotation type
+          if (process.env.NODE_ENV === 'development' && !SUPPORTED_ANNOTATION_TYPES.includes(markerShape)) {
+            console.error(`Unregistered annotation type: ${markerShape}. Supported types:`, SUPPORTED_ANNOTATION_TYPES);
+          }
+          
           if (markerShape === 'rectangle') {
             // Rectangle marker with corner resize handles
             return (
@@ -2649,32 +2657,32 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     }
                   }}
                 >
-                  {/* Arrow shaft */}
+                  {/* Arrow shaft - extends from center rightward */}
                   <div
                     className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                     style={{
                       left: '50%',
                       top: '50%',
-                      width: `${arrowLength}px`,
+                      width: `${arrowLength - 8}px`, // Subtract arrowhead size to prevent overlap
                       height: '2px',
-                      transform: 'translate(-50%, -50%)',
+                      transform: 'translate(0, -50%)', // Start at center, no horizontal offset
                       transformOrigin: 'left center',
                       backgroundColor: markerColor
                     }}
                   />
 
-                  {/* Arrowhead */}
+                  {/* Arrowhead - positioned exactly at shaft end */}
                   <div
                     className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                     style={{
-                      left: `calc(50% + ${arrowLength}px)`,
+                      left: `calc(50% + ${arrowLength - 8}px)`, // At the end of shaft
                       top: '50%',
                       width: '0',
                       height: '0',
                       borderLeft: `8px solid ${markerColor}`,
                       borderTop: '4px solid transparent',
                       borderBottom: '4px solid transparent',
-                      transform: 'translate(-50%, -50%)',
+                      transform: 'translate(0, -50%)', // No horizontal offset needed
                       transformOrigin: 'left center',
                     }}
                   />
@@ -2880,10 +2888,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-slate-900 truncate">
-                      {marker.title || 'Untitled'}
+                      {marker.title || t('walkthrough.labels.untitled')}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {marker.shape === 'rectangle' ? '◻ Rectangle' : marker.shape === 'arrow' ? '→ Arrow' : marker.shape === 'line' ? '━ Line' : '● Dot'} • Click to edit
+                      {marker.shape === 'rectangle' ? `◻ ${t('walkthrough.labels.rectangle')}` : marker.shape === 'arrow' ? `→ ${t('walkthrough.labels.arrow')}` : marker.shape === 'line' ? `━ ${t('walkthrough.labels.line')}` : `● ${t('walkthrough.labels.dot')}`} • {t('walkthrough.labels.clickToEdit')}
                     </div>
                   </div>
                 </div>
@@ -2898,7 +2906,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         <div className="border border-primary rounded-lg bg-primary/5 p-4">
           <div className="flex items-center justify-between mb-3 pb-3 border-b border-primary/20">
             <span className="font-semibold text-sm text-slate-900">
-              Editing Annotation #{editingMarker + 1}
+              {t('walkthrough.labels.editingAnnotation', { number: editingMarker + 1 })}
             </span>
             <Button
               variant="ghost"
@@ -2912,7 +2920,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">Title</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.title')}</Label>
               <Input
                 value={markers[editingMarker].title || ''}
                 onChange={(e) => updateMarker(editingMarker, { title: e.target.value })}
@@ -2933,7 +2941,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             </div>
 
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">Color</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.color')}</Label>
               <input
                 type="color"
                 value={markers[editingMarker].color || '#3b82f6'}
@@ -2943,7 +2951,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             </div>
 
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">Shape</Label>
+              <Label className="text-xs text-slate-700 mb-1 block">{t('walkthrough.labels.shape')}</Label>
               <Select
                 value={markers[editingMarker].shape || 'dot'}
                 onValueChange={(shape) => updateMarker(editingMarker, { shape })}
@@ -2952,10 +2960,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dot">● Dot</SelectItem>
-                  <SelectItem value="rectangle">◻ Rectangle</SelectItem>
-                  <SelectItem value="arrow">→ Arrow</SelectItem>
-                  <SelectItem value="line">━ Line</SelectItem>
+                  <SelectItem value="dot">● {t('walkthrough.labels.dot')}</SelectItem>
+                  <SelectItem value="rectangle">◻ {t('walkthrough.labels.rectangle')}</SelectItem>
+                  <SelectItem value="arrow">→ {t('walkthrough.labels.arrow')}</SelectItem>
+                  <SelectItem value="line">━ {t('walkthrough.labels.line')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2999,14 +3007,14 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               variant="destructive"
               size="sm"
               onClick={() => {
-                if (window.confirm('Delete this annotation?')) {
+                if (window.confirm(t('walkthrough.labels.deleteAnnotation') + '?')) {
                   deleteMarker(editingMarker);
                 }
               }}
               className="w-full"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete Annotation
+              {t('walkthrough.labels.deleteAnnotation')}
             </Button>
           </div>
         </div>

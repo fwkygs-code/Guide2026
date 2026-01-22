@@ -343,7 +343,18 @@
       "iconPreview": "Icon preview",
       "deleteStep": "Delete step",
       "addBlock": "Add block",
-      "deleteBlock": "Delete block"
+      "deleteBlock": "Delete block",
+      "untitled": "Untitled",
+      "clickToEdit": "Click to edit",
+      "editingAnnotation": "Editing Annotation #{{number}}",
+      "title": "Title",
+      "color": "Color",
+      "shape": "Shape",
+      "deleteAnnotation": "Delete Annotation",
+      "dot": "Dot",
+      "rectangle": "Rectangle",
+      "arrow": "Arrow",
+      "line": "Line"
     },
     "placeholders": {
       "walkthroughName": "Enter walkthrough name",

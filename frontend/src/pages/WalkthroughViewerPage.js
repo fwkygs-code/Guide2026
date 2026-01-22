@@ -1671,31 +1671,31 @@ const AnnotatedImageViewer = ({ block }) => {
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                {/* Arrow shaft */}
+                {/* Arrow shaft - extends from center rightward */}
                 <div
                   className="absolute bg-primary"
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `${arrowLength * 0.1}vw`, // Scale for viewer
+                    width: `calc(${arrowLength * 0.1}vw - 4px)`, // Scale for viewer, subtract arrowhead
                     height: '1px',
-                    transform: 'translate(-50%, -50%)',
+                    transform: 'translate(0, -50%)', // Start at center, no horizontal offset
                     transformOrigin: 'left center',
                   }}
                 />
 
-                {/* Arrowhead */}
+                {/* Arrowhead - positioned exactly at shaft end */}
                 <div
                   className="absolute"
                   style={{
-                    left: `calc(50% + ${arrowLength * 0.1}vw)`,
+                    left: `calc(50% + ${arrowLength * 0.1}vw - 4px)`, // At the end of shaft
                     top: '50%',
                     width: '0',
                     height: '0',
                     borderLeft: '4px solid var(--primary)',
                     borderTop: '2px solid transparent',
                     borderBottom: '2px solid transparent',
-                    transform: 'translate(-50%, -50%)',
+                    transform: 'translate(0, -50%)', // No horizontal offset needed
                     transformOrigin: 'left center',
                   }}
                 />

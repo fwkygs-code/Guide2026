@@ -483,7 +483,18 @@
       "iconPreview": "תצוגה מקדימה של סמל",
       "deleteStep": "מחק שלב",
       "addBlock": "הוסף בלוק",
-      "deleteBlock": "מחק בלוק"
+      "deleteBlock": "מחק בלוק",
+      "untitled": "ללא כותרת",
+      "clickToEdit": "לחץ לעריכה",
+      "editingAnnotation": "עריכת הערה #{{number}}",
+      "title": "כותרת",
+      "color": "צבע",
+      "shape": "צורה",
+      "deleteAnnotation": "מחק הערה",
+      "dot": "נקודה",
+      "rectangle": "מלבן",
+      "arrow": "חץ",
+      "line": "קו"
     },
     "placeholders": {
       "walkthroughName": "הכנס שם מדריך",
