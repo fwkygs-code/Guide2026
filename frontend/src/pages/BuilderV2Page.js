@@ -2092,8 +2092,29 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     setResizingMarker(index);
     setResizeCorner('dot');
     setEditingMarker(null);
+
     const rect = imageRef.current.getBoundingClientRect();
-    dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
+    const startX = ((e.clientX - rect.left) / rect.width) * 100;
+    const startY = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Determine dominant axis based on initial pointer position relative to center
+    const deltaX = Math.abs(startX - marker.x);
+    const deltaY = Math.abs(startY - marker.y);
+    const resizeAxis = deltaX > deltaY ? 'x' : 'y';
+
+    // Store start position for the dominant axis only
+    const startPos = resizeAxis === 'x' ? startX : startY;
+    const startSize = marker.size || 30;
+
+    dragStartPos.current = {
+      x: e.clientX,
+      y: e.clientY,
+      rect,
+      resizeAxis,
+      startPos,
+      startSize
+    };
+
     console.log('[Dot Resize] Stored dragStartPos', dragStartPos.current);
   };
   
@@ -2130,24 +2151,18 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         const currentY = ((e.clientY - rect.top) / rect.height) * 100;
 
         if (resizeCorner === 'dot') {
-          // Dot resize: delta-based circular resize
-          const { x: startX, y: startY } = dragStartPos.current;
+          // Dot resize: axis-based delta resize
+          const { resizeAxis, startPos, startSize } = dragStartPos.current;
 
-          const startPointerX = ((startX - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
-          const startPointerY = ((startY - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
+          // Read current position from the same axis only
+          const currentPos = resizeAxis === 'x' ? currentX : currentY;
 
-          const startDeltaX = startPointerX - marker.x;
-          const startDeltaY = startPointerY - marker.y;
-          const startDistance = Math.sqrt(startDeltaX * startDeltaX + startDeltaY * startDeltaY);
+          // Calculate signed delta from start position
+          const delta = currentPos - startPos;
 
-          const currentDeltaX = currentX - marker.x;
-          const currentDeltaY = currentY - marker.y;
-          const currentDistance = Math.sqrt(currentDeltaX * currentDeltaX + currentDeltaY * currentDeltaY);
-
-          const delta = currentDistance - startDistance;
-          const startSize = marker.size || 30;
-
-          const newSize = Math.max(10, Math.min(200, startSize + delta * 2));
+          // Apply delta to size with sensitivity adjustment
+          const sensitivity = 2; // Adjust this value to control resize speed
+          const newSize = Math.max(10, Math.min(200, startSize + delta * sensitivity));
 
           updateMarker(resizingMarker, { size: newSize });
         } else {
