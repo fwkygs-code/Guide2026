@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon, ChevronLeft, ChevronRight, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
+import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon, ChevronLeft, ChevronRight, AlignLeft, AlignCenter, AlignRight, Type, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -2294,109 +2294,6 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     </>
                   )}
                 </div>
-                
-                {/* Inline controls popup */}
-                {editingMarker === idx && (
-                  <Popover open={true} onOpenChange={() => setEditingMarker(null)}>
-                    <PopoverTrigger asChild>
-                      <div 
-                        className="absolute z-[250]"
-                        style={{ 
-                          left: `${marker.x}%`, 
-                          top: `${marker.y}%`,
-                          transform: 'translate(-50%, -50%)',
-                          pointerEvents: 'none'
-                        }}
-                      />
-                    </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-80 p-3 z-[300] bg-white shadow-2xl" 
-                      side="top" 
-                      align="center"
-                      sideOffset={10}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between pb-2 border-b">
-                          <span className="font-semibold text-sm">Annotation #{idx + 1}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() => setEditingMarker(null)}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                        <Input
-                          value={marker.title || ''}
-                          onChange={(e) => updateMarker(idx, { title: e.target.value })}
-                          placeholder="Title"
-                          className="text-sm"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <Textarea
-                          value={marker.description || ''}
-                          onChange={(e) => updateMarker(idx, { description: e.target.value })}
-                          placeholder="Description"
-                          rows={2}
-                          className="text-sm"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs text-slate-600 mb-1 block">Width (% of image)</Label>
-                            <Input
-                              type="number"
-                              value={marker.width || 10}
-                              onChange={(e) => updateMarker(idx, { width: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
-                              min={3}
-                              max={80}
-                              className="h-7 text-xs"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-slate-600 mb-1 block">Height (% of image)</Label>
-                            <Input
-                              type="number"
-                              value={marker.height || 10}
-                              onChange={(e) => updateMarker(idx, { height: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
-                              min={3}
-                              max={80}
-                              className="h-7 text-xs"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        </div>
-                        <Select
-                          value={marker.shape || 'rectangle'}
-                          onValueChange={(shape) => updateMarker(idx, { shape })}
-                        >
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="dot">● Dot</SelectItem>
-                            <SelectItem value="rectangle">◻ Rectangle</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            if (window.confirm('Delete this annotation?')) {
-                              deleteMarker(idx);
-                            }
-                          }}
-                          className="w-full h-7 text-xs"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
               </div>
             );
           }
@@ -2431,96 +2328,6 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               >
                 {idx + 1}
               </button>
-              
-              {/* Inline controls popup */}
-              {editingMarker === idx && (
-                <Popover open={true} onOpenChange={() => setEditingMarker(null)}>
-                  <PopoverTrigger asChild>
-                    <div 
-                      className="absolute z-[250]"
-                      style={{ 
-                        left: `${marker.x}%`, 
-                        top: `${marker.y}%`,
-                        transform: 'translate(-50%, -50%)',
-                        pointerEvents: 'none'
-                      }}
-                    />
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-80 p-3 z-[300] bg-white shadow-2xl" 
-                    side="top" 
-                    align="center"
-                    sideOffset={10}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between pb-2 border-b">
-                        <span className="font-semibold text-sm">Annotation #{idx + 1}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={() => setEditingMarker(null)}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <Input
-                        value={marker.title || ''}
-                        onChange={(e) => updateMarker(idx, { title: e.target.value })}
-                        placeholder="Title"
-                        className="text-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <Textarea
-                        value={marker.description || ''}
-                        onChange={(e) => updateMarker(idx, { description: e.target.value })}
-                        placeholder="Description"
-                        rows={2}
-                        className="text-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div>
-                        <Label className="text-xs text-slate-600 mb-1 block">Size (% of image)</Label>
-                        <Input
-                          type="number"
-                          value={marker.size || 3}
-                          onChange={(e) => updateMarker(idx, { size: Math.max(0.5, Math.min(15, parseFloat(e.target.value) || 3)) })}
-                          min={0.5}
-                          max={15}
-                          step={0.5}
-                          className="h-7 text-xs"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                      <Select
-                        value={marker.shape || 'dot'}
-                        onValueChange={(shape) => updateMarker(idx, { shape })}
-                      >
-                        <SelectTrigger className="h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="dot">● Dot</SelectItem>
-                          <SelectItem value="rectangle">◻ Rectangle</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          if (window.confirm('Delete this annotation?')) {
-                            deleteMarker(idx);
-                          }
-                        }}
-                        className="w-full h-7 text-xs"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
             </div>
           );
         })}
@@ -2537,7 +2344,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         )}
       </div>
       
-      {/* Simplified annotations list - editing now done via inline popup */}
+      {/* Annotations list and editing panel */}
       <div className="border border-slate-200 rounded-lg bg-white p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="font-medium text-sm text-slate-900">
@@ -2595,10 +2402,122 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         )}
       </div>
       
+      {/* Edit annotation panel - shown below when marker is selected */}
+      {editingMarker !== null && markers[editingMarker] && (
+        <div className="border border-primary rounded-lg bg-primary/5 p-4">
+          <div className="flex items-center justify-between mb-3 pb-3 border-b border-primary/20">
+            <span className="font-semibold text-sm text-slate-900">
+              Editing Annotation #{editingMarker + 1}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setEditingMarker(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-slate-700 mb-1 block">Title</Label>
+              <Input
+                value={markers[editingMarker].title || ''}
+                onChange={(e) => updateMarker(editingMarker, { title: e.target.value })}
+                placeholder="Annotation title"
+                className="text-sm"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-xs text-slate-700 mb-1 block">Description</Label>
+              <Textarea
+                value={markers[editingMarker].description || ''}
+                onChange={(e) => updateMarker(editingMarker, { description: e.target.value })}
+                placeholder="Annotation description"
+                rows={2}
+                className="text-sm"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-xs text-slate-700 mb-1 block">Shape</Label>
+              <Select
+                value={markers[editingMarker].shape || 'dot'}
+                onValueChange={(shape) => updateMarker(editingMarker, { shape })}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dot">● Dot</SelectItem>
+                  <SelectItem value="rectangle">◻ Rectangle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {markers[editingMarker].shape === 'rectangle' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-slate-700 mb-1 block">Width (% of image)</Label>
+                  <Input
+                    type="number"
+                    value={markers[editingMarker].width || 10}
+                    onChange={(e) => updateMarker(editingMarker, { width: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
+                    min={3}
+                    max={80}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-700 mb-1 block">Height (% of image)</Label>
+                  <Input
+                    type="number"
+                    value={markers[editingMarker].height || 10}
+                    onChange={(e) => updateMarker(editingMarker, { height: Math.max(3, Math.min(80, parseInt(e.target.value) || 10)) })}
+                    min={3}
+                    max={80}
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Label className="text-xs text-slate-700 mb-1 block">Size (% of image)</Label>
+                <Input
+                  type="number"
+                  value={markers[editingMarker].size || 3}
+                  onChange={(e) => updateMarker(editingMarker, { size: Math.max(0.5, Math.min(15, parseFloat(e.target.value) || 3)) })}
+                  min={0.5}
+                  max={15}
+                  step={0.5}
+                  className="h-9 text-sm"
+                />
+              </div>
+            )}
+            
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (window.confirm('Delete this annotation?')) {
+                  deleteMarker(editingMarker);
+                }
+              }}
+              className="w-full"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Annotation
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {/* Instructions */}
       <div className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 space-y-1">
         <div><strong>💡 Click image</strong> to add markers</div>
-        <div><strong>🎯 Click markers</strong> to edit (inline popup)</div>
+        <div><strong>🎯 Click annotation</strong> to edit below</div>
         <div><strong>🖱️ Drag markers</strong> to reposition</div>
         <div><strong>↔️ Drag corners</strong> to resize rectangles</div>
       </div>
