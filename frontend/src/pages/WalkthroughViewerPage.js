@@ -921,7 +921,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             </span>
                             <div
                               className="prose prose-sm max-w-none text-slate-700"
-                              dangerouslySetInnerHTML={{ __html: block.data?.text || '' }}
+                              dangerouslySetInnerHTML={{ __html: block.data?.content || block.data?.text || '' }}
                             />
                           </div>
                         </div>
@@ -929,17 +929,86 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       {block.type === 'annotated_image' && block.data?.url && (
                         <AnnotatedImageViewer block={block} />
                       )}
-                      {block.type === 'embed' && block.data?.url && (
-                        <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden">
-                          <iframe
-                            src={block.data.url}
-                            className="w-full h-full"
-                            allowFullScreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
+                      {block.type === 'embed' && block.data?.url && (() => {
+                        // Transform URL based on provider
+                        const getEmbedUrl = (url, provider) => {
+                          if (!url) return '';
+                          
+                          try {
+                            switch (provider) {
+                              case 'youtube':
+                                // Convert YouTube watch URLs to embed format
+                                if (url.includes('youtube.com/watch')) {
+                                  const videoId = url.split('v=')[1]?.split('&')[0];
+                                  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+                                } else if (url.includes('youtu.be/')) {
+                                  const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                                  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+                                } else if (url.includes('youtube.com/embed/')) {
+                                  return url; // Already in embed format
+                                }
+                                return url;
+                                
+                              case 'vimeo':
+                                // Convert Vimeo URLs to embed format
+                                if (url.includes('vimeo.com/') && !url.includes('/video/')) {
+                                  const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+                                  return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
+                                }
+                                return url;
+                                
+                              case 'loom':
+                                // Loom share URLs to embed format
+                                if (url.includes('loom.com/share/')) {
+                                  const videoId = url.split('/share/')[1]?.split('?')[0];
+                                  return videoId ? `https://www.loom.com/embed/${videoId}` : url;
+                                }
+                                return url;
+                                
+                              case 'figma':
+                                // Figma URLs need embed parameter
+                                if (url.includes('figma.com/') && !url.includes('embed')) {
+                                  return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
+                                }
+                                return url;
+                                
+                              case 'google_docs':
+                                // Google Docs need /preview or /pub?embedded=true
+                                if (url.includes('docs.google.com/document/')) {
+                                  const docId = url.split('/d/')[1]?.split('/')[0];
+                                  return docId ? `https://docs.google.com/document/d/${docId}/preview` : url;
+                                } else if (url.includes('docs.google.com/presentation/')) {
+                                  const docId = url.split('/d/')[1]?.split('/')[0];
+                                  return docId ? `https://docs.google.com/presentation/d/${docId}/embed` : url;
+                                } else if (url.includes('docs.google.com/spreadsheets/')) {
+                                  const docId = url.split('/d/')[1]?.split('/')[0];
+                                  return docId ? `https://docs.google.com/spreadsheets/d/${docId}/preview` : url;
+                                }
+                                return url;
+                                
+                              default:
+                                return url;
+                            }
+                          } catch (error) {
+                            console.error('Error transforming embed URL:', error);
+                            return url;
+                          }
+                        };
+                        
+                        const embedUrl = getEmbedUrl(block.data.url, block.data?.provider || 'youtube');
+                        
+                        return (
+                          <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden">
+                            <iframe
+                              src={embedUrl}
+                              className="w-full h-full"
+                              allowFullScreen
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              loading="lazy"
+                            />
+                          </div>
+                        );
+                      })()}
                       {block.type === 'section' && (
                         <div className="border border-slate-200 rounded-xl p-6 bg-slate-50/50">
                           {block.data?.title && (
@@ -963,7 +1032,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           />
                           <div
                             className="prose prose-sm max-w-none text-slate-700 flex-1"
-                            dangerouslySetInnerHTML={{ __html: block.data?.text || '' }}
+                            dangerouslySetInnerHTML={{ __html: block.data?.message || '' }}
                           />
                         </div>
                       )}
@@ -974,7 +1043,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
                         >
-                          {block.data?.label || 'Visit Link'}
+                          {block.data?.text || 'Visit Link'}
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
@@ -1342,12 +1411,13 @@ const AnnotatedImageViewer = ({ block }) => {
   if (!imageUrl) return null;
 
   return (
-    <div className="relative select-none" style={{ userSelect: 'none' }}>
+    <div className="relative select-none" style={{ userSelect: 'none', position: 'relative' }}>
       <img
         src={imageUrl}
         alt={block.data?.alt || 'Annotated image'}
-        className="w-full rounded-xl"
+        className="w-full rounded-xl block"
         draggable={false}
+        style={{ position: 'relative' }}
       />
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
