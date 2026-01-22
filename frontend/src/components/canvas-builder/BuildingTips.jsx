@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { BLOCK_TYPES, getBlockIcon, getBlockLabel } from '../../utils/blockUtils';
 
 const BuildingTips = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showBlockReference, setShowBlockReference] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const tips = [
@@ -125,7 +125,7 @@ const BuildingTips = () => {
     }
   };
 
-  const currentLang = t('language') === 'עברית' ? 'he' : 'en';
+  const currentLang = i18n.language === 'he' ? 'he' : 'en';
 
   // Block labels in both languages
   const blockLabels = {
