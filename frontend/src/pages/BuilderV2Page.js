@@ -2251,6 +2251,22 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           const newSize = Math.max(10, Math.min(200, startSize + delta * sensitivity));
 
           updateMarker(resizingMarker, { size: newSize });
+        } else if (resizeCorner === 'arrow') {
+          // Arrow resize: change length
+          const marker = markers[resizingMarker];
+          const { x: startX, y: startY } = dragStartPos.current;
+
+          const startPointerX = ((startX - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
+          const startPointerY = ((startY - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
+
+          const currentDeltaX = currentX - startPointerX;
+          const currentDeltaY = currentY - startPointerY;
+          const distance = Math.sqrt(currentDeltaX * currentDeltaX + currentDeltaY * currentDeltaY);
+
+          const startLength = marker.length || 80;
+          const newLength = Math.max(20, Math.min(300, startLength + distance));
+
+          updateMarker(resizingMarker, { length: newLength });
         } else {
           // Rectangle resize
           const deltaX = currentX - marker.x;
@@ -2274,22 +2290,6 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           }
 
           updateMarker(resizingMarker, { width: newWidth, height: newHeight });
-        } else if (resizeCorner === 'arrow') {
-          // Arrow resize: change length
-          const marker = markers[resizingMarker];
-          const { x: startX, y: startY } = dragStartPos.current;
-
-          const startPointerX = ((startX - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
-          const startPointerY = ((startY - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
-
-          const currentDeltaX = currentX - startPointerX;
-          const currentDeltaY = currentY - startPointerY;
-          const distance = Math.sqrt(currentDeltaX * currentDeltaX + currentDeltaY * currentDeltaY);
-
-          const startLength = marker.length || 80;
-          const newLength = Math.max(20, Math.min(300, startLength + distance));
-
-          updateMarker(resizingMarker, { length: newLength });
         }
       });
 
