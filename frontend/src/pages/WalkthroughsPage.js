@@ -428,14 +428,7 @@ const WalkthroughsPage = () => {
                             <Edit className="w-3 h-3 mr-1" />
                             {t('common.edit')}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled
-                            title="Share functionality temporarily disabled"
-                          >
-                            <Share2 className="w-3 h-3" />
-                          </Button>
+                          <WalkthroughShareButton walkthrough={walkthrough} workspaceSlug={workspaceSlug} />
                           <Button
                             variant="ghost"
                             size="sm"
@@ -645,8 +638,7 @@ const WalkthroughsPage = () => {
   );
 };
 
-// Share Button Component for Walkthroughs - TEMPORARILY DISABLED
-/*
+// Share Button Component for Walkthroughs
 const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
   const { t } = useTranslation();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -752,6 +744,6 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
     </Dialog>
   );
 };
-*/
 
+export { WalkthroughShareButton };
 export default WalkthroughsPage;
