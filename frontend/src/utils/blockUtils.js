@@ -176,28 +176,33 @@ export const getBlockIcon = (type) => {
   return icons[type] || '📦';
 };
 
-export const getBlockLabel = (type) => {
-  const labels = {
-    heading: 'Heading',
-    text: 'Text',
-    image: 'Image/GIF',
-    video: 'Video',
-    file: 'File',
-    button: 'Button',
-    divider: 'Divider',
-    spacer: 'Spacer',
-    problem: 'Problem',
-    columns: 'Columns',
-    html: 'HTML',
-    carousel: 'Carousel',
-    checklist: 'Checklist',
-    callout: 'Callout',
-    annotated_image: 'Annotated Image',
-    embed: 'Embed',
-    section: 'Section',
-    confirmation: 'Confirmation',
-    external_link: 'External Link',
-    code: 'Code/Command'
+export const getBlockLabelKey = (type) => {
+  const labelKeys = {
+    heading: 'walkthrough.blocks.heading',
+    text: 'walkthrough.blocks.text',
+    image: 'walkthrough.blocks.image',
+    video: 'walkthrough.blocks.video',
+    file: 'walkthrough.blocks.file',
+    button: 'walkthrough.blocks.button',
+    divider: 'walkthrough.blocks.divider',
+    spacer: 'walkthrough.blocks.spacer',
+    problem: 'walkthrough.blocks.problem',
+    columns: 'walkthrough.blocks.columns',
+    html: 'walkthrough.blocks.html',
+    carousel: 'walkthrough.blocks.carousel',
+    checklist: 'walkthrough.blocks.checklist',
+    callout: 'walkthrough.blocks.callout',
+    annotated_image: 'walkthrough.blocks.annotatedImage',
+    embed: 'walkthrough.blocks.embed',
+    section: 'walkthrough.blocks.section',
+    confirmation: 'walkthrough.blocks.confirmation',
+    external_link: 'walkthrough.blocks.externalLink',
+    code: 'walkthrough.blocks.code'
   };
-  return labels[type] || type;
+  return labelKeys[type] || type;
+};
+
+// Legacy function - kept for backward compatibility but now returns translation keys
+export const getBlockLabel = (type) => {
+  return getBlockLabelKey(type);
 };

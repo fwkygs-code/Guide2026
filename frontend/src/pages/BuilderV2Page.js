@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
-import { BLOCK_TYPES, createBlock, getBlockLabel, getBlockIcon } from '../utils/blockUtils';
+import { BLOCK_TYPES, createBlock, getBlockLabelKey, getBlockIcon } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
@@ -1160,6 +1160,24 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
 
 // Add Block Button with Popover - Always visible, keyboard accessible
 const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
+  const { t } = useTranslation();
+
+// Block editor component (needs access to translations)
+const BlockRenderer = ({
+  block,
+  isSelected,
+  isDragging,
+  onSelect,
+  onUpdate,
+  onDelete,
+  workspaceId,
+  walkthroughId,
+  stepId,
+  onMediaUpload,
+  canUploadFile,
+  walkthrough
+}) => {
+  const { t } = useTranslation();
   const blockTypes = [
     BLOCK_TYPES.HEADING,
     BLOCK_TYPES.TEXT,
@@ -1237,7 +1255,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
                 type="button"
               >
                 <div className="text-lg mb-1">{getBlockIcon(type)}</div>
-                <div className="text-xs font-medium text-slate-900 leading-tight">{getBlockLabel(type)}</div>
+                <div className="text-xs font-medium text-slate-900 leading-tight">{t(getBlockLabelKey(type))}</div>
               </button>
             ))}
           </div>
@@ -1353,7 +1371,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 onUpdate({ data: { ...(block.data || {}), content } });
               }
             }}
-            placeholder="Heading text..."
+            placeholder={t('walkthrough.blockSettings.content')}
             textSize={headingSize}
             isBold={true}
             className="text-slate-900"
@@ -1390,7 +1408,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               <Input
                 value={block.data.caption || ''}
                 onChange={(e) => onUpdate({ data: { ...block.data, caption: e.target.value } })}
-                placeholder="Add caption..."
+                placeholder={t('walkthrough.blockSettings.caption')}
                 className="text-sm"
               />
             </div>
@@ -1404,7 +1422,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               />
               <p className="text-sm text-slate-500 mt-2">or</p>
               <Input
-                placeholder="Paste image URL"
+                placeholder={t('walkthrough.blockSettings.url')}
                 onBlur={(e) => {
                   if (e.target.value) {
                     onUpdate({ data: { ...block.data, url: normalizeImageUrl(e.target.value) } });
@@ -1444,7 +1462,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               />
               <p className="text-sm text-slate-500 mt-2">or YouTube URL</p>
               <Input
-                placeholder="https://youtube.com/watch?v=..."
+                placeholder={t('walkthrough.blockSettings.url')}
                 onBlur={(e) => {
                   if (e.target.value) {
                     const isYoutube = e.target.value.includes('youtube') || e.target.value.includes('youtu.be');
@@ -1468,30 +1486,30 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       // Default button text based on action
       const getDefaultButtonText = (action) => {
         const defaults = {
-          next: 'Next Step',
-          go_to_step: 'Go to Step',
-          end: 'End Walkthrough',
-          restart: 'Restart',
-          support: 'Get Support',
-          link: 'Visit Link',
-          check: 'Continue'
+          next: 'walkthrough.buttonDefaults.next',
+          go_to_step: 'walkthrough.buttonDefaults.goToStep',
+          end: 'walkthrough.buttonDefaults.end',
+          restart: 'walkthrough.buttonDefaults.restart',
+          support: 'walkthrough.buttonDefaults.support',
+          link: 'walkthrough.buttonDefaults.link',
+          check: 'walkthrough.buttonDefaults.check'
         };
-        return defaults[action] || 'Button';
+        return defaults[action] || 'walkthrough.buttonDefaults.button';
       };
       
       return (
         <div className="space-y-3">
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">Button Text</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{t('walkthrough.blockSettings.buttonText')}</Label>
             <Input
               value={block.data.text || ''}
               onChange={(e) => onUpdate({ data: { ...block.data, text: e.target.value } })}
-              placeholder={getDefaultButtonText(block.data.action || 'next')}
+              placeholder={t(getDefaultButtonText(block.data.action || 'next'))}
             />
           </div>
-          
+
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">Action</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{t('walkthrough.blockSettings.action')}</Label>
             <Select
               value={block.data.action || 'next'}
               onValueChange={(value) => {
@@ -1517,13 +1535,13 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="next">Next Step</SelectItem>
-                <SelectItem value="go_to_step">Go to Specific Step</SelectItem>
-                <SelectItem value="end">End Walkthrough</SelectItem>
-                <SelectItem value="restart">Restart Walkthrough</SelectItem>
-                <SelectItem value="support">Get Support</SelectItem>
-                <SelectItem value="link">External Link</SelectItem>
-                <SelectItem value="check">Checkpoint (Check Progress)</SelectItem>
+                <SelectItem value="next">{t('walkthrough.buttonActions.next')}</SelectItem>
+                <SelectItem value="go_to_step">{t('walkthrough.buttonActions.goToStep')}</SelectItem>
+                <SelectItem value="end">{t('walkthrough.buttonActions.end')}</SelectItem>
+                <SelectItem value="restart">{t('walkthrough.buttonActions.restart')}</SelectItem>
+                <SelectItem value="support">{t('walkthrough.buttonActions.support')}</SelectItem>
+                <SelectItem value="link">{t('walkthrough.buttonActions.link')}</SelectItem>
+                <SelectItem value="check">{t('walkthrough.buttonActions.check')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -2040,10 +2058,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   };
   
   const updateMarker = (index, updates) => {
-    console.log('[updateMarker] called', { index, updates, currentMarker: markers[index] });
     const newMarkers = [...markers];
     newMarkers[index] = { ...newMarkers[index], ...updates };
-    console.log('[updateMarker] newMarker', newMarkers[index]);
     onUpdate({ data: { ...block.data, markers: newMarkers } });
   };
   

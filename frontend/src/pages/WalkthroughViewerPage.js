@@ -1589,7 +1589,7 @@ const AnnotatedImageViewer = ({ block }) => {
         const markerWidth = marker.width || 10;
         const markerHeight = marker.height || 10;
         const isActive = selectedMarker === idx;
-        
+
         if (markerShape === 'rectangle') {
           // Rectangle marker
           return (
@@ -1652,7 +1652,158 @@ const AnnotatedImageViewer = ({ block }) => {
             </div>
           );
         }
-        
+
+        if (markerShape === 'arrow') {
+          // Arrow marker
+          const arrowLength = marker.length || 80;
+          const arrowRotation = marker.rotation || 0;
+
+          return (
+            <div key={marker.id || idx}>
+              <div
+                className="absolute cursor-pointer select-none"
+                style={{
+                  left: `${marker.x}%`,
+                  top: `${marker.y}%`,
+                  transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                }}
+                onClick={() => setSelectedMarker(isActive ? null : idx)}
+              >
+                {/* Arrow shaft */}
+                <div
+                  className="absolute bg-primary"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                    width: `${arrowLength * 0.1}vw`, // Scale for viewer
+                    height: '1px',
+                    transform: 'translate(-50%, -50%)',
+                    transformOrigin: 'left center',
+                  }}
+                />
+
+                {/* Arrowhead */}
+                <div
+                  className="absolute"
+                  style={{
+                    left: `calc(50% + ${arrowLength * 0.1}vw)`,
+                    top: '50%',
+                    width: '0',
+                    height: '0',
+                    borderLeft: '4px solid var(--primary)',
+                    borderTop: '2px solid transparent',
+                    borderBottom: '2px solid transparent',
+                    transform: 'translate(-50%, -50%)',
+                    transformOrigin: 'left center',
+                  }}
+                />
+
+                {/* Number badge */}
+                <span
+                  className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%) translateY(-15px)',
+                    fontSize: '10px'
+                  }}
+                >
+                  {idx + 1}
+                </span>
+              </div>
+              {isActive && (marker.title || marker.description) && (
+                <div
+                  className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                  style={{
+                    left: `${marker.x}%`,
+                    top: `${marker.y}%`,
+                    transform: 'translate(-50%, calc(-100% - 10px))',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {marker.title && (
+                    <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                  )}
+                  {marker.description && (
+                    <div className="text-sm text-slate-600">{marker.description}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        if (markerShape === 'line') {
+          // Line marker
+          const startX = marker.x1 || marker.x || 0;
+          const startY = marker.y1 || marker.y || 0;
+          const endX = marker.x2 || marker.x || 10;
+          const endY = marker.y2 || marker.y || 0;
+
+          return (
+            <div key={marker.id || idx}>
+              <svg
+                className="absolute"
+                style={{
+                  left: 0,
+                  top: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none'
+                }}
+              >
+                {/* Main line */}
+                <line
+                  x1={`${startX}%`}
+                  y1={`${startY}%`}
+                  x2={`${endX}%`}
+                  y2={`${endY}%`}
+                  stroke="var(--primary)"
+                  strokeWidth="2"
+                  style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                  onClick={() => setSelectedMarker(isActive ? null : idx)}
+                />
+
+                {/* Number badge at midpoint */}
+                <text
+                  x={`${(startX + endX) / 2}%`}
+                  y={`${(startY + endY) / 2 - 1}%`}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill="var(--primary)"
+                  fontSize="10"
+                  fontWeight="bold"
+                  style={{ pointerEvents: 'none' }}
+                >
+                  {idx + 1}
+                </text>
+              </svg>
+              {isActive && (marker.title || marker.description) && (
+                <div
+                  className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                  style={{
+                    left: `${(startX + endX) / 2}%`,
+                    top: `${(startY + endY) / 2}%`,
+                    transform: 'translate(-50%, calc(-100% - 10px))',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {marker.title && (
+                    <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                  )}
+                  {marker.description && (
+                    <div className="text-sm text-slate-600">{marker.description}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }
+
         // Dot marker (now % based)
         return (
           <div 
