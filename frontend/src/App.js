@@ -30,6 +30,9 @@ import AdminRoute from './components/AdminRoute';
 
 // Knowledge Systems (isolated module)
 import KnowledgeSystemsPage from './knowledge-systems/workspace-settings/KnowledgeSystemsPage';
+import KnowledgeSystemConfigPage from './knowledge-systems/workspace-settings/KnowledgeSystemConfigPage';
+import KnowledgeSystemContentPage from './knowledge-systems/workspace-settings/KnowledgeSystemContentPage';
+import KnowledgeSystemPlaceholderPage from './knowledge-systems/workspace-settings/KnowledgeSystemPlaceholderPage';
 import PolicyPortalPage from './knowledge-systems/portal/PolicyPortalPage';
 import ProcedurePortalPage from './knowledge-systems/portal/ProcedurePortalPage';
 import DocumentationPortalPage from './knowledge-systems/portal/DocumentationPortalPage';
@@ -111,6 +114,10 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><KnowledgeSystemsPage /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/:systemType/configure" element={<PrivateRoute><KnowledgeSystemConfigPage /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/:systemType" element={<PrivateRoute><KnowledgeSystemContentPage /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/:systemType/new" element={<PrivateRoute><KnowledgeSystemPlaceholderPage /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/:systemType/:itemId/edit" element={<PrivateRoute><KnowledgeSystemPlaceholderPage /></PrivateRoute>} />
         </Routes>
           </WorkspaceProvider>
           </BrowserRouter>

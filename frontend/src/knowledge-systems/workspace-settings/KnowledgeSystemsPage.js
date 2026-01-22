@@ -73,7 +73,7 @@ function KnowledgeSystemsPage() {
   };
 
   const handleSystemEdit = (system) => {
-    setEditingSystem(system);
+    navigate(`/workspace/${workspaceSlug}/knowledge/${system.type}/configure`);
   };
 
   const handleSystemSave = (systemId, updates) => {
