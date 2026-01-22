@@ -2883,47 +2883,65 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     stroke={markerColor}
                     strokeWidth={isActive ? "3" : "2"}
                     style={{ pointerEvents: 'stroke', cursor: 'move' }}
-                    onPointerDown={(e) => {
-                      if (e.target !== e.currentTarget) return; // Only handle direct clicks on line
-                      handleLinePointerDown(e, idx, 'move');
-                    }}
+                      onPointerDown={(e) => {
+                        if (e.target !== e.currentTarget) return; // Only handle direct clicks on line
+                        handleLinePointerDown(e, idx, 'move');
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingMarker(editingMarker === idx ? null : idx);
+                      }}
                   />
 
-                  {/* Handles are NOT rotated - they stay at actual endpoint positions */}
-                  {/* Start point handle */}
-                  <circle
-                    cx={`${startX}%`}
-                    cy={`${startY}%`}
-                    r="6"
-                    fill="white"
-                    stroke={markerColor}
-                    strokeWidth="2"
-                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
-                    onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_start')}
-                  />
+                  {/* Resize handles - endpoint circles - show when editing/selected */}
+                  {editingMarker === idx && (
+                    <>
+                      <circle
+                        cx={`${startX}%`}
+                        cy={`${startY}%`}
+                        r="5"
+                        fill={markerColor}
+                        stroke="white"
+                        strokeWidth="2"
+                        style={{
+                          cursor: 'crosshair',
+                          pointerEvents: 'auto',
+                          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))'
+                        }}
+                        onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_start')}
+                      />
 
-                  {/* End point handle */}
-                  <circle
-                    cx={`${endX}%`}
-                    cy={`${endY}%`}
-                    r="6"
-                    fill="white"
-                    stroke={markerColor}
-                    strokeWidth="2"
-                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
-                    onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_end')}
-                  />
+                      <circle
+                        cx={`${endX}%`}
+                        cy={`${endY}%`}
+                        r="5"
+                        fill={markerColor}
+                        stroke="white"
+                        strokeWidth="2"
+                        style={{
+                          cursor: 'crosshair',
+                          pointerEvents: 'auto',
+                          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))'
+                        }}
+                        onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_end')}
+                      />
+                    </>
+                  )}
 
-                  {/* Rotation handle (not rotated) */}
-                  {isActive && (
+                  {/* Rotation handle - show when editing/selected */}
+                  {editingMarker === idx && (
                     <circle
                       cx={`${centerX}%`}
-                      cy={`${centerY - 15}%`}
-                      r="5"
+                      cy={`${centerY - 25}%`}
+                      r="7"
                       fill={markerColor}
                       stroke="white"
-                      strokeWidth="2"
-                      style={{ cursor: 'alias', pointerEvents: 'auto' }}
+                      strokeWidth="3"
+                      style={{
+                        cursor: 'alias',
+                        pointerEvents: 'auto',
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                      }}
                       onPointerDown={(e) => handleLinePointerDown(e, idx, 'rotate')}
                     />
                   )}
