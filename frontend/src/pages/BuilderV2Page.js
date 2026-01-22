@@ -2255,15 +2255,35 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   };
   
   const handleImagePointerMove = (e) => {
-    if (!imageRef.current) return;
+    if (!imageRef.current) {
+      console.warn('handleImagePointerMove called with null imageRef');
+      return;
+    }
 
     const rect = imageRef.current.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      console.warn('Invalid rect in handleImagePointerMove:', rect);
+      return;
+    }
+
     const currentX = ((e.clientX - rect.left) / rect.width) * 100;
     const currentY = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Ensure variables are valid numbers
+    if (!isFinite(currentX) || !isFinite(currentY)) {
+      console.warn('Invalid coordinates calculated:', { currentX, currentY, clientX: e.clientX, clientY: e.clientY, rect });
+      return;
+    }
+
+    console.log('handleImagePointerMove executing:', { currentX, currentY, interactionMode });
 
     // Handle rotation (immediate, no animation frame needed)
     if (interactionMode === 'rotating' && resizingMarker !== null) {
       const marker = markers[resizingMarker];
+      if (!marker) {
+        console.warn('Marker not found for rotation:', resizingMarker);
+        return;
+      }
 
       // Calculate center point based on shape
       let centerX, centerY;
@@ -2337,10 +2357,20 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     // Handle resizing (immediate, no animation frame needed)
     else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
       const marker = markers[resizingMarker];
+      if (!marker) {
+        console.warn('Marker not found for resizing:', resizingMarker);
+        return;
+      }
 
       if (resizeCorner === 'dot') {
         // Dot resize: axis-based delta resize
-        const { resizeAxis, startPos, startSize } = dragStartPos.current;
+        const dragData = dragStartPos.current;
+        if (!dragData || !dragData.resizeAxis || typeof dragData.startPos !== 'number' || typeof dragData.startSize !== 'number') {
+          console.warn('Invalid drag data for dot resize:', dragData);
+          return;
+        }
+
+        const { resizeAxis, startPos, startSize } = dragData;
 
         // Read current position from the same axis only
         const currentPos = resizeAxis === 'x' ? currentX : currentY;
@@ -2355,10 +2385,16 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         updateMarker(resizingMarker, { size: newSize });
       } else if (resizeCorner === 'arrow') {
         // Arrow resize: change length using signed delta along arrow axis
-        const { x: startX, y: startY, initialLength } = dragStartPos.current;
+        const dragData = dragStartPos.current;
+        if (!dragData || typeof dragData.x !== 'number' || typeof dragData.y !== 'number' || typeof dragData.initialLength !== 'number' || !dragData.rect) {
+          console.warn('Invalid drag data for arrow resize:', dragData);
+          return;
+        }
 
-        const startPointerX = ((startX - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
-        const startPointerY = ((startY - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
+        const { x: startX, y: startY, initialLength, rect } = dragData;
+
+        const startPointerX = ((startX - rect.left) / rect.width) * 100;
+        const startPointerY = ((startY - rect.top) / rect.height) * 100;
 
         const currentDeltaX = currentX - startPointerX;
         const currentDeltaY = currentY - startPointerY;
@@ -2373,19 +2409,33 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         updateMarker(resizingMarker, { length: newLength });
       } else if (resizeCorner === 'line_start' || resizeCorner === 'line_end') {
         // Line endpoint resize: delta-based positioning
-        const startPointerX = ((dragStartPos.current.x - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
-        const startPointerY = ((dragStartPos.current.y - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
+        const dragData = dragStartPos.current;
+        if (!dragData || !dragData.rect) {
+          console.warn('Invalid drag data for line resize:', dragData);
+          return;
+        }
+
+        const startPointerX = ((dragData.x - dragData.rect.left) / dragData.rect.width) * 100;
+        const startPointerY = ((dragData.y - dragData.rect.top) / dragData.rect.height) * 100;
 
         const deltaX = currentX - startPointerX;
         const deltaY = currentY - startPointerY;
 
         if (resizeCorner === 'line_start') {
-          const newX1 = Math.max(0, Math.min(100, dragStartPos.current.initialX1 + deltaX));
-          const newY1 = Math.max(0, Math.min(100, dragStartPos.current.initialY1 + deltaY));
+          if (typeof dragData.initialX1 !== 'number' || typeof dragData.initialY1 !== 'number') {
+            console.warn('Missing initial line start coordinates:', dragData);
+            return;
+          }
+          const newX1 = Math.max(0, Math.min(100, dragData.initialX1 + deltaX));
+          const newY1 = Math.max(0, Math.min(100, dragData.initialY1 + deltaY));
           updateMarker(resizingMarker, { x1: newX1, y1: newY1 });
         } else if (resizeCorner === 'line_end') {
-          const newX2 = Math.max(0, Math.min(100, dragStartPos.current.initialX2 + deltaX));
-          const newY2 = Math.max(0, Math.min(100, dragStartPos.current.initialY2 + deltaY));
+          if (typeof dragData.initialX2 !== 'number' || typeof dragData.initialY2 !== 'number') {
+            console.warn('Missing initial line end coordinates:', dragData);
+            return;
+          }
+          const newX2 = Math.max(0, Math.min(100, dragData.initialX2 + deltaX));
+          const newY2 = Math.max(0, Math.min(100, dragData.initialY2 + deltaY));
           updateMarker(resizingMarker, { x2: newX2, y2: newY2 });
         }
       } else {
