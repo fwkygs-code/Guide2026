@@ -260,10 +260,10 @@ const CategoriesPage = () => {
             setNewCategoryNotebooklmUrl('');
           }
         }}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto z-[9999]">
               <DialogHeader>
                 <DialogTitle>
-                  {creatingForParent 
+                  {creatingForParent
                     ? `${t('category.creatingSubcategory')} "${categories.find(c => c.id === creatingForParent)?.name || ''}"`
                     : t('category.create')}
                 </DialogTitle>
@@ -561,7 +561,7 @@ const CategoriesPage = () => {
 
         {/* Edit Category Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto z-[9999]">
             <DialogHeader>
               <DialogTitle>{t('category.edit')}</DialogTitle>
             </DialogHeader>

@@ -390,7 +390,7 @@ const PortalPage = ({ isEmbedded = false }) => {
               <div className="flex gap-3 flex-wrap justify-center">
               <Badge
                 variant={selectedCategory === null ? 'default' : 'outline'}
-                className="cursor-pointer px-4 py-2 text-sm font-medium transition-all hover:scale-105"
+                className="cursor-pointer px-4 py-2 text-sm font-medium text-white transition-all hover:scale-105"
                 onClick={() => setSelectedCategory(null)}
                 data-testid="category-all"
                 style={selectedCategory === null ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
@@ -401,7 +401,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                 <Badge
                   key={category.id}
                   variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  className="cursor-pointer px-4 py-2 text-sm font-medium transition-all hover:scale-105"
+                  className="cursor-pointer px-4 py-2 text-sm font-medium text-white transition-all hover:scale-105"
                   onClick={() => setSelectedCategory(category.id)}
                   data-testid={`category-${category.id}`}
                   style={selectedCategory === category.id ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}

@@ -348,7 +348,7 @@ const SettingsPage = () => {
                     type="file"
                     accept="image/*"
                     onChange={(e) => e.target.files[0] && handleLogoUpload(e.target.files[0])}
-                    className="text-sm"
+                    className="text-sm text-white"
                   />
                   {logoUrl && (
                     <Button
@@ -418,7 +418,7 @@ const SettingsPage = () => {
                 </div>
               </div>
               <div>
-                <Label>Portal Color Palette</Label>
+                <Label className="text-white">Portal Color Palette</Label>
                 <p className="text-xs text-slate-500 mb-1.5">Customize colors for your portal</p>
                 <div className="grid grid-cols-3 gap-3 mt-1.5">
                   <div>
@@ -434,7 +434,7 @@ const SettingsPage = () => {
                         type="text"
                         value={portalPalette.primary || '#4f46e5'}
                         onChange={(e) => setPortalPalette({ ...portalPalette, primary: e.target.value })}
-                        className="flex-1 text-sm"
+                        className="flex-1 text-sm text-white"
                       />
                     </div>
                   </div>
@@ -451,7 +451,7 @@ const SettingsPage = () => {
                         type="text"
                         value={portalPalette.secondary || '#8b5cf6'}
                         onChange={(e) => setPortalPalette({ ...portalPalette, secondary: e.target.value })}
-                        className="flex-1 text-sm"
+                        className="flex-1 text-sm text-white"
                       />
                     </div>
                   </div>
@@ -468,7 +468,7 @@ const SettingsPage = () => {
                         type="text"
                         value={portalPalette.accent || '#10b981'}
                         onChange={(e) => setPortalPalette({ ...portalPalette, accent: e.target.value })}
-                        className="flex-1 text-sm"
+                        className="flex-1 text-sm text-white"
                       />
                     </div>
                   </div>

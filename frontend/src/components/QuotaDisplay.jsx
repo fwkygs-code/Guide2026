@@ -467,13 +467,13 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400">{t('quota.walkthroughs')}:</span>
-              <span className="font-medium">
+              <span className="font-medium text-white">
                 {workspaceQuota.walkthroughs_used} / {formatNumber(workspaceQuota.walkthroughs_limit, t)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400">{t('quota.categories')}:</span>
-              <span className="font-medium">
+              <span className="font-medium text-white">
                 {workspaceQuota.categories_used} / {formatNumber(workspaceQuota.categories_limit, t)}
               </span>
             </div>
