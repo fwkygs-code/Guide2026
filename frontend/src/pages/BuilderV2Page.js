@@ -36,10 +36,7 @@ import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
  * - Inspector Panel (right, fixed width, no scroll)
  */
 const BuilderV2Page = () => {
-  const { t: rawT, ready } = useTranslation();
-
-  // Safe translation function that falls back to key if translations not ready
-  const t = (key, options) => ready ? rawT(key, options) : key;
+  const { t } = useTranslation();
 
   const { workspaceSlug, walkthroughId } = useParams();
   const navigate = useNavigate();
@@ -933,8 +930,7 @@ const BuilderV2Page = () => {
 
 // Step Navigator Component
 const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDeleteStep, workspaceId, walkthroughId }) => {
-  const { t: rawT, ready } = useTranslation();
-  const t = (key, options) => ready ? rawT(key, options) : key;
+  const { t } = useTranslation();
   
   const [hoveredIndex, setHoveredIndex] = useState(null);
   return (
@@ -1167,10 +1163,7 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
 
 // Add Block Button with Popover - Always visible, keyboard accessible
 const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
-  const { t: rawT, ready } = useTranslation();
-
-  // Safe translation function that falls back to key if translations not ready
-  const t = (key, options) => ready ? rawT(key, options) : key;
+  const { t } = useTranslation();
   const blockTypes = [
     BLOCK_TYPES.HEADING,
     BLOCK_TYPES.TEXT,
@@ -1273,10 +1266,7 @@ const BlockRenderer = ({
   canUploadFile,
   walkthrough
 }) => {
-  const { t: rawT, ready } = useTranslation();
-  
-  // Safe translation function that falls back to key if translations not ready
-  const t = (key, options) => ready ? rawT(key, options) : key;
+  const { t } = useTranslation();
   
   const {
     attributes,
@@ -1344,10 +1334,7 @@ const BlockRenderer = ({
 
 // Block Content Renderer
 const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, stepId, onMediaUpload, canUploadFile, walkthrough }) => {
-  const { t: rawT, ready } = useTranslation();
-
-  // Safe translation function that falls back to key if translations not ready
-  const t = (key, options) => ready ? rawT(key, options) : key;
+  const { t } = useTranslation();
 
   // Initialize guards for editors (hooks must be at top level)
   const [headingInitialized, setHeadingInitialized] = useState(false);
@@ -2015,8 +2002,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
 
 // Annotated Image Block Editor Component - ENHANCED: smooth drag, resize corners, inline popup
 const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFile }) => {
-  const { t: rawT, ready } = useTranslation();
-  const t = (key, options) => ready ? rawT(key, options) : key;
+  const { t } = useTranslation();
   
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [editingMarker, setEditingMarker] = useState(null);
@@ -3041,8 +3027,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
 // Carousel Block Editor Component
 const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) => {
-  const { t: rawT, ready } = useTranslation();
-  const t = (key, options) => ready ? rawT(key, options) : key;
+  const { t } = useTranslation();
   
   const [activeIndex, setActiveIndex] = useState(0);
   const [uploadingSlide, setUploadingSlide] = useState(null);
