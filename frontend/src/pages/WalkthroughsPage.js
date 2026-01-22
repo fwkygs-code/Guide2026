@@ -358,7 +358,6 @@ const WalkthroughsPage = () => {
                         className="transition-all relative"
                         data-testid={`walkthrough-card-${walkthrough.id}`}
                       >
-                        <Card interactive={true} className="p-6 relative">
                         {/* Transparent 3D Bubble with Category and Company Name */}
                         <div
                           className="absolute -top-3 -right-3 z-10 px-3 py-1.5 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 shadow-lg transform hover:scale-105 transition-transform"
@@ -372,6 +371,7 @@ const WalkthroughsPage = () => {
                             </div>
                           </div>
                         </div>
+                        <Card interactive={true} className="p-6">
 
                         <div className="flex items-start gap-3 mb-4">
                           {walkthrough.icon_url ? (
