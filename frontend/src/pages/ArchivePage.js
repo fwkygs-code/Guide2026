@@ -138,7 +138,7 @@ const ArchivePage = () => {
                     <Archive className="w-3 h-3 mr-1" />
                     {t('walkthrough.archived')}
                   </Badge>
-                  <Badge variant="outline">{walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}</Badge>
+                  <Badge variant="outline" className="text-white border-white/50">{walkthrough.steps?.length || 0} {t('walkthrough.steps').toLowerCase()}</Badge>
                 </div>
 
                 <div className="flex gap-2">

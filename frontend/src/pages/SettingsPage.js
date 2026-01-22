@@ -335,7 +335,7 @@ const SettingsPage = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   data-testid="workspace-name-input"
-                  className="mt-1.5"
+                  className="mt-1.5 text-white"
                 />
               </div>
               <div>
@@ -370,14 +370,14 @@ const SettingsPage = () => {
                     type="color"
                     value={brandColor}
                     onChange={(e) => setBrandColor(e.target.value)}
-                    className="w-20 h-10"
+                    className="w-20 h-10 text-white"
                     data-testid="brand-color-input"
                   />
                   <Input
                     type="text"
                     value={brandColor}
                     onChange={(e) => setBrandColor(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 text-white"
                   />
                 </div>
               </div>
@@ -495,7 +495,7 @@ const SettingsPage = () => {
                   value={portalPhone}
                   onChange={(e) => setPortalPhone(e.target.value)}
                   placeholder="e.g., +1 (555) 123-4567"
-                  className="mt-1.5"
+                  className="mt-1.5 text-white"
                 />
               </div>
               <div>
@@ -508,7 +508,7 @@ const SettingsPage = () => {
                   value={portalWorkingHours}
                   onChange={(e) => setPortalWorkingHours(e.target.value)}
                   placeholder="e.g., Mon-Fri: 9AM-5PM EST"
-                  className="mt-1.5"
+                  className="mt-1.5 text-white"
                 />
               </div>
               <div>
@@ -522,7 +522,7 @@ const SettingsPage = () => {
                   onChange={(e) => setPortalWhatsapp(e.target.value)}
                   placeholder="e.g., https://wa.me/1234567890"
                   type="url"
-                  className="mt-1.5"
+                  className="mt-1.5 text-white"
                 />
                 <p className="text-xs text-slate-400 mt-1">Format: https://wa.me/[country code][phone number]</p>
               </div>
@@ -548,7 +548,7 @@ const SettingsPage = () => {
                         newLinks[index] = { ...newLinks[index], label: e.target.value };
                         setPortalLinks(newLinks);
                       }}
-                      className="text-sm"
+                      className="text-sm text-white"
                     />
                     <Input
                       placeholder="URL (e.g., https://example.com)"
@@ -559,7 +559,7 @@ const SettingsPage = () => {
                         setPortalLinks(newLinks);
                       }}
                       type="url"
-                      className="text-sm"
+                      className="text-sm text-white"
                     />
                   </div>
                   <Button
@@ -711,6 +711,7 @@ const SettingsPage = () => {
                       placeholder="user@example.com"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
+                      className="text-white"
                       onKeyPress={(e) => e.key === 'Enter' && handleInvite()}
                       className="flex-1"
                     />
@@ -795,13 +796,13 @@ const SettingsPage = () => {
 
               <TabsContent value="share" className="space-y-4 mt-4">
                 <div>
-                  <Label>Portal Link</Label>
-                  <p className="text-xs text-gray-500 mb-1.5">Share this link to give others access to your portal</p>
+                  <Label className="text-white">Portal Link</Label>
+                  <p className="text-xs text-slate-400 mb-1.5">Share this link to give others access to your portal</p>
                   <div className="flex gap-2 mt-1.5">
                     <Input
                       value={portalUrl}
                       readOnly
-                      className="flex-1"
+                      className="flex-1 text-white"
                       data-testid="portal-url-input"
                     />
                     <Button 
@@ -824,13 +825,13 @@ const SettingsPage = () => {
 
               <TabsContent value="embed" className="space-y-4 mt-4">
                 <div>
-                  <Label>iFrame Embed Code</Label>
-                  <p className="text-xs text-gray-500 mb-1.5">Copy and paste this code into your website HTML</p>
+                  <Label className="text-white">iFrame Embed Code</Label>
+                  <p className="text-xs text-slate-400 mb-1.5">Copy and paste this code into your website HTML</p>
                   <div className="flex gap-2 mt-1.5">
                     <Input
                       value={portalIframeCode}
                       readOnly
-                      className="flex-1 font-mono text-xs"
+                      className="flex-1 font-mono text-xs text-white"
                       data-testid="portal-iframe-input"
                     />
                     <Button 
@@ -854,16 +855,16 @@ const SettingsPage = () => {
 
               <TabsContent value="integration" className="space-y-4 mt-4">
                 <div>
-                  <Label>CRM Integration</Label>
-                  <p className="text-xs text-gray-500 mb-1.5">Use these URLs to integrate with your CRM or other platforms</p>
+                  <Label className="text-white">CRM Integration</Label>
+                  <p className="text-xs text-slate-400 mb-1.5">Use these URLs to integrate with your CRM or other platforms</p>
                   <div className="space-y-3 mt-3">
                     <div>
-                      <Label className="text-xs text-gray-600 mb-1">Portal API Endpoint</Label>
+                      <Label className="text-xs text-white mb-1">Portal API Endpoint</Label>
                       <div className="flex gap-2">
                         <Input
                           value={`${window.location.origin}/api/portal/${workspace?.slug}`}
                           readOnly
-                          className="flex-1 font-mono text-xs"
+                          className="flex-1 font-mono text-xs text-white"
                         />
                         <Button 
                           variant="outline" 
@@ -875,12 +876,12 @@ const SettingsPage = () => {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600 mb-1">Embeddable Portal URL</Label>
+                      <Label className="text-xs text-white mb-1">Embeddable Portal URL</Label>
                       <div className="flex gap-2">
                         <Input
                           value={portalEmbedUrl}
                           readOnly
-                          className="flex-1 font-mono text-xs"
+                          className="flex-1 font-mono text-xs text-white"
                         />
                         <Button 
                           variant="outline" 

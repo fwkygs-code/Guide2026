@@ -203,19 +203,19 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
                     <div className="grid grid-cols-4 gap-4">
                       <div>
                         <div className="text-xs text-slate-400">Views</div>
-                        <div className="text-lg font-heading font-semibold">{analytics.views || 0}</div>
+                        <div className="text-lg font-heading font-semibold text-white">{analytics.views || 0}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-400">Starts</div>
-                        <div className="text-lg font-heading font-semibold">{analytics.starts || 0}</div>
+                        <div className="text-lg font-heading font-semibold text-white">{analytics.starts || 0}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-400">Completions</div>
-                        <div className="text-lg font-heading font-semibold">{analytics.completions || 0}</div>
+                        <div className="text-lg font-heading font-semibold text-white">{analytics.completions || 0}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-400">Rate</div>
-                        <div className="text-lg font-heading font-semibold">
+                        <div className="text-lg font-heading font-semibold text-white">
                           {analytics.completion_rate ? `${analytics.completion_rate.toFixed(1)}%` : '0%'}
                         </div>
                       </div>

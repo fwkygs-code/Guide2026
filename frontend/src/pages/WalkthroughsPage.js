@@ -489,7 +489,7 @@ const WalkthroughsPage = () => {
                     value={editSettings.title}
                     onChange={(e) => setEditSettings(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Enter walkthrough name"
-                    className="w-full"
+                    className="w-full text-white"
                   />
                 </div>
 
@@ -508,7 +508,7 @@ const WalkthroughsPage = () => {
                         setEditSettings(prev => ({ ...prev, slug: value }));
                       }}
                       placeholder="custom-url-name"
-                      className="w-full"
+                      className="w-full text-white"
                     />
                     <p className="text-xs text-slate-400">
                       Custom name for the walkthrough URL. Leave empty to use the walkthrough ID.
@@ -537,7 +537,7 @@ const WalkthroughsPage = () => {
                     onChange={(e) => setEditSettings(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Enter description (optional)"
                     rows={3}
-                    className="w-full"
+                    className="w-full text-white"
                   />
                 </div>
 
@@ -579,7 +579,7 @@ const WalkthroughsPage = () => {
                         placeholder="Enter image URL"
                         value={editSettings.icon_url}
                         onChange={(e) => setEditSettings(prev => ({ ...prev, icon_url: e.target.value }))}
-                        className="w-full"
+                        className="w-full text-white"
                       />
                     </div>
                   )}

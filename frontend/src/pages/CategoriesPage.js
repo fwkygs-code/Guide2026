@@ -458,7 +458,7 @@ const CategoriesPage = () => {
                           variant="ghost"
                           onClick={() => openEditDialog(category)}
                           data-testid={`edit-category-${category.id}`}
-                          className="h-7 w-7 p-0"
+                          className="h-7 w-7 p-0 text-white hover:text-slate-300"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </Button>
@@ -511,7 +511,7 @@ const CategoriesPage = () => {
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-white">{subCat.name}</div>
                                 {subCat.description && (
-                                  <div className="text-xs text-slate-600 truncate">{subCat.description}</div>
+                                  <div className="text-xs text-slate-400 truncate">{subCat.description}</div>
                                 )}
                               </div>
                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -520,7 +520,7 @@ const CategoriesPage = () => {
                                   variant="ghost"
                                   onClick={() => openEditDialog(subCat)}
                                   data-testid={`edit-subcategory-${subCat.id}`}
-                                  className="h-6 w-6 p-0"
+                                  className="h-6 w-6 p-0 text-white hover:text-slate-300"
                                 >
                                   <Edit className="w-3 h-3" />
                                 </Button>
