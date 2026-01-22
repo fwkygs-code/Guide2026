@@ -1333,7 +1333,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   );
 };
 
-// Annotated Image Viewer Component (for end users) - Supports dots and rectangles
+// Annotated Image Viewer Component (for end users) - Supports dots (%) and rectangles
 const AnnotatedImageViewer = ({ block }) => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const imageUrl = block.data?.url;
@@ -1342,15 +1342,17 @@ const AnnotatedImageViewer = ({ block }) => {
   if (!imageUrl) return null;
 
   return (
-    <div className="relative">
+    <div className="relative select-none" style={{ userSelect: 'none' }}>
       <img
         src={imageUrl}
         alt={block.data?.alt || 'Annotated image'}
         className="w-full rounded-xl"
+        draggable={false}
       />
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
-        const markerSize = marker.size || 32;
+        // Support both old (px) and new (%) size values
+        const markerSize = marker.size || 3; // Now in %
         const markerWidth = marker.width || 10;
         const markerHeight = marker.height || 10;
         const isActive = selectedMarker === idx;
@@ -1360,9 +1362,9 @@ const AnnotatedImageViewer = ({ block }) => {
           return (
             <div key={marker.id || idx} className="absolute">
               <div
-                className={`border-2 flex items-center justify-center cursor-pointer transition-all ${
+                className={`border-2 flex items-center justify-center cursor-pointer transition-all select-none ${
                   isActive
-                    ? 'border-primary bg-primary/10 shadow-lg ring-4 ring-primary/30'
+                    ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
                     : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
                 }`}
                 style={{
@@ -1371,10 +1373,11 @@ const AnnotatedImageViewer = ({ block }) => {
                   width: `${markerWidth}%`,
                   height: `${markerHeight}%`,
                   transform: 'translate(-50%, -50%)',
+                  userSelect: 'none',
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold pointer-events-none">
                   {idx + 1}
                 </span>
               </div>
@@ -1386,6 +1389,7 @@ const AnnotatedImageViewer = ({ block }) => {
                     top: `${marker.y}%`,
                     transform: 'translate(-50%, calc(-100% - 20px))',
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {marker.title && (
                     <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
@@ -1399,20 +1403,22 @@ const AnnotatedImageViewer = ({ block }) => {
           );
         }
         
-        // Dot marker
+        // Dot marker (now % based)
         return (
           <div key={marker.id || idx} className="absolute">
             <button
-              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all transform -translate-x-1/2 -translate-y-1/2 ${
+              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all transform -translate-x-1/2 -translate-y-1/2 select-none ${
                 isActive
-                  ? 'bg-primary text-white scale-110 shadow-lg ring-4 ring-primary/30'
+                  ? 'bg-primary text-white scale-110 shadow-lg ring-2 ring-primary/30'
                   : 'bg-primary text-white hover:scale-110 shadow-md'
               }`}
               style={{
                 left: `${marker.x}%`,
                 top: `${marker.y}%`,
-                width: `${markerSize}px`,
-                height: `${markerSize}px`,
+                width: `${markerSize}%`,
+                height: `${markerSize}%`,
+                aspectRatio: '1',
+                userSelect: 'none',
               }}
               onClick={() => setSelectedMarker(isActive ? null : idx)}
             >
@@ -1424,8 +1430,9 @@ const AnnotatedImageViewer = ({ block }) => {
                 style={{
                   left: `${marker.x}%`,
                   top: `${marker.y}%`,
-                  transform: 'translate(-50%, -120%)',
+                  transform: 'translate(-50%, calc(-100% - 10px))',
                 }}
+                onClick={(e) => e.stopPropagation()}
               >
                 {marker.title && (
                   <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
