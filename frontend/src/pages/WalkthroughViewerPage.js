@@ -875,7 +875,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               if (block.data?.targetStepId) {
                                 const targetIndex = walkthrough.steps.findIndex(s => s.id === block.data.targetStepId);
                                 if (targetIndex !== -1) {
-                                  setCurrentStepIndex(targetIndex);
+                                  setCurrentStep(targetIndex);
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }
                               }
@@ -891,15 +891,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               
                             case 'restart':
                               if (window.confirm('Restart walkthrough from the beginning?')) {
-                                setCurrentStepIndex(0);
+                                setCurrentStep(0);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }
                               break;
                               
                             case 'support':
                               // Use portal contact info or custom fields
-                              if (block.data?.usePortalContactInfo !== false && workspaceData?.contact_whatsapp) {
-                                window.open(`https://wa.me/${workspaceData.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank');
+                              if (block.data?.usePortalContactInfo !== false && walkthrough?.workspace?.contact_whatsapp) {
+                                window.open(`https://wa.me/${walkthrough.workspace.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank');
                               } else if (block.data?.supportWhatsapp) {
                                 window.open(`https://wa.me/${block.data.supportWhatsapp.replace(/[^0-9]/g, '')}`, '_blank');
                               } else if (block.data?.supportPhone) {
@@ -945,13 +945,13 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 )}
                               </div>
                             )}
-                            {action === 'support' && block.data?.usePortalContactInfo !== false && workspaceData?.contact_phone && (
+                            {action === 'support' && block.data?.usePortalContactInfo !== false && walkthrough?.workspace?.contact_phone && (
                               <div className="text-xs text-slate-500 space-y-0.5">
-                                {workspaceData.contact_phone && (
-                                  <div>📞 {workspaceData.contact_phone}</div>
+                                {walkthrough.workspace.contact_phone && (
+                                  <div>📞 {walkthrough.workspace.contact_phone}</div>
                                 )}
-                                {workspaceData.contact_hours && (
-                                  <div>🕐 {workspaceData.contact_hours}</div>
+                                {walkthrough.workspace.contact_hours && (
+                                  <div>🕐 {walkthrough.workspace.contact_hours}</div>
                                 )}
                               </div>
                             )}

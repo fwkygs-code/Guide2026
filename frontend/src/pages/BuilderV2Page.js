@@ -1053,6 +1053,7 @@ const CanvasStage = ({
                         stepId={stepId}
                         onMediaUpload={onMediaUpload}
                         canUploadFile={canUploadFile}
+                        walkthrough={walkthrough}
                       />
                       <AddBlockButton
                         insertAfterIndex={index}
@@ -1240,7 +1241,8 @@ const BlockRenderer = ({
   walkthroughId,
   stepId,
   onMediaUpload,
-  canUploadFile
+  canUploadFile,
+  walkthrough
 }) => {
   const {
     attributes,
@@ -1288,6 +1290,7 @@ const BlockRenderer = ({
             stepId={stepId}
             onMediaUpload={onMediaUpload}
             canUploadFile={canUploadFile}
+            walkthrough={walkthrough}
           />
         </div>
         {onDelete && (
@@ -1306,7 +1309,7 @@ const BlockRenderer = ({
 };
 
 // Block Content Renderer
-const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, stepId, onMediaUpload, canUploadFile }) => {
+const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, stepId, onMediaUpload, canUploadFile, walkthrough }) => {
   // Initialize guards for editors (hooks must be at top level)
   const [headingInitialized, setHeadingInitialized] = useState(false);
   const [textInitialized, setTextInitialized] = useState(false);

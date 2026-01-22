@@ -4566,8 +4566,16 @@ async def get_public_walkthrough(slug: str, walkthrough_id: str):
                 step["blocks"] = []
             if not isinstance(step.get("blocks"), list):
                 step["blocks"] = []
+    
+    # Include workspace contact info for "Get Support" button blocks
+    walkthrough_with_workspace = sanitize_public_walkthrough(walkthrough)
+    walkthrough_with_workspace["workspace"] = {
+        "contact_whatsapp": workspace.get("contact_whatsapp"),
+        "contact_phone": workspace.get("contact_phone"),
+        "contact_hours": workspace.get("contact_hours")
+    }
 
-    return sanitize_public_walkthrough(walkthrough)
+    return walkthrough_with_workspace
 
 class WalkthroughPasswordAccess(BaseModel):
     password: str
@@ -4595,8 +4603,16 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
     password_hash = walkthrough.get("password_hash")
     if not password_hash or not verify_password(body.password, password_hash):
         raise HTTPException(status_code=401, detail="Invalid password")
+    
+    # Include workspace contact info for "Get Support" button blocks
+    walkthrough_with_workspace = sanitize_public_walkthrough(walkthrough)
+    walkthrough_with_workspace["workspace"] = {
+        "contact_whatsapp": workspace.get("contact_whatsapp"),
+        "contact_phone": workspace.get("contact_phone"),
+        "contact_hours": workspace.get("contact_hours")
+    }
 
-    return sanitize_public_walkthrough(walkthrough)
+    return walkthrough_with_workspace
 
 # Analytics Routes
 @api_router.post("/analytics/event")
