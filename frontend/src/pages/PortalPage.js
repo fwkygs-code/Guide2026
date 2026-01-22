@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { normalizeImageUrl } from '../lib/utils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -766,6 +767,9 @@ const PortalPage = ({ isEmbedded = false }) => {
           </div>
         </motion.div>
       )}
+
+      {/* Knowledge Systems Navigation Bar */}
+      <KnowledgeSystemsNavigationBar workspaceId={portal?.workspace_id} />
 
       {/* Footer - Powered by InterGuide */}
       {!inIframe && (

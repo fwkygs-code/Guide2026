@@ -28,6 +28,14 @@ import AccountBlockedPage from './pages/AccountBlockedPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminRoute from './components/AdminRoute';
 
+// Knowledge Systems (isolated module)
+import KnowledgeSystemsPage from './knowledge-systems/workspace-settings/KnowledgeSystemsPage';
+import PolicyPortalPage from './knowledge-systems/portal/PolicyPortalPage';
+import ProcedurePortalPage from './knowledge-systems/portal/ProcedurePortalPage';
+import DocumentationPortalPage from './knowledge-systems/portal/DocumentationPortalPage';
+import FAQPortalPage from './knowledge-systems/portal/FAQPortalPage';
+import DecisionTreePortalPage from './knowledge-systems/portal/DecisionTreePortalPage';
+
 const PrivateRoute = ({ children }) => {
   const { user, loading, isBlocked } = useAuth();
   
@@ -85,6 +93,11 @@ const AppContent = () => {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/portal/:slug" element={<PortalPage />} />
           <Route path="/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage />} />
+          <Route path="/portal/:slug/knowledge/policies" element={<PolicyPortalPage />} />
+          <Route path="/portal/:slug/knowledge/procedures" element={<ProcedurePortalPage />} />
+          <Route path="/portal/:slug/knowledge/documentation" element={<DocumentationPortalPage />} />
+          <Route path="/portal/:slug/knowledge/faqs" element={<FAQPortalPage />} />
+          <Route path="/portal/:slug/knowledge/decisions" element={<DecisionTreePortalPage />} />
           <Route path="/embed/portal/:slug" element={<PortalPage isEmbedded={true} />} />
           <Route path="/embed/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage isEmbedded={true} />} />
           
@@ -97,6 +110,7 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/categories" element={<PrivateRoute><CategoriesPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><KnowledgeSystemsPage /></PrivateRoute>} />
         </Routes>
           </WorkspaceProvider>
           </BrowserRouter>

@@ -220,6 +220,17 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               </Button>
               {isOwner && (
                 <Button
+                  variant={location.pathname.includes('/knowledge-systems') ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => navigate(`/workspace/${workspaceSlug || workspaceId}/knowledge-systems`)}
+                  data-testid="nav-workspace-knowledge-systems"
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  Knowledge Systems
+                </Button>
+              )}
+              {isOwner && (
+                <Button
                   variant={location.pathname.includes('/settings') ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => navigate(`/workspace/${workspaceSlug || workspaceId}/settings`)}
