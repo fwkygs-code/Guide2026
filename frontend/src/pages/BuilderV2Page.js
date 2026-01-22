@@ -947,7 +947,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
             No steps yet
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 overflow-y-auto max-h-full">
             {steps.map((step, index) => (
               <div
                 key={step.id || index}
