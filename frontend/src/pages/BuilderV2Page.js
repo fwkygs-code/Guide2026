@@ -1793,10 +1793,11 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
   }
 };
 
-// Annotated Image Block Editor Component - TRUE annotation system with interactive markers
+// Annotated Image Block Editor Component - Enhanced with drag, resize, and shapes
 const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFile }) => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [editingMarker, setEditingMarker] = useState(null);
+  const [draggingMarker, setDraggingMarker] = useState(null);
   const imageRef = React.useRef(null);
   
   const imageUrl = block.data?.url ? normalizeImageUrl(block.data.url) : null;
@@ -1804,7 +1805,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   
   // Add marker at click position (percentage-based)
   const handleImageClick = (e) => {
-    if (!imageRef.current) return;
+    if (!imageRef.current || draggingMarker !== null) return;
     
     const rect = imageRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -1814,6 +1815,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       x: Math.max(0, Math.min(100, x)),
       y: Math.max(0, Math.min(100, y)),
+      shape: 'dot', // 'dot' or 'rectangle'
+      size: 32, // Size in pixels for dot
+      width: 10, // Width in % for rectangle
+      height: 10, // Height in % for rectangle
       title: '',
       description: ''
     };
@@ -1834,6 +1839,31 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     onUpdate({ data: { ...block.data, markers: newMarkers } });
     if (editingMarker === index) setEditingMarker(null);
     if (selectedMarker === index) setSelectedMarker(null);
+    if (draggingMarker === index) setDraggingMarker(null);
+  };
+  
+  // Drag handlers
+  const handleMarkerMouseDown = (e, index) => {
+    e.stopPropagation();
+    setDraggingMarker(index);
+    setSelectedMarker(null);
+  };
+  
+  const handleImageMouseMove = (e) => {
+    if (draggingMarker === null || !imageRef.current) return;
+    
+    const rect = imageRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    updateMarker(draggingMarker, {
+      x: Math.max(0, Math.min(100, x)),
+      y: Math.max(0, Math.min(100, y))
+    });
+  };
+  
+  const handleImageMouseUp = () => {
+    setDraggingMarker(null);
   };
   
   if (!imageUrl) {
@@ -1865,65 +1895,117 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   return (
     <div className="space-y-4">
       {/* Image with markers */}
-      <div className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+      <div 
+        className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50"
+        onMouseMove={handleImageMouseMove}
+        onMouseUp={handleImageMouseUp}
+        onMouseLeave={handleImageMouseUp}
+      >
         <img
           ref={imageRef}
           src={imageUrl}
           alt={block.data?.alt || 'Annotated image'}
-          className="w-full cursor-crosshair"
+          className={`w-full ${draggingMarker !== null ? 'cursor-grabbing' : 'cursor-crosshair'}`}
           onClick={handleImageClick}
           onError={(e) => {
             e.target.style.display = 'none';
           }}
+          draggable={false}
         />
         
         {/* Render markers */}
-        {markers.map((marker, idx) => (
-          <Popover
-            key={marker.id || idx}
-            open={selectedMarker === idx}
-            onOpenChange={(open) => setSelectedMarker(open ? idx : null)}
-          >
-            <PopoverTrigger asChild>
-              <button
-                className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all transform -translate-x-1/2 -translate-y-1/2 ${
-                  selectedMarker === idx || editingMarker === idx
-                    ? 'bg-primary text-white scale-110 shadow-lg ring-4 ring-primary/30'
-                    : 'bg-primary text-white hover:scale-110 shadow-md hover:shadow-lg'
+        {markers.map((marker, idx) => {
+          const isActive = selectedMarker === idx || editingMarker === idx || draggingMarker === idx;
+          const markerShape = marker.shape || 'dot';
+          const markerSize = marker.size || 32;
+          const markerWidth = marker.width || 10;
+          const markerHeight = marker.height || 10;
+          
+          if (markerShape === 'rectangle') {
+            // Rectangle marker
+            return (
+              <div
+                key={marker.id || idx}
+                className={`absolute border-2 flex items-center justify-center text-xs font-bold cursor-move transition-all ${
+                  isActive
+                    ? 'border-primary bg-primary/10 shadow-lg ring-4 ring-primary/30'
+                    : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
                 }`}
-                style={{ 
-                  left: `${marker.x}%`, 
+                style={{
+                  left: `${marker.x}%`,
                   top: `${marker.y}%`,
+                  width: `${markerWidth}%`,
+                  height: `${markerHeight}%`,
+                  transform: 'translate(-50%, -50%)',
                 }}
+                onMouseDown={(e) => handleMarkerMouseDown(e, idx)}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedMarker(idx);
+                  if (draggingMarker === null) {
+                    setSelectedMarker(idx);
+                  }
                 }}
-                aria-label={`Annotation ${idx + 1}: ${marker.title || 'Untitled'}`}
               >
-                {idx + 1}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent 
-              className="w-80 p-0" 
-              side="top" 
-              align="center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 space-y-2">
-                {marker.title && (
-                  <div className="font-semibold text-slate-900">{marker.title}</div>
-                )}
-                {marker.description && (
-                  <div className="text-sm text-slate-600">{marker.description}</div>
-                )}
-                {!marker.title && !marker.description && (
-                  <div className="text-sm text-slate-400 italic">No content yet. Click edit to add.</div>
-                )}
+                <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                  {idx + 1}
+                </span>
               </div>
-            </PopoverContent>
-          </Popover>
-        ))}
+            );
+          }
+          
+          // Dot marker
+          return (
+            <Popover
+              key={marker.id || idx}
+              open={selectedMarker === idx}
+              onOpenChange={(open) => setSelectedMarker(open ? idx : null)}
+            >
+              <PopoverTrigger asChild>
+                <button
+                  className={`absolute rounded-full flex items-center justify-center text-xs font-bold cursor-move transition-all transform -translate-x-1/2 -translate-y-1/2 ${
+                    isActive
+                      ? 'bg-primary text-white scale-110 shadow-lg ring-4 ring-primary/30'
+                      : 'bg-primary text-white hover:scale-110 shadow-md hover:shadow-lg'
+                  }`}
+                  style={{ 
+                    left: `${marker.x}%`, 
+                    top: `${marker.y}%`,
+                    width: `${markerSize}px`,
+                    height: `${markerSize}px`,
+                  }}
+                  onMouseDown={(e) => handleMarkerMouseDown(e, idx)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (draggingMarker === null) {
+                      setSelectedMarker(idx);
+                    }
+                  }}
+                  aria-label={`Annotation ${idx + 1}: ${marker.title || 'Untitled'}`}
+                >
+                  {idx + 1}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-80 p-0" 
+                side="top" 
+                align="center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 space-y-2">
+                  {marker.title && (
+                    <div className="font-semibold text-slate-900">{marker.title}</div>
+                  )}
+                  {marker.description && (
+                    <div className="text-sm text-slate-600">{marker.description}</div>
+                  )}
+                  {!marker.title && !marker.description && (
+                    <div className="text-sm text-slate-400 italic">No content yet. Click edit to add.</div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          );
+        })}
         
         {/* Empty state overlay */}
         {markers.length === 0 && (
@@ -1992,6 +2074,64 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                           rows={3}
                           className="text-sm"
                         />
+                        {/* Shape selector */}
+                        <div className="flex gap-2 items-center">
+                          <Label className="text-xs text-slate-600">Shape:</Label>
+                          <Select
+                            value={marker.shape || 'dot'}
+                            onValueChange={(shape) => updateMarker(idx, { shape })}
+                          >
+                            <SelectTrigger className="h-8 text-xs w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="dot">● Dot</SelectItem>
+                              <SelectItem value="rectangle">◻ Rectangle</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {/* Size/Dimensions controls */}
+                        {(marker.shape || 'dot') === 'dot' ? (
+                          <div className="flex gap-2 items-center">
+                            <Label className="text-xs text-slate-600">Size:</Label>
+                            <Input
+                              type="number"
+                              value={marker.size || 32}
+                              onChange={(e) => updateMarker(idx, { size: parseInt(e.target.value) || 32 })}
+                              min={20}
+                              max={80}
+                              className="h-8 text-xs w-20"
+                            />
+                            <span className="text-xs text-slate-500">px</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex gap-2 items-center">
+                              <Label className="text-xs text-slate-600">Width:</Label>
+                              <Input
+                                type="number"
+                                value={marker.width || 10}
+                                onChange={(e) => updateMarker(idx, { width: parseInt(e.target.value) || 10 })}
+                                min={5}
+                                max={50}
+                                className="h-8 text-xs w-20"
+                              />
+                              <span className="text-xs text-slate-500">%</span>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Label className="text-xs text-slate-600">Height:</Label>
+                              <Input
+                                type="number"
+                                value={marker.height || 10}
+                                onChange={(e) => updateMarker(idx, { height: parseInt(e.target.value) || 10 })}
+                                min={5}
+                                max={50}
+                                className="h-8 text-xs w-20"
+                              />
+                              <span className="text-xs text-slate-500">%</span>
+                            </div>
+                          </div>
+                        )}
                         <div className="flex gap-2">
                           <Button
                             variant="default"

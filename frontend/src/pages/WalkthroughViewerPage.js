@@ -894,6 +894,113 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       {block.type === 'carousel' && block.data?.slides && block.data.slides.length > 0 && (
                         <CarouselViewer slides={block.data.slides} />
                       )}
+                      {block.type === 'checklist' && block.data?.items && block.data.items.length > 0 && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                          {block.data.items.map((item, itemIdx) => (
+                            <label key={itemIdx} className="flex items-start gap-3 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                className="mt-1 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                defaultChecked={false}
+                              />
+                              <span className="text-slate-700 flex-1">{item.text}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {block.type === 'callout' && (
+                        <div className={`rounded-xl p-4 border-l-4 ${
+                          block.data?.variant === 'warning' ? 'bg-amber-50 border-amber-500' :
+                          block.data?.variant === 'important' ? 'bg-red-50 border-red-500' :
+                          'bg-blue-50 border-blue-500'
+                        }`}>
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl flex-shrink-0">
+                              {block.data?.variant === 'warning' ? '⚠️' :
+                               block.data?.variant === 'important' ? '❗' : '💡'}
+                            </span>
+                            <div
+                              className="prose prose-sm max-w-none text-slate-700"
+                              dangerouslySetInnerHTML={{ __html: block.data?.text || '' }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {block.type === 'annotated_image' && block.data?.url && (
+                        <AnnotatedImageViewer block={block} />
+                      )}
+                      {block.type === 'embed' && block.data?.url && (
+                        <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden">
+                          <iframe
+                            src={block.data.url}
+                            className="w-full h-full"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      {block.type === 'section' && (
+                        <div className="border border-slate-200 rounded-xl p-6 bg-slate-50/50">
+                          {block.data?.title && (
+                            <h4 className="font-semibold text-lg text-slate-900 mb-3">
+                              {block.data.title}
+                            </h4>
+                          )}
+                          {block.data?.content && (
+                            <div
+                              className="prose prose-sm max-w-none text-slate-700"
+                              dangerouslySetInnerHTML={{ __html: block.data.content }}
+                            />
+                          )}
+                        </div>
+                      )}
+                      {block.type === 'confirmation' && (
+                        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            className="mt-1 w-5 h-5 rounded border-primary/30 text-primary focus:ring-primary"
+                          />
+                          <div
+                            className="prose prose-sm max-w-none text-slate-700 flex-1"
+                            dangerouslySetInnerHTML={{ __html: block.data?.text || '' }}
+                          />
+                        </div>
+                      )}
+                      {block.type === 'external_link' && block.data?.url && (
+                        <a
+                          href={block.data.url}
+                          target={block.data?.newTab !== false ? '_blank' : '_self'}
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                        >
+                          {block.data?.label || 'Visit Link'}
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      )}
+                      {block.type === 'code' && (
+                        <div className="bg-slate-900 text-slate-100 rounded-xl overflow-hidden">
+                          <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+                            <span className="text-xs font-medium text-slate-400">
+                              {block.data?.language || 'code'}
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(block.data?.code || '');
+                                toast.success('Copied to clipboard!');
+                              }}
+                              className="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-200 transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <pre className="p-4 overflow-x-auto text-sm font-mono">
+                            <code>{block.data?.code || ''}</code>
+                          </pre>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1222,6 +1329,115 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// Annotated Image Viewer Component (for end users) - Supports dots and rectangles
+const AnnotatedImageViewer = ({ block }) => {
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const imageUrl = block.data?.url;
+  const markers = block.data?.markers || [];
+
+  if (!imageUrl) return null;
+
+  return (
+    <div className="relative">
+      <img
+        src={imageUrl}
+        alt={block.data?.alt || 'Annotated image'}
+        className="w-full rounded-xl"
+      />
+      {markers.map((marker, idx) => {
+        const markerShape = marker.shape || 'dot';
+        const markerSize = marker.size || 32;
+        const markerWidth = marker.width || 10;
+        const markerHeight = marker.height || 10;
+        const isActive = selectedMarker === idx;
+        
+        if (markerShape === 'rectangle') {
+          // Rectangle marker
+          return (
+            <div key={marker.id || idx} className="absolute">
+              <div
+                className={`border-2 flex items-center justify-center cursor-pointer transition-all ${
+                  isActive
+                    ? 'border-primary bg-primary/10 shadow-lg ring-4 ring-primary/30'
+                    : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
+                }`}
+                style={{
+                  left: `${marker.x}%`,
+                  top: `${marker.y}%`,
+                  width: `${markerWidth}%`,
+                  height: `${markerHeight}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                onClick={() => setSelectedMarker(isActive ? null : idx)}
+              >
+                <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                  {idx + 1}
+                </span>
+              </div>
+              {isActive && (marker.title || marker.description) && (
+                <div
+                  className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                  style={{
+                    left: `${marker.x}%`,
+                    top: `${marker.y}%`,
+                    transform: 'translate(-50%, calc(-100% - 20px))',
+                  }}
+                >
+                  {marker.title && (
+                    <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                  )}
+                  {marker.description && (
+                    <div className="text-sm text-slate-600">{marker.description}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }
+        
+        // Dot marker
+        return (
+          <div key={marker.id || idx} className="absolute">
+            <button
+              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all transform -translate-x-1/2 -translate-y-1/2 ${
+                isActive
+                  ? 'bg-primary text-white scale-110 shadow-lg ring-4 ring-primary/30'
+                  : 'bg-primary text-white hover:scale-110 shadow-md'
+              }`}
+              style={{
+                left: `${marker.x}%`,
+                top: `${marker.y}%`,
+                width: `${markerSize}px`,
+                height: `${markerSize}px`,
+              }}
+              onClick={() => setSelectedMarker(isActive ? null : idx)}
+            >
+              {idx + 1}
+            </button>
+            {isActive && (marker.title || marker.description) && (
+              <div
+                className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                style={{
+                  left: `${marker.x}%`,
+                  top: `${marker.y}%`,
+                  transform: 'translate(-50%, -120%)',
+                }}
+              >
+                {marker.title && (
+                  <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                )}
+                {marker.description && (
+                  <div className="text-sm text-slate-600">{marker.description}</div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
