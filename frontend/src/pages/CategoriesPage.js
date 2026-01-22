@@ -242,11 +242,9 @@ const CategoriesPage = () => {
         description={t('category.organizeWalkthroughs')}
         actions={
           <Button onClick={() => setDialogOpen(true)} data-testid="create-category-button">
-                <Plus className="w-4 h-4 mr-2" />
-                {t('category.newCategory')}
-              </Button>
-            }
-          }
+            <Plus className="w-4 h-4 mr-2" />
+            {t('category.newCategory')}
+          </Button>
         }
       />
 
@@ -425,7 +423,6 @@ const CategoriesPage = () => {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
 
         {categoryTree.length > 0 ? (
           <div className="space-y-6">
