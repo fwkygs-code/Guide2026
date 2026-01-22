@@ -2086,51 +2086,67 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     console.log('[Dot Resize] Handle pointer down', { index, marker, currentMode: interactionMode });
     e.stopPropagation();
     e.preventDefault();
-    // Set pointer capture so resize continues even outside bounds
+
     e.currentTarget.setPointerCapture(e.pointerId);
+
     setInteractionMode('resizing-dot');
     setResizingMarker(index);
     setResizeCorner('dot');
     setEditingMarker(null);
-    const markerSize = marker.size || 3; // Keep default for resize calculation
+
+    const rect = imageRef.current.getBoundingClientRect();
+    const startX = ((e.clientX - rect.left) / rect.width) * 100;
+    const startY = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const deltaX = startX - marker.x;
+    const deltaY = startY - marker.y;
+    const startDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
     dragStartPos.current = {
-      initialDiameter: markerSize,
       centerX: marker.x,
-      centerY: marker.y
+      centerY: marker.y,
+      startDistance,
+      startSize: marker.size ?? 3
     };
+
     console.log('[Dot Resize] Stored dragStartPos', dragStartPos.current);
   };
 
   const handleDotResizePointerMove = (e, index) => {
-    if (interactionMode !== 'resizing-dot') return;
-    
+    if (interactionMode !== 'resizing-dot' || !dragStartPos.current) return;
+
     e.stopPropagation();
     e.preventDefault();
-    
-    if (!imageRef.current || !dragStartPos.current) return;
-    
+
+    if (!imageRef.current) return;
+
     const rect = imageRef.current.getBoundingClientRect();
     const currentX = ((e.clientX - rect.left) / rect.width) * 100;
     const currentY = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    // Calculate distance from stored center to current pointer
-    const centerX = dragStartPos.current.centerX;
-    const centerY = dragStartPos.current.centerY;
-    const deltaX = currentX - centerX;
-    const deltaY = currentY - centerY;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-    // Convert distance directly to diameter, then clamp the final size
-    const newSize = Math.max(0.5, Math.min(15, distance * 2));
-    
+    const { centerX, centerY, startDistance, startSize } = dragStartPos.current;
+
+    const dx = currentX - centerX;
+    const dy = currentY - centerY;
+    const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+    const delta = currentDistance - startDistance;
+
+    const newSize = Math.max(
+      0.5,
+      Math.min(15, startSize + delta * 2)
+    );
+
     console.log('[Dot Resize]', {
       currentX, currentY,
       centerX, centerY,
-      distance,
-      rawDiameter: distance * 2,
+      startDistance,
+      currentDistance,
+      delta,
+      startSize,
       newSize
     });
-    
+
     // Update only size, center stays fixed
     updateMarker(index, { size: newSize });
   };
@@ -2139,12 +2155,11 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     console.log('[Dot Resize] Pointer up, releasing capture');
     e.stopPropagation();
     e.preventDefault();
-    
-    // Release pointer capture
+
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
-    
+
     setInteractionMode('idle');
     setResizingMarker(null);
     setResizeCorner(null);
