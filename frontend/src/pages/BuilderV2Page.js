@@ -1999,6 +1999,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   const [draggingMarker, setDraggingMarker] = useState(null);
   const [resizingMarker, setResizingMarker] = useState(null);
   const [resizeCorner, setResizeCorner] = useState(null);
+  const [interactionMode, setInteractionMode] = useState('idle'); // 'idle' | 'dragging' | 'resizing'
   const imageRef = React.useRef(null);
   const dragStartPos = React.useRef(null);
   const animationFrameRef = React.useRef(null);
@@ -2008,7 +2009,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   
   // Add marker at click position (percentage-based)
   const handleImageClick = (e) => {
-    if (!imageRef.current || draggingMarker !== null || resizingMarker !== null) return;
+    if (!imageRef.current || interactionMode !== 'idle') return;
     
     const rect = imageRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -2047,22 +2048,30 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   };
   
   // Drag handlers - smooth with RAF
-  const handleMarkerMouseDown = (e, index) => {
+  const handleMarkerPointerDown = (e, index) => {
+    // Early return if already resizing
+    if (interactionMode === 'resizing') {
+      return;
+    }
     // Don't start dragging if clicking on a resize handle
     if (e.target.hasAttribute('data-resize-handle') || e.target.closest('[data-resize-handle]')) {
       return;
     }
     e.stopPropagation();
     e.preventDefault();
+    setInteractionMode('dragging');
     setDraggingMarker(index);
     setEditingMarker(null);
     const rect = imageRef.current.getBoundingClientRect();
     dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
   };
   
-  const handleResizeMouseDown = (e, index, corner) => {
+  const handleResizePointerDown = (e, index, corner) => {
     e.stopPropagation();
     e.preventDefault();
+    // Set pointer capture so resize continues even outside bounds
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setInteractionMode('resizing');
     setResizingMarker(index);
     setResizeCorner(corner);
     setEditingMarker(null);
@@ -2070,10 +2079,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
   };
   
-  const handleImageMouseMove = (e) => {
+  const handleImagePointerMove = (e) => {
     if (!imageRef.current) return;
     
-    if (draggingMarker !== null) {
+    if (interactionMode === 'dragging' && draggingMarker !== null) {
       // Cancel any pending animation frame
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -2090,7 +2099,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           y: Math.max(0, Math.min(100, y))
         });
       });
-    } else if (resizingMarker !== null && resizeCorner) {
+    } else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
       // Cancel any pending animation frame
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -2133,10 +2142,11 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     }
   };
   
-  const handleImageMouseUp = () => {
+  const handleImagePointerUp = () => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
+    setInteractionMode('idle');
     setDraggingMarker(null);
     setResizingMarker(null);
     setResizeCorner(null);
@@ -2182,9 +2192,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       {/* Image with markers */}
       <div 
         className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 select-none"
-        onMouseMove={handleImageMouseMove}
-        onMouseUp={handleImageMouseUp}
-        onMouseLeave={handleImageMouseUp}
+        onPointerMove={handleImagePointerMove}
+        onPointerUp={handleImagePointerUp}
+        onPointerLeave={handleImagePointerUp}
         style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
       >
         <img
@@ -2227,16 +2237,16 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
                   }}
-                  onMouseDown={(e) => {
+                  onPointerDown={(e) => {
                     // Check if clicking directly on a resize handle
                     if (e.target.hasAttribute('data-resize-handle')) {
                       return; // Let the handle's own handler deal with it
                     }
-                    handleMarkerMouseDown(e, idx);
+                    handleMarkerPointerDown(e, idx);
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (draggingMarker === null && resizingMarker === null && !e.target.hasAttribute('data-resize-handle')) {
+                    if (interactionMode === 'idle' && !e.target.hasAttribute('data-resize-handle')) {
                       setEditingMarker(editingMarker === idx ? null : idx);
                     }
                   }}
@@ -2268,12 +2278,13 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                             [corner.includes('w') ? 'left' : 'right']: '-8px',
                             cursor: corner === 'nw' || corner === 'se' ? 'nwse-resize' : 'nesw-resize',
                             zIndex: 20,
-                            pointerEvents: 'auto'
+                            pointerEvents: 'auto',
+                            touchAction: 'none'
                           }}
-                          onMouseDown={(e) => {
+                          onPointerDown={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            handleResizeMouseDown(e, idx, corner);
+                            handleResizePointerDown(e, idx, corner);
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2407,11 +2418,12 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   aspectRatio: '1',
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
+                  touchAction: 'none'
                 }}
-                onMouseDown={(e) => handleMarkerMouseDown(e, idx)}
+                onPointerDown={(e) => handleMarkerPointerDown(e, idx)}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (draggingMarker === null) {
+                  if (interactionMode === 'idle') {
                     setEditingMarker(editingMarker === idx ? null : idx);
                   }
                 }}
