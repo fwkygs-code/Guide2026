@@ -8,13 +8,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Shield, Settings, Eye, EyeOff, Users, Globe } from 'lucide-react';
+import { ArrowLeft, Shield, Settings, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useWorkspaceSlug } from '../../hooks/useWorkspaceSlug';
 import {
@@ -38,8 +37,6 @@ function KnowledgeSystemConfigPage() {
 
   // Form state
   const [enabled, setEnabled] = useState(false);
-  const [visibility, setVisibility] = useState('public');
-  const [accessLevel, setAccessLevel] = useState('all_users');
   const [description, setDescription] = useState('');
 
   useEffect(() => {
@@ -68,14 +65,10 @@ function KnowledgeSystemConfigPage() {
         };
         setSystem(defaultSystem);
         setEnabled(false);
-        setVisibility('public');
-        setAccessLevel('all_users');
         setDescription('');
       } else {
         setSystem(systemData);
         setEnabled(systemData.enabled || false);
-        setVisibility(systemData.visibility || 'public');
-        setAccessLevel(systemData.accessLevel || 'all_users');
         setDescription(systemData.description || '');
       }
 
@@ -107,13 +100,11 @@ function KnowledgeSystemConfigPage() {
       const updatedSystem = {
         ...system,
         enabled,
-        visibility,
-        accessLevel,
         description,
         updatedAt: new Date().toISOString()
       };
 
-      updateKnowledgeSystem(workspaceId, system.id, updatedSystem);
+      updateKnowledgeSystem(system.id, updatedSystem);
       setSystem(updatedSystem);
 
       // Navigate back to knowledge systems page
@@ -239,65 +230,37 @@ function KnowledgeSystemConfigPage() {
             </CardContent>
           </Card>
 
-          {/* Visibility Settings */}
+          {/* Content Management */}
           <Card className="border-slate-700/50 bg-slate-800/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
-                <Eye className="w-5 h-5" />
-                Visibility & Access
+                <Settings className="w-5 h-5" />
+                Content Management
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-
-              {/* Visibility Level */}
-              <div>
-                <Label className="text-white text-base">Visibility</Label>
-                <p className="text-slate-400 text-sm mt-1 mb-3">
-                  Control who can see this system in the portal.
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-slate-400 text-sm">
+                  Manage the content for this knowledge system. Create and edit {config.displayName.toLowerCase()} that will appear in your portal.
                 </p>
-                <Select value={visibility} onValueChange={setVisibility}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4" />
-                        Public - Visible to everyone
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="authenticated">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Authenticated - Only logged-in users
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="private">
-                      <div className="flex items-center gap-2">
-                        <EyeOff className="w-4 h-4" />
-                        Private - Hidden from portal
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
-              {/* Access Level */}
-              <div>
-                <Label className="text-white text-base">Access Level</Label>
-                <p className="text-slate-400 text-sm mt-1 mb-3">
-                  Control who can create and edit content in this system.
-                </p>
-                <Select value={accessLevel} onValueChange={setAccessLevel}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all_users">All Users</SelectItem>
-                    <SelectItem value="editors_only">Editors Only</SelectItem>
-                    <SelectItem value="admins_only">Admins Only</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge/${systemType}`)}
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Manage Content
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge/${systemType}/new`)}
+                    className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create New
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

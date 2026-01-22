@@ -30,9 +30,10 @@ function KnowledgeSystemPortalPage({ systemType }) {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      // We need to get workspace ID from slug, but for now we'll use a placeholder
-      // In a real implementation, this would resolve the workspace ID
-      const workspaceId = 'placeholder-workspace-id';
+      // Get workspace data from portal API
+      const portalResponse = await fetch(`/api/portal/${slug}`);
+      const portalData = await portalResponse.json();
+      const workspaceId = portalData.workspace.id;
 
       const systems = getKnowledgeSystems(workspaceId);
       const targetSystem = systems.find(s => s.type === systemType && s.enabled);

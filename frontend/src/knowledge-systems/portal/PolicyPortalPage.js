@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
+import axios from 'axios';
 
 /**
  * Policy Portal Page - Authoritative Display
@@ -27,8 +28,10 @@ function PolicyPortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      // Get workspace ID from slug - placeholder for now
-      const workspaceId = 'placeholder-workspace-id';
+      // Get workspace data from portal API
+      const portalResponse = await axios.get(`/api/portal/${slug}`);
+      const workspaceId = portalResponse.data.workspace.id;
+
       const systems = getKnowledgeSystems(workspaceId);
       const policySystem = systems.find(s => s.type === 'policy' && s.enabled);
       setSystem(policySystem);
