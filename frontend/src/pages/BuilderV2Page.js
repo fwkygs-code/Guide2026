@@ -1165,26 +1165,33 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
 const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
   const { t } = useTranslation();
 
-  // Create a mapping of block types to translated names
+  // Create a mapping of block types to display names
   const getBlockDisplayName = (type) => {
+    // Try translation first, fallback to hardcoded names
+    const translated = t(`walkthrough.blocks.${type}`);
+    if (translated && translated !== `walkthrough.blocks.${type}`) {
+      return translated;
+    }
+
+    // Fallback hardcoded mapping
     const names = {
-      heading: t('walkthrough.blocks.heading'),
-      text: t('walkthrough.blocks.text'),
-      image: t('walkthrough.blocks.image'),
-      video: t('walkthrough.blocks.video'),
-      carousel: t('walkthrough.blocks.carousel'),
-      button: t('walkthrough.blocks.button'),
-      divider: t('walkthrough.blocks.divider'),
-      spacer: t('walkthrough.blocks.spacer'),
-      problem: t('walkthrough.blocks.problem'),
-      checklist: t('walkthrough.blocks.checklist'),
-      callout: t('walkthrough.blocks.callout'),
-      annotated_image: t('walkthrough.blocks.annotatedImage'),
-      embed: t('walkthrough.blocks.embed'),
-      section: t('walkthrough.blocks.section'),
-      confirmation: t('walkthrough.blocks.confirmation'),
-      external_link: t('walkthrough.blocks.externalLink'),
-      code: t('walkthrough.blocks.code')
+      heading: 'Heading',
+      text: 'Text',
+      image: 'Image/GIF',
+      video: 'Video',
+      carousel: 'Carousel',
+      button: 'Button',
+      divider: 'Divider',
+      spacer: 'Spacer',
+      problem: 'Problem',
+      checklist: 'Checklist',
+      callout: 'Callout',
+      annotated_image: 'Annotated Image',
+      embed: 'Embed',
+      section: 'Section',
+      confirmation: 'Confirmation',
+      external_link: 'External Link',
+      code: 'Code/Command'
     };
     return names[type] || type;
   };
