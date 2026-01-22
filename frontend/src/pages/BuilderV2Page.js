@@ -2162,12 +2162,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setResizingMarker(index);
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
-      const marker = markers[index];
       dragStartPos.current = {
         x: e.clientX,
         y: e.clientY,
-        rect,
-        initialRotation: marker.rotation || 0
+        rect
       };
     } else if (action === 'resize') {
       setInteractionMode('resizing');
@@ -2246,14 +2244,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setResizingMarker(index);
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
-      const marker = markers[index];
       dragStartPos.current = {
         x: e.clientX,
         y: e.clientY,
-        rect,
-        initialRotation: marker.rotation || 0,
-        centerX: (marker.x1 + marker.x2) / 2,
-        centerY: (marker.y1 + marker.y2) / 2
+        rect
       };
     }
 
@@ -2270,42 +2264,28 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     // Handle rotation (immediate, no animation frame needed)
     if (interactionMode === 'rotating' && resizingMarker !== null) {
       const marker = markers[resizingMarker];
-      let centerX, centerY;
 
+      // Calculate center point based on shape
+      let centerX, centerY;
       if (marker.shape === 'line') {
-        centerX = dragStartPos.current.centerX;
-        centerY = dragStartPos.current.centerY;
+        // Line center is midpoint of endpoints
+        centerX = (marker.x1 + marker.x2) / 2;
+        centerY = (marker.y1 + marker.y2) / 2;
       } else {
+        // Arrow center is marker.x, marker.y
         centerX = marker.x;
         centerY = marker.y;
       }
 
-      // Calculate current angle from center to mouse
+      // Calculate angle from center to current mouse position
       const deltaX = currentX - centerX;
       const deltaY = currentY - centerY;
       const currentAngle = Math.atan2(deltaY, deltaX);
 
-      // Calculate initial angle from drag start
-      const startPointerX = ((dragStartPos.current.x - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
-      const startPointerY = ((dragStartPos.current.y - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
-      const startDeltaX = startPointerX - centerX;
-      const startDeltaY = startPointerY - centerY;
-      const startAngle = Math.atan2(startDeltaY, startDeltaX);
-
-      // Calculate rotation delta
-      let angleDelta = currentAngle - startAngle;
-
-      // Normalize angle delta to handle wraparound
-      while (angleDelta > Math.PI) angleDelta -= 2 * Math.PI;
-      while (angleDelta < -Math.PI) angleDelta += 2 * Math.PI;
-
-      // Apply delta to initial rotation
-      const newRotation = dragStartPos.current.initialRotation + angleDelta;
-
       // Normalize to 0-2π
-      const normalizedRotation = ((newRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const normalizedAngle = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 
-      updateMarker(resizingMarker, { rotation: normalizedRotation });
+      updateMarker(resizingMarker, { rotation: normalizedAngle });
       return; // Exit early for rotation
     }
 
@@ -2817,6 +2797,21 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             const centerY = (startY + endY) / 2;
             const lineRotation = marker.rotation || 0;
 
+            // Calculate rotated coordinates for rendering
+            const rotatePoint = (x, y, cx, cy, angle) => {
+              const dx = x - cx;
+              const dy = y - cy;
+              const cos = Math.cos(angle);
+              const sin = Math.sin(angle);
+              return {
+                x: cx + dx * cos - dy * sin,
+                y: cy + dx * sin + dy * cos
+              };
+            };
+
+            const rotatedStart = rotatePoint(startX, startY, centerX, centerY, lineRotation);
+            const rotatedEnd = rotatePoint(endX, endY, centerX, centerY, lineRotation);
+
             return (
               <div key={marker.id || idx}>
                 <svg
@@ -2829,47 +2824,45 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     pointerEvents: 'none'
                   }}
                 >
-                  {/* Apply rotation transform */}
-                  <g transform={`rotate(${(lineRotation * 180) / Math.PI} ${centerX} ${centerY})`}>
-                    {/* Main line */}
-                    <line
-                      x1={`${startX}%`}
-                      y1={`${startY}%`}
-                      x2={`${endX}%`}
-                      y2={`${endY}%`}
-                      stroke={markerColor}
-                      strokeWidth={isActive ? "3" : "2"}
-                      style={{ pointerEvents: 'stroke', cursor: 'move' }}
-                      onPointerDown={(e) => {
-                        if (e.target !== e.currentTarget) return; // Only handle direct clicks on line
-                        handleLinePointerDown(e, idx, 'move');
-                      }}
-                    />
+                  {/* Main line (pre-rotated coordinates for correct pointer events) */}
+                  <line
+                    x1={`${rotatedStart.x}%`}
+                    y1={`${rotatedStart.y}%`}
+                    x2={`${rotatedEnd.x}%`}
+                    y2={`${rotatedEnd.y}%`}
+                    stroke={markerColor}
+                    strokeWidth={isActive ? "3" : "2"}
+                    style={{ pointerEvents: 'stroke', cursor: 'move' }}
+                    onPointerDown={(e) => {
+                      if (e.target !== e.currentTarget) return; // Only handle direct clicks on line
+                      handleLinePointerDown(e, idx, 'move');
+                    }}
+                  />
 
-                    {/* Start point handle */}
-                    <circle
-                      cx={`${startX}%`}
-                      cy={`${startY}%`}
-                      r="6"
-                      fill="white"
-                      stroke={markerColor}
-                      strokeWidth="2"
-                      style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
-                      onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_start')}
-                    />
+                  {/* Handles are NOT rotated - they stay at actual endpoint positions */}
+                  {/* Start point handle */}
+                  <circle
+                    cx={`${startX}%`}
+                    cy={`${startY}%`}
+                    r="6"
+                    fill="white"
+                    stroke={markerColor}
+                    strokeWidth="2"
+                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                    onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_start')}
+                  />
 
-                    {/* End point handle */}
-                    <circle
-                      cx={`${endX}%`}
-                      cy={`${endY}%`}
-                      r="6"
-                      fill="white"
-                      stroke={markerColor}
-                      strokeWidth="2"
-                      style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
-                      onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_end')}
-                    />
-                  </g>
+                  {/* End point handle */}
+                  <circle
+                    cx={`${endX}%`}
+                    cy={`${endY}%`}
+                    r="6"
+                    fill="white"
+                    stroke={markerColor}
+                    strokeWidth="2"
+                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                    onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_end')}
+                  />
 
                   {/* Rotation handle (not rotated) */}
                   {isActive && (
@@ -2885,21 +2878,19 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     />
                   )}
 
-                  {/* Number badge at midpoint (rotated with line) */}
-                  <g transform={`rotate(${(lineRotation * 180) / Math.PI} ${centerX} ${centerY})`}>
-                    <text
-                      x={`${centerX}%`}
-                      y={`${centerY - 2}%`}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill={markerColor}
-                      fontSize="10"
-                      fontWeight="bold"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      {idx + 1}
-                    </text>
-                  </g>
+                  {/* Number badge at midpoint (rotated) */}
+                  <text
+                    x={`${(rotatedStart.x + rotatedEnd.x) / 2}%`}
+                    y={`${(rotatedStart.y + rotatedEnd.y) / 2 - 2}%`}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill={markerColor}
+                    fontSize="10"
+                    fontWeight="bold"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {idx + 1}
+                  </text>
                 </svg>
               </div>
             );
