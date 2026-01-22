@@ -2512,8 +2512,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           }
           
           // Dot marker with pixel-based sizing and delta resize
-          return (
-            <div key={marker.id || idx}>
+          if (markerShape === 'dot') {
+            return (
+              <div key={marker.id || idx}>
               <div
                 className={`absolute cursor-move select-none ${
                   isActive
@@ -2586,6 +2587,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               </div>
             </div>
           );
+          }
 
           // Arrow marker with move, rotate, and resize interactions
           if (markerShape === 'arrow') {
