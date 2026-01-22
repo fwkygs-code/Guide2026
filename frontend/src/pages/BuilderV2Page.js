@@ -2408,35 +2408,38 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
         updateMarker(resizingMarker, { length: newLength });
       } else if (resizeCorner === 'line_start' || resizeCorner === 'line_end') {
-        // Line endpoint resize: delta-based positioning
-        const dragData = dragStartPos.current;
-        if (!dragData || !dragData.rect) {
-          console.warn('Invalid drag data for line resize:', dragData);
-          return;
-        }
+        // Line endpoint resize: move visual endpoint and convert back to absolute coordinates
+        const marker = markers[resizingMarker];
+        const lineRotation = marker.rotation || 0;
+        const centerX = (marker.x1 + marker.x2) / 2;
+        const centerY = (marker.y1 + marker.y2) / 2;
 
-        const startPointerX = ((dragData.x - dragData.rect.left) / dragData.rect.width) * 100;
-        const startPointerY = ((dragData.y - dragData.rect.top) / dragData.rect.height) * 100;
+        // Convert from rotated coordinates back to absolute coordinates
+        const unrotatePoint = (rx, ry, cx, cy, angle) => {
+          const dx = rx - cx;
+          const dy = ry - cy;
+          const cos = Math.cos(-angle); // Negative angle for unrotation
+          const sin = Math.sin(-angle);
+          return {
+            x: cx + dx * cos - dy * sin,
+            y: cy + dx * sin + dy * cos
+          };
+        };
 
-        const deltaX = currentX - startPointerX;
-        const deltaY = currentY - startPointerY;
+        // The handle is at the rotated position, so currentX, currentY is the new visual position
+        // Convert back to absolute coordinates by un-rotating
+        const absolutePos = unrotatePoint(currentX, currentY, centerX, centerY, lineRotation);
 
         if (resizeCorner === 'line_start') {
-          if (typeof dragData.initialX1 !== 'number' || typeof dragData.initialY1 !== 'number') {
-            console.warn('Missing initial line start coordinates:', dragData);
-            return;
-          }
-          const newX1 = Math.max(0, Math.min(100, dragData.initialX1 + deltaX));
-          const newY1 = Math.max(0, Math.min(100, dragData.initialY1 + deltaY));
-          updateMarker(resizingMarker, { x1: newX1, y1: newY1 });
+          updateMarker(resizingMarker, {
+            x1: Math.max(0, Math.min(100, absolutePos.x)),
+            y1: Math.max(0, Math.min(100, absolutePos.y))
+          });
         } else if (resizeCorner === 'line_end') {
-          if (typeof dragData.initialX2 !== 'number' || typeof dragData.initialY2 !== 'number') {
-            console.warn('Missing initial line end coordinates:', dragData);
-            return;
-          }
-          const newX2 = Math.max(0, Math.min(100, dragData.initialX2 + deltaX));
-          const newY2 = Math.max(0, Math.min(100, dragData.initialY2 + deltaY));
-          updateMarker(resizingMarker, { x2: newX2, y2: newY2 });
+          updateMarker(resizingMarker, {
+            x2: Math.max(0, Math.min(100, absolutePos.x)),
+            y2: Math.max(0, Math.min(100, absolutePos.y))
+          });
         }
       } else {
         // Rectangle resize
@@ -2859,6 +2862,18 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               };
             };
 
+            // Convert from rotated coordinates back to absolute coordinates
+            const unrotatePoint = (rx, ry, cx, cy, angle) => {
+              const dx = rx - cx;
+              const dy = ry - cy;
+              const cos = Math.cos(-angle); // Negative angle for unrotation
+              const sin = Math.sin(-angle);
+              return {
+                x: cx + dx * cos - dy * sin,
+                y: cy + dx * sin + dy * cos
+              };
+            };
+
             const rotatedStart = rotatePoint(startX, startY, centerX, centerY, lineRotation);
             const rotatedEnd = rotatePoint(endX, endY, centerX, centerY, lineRotation);
 
@@ -2893,12 +2908,12 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       }}
                   />
 
-                  {/* Resize handles - endpoint circles - show when editing/selected */}
+                  {/* Resize handles - endpoint circles at visual positions - show when editing/selected */}
                   {editingMarker === idx && (
                     <>
                       <circle
-                        cx={`${startX}%`}
-                        cy={`${startY}%`}
+                        cx={`${rotatedStart.x}%`}
+                        cy={`${rotatedStart.y}%`}
                         r="5"
                         fill={markerColor}
                         stroke="white"
@@ -2912,8 +2927,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       />
 
                       <circle
-                        cx={`${endX}%`}
-                        cy={`${endY}%`}
+                        cx={`${rotatedEnd.x}%`}
+                        cy={`${rotatedEnd.y}%`}
                         r="5"
                         fill={markerColor}
                         stroke="white"
