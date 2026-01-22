@@ -2353,6 +2353,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           });
         }
       });
+    }
     // Handle resizing (immediate, no animation frame needed)
     else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
       const marker = markers[resizingMarker];
