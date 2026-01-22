@@ -1581,56 +1581,13 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       );
 
     case BLOCK_TYPES.ANNOTATED_IMAGE:
-      const annotatedImageUrl = block.data?.url ? normalizeImageUrl(block.data.url) : null;
-      const markers = block.data?.markers || [];
       return (
-        <div>
-          {annotatedImageUrl ? (
-            <div className="relative">
-              <img
-                src={annotatedImageUrl}
-                alt={block.data.alt || ''}
-                className="w-full rounded-lg"
-              />
-              {markers.map((marker, idx) => (
-                <div
-                  key={marker.id || idx}
-                  className="absolute w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs font-bold cursor-pointer"
-                  style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
-                  onClick={() => {
-                    const newText = prompt('Marker text:', marker.text);
-                    if (newText !== null) {
-                      const newMarkers = [...markers];
-                      newMarkers[idx] = { ...marker, text: newText };
-                      onUpdate({ data: { ...block.data, markers: newMarkers } });
-                    }
-                  }}
-                >
-                  {idx + 1}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
-                className="mb-2"
-              />
-              <p className="text-sm text-slate-500 mt-2">or</p>
-              <Input
-                placeholder="Paste image URL"
-                onBlur={(e) => {
-                  if (e.target.value) {
-                    onUpdate({ data: { ...block.data, url: normalizeImageUrl(e.target.value) } });
-                  }
-                }}
-                className="mt-2"
-              />
-            </div>
-          )}
-        </div>
+        <AnnotatedImageBlockEditor
+          block={block}
+          onUpdate={onUpdate}
+          onMediaUpload={onMediaUpload}
+          canUploadFile={canUploadFile}
+        />
       );
 
     case BLOCK_TYPES.EMBED:
@@ -1834,6 +1791,276 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
     default:
       return <div className="text-slate-400 text-sm">Unknown block type: {block.type}</div>;
   }
+};
+
+// Annotated Image Block Editor Component - TRUE annotation system with interactive markers
+const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFile }) => {
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [editingMarker, setEditingMarker] = useState(null);
+  const imageRef = React.useRef(null);
+  
+  const imageUrl = block.data?.url ? normalizeImageUrl(block.data.url) : null;
+  const markers = block.data?.markers || [];
+  
+  // Add marker at click position (percentage-based)
+  const handleImageClick = (e) => {
+    if (!imageRef.current) return;
+    
+    const rect = imageRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    const newMarker = {
+      id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      x: Math.max(0, Math.min(100, x)),
+      y: Math.max(0, Math.min(100, y)),
+      title: '',
+      description: ''
+    };
+    
+    const newMarkers = [...markers, newMarker];
+    onUpdate({ data: { ...block.data, markers: newMarkers } });
+    setEditingMarker(markers.length); // Edit the new marker
+  };
+  
+  const updateMarker = (index, updates) => {
+    const newMarkers = [...markers];
+    newMarkers[index] = { ...newMarkers[index], ...updates };
+    onUpdate({ data: { ...block.data, markers: newMarkers } });
+  };
+  
+  const deleteMarker = (index) => {
+    const newMarkers = markers.filter((_, i) => i !== index);
+    onUpdate({ data: { ...block.data, markers: newMarkers } });
+    if (editingMarker === index) setEditingMarker(null);
+    if (selectedMarker === index) setSelectedMarker(null);
+  };
+  
+  if (!imageUrl) {
+    return (
+      <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center bg-slate-50">
+        <div className="space-y-4">
+          <div className="text-slate-600 font-medium">📌 Annotated Image Block</div>
+          <p className="text-sm text-slate-500">Upload an image to start adding annotations</p>
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
+            className="mb-2"
+          />
+          <p className="text-sm text-slate-500">or</p>
+          <Input
+            placeholder="Paste image URL"
+            onBlur={(e) => {
+              if (e.target.value) {
+                onUpdate({ data: { ...block.data, url: normalizeImageUrl(e.target.value) } });
+              }
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-4">
+      {/* Image with markers */}
+      <div className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+        <img
+          ref={imageRef}
+          src={imageUrl}
+          alt={block.data?.alt || 'Annotated image'}
+          className="w-full cursor-crosshair"
+          onClick={handleImageClick}
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
+        />
+        
+        {/* Render markers */}
+        {markers.map((marker, idx) => (
+          <Popover
+            key={marker.id || idx}
+            open={selectedMarker === idx}
+            onOpenChange={(open) => setSelectedMarker(open ? idx : null)}
+          >
+            <PopoverTrigger asChild>
+              <button
+                className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all transform -translate-x-1/2 -translate-y-1/2 ${
+                  selectedMarker === idx || editingMarker === idx
+                    ? 'bg-primary text-white scale-110 shadow-lg ring-4 ring-primary/30'
+                    : 'bg-primary text-white hover:scale-110 shadow-md hover:shadow-lg'
+                }`}
+                style={{ 
+                  left: `${marker.x}%`, 
+                  top: `${marker.y}%`,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedMarker(idx);
+                }}
+                aria-label={`Annotation ${idx + 1}: ${marker.title || 'Untitled'}`}
+              >
+                {idx + 1}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent 
+              className="w-80 p-0" 
+              side="top" 
+              align="center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 space-y-2">
+                {marker.title && (
+                  <div className="font-semibold text-slate-900">{marker.title}</div>
+                )}
+                {marker.description && (
+                  <div className="text-sm text-slate-600">{marker.description}</div>
+                )}
+                {!marker.title && !marker.description && (
+                  <div className="text-sm text-slate-400 italic">No content yet. Click edit to add.</div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+        ))}
+        
+        {/* Empty state overlay */}
+        {markers.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[1px]">
+            <div className="bg-white rounded-lg shadow-lg p-6 text-center space-y-2">
+              <div className="text-2xl">📌</div>
+              <div className="font-medium text-slate-900">Click anywhere to add annotations</div>
+              <div className="text-sm text-slate-500">Interactive markers will appear on the image</div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Annotations list & editor */}
+      <div className="border border-slate-200 rounded-lg bg-white">
+        <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="font-medium text-sm text-slate-900">
+            📌 Annotations ({markers.length})
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (imageRef.current) {
+                // Simulate click at center to add marker
+                const rect = imageRef.current.getBoundingClientRect();
+                handleImageClick({
+                  clientX: rect.left + rect.width / 2,
+                  clientY: rect.top + rect.height / 2
+                });
+              }
+            }}
+            className="h-7 text-xs"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Add
+          </Button>
+        </div>
+        
+        {markers.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-sm">
+            No annotations yet. Click on the image to add markers.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {markers.map((marker, idx) => (
+              <div key={marker.id || idx} className="p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {editingMarker === idx ? (
+                      <div className="space-y-2">
+                        <Input
+                          value={marker.title || ''}
+                          onChange={(e) => updateMarker(idx, { title: e.target.value })}
+                          placeholder="Annotation title"
+                          className="text-sm"
+                          autoFocus
+                        />
+                        <Textarea
+                          value={marker.description || ''}
+                          onChange={(e) => updateMarker(idx, { description: e.target.value })}
+                          placeholder="Annotation description"
+                          rows={3}
+                          className="text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => setEditingMarker(null)}
+                            className="h-7 text-xs"
+                          >
+                            Done
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (window.confirm('Delete this annotation?')) {
+                                deleteMarker(idx);
+                              }
+                            }}
+                            className="h-7 text-xs text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="font-medium text-sm text-slate-900">
+                          {marker.title || <span className="text-slate-400 italic">Untitled</span>}
+                        </div>
+                        {marker.description && (
+                          <div className="text-xs text-slate-600 mt-1 line-clamp-2">
+                            {marker.description}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingMarker(idx)}
+                            className="h-6 text-xs"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedMarker(selectedMarker === idx ? null : idx)}
+                            className="h-6 text-xs"
+                          >
+                            {selectedMarker === idx ? 'Hide' : 'Preview'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Instructions */}
+      <div className="text-xs text-slate-500 bg-slate-50 rounded p-3">
+        <strong>💡 Tips:</strong> Click anywhere on the image to add annotation markers. 
+        Click markers to view annotations. Edit or delete markers in the list below the image.
+      </div>
+    </div>
+  );
 };
 
 // CarouselCaptionEditor removed - now using InlineRichEditor directly for consistency
