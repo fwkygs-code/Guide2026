@@ -1125,6 +1125,15 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
     BLOCK_TYPES.DIVIDER,
     BLOCK_TYPES.SPACER,
     BLOCK_TYPES.PROBLEM,
+    // New block types (2026-01-21)
+    BLOCK_TYPES.CHECKLIST,
+    BLOCK_TYPES.CALLOUT,
+    BLOCK_TYPES.ANNOTATED_IMAGE,
+    BLOCK_TYPES.EMBED,
+    BLOCK_TYPES.SECTION,
+    BLOCK_TYPES.CONFIRMATION,
+    BLOCK_TYPES.EXTERNAL_LINK,
+    BLOCK_TYPES.CODE,
   ];
 
   const handleAdd = useCallback((type) => {
@@ -1165,7 +1174,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
         </button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-56 p-1.5 bg-white border-slate-200 z-[100] max-h-[400px] overflow-y-auto" 
+        className="w-56 p-1.5 bg-white border-slate-200 z-[100] max-h-[500px] overflow-y-auto" 
         align="start" 
         sideOffset={8}
         collisionPadding={{ top: 16, bottom: 16, left: 16, right: 16 }}
@@ -1461,6 +1470,271 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           workspaceId={workspaceId}
           canUploadFile={canUploadFile}
         />
+      );
+
+    case BLOCK_TYPES.CHECKLIST:
+      const items = block.data?.items || [];
+      return (
+        <div className="space-y-2">
+          {items.map((item, idx) => (
+            <div key={item.id || idx} className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={item.checked || false}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx] = { ...item, checked: e.target.checked };
+                  onUpdate({ data: { ...block.data, items: newItems } });
+                }}
+                className="mt-1 flex-shrink-0"
+              />
+              <Input
+                value={item.text || ''}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx] = { ...item, text: e.target.value };
+                  onUpdate({ data: { ...block.data, items: newItems } });
+                }}
+                placeholder="Checklist item"
+                className="flex-1"
+              />
+              <button
+                onClick={() => {
+                  const newItems = items.filter((_, i) => i !== idx);
+                  onUpdate({ data: { ...block.data, items: newItems } });
+                }}
+                className="text-red-500 hover:text-red-700 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const newItems = [...items, { id: `item-${Date.now()}`, text: '', checked: false }];
+              onUpdate({ data: { ...block.data, items: newItems } });
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Item
+          </Button>
+        </div>
+      );
+
+    case BLOCK_TYPES.CALLOUT:
+      return (
+        <div className={`border-l-4 rounded-lg p-4 ${
+          block.data?.variant === 'warning' ? 'border-warning-500 bg-warning-50' :
+          block.data?.variant === 'important' ? 'border-destructive bg-destructive/10' :
+          block.data?.variant === 'info' ? 'border-blue-500 bg-blue-50' :
+          'border-primary bg-primary/10'
+        }`}>
+          <div className="mb-2">
+            <Select
+              value={block.data?.variant || 'tip'}
+              onValueChange={(variant) => onUpdate({ data: { ...block.data, variant } })}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tip">💡 Tip</SelectItem>
+                <SelectItem value="warning">⚠️ Warning</SelectItem>
+                <SelectItem value="important">❗ Important</SelectItem>
+                <SelectItem value="info">ℹ️ Info</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <RichTextEditor
+            content={block.data?.content || ''}
+            onChange={(content) => onUpdate({ data: { ...block.data, content } })}
+          />
+        </div>
+      );
+
+    case BLOCK_TYPES.ANNOTATED_IMAGE:
+      const annotatedImageUrl = block.data?.url ? normalizeImageUrl(block.data.url) : null;
+      const markers = block.data?.markers || [];
+      return (
+        <div>
+          {annotatedImageUrl ? (
+            <div className="relative">
+              <img
+                src={annotatedImageUrl}
+                alt={block.data.alt || ''}
+                className="w-full rounded-lg"
+              />
+              {markers.map((marker, idx) => (
+                <div
+                  key={marker.id || idx}
+                  className="absolute w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs font-bold cursor-pointer"
+                  style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
+                  onClick={() => {
+                    const newText = prompt('Marker text:', marker.text);
+                    if (newText !== null) {
+                      const newMarkers = [...markers];
+                      newMarkers[idx] = { ...marker, text: newText };
+                      onUpdate({ data: { ...block.data, markers: newMarkers } });
+                    }
+                  }}
+                >
+                  {idx + 1}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
+                className="mb-2"
+              />
+              <p className="text-sm text-slate-500 mt-2">or</p>
+              <Input
+                placeholder="Paste image URL"
+                onBlur={(e) => {
+                  if (e.target.value) {
+                    onUpdate({ data: { ...block.data, url: normalizeImageUrl(e.target.value) } });
+                  }
+                }}
+                className="mt-2"
+              />
+            </div>
+          )}
+        </div>
+      );
+
+    case BLOCK_TYPES.EMBED:
+      return (
+        <div className="space-y-3">
+          <Select
+            value={block.data?.provider || 'youtube'}
+            onValueChange={(provider) => onUpdate({ data: { ...block.data, provider } })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="youtube">YouTube</SelectItem>
+              <SelectItem value="vimeo">Vimeo</SelectItem>
+              <SelectItem value="loom">Loom</SelectItem>
+              <SelectItem value="figma">Figma</SelectItem>
+              <SelectItem value="google_docs">Google Docs</SelectItem>
+              <SelectItem value="notebooklm">NotebookLM</SelectItem>
+              <SelectItem value="gemini">Gemini</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            value={block.data?.url || ''}
+            onChange={(e) => onUpdate({ data: { ...block.data, url: e.target.value } })}
+            placeholder="Embed URL"
+          />
+          {block.data?.url && (
+            <div className="aspect-video border border-slate-200 rounded-lg overflow-hidden">
+              <iframe
+                src={block.data.url}
+                className="w-full h-full"
+                allowFullScreen
+              />
+            </div>
+          )}
+        </div>
+      );
+
+    case BLOCK_TYPES.SECTION:
+      const sectionBlocks = block.data?.blocks || [];
+      return (
+        <div className="border border-slate-200 rounded-lg p-4 space-y-3">
+          <Input
+            value={block.data?.title || ''}
+            onChange={(e) => onUpdate({ data: { ...block.data, title: e.target.value } })}
+            placeholder="Section title"
+            className="font-semibold"
+          />
+          <div className="text-sm text-slate-500">
+            Section block (nested blocks not yet supported in this view)
+          </div>
+        </div>
+      );
+
+    case BLOCK_TYPES.CONFIRMATION:
+      return (
+        <div className="border border-primary/30 rounded-lg p-4 bg-primary/5 space-y-3">
+          <RichTextEditor
+            content={block.data?.message || ''}
+            onChange={(message) => onUpdate({ data: { ...block.data, message } })}
+          />
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              disabled
+              className="flex-shrink-0"
+            />
+            <Input
+              value={block.data?.buttonText || 'I understand'}
+              onChange={(e) => onUpdate({ data: { ...block.data, buttonText: e.target.value } })}
+              placeholder="Button text"
+            />
+          </div>
+        </div>
+      );
+
+    case BLOCK_TYPES.EXTERNAL_LINK:
+      return (
+        <div className="space-y-3">
+          <Input
+            value={block.data?.text || ''}
+            onChange={(e) => onUpdate({ data: { ...block.data, text: e.target.value } })}
+            placeholder="Link text"
+          />
+          <Input
+            value={block.data?.url || ''}
+            onChange={(e) => onUpdate({ data: { ...block.data, url: e.target.value } })}
+            placeholder="URL"
+            type="url"
+          />
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={block.data?.openInNewTab !== false}
+              onChange={(e) => onUpdate({ data: { ...block.data, openInNewTab: e.target.checked } })}
+              className="flex-shrink-0"
+            />
+            <Label className="text-sm">Open in new tab</Label>
+          </div>
+        </div>
+      );
+
+    case BLOCK_TYPES.CODE:
+      return (
+        <div className="space-y-3">
+          <Select
+            value={block.data?.language || 'bash'}
+            onValueChange={(language) => onUpdate({ data: { ...block.data, language } })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bash">Bash</SelectItem>
+              <SelectItem value="javascript">JavaScript</SelectItem>
+              <SelectItem value="python">Python</SelectItem>
+              <SelectItem value="json">JSON</SelectItem>
+              <SelectItem value="html">HTML</SelectItem>
+              <SelectItem value="css">CSS</SelectItem>
+            </SelectContent>
+          </Select>
+          <Textarea
+            value={block.data?.code || ''}
+            onChange={(e) => onUpdate({ data: { ...block.data, code: e.target.value } })}
+            placeholder="Enter code..."
+            rows={6}
+            className="font-mono text-sm"
+          />
+        </div>
       );
 
     default:
