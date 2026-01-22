@@ -1999,7 +1999,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   const [draggingMarker, setDraggingMarker] = useState(null);
   const [resizingMarker, setResizingMarker] = useState(null);
   const [resizeCorner, setResizeCorner] = useState(null);
-  const [interactionMode, setInteractionMode] = useState('idle'); // 'idle' | 'dragging' | 'resizing' | 'rotating'
+  const [interactionMode, setInteractionMode] = useState('idle'); // 'idle' | 'dragging' | 'resizing' | 'rotating' | 'resizing_start' | 'resizing_end'
   const imageRef = React.useRef(null);
   const dragStartPos = React.useRef(null);
   const animationFrameRef = React.useRef(null);
@@ -2019,12 +2019,16 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       x: Math.max(0, Math.min(100, x)),
       y: Math.max(0, Math.min(100, y)),
-      shape: 'dot', // 'dot', 'rectangle', or 'arrow'
+      shape: 'dot', // 'dot', 'rectangle', 'arrow', or 'line'
       size: 30, // Diameter in pixels for dot
       width: 10, // Width in % for rectangle
       height: 10, // Height in % for rectangle
       length: 80, // Length in pixels for arrow
       rotation: 0, // Rotation in radians for arrow (0-2π)
+      x1: Math.max(0, Math.min(100, x - 10)), // Start point for line
+      y1: Math.max(0, Math.min(100, y)), // Start point for line
+      x2: Math.max(0, Math.min(100, x + 10)), // End point for line
+      y2: Math.max(0, Math.min(100, y)), // End point for line
       title: '',
       description: ''
     };
@@ -2150,6 +2154,36 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
     console.log('[Arrow] Stored dragStartPos', dragStartPos.current);
   };
+
+  const handleLinePointerDown = (e, index, action) => {
+    console.log('[Line] Handle pointer down', { index, action, currentMode: interactionMode });
+    e.stopPropagation();
+    e.preventDefault();
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    if (action === 'move') {
+      setInteractionMode('dragging');
+      setDraggingMarker(index);
+      setEditingMarker(null);
+      const rect = imageRef.current.getBoundingClientRect();
+      dragStartPos.current = { x: e.clientX, y: e.clientY, rect, markerIndex: index };
+    } else if (action === 'resize_start') {
+      setInteractionMode('resizing_start');
+      setResizingMarker(index);
+      setEditingMarker(null);
+      const rect = imageRef.current.getBoundingClientRect();
+      dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
+    } else if (action === 'resize_end') {
+      setInteractionMode('resizing_end');
+      setResizingMarker(index);
+      setEditingMarker(null);
+      const rect = imageRef.current.getBoundingClientRect();
+      dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
+    }
+
+    console.log('[Line] Stored dragStartPos', dragStartPos.current);
+  };
   
   const handleImagePointerMove = (e) => {
     if (!imageRef.current) return;
@@ -2165,11 +2199,29 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         const rect = imageRef.current.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
-        
-        updateMarker(draggingMarker, {
-          x: Math.max(0, Math.min(100, x)),
-          y: Math.max(0, Math.min(100, y))
-        });
+
+        const marker = markers[draggingMarker];
+        if (marker.shape === 'line') {
+          // Line dragging: move both endpoints together while preserving relative positions
+          const startPointerX = ((dragStartPos.current.x - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
+          const startPointerY = ((dragStartPos.current.y - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
+
+          const deltaX = x - startPointerX;
+          const deltaY = y - startPointerY;
+
+          const newX1 = Math.max(0, Math.min(100, marker.x1 + deltaX));
+          const newY1 = Math.max(0, Math.min(100, marker.y1 + deltaY));
+          const newX2 = Math.max(0, Math.min(100, marker.x2 + deltaX));
+          const newY2 = Math.max(0, Math.min(100, marker.y2 + deltaY));
+
+          updateMarker(draggingMarker, { x1: newX1, y1: newY1, x2: newX2, y2: newY2 });
+        } else {
+          // Regular marker dragging
+          updateMarker(draggingMarker, {
+            x: Math.max(0, Math.min(100, x)),
+            y: Math.max(0, Math.min(100, y))
+          });
+        }
       });
     } else if (interactionMode === 'resizing' && resizingMarker !== null && resizeCorner) {
       // Handle rectangle and dot resizing
@@ -2254,6 +2306,21 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         const normalizedRotation = rotation < 0 ? rotation + 2 * Math.PI : rotation;
 
         updateMarker(resizingMarker, { rotation: normalizedRotation });
+      }
+
+      // Handle line resizing
+      if (interactionMode === 'resizing_start' && resizingMarker !== null) {
+        const marker = markers[resizingMarker];
+        const newX1 = Math.max(0, Math.min(100, currentX));
+        const newY1 = Math.max(0, Math.min(100, currentY));
+
+        updateMarker(resizingMarker, { x1: newX1, y1: newY1 });
+      } else if (interactionMode === 'resizing_end' && resizingMarker !== null) {
+        const marker = markers[resizingMarker];
+        const newX2 = Math.max(0, Math.min(100, currentX));
+        const newY2 = Math.max(0, Math.min(100, currentY));
+
+        updateMarker(resizingMarker, { x2: newX2, y2: newY2 });
       }
     }
   };
@@ -2606,6 +2673,82 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             );
           }
 
+          // Line marker with move and endpoint resize
+          if (markerShape === 'line') {
+            const startX = marker.x1 || marker.x || 0;
+            const startY = marker.y1 || marker.y || 0;
+            const endX = marker.x2 || marker.x || 10;
+            const endY = marker.y2 || marker.y || 0;
+
+            return (
+              <div key={marker.id || idx}>
+                <svg
+                  className="absolute"
+                  style={{
+                    left: 0,
+                    top: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {/* Main line */}
+                  <line
+                    x1={`${startX}%`}
+                    y1={`${startY}%`}
+                    x2={`${endX}%`}
+                    y2={`${endY}%`}
+                    stroke="var(--primary)"
+                    strokeWidth={isActive ? "3" : "2"}
+                    style={{ pointerEvents: 'stroke', cursor: 'move' }}
+                    onPointerDown={(e) => {
+                      if (e.target !== e.currentTarget) return; // Only handle direct clicks on line
+                      handleLinePointerDown(e, idx, 'move');
+                    }}
+                  />
+
+                  {/* Start point handle */}
+                  <circle
+                    cx={`${startX}%`}
+                    cy={`${startY}%`}
+                    r="6"
+                    fill="white"
+                    stroke="var(--primary)"
+                    strokeWidth="2"
+                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                    onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_start')}
+                  />
+
+                  {/* End point handle */}
+                  <circle
+                    cx={`${endX}%`}
+                    cy={`${endY}%`}
+                    r="6"
+                    fill="white"
+                    stroke="var(--primary)"
+                    strokeWidth="2"
+                    style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                    onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_end')}
+                  />
+
+                  {/* Number badge at midpoint */}
+                  <text
+                    x={`${(startX + endX) / 2}%`}
+                    y={`${(startY + endY) / 2 - 2}%`}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="var(--primary)"
+                    fontSize="10"
+                    fontWeight="bold"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {idx + 1}
+                  </text>
+                </svg>
+              </div>
+            );
+          }
+
           // Fallback for unknown shapes
           return null;
         })}
@@ -2670,7 +2813,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       {marker.title || 'Untitled'}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {marker.shape === 'rectangle' ? '◻ Rectangle' : marker.shape === 'arrow' ? '→ Arrow' : '● Dot'} • Click to edit
+                      {marker.shape === 'rectangle' ? '◻ Rectangle' : marker.shape === 'arrow' ? '→ Arrow' : marker.shape === 'line' ? '━ Line' : '● Dot'} • Click to edit
                     </div>
                   </div>
                 </div>
@@ -2732,6 +2875,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   <SelectItem value="dot">● Dot</SelectItem>
                   <SelectItem value="rectangle">◻ Rectangle</SelectItem>
                   <SelectItem value="arrow">→ Arrow</SelectItem>
+                  <SelectItem value="line">━ Line</SelectItem>
                 </SelectContent>
               </Select>
             </div>
