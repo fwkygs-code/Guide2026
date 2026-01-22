@@ -2150,9 +2150,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       const rect = imageRef.current.getBoundingClientRect();
       const marker = markers[index];
       // Store initial marker position for correct delta calculation
-      dragStartPos.current = { 
-        x: e.clientX, 
-        y: e.clientY, 
+      dragStartPos.current = {
+        x: e.clientX,
+        y: e.clientY,
         rect,
         initialX: marker.x,
         initialY: marker.y
@@ -2162,10 +2162,25 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setResizingMarker(index);
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
+      const marker = markers[index];
+
+      // Calculate center point
+      const centerX = marker.x;
+      const centerY = marker.y;
+
+      // Calculate initial angle offset: currentRotation - angle from center to pointer
+      const pointerX = ((e.clientX - rect.left) / rect.width) * 100;
+      const pointerY = ((e.clientY - rect.top) / rect.height) * 100;
+      const angleToPointer = Math.atan2(pointerY - centerY, pointerX - centerX);
+      const initialOffset = (marker.rotation || 0) - angleToPointer;
+
       dragStartPos.current = {
         x: e.clientX,
         y: e.clientY,
-        rect
+        rect,
+        centerX,
+        centerY,
+        initialOffset
       };
     } else if (action === 'resize') {
       setInteractionMode('resizing');
@@ -2218,12 +2233,23 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
       const marker = markers[index];
+
+      // Store anchor point (end) and original line direction
+      const anchorX = marker.x2;
+      const anchorY = marker.y2;
+      const originalLength = Math.sqrt((marker.x2 - marker.x1) ** 2 + (marker.y2 - marker.y1) ** 2);
+      const directionX = (marker.x2 - marker.x1) / originalLength;
+      const directionY = (marker.y2 - marker.y1) / originalLength;
+
       dragStartPos.current = {
         x: e.clientX,
         y: e.clientY,
         rect,
-        initialX1: marker.x1,
-        initialY1: marker.y1
+        anchorX,
+        anchorY,
+        originalLength,
+        directionX,
+        directionY
       };
     } else if (action === 'resize_end') {
       setInteractionMode('resizing');
@@ -2232,22 +2258,48 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
       const marker = markers[index];
+
+      // Store anchor point (start) and original line direction
+      const anchorX = marker.x1;
+      const anchorY = marker.y1;
+      const originalLength = Math.sqrt((marker.x2 - marker.x1) ** 2 + (marker.y2 - marker.y1) ** 2);
+      const directionX = (marker.x2 - marker.x1) / originalLength;
+      const directionY = (marker.y2 - marker.y1) / originalLength;
+
       dragStartPos.current = {
         x: e.clientX,
         y: e.clientY,
         rect,
-        initialX2: marker.x2,
-        initialY2: marker.y2
+        anchorX,
+        anchorY,
+        originalLength,
+        directionX,
+        directionY
       };
     } else if (action === 'rotate') {
       setInteractionMode('rotating');
       setResizingMarker(index);
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
+      const marker = markers[index];
+
+      // Calculate center point
+      const centerX = (marker.x1 + marker.x2) / 2;
+      const centerY = (marker.y1 + marker.y2) / 2;
+
+      // Calculate initial angle offset: currentRotation - angle from center to pointer
+      const pointerX = ((e.clientX - rect.left) / rect.width) * 100;
+      const pointerY = ((e.clientY - rect.top) / rect.height) * 100;
+      const angleToPointer = Math.atan2(pointerY - centerY, pointerX - centerX);
+      const initialOffset = (marker.rotation || 0) - angleToPointer;
+
       dragStartPos.current = {
         x: e.clientX,
         y: e.clientY,
-        rect
+        rect,
+        centerX,
+        centerY,
+        initialOffset
       };
     }
 
@@ -2279,33 +2331,24 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
     // Handle rotation (immediate, no animation frame needed)
     if (interactionMode === 'rotating' && resizingMarker !== null) {
-      const marker = markers[resizingMarker];
-      if (!marker) {
-        console.warn('Marker not found for rotation:', resizingMarker);
+      const dragData = dragStartPos.current;
+      if (!dragData || typeof dragData.centerX !== 'number' || typeof dragData.centerY !== 'number' || typeof dragData.initialOffset !== 'number') {
+        console.warn('Invalid drag data for rotation:', dragData);
         return;
       }
 
-      // Calculate center point based on shape
-      let centerX, centerY;
-      if (marker.shape === 'line') {
-        // Line center is midpoint of endpoints
-        centerX = (marker.x1 + marker.x2) / 2;
-        centerY = (marker.y1 + marker.y2) / 2;
-      } else {
-        // Arrow center is marker.x, marker.y
-        centerX = marker.x;
-        centerY = marker.y;
-      }
+      const { centerX, centerY, initialOffset } = dragData;
 
-      // Calculate angle from center to current mouse position
+      // Calculate absolute rotation: angle from center to pointer + initial offset
       const deltaX = currentX - centerX;
       const deltaY = currentY - centerY;
-      const currentAngle = Math.atan2(deltaY, deltaX);
+      const angleToPointer = Math.atan2(deltaY, deltaX);
+      const rotation = angleToPointer + initialOffset;
 
       // Normalize to 0-2π
-      const normalizedAngle = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const normalizedRotation = ((rotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 
-      updateMarker(resizingMarker, { rotation: normalizedAngle });
+      updateMarker(resizingMarker, { rotation: normalizedRotation });
       return; // Exit early for rotation
     }
 
@@ -2408,37 +2451,46 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
         updateMarker(resizingMarker, { length: newLength });
       } else if (resizeCorner === 'line_start' || resizeCorner === 'line_end') {
-        // Line endpoint resize: move visual endpoint and convert back to absolute coordinates
-        const marker = markers[resizingMarker];
-        const lineRotation = marker.rotation || 0;
-        const centerX = (marker.x1 + marker.x2) / 2;
-        const centerY = (marker.y1 + marker.y2) / 2;
+        // Line endpoint resize: constrained along line axis
+        const dragData = dragStartPos.current;
+        if (!dragData || typeof dragData.anchorX !== 'number' || typeof dragData.anchorY !== 'number' ||
+            typeof dragData.directionX !== 'number' || typeof dragData.directionY !== 'number') {
+          console.warn('Invalid drag data for line resize:', dragData);
+          return;
+        }
 
-        // Convert from rotated coordinates back to absolute coordinates
-        const unrotatePoint = (rx, ry, cx, cy, angle) => {
-          const dx = rx - cx;
-          const dy = ry - cy;
-          const cos = Math.cos(-angle); // Negative angle for unrotation
-          const sin = Math.sin(-angle);
-          return {
-            x: cx + dx * cos - dy * sin,
-            y: cy + dx * sin + dy * cos
-          };
-        };
+        const { anchorX, anchorY, directionX, directionY } = dragData;
 
-        // The handle is at the rotated position, so currentX, currentY is the new visual position
-        // Convert back to absolute coordinates by un-rotating
-        const absolutePos = unrotatePoint(currentX, currentY, centerX, centerY, lineRotation);
+        // Calculate vector from anchor to current pointer position
+        const pointerVectorX = currentX - anchorX;
+        const pointerVectorY = currentY - anchorY;
+
+        // Project onto line direction using dot product
+        const projection = pointerVectorX * directionX + pointerVectorY * directionY;
+
+        // Calculate new length (can be negative for direction reversal)
+        const newLength = Math.max(5, Math.abs(projection)); // Minimum length
+
+        // Calculate new endpoint position along the line direction
+        const lengthDirection = projection >= 0 ? 1 : -1; // Preserve direction
+        const endX = anchorX + lengthDirection * newLength * directionX;
+        const endY = anchorY + lengthDirection * newLength * directionY;
+
+        // Clamp to bounds
+        const clampedEndX = Math.max(0, Math.min(100, endX));
+        const clampedEndY = Math.max(0, Math.min(100, endY));
 
         if (resizeCorner === 'line_start') {
+          // Moving start point, end point is anchor
           updateMarker(resizingMarker, {
-            x1: Math.max(0, Math.min(100, absolutePos.x)),
-            y1: Math.max(0, Math.min(100, absolutePos.y))
+            x1: clampedEndX,
+            y1: clampedEndY
           });
         } else if (resizeCorner === 'line_end') {
+          // Moving end point, start point is anchor
           updateMarker(resizingMarker, {
-            x2: Math.max(0, Math.min(100, absolutePos.x)),
-            y2: Math.max(0, Math.min(100, absolutePos.y))
+            x2: clampedEndX,
+            y2: clampedEndY
           });
         }
       } else {
