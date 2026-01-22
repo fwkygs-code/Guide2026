@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -117,6 +118,17 @@ function KnowledgeSystemsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
+            <div className="flex items-center gap-4 mb-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/workspace/${workspaceSlug}/settings`)}
+                className="text-slate-200 hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Settings
+              </Button>
+            </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
               Knowledge Systems
             </h1>

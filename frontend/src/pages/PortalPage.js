@@ -194,21 +194,25 @@ const PortalPage = ({ isEmbedded = false }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </AppShell>
     );
   }
 
   if (!portal) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="text-center">
-          <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-heading font-bold text-white mb-2">Portal Not Found</h1>
-          <p className="text-slate-400">The portal you're looking for doesn't exist.</p>
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h1 className="text-2xl font-heading font-bold text-white mb-2">Portal Not Found</h1>
+            <p className="text-slate-400">The portal you're looking for doesn't exist.</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -233,7 +237,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       
       {/* Header - Hide in iframe mode */}
       {!inIframe && (
-      <header className="glass border-b border-slate-200/50 sticky top-0 z-50 backdrop-blur-xl bg-white/80">
+      <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           {/* Top Row: Logo, Name, and Action Buttons */}
           <div className="flex items-center justify-between gap-3 sm:gap-6 mb-3">
@@ -263,8 +267,8 @@ const PortalPage = ({ isEmbedded = false }) => {
                 </div>
               )}
               <div className="min-w-0 flex-shrink">
-                <h1 className="text-base sm:text-xl font-heading font-bold text-slate-900 truncate">{workspace.name}</h1>
-                <p className="text-xs sm:text-sm text-slate-600">Knowledge Base</p>
+                <h1 className="text-base sm:text-xl font-heading font-bold text-white truncate">{workspace.name}</h1>
+                <p className="text-xs sm:text-sm text-slate-300">Knowledge Base</p>
               </div>
             </div>
 
@@ -313,11 +317,11 @@ const PortalPage = ({ isEmbedded = false }) => {
 
           {/* Bottom Row: Contact Information - Responsive */}
           {(workspace.portal_phone || workspace.portal_working_hours || workspace.portal_whatsapp) && (
-            <div className="flex items-center gap-4 sm:gap-6 flex-wrap text-xs sm:text-sm text-slate-600 border-t border-slate-200/50 pt-3">
+            <div className="flex items-center gap-4 sm:gap-6 flex-wrap text-xs sm:text-sm text-slate-300 border-t border-slate-200/50 pt-3">
               {workspace.portal_phone && (
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
-                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-slate-900 transition-colors truncate">
+                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-white transition-colors truncate">
                     {workspace.portal_phone}
                   </a>
                 </div>
@@ -335,7 +339,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                     href={workspace.portal_whatsapp} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="hover:text-slate-900 transition-colors truncate"
+                    className="hover:text-white transition-colors truncate"
                   >
                     {t('portal.whatsapp')}
                   </a>
@@ -356,22 +360,18 @@ const PortalPage = ({ isEmbedded = false }) => {
             className="relative"
           >
             {/* 3D Glass Bubble Container */}
-            <div className="glass rounded-3xl p-8 md:p-12 backdrop-blur-xl bg-white/80 border border-white/50 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300"
-                 style={{
-                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%)',
-                   boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
-                 }}>
-              <h1 className="text-4xl lg:text-5xl font-heading font-bold text-slate-900 mb-4 drop-shadow-sm">
+            <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
+              <h1 className="text-4xl lg:text-5xl font-heading font-bold text-white mb-4 drop-shadow-sm">
                 {t('portal.howCanWeHelp')}
               </h1>
-              <p className="text-lg text-slate-700 mb-8 font-medium">{t('portal.searchKnowledgeBase')}</p>
+              <p className="text-lg text-slate-300 mb-8 font-medium">{t('portal.searchKnowledgeBase')}</p>
               <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5 z-10" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-300 w-5 h-5 z-10" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search for guides..."
-                  className="pl-12 h-14 text-lg rounded-xl shadow-lg border-slate-200/50 bg-white/90 backdrop-blur-sm"
+                  className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
                   data-testid="portal-search-input"
                 />
               </div>
@@ -385,11 +385,7 @@ const PortalPage = ({ isEmbedded = false }) => {
         <section className="py-6 px-6 relative">
           <div className="max-w-7xl mx-auto">
             {/* 3D Glass Bubble for Categories */}
-            <div className="glass rounded-2xl p-4 md:p-6 backdrop-blur-xl bg-white/80 border border-white/50 shadow-xl"
-                 style={{
-                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 100%)',
-                   boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
-                 }}>
+            <div className="glass rounded-2xl p-4 md:p-6 shadow-xl">
               <div className="flex gap-3 flex-wrap justify-center">
               <Badge
                 variant={selectedCategory === null ? 'default' : 'outline'}
@@ -436,18 +432,14 @@ const PortalPage = ({ isEmbedded = false }) => {
                     transition={{ delay: sectionIndex * 0.1 }}
                   >
                     {category && (
-                      <div className="glass rounded-2xl p-4 mb-6 backdrop-blur-xl bg-white/80 border border-white/50 shadow-lg"
-                           style={{
-                             background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 100%)',
-                             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
-                           }}>
+                      <div className="glass rounded-2xl p-4 mb-6 shadow-lg">
                         <div className="flex items-center justify-between gap-3 flex-wrap">
                           <div className="flex items-center gap-3">
                             <FolderOpen className="w-6 h-6" style={{ color: primaryColor }} />
                             <div>
-                              <h2 className="text-2xl font-heading font-bold text-slate-900">{category.name}</h2>
+                              <h2 className="text-2xl font-heading font-bold text-white">{category.name}</h2>
                               {category.description && (
-                                <p className="text-sm text-slate-700 font-medium mt-1">{category.description}</p>
+                                <p className="text-sm text-slate-300 font-medium mt-1">{category.description}</p>
                               )}
                             </div>
                           </div>
@@ -497,14 +489,14 @@ const PortalPage = ({ isEmbedded = false }) => {
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <h3 
-                                    className="text-lg font-heading font-semibold text-slate-900 mb-2 transition-colors"
+                                    className="text-lg font-heading font-semibold text-white mb-2 transition-colors"
                                     style={{ '--hover-color': primaryColor }}
                                     onMouseEnter={(e) => e.target.style.color = primaryColor}
                                     onMouseLeave={(e) => e.target.style.color = ''}
                                   >
                                     {walkthrough.title}
                                   </h3>
-                                  <p className="text-sm text-slate-600 line-clamp-2">
+                                  <p className="text-sm text-slate-300 line-clamp-2">
                                     {walkthrough.description || 'No description'}
                                   </p>
                                 </div>
@@ -534,10 +526,10 @@ const PortalPage = ({ isEmbedded = false }) => {
             ) : (
               <div className="text-center py-16">
                 <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
+                <h3 className="text-xl font-heading font-semibold text-white mb-2">
                   No walkthroughs found
                 </h3>
-                <p className="text-slate-600">Try adjusting your search or filters</p>
+                <p className="text-slate-300">Try adjusting your search or filters</p>
               </div>
             )
           ) : (
@@ -566,10 +558,10 @@ const PortalPage = ({ isEmbedded = false }) => {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-heading font-semibold text-slate-900 mb-2 group-hover:text-primary transition-colors">
+                            <h3 className="text-lg font-heading font-semibold text-white mb-2 group-hover:text-primary transition-colors">
                               {walkthrough.title}
                             </h3>
-                            <p className="text-sm text-slate-600 line-clamp-2">
+                            <p className="text-sm text-slate-300 line-clamp-2">
                               {walkthrough.description || 'No description'}
                             </p>
                           </div>
@@ -596,10 +588,10 @@ const PortalPage = ({ isEmbedded = false }) => {
             ) : (
               <div className="text-center py-16">
                 <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
+                <h3 className="text-xl font-heading font-semibold text-white mb-2">
                   No walkthroughs found
                 </h3>
-                <p className="text-slate-600">Try adjusting your search or filters</p>
+                <p className="text-slate-300">Try adjusting your search or filters</p>
               </div>
             )
           )}
@@ -700,7 +692,7 @@ const PortalPage = ({ isEmbedded = false }) => {
               >
                 <FolderOpen className="w-4 h-4 mr-3" style={{ color: primaryColor }} />
                 <div className="text-left flex-1">
-                  <div className="font-medium text-slate-900">{category.name}</div>
+                  <div className="font-medium text-white">{category.name}</div>
                   {category.description && (
                     <div className="text-xs text-slate-500 mt-0.5">{category.description}</div>
                   )}
@@ -748,8 +740,8 @@ const PortalPage = ({ isEmbedded = false }) => {
               <X className="w-4 h-4" />
             </Button>
           </div>
-          <div className="bg-white p-4 border-t border-slate-200">
-            <p className="text-sm text-slate-600 mb-3">
+          <div className="glass p-4 border-t border-slate-200">
+            <p className="text-sm text-slate-300 mb-3">
               The chat window should have opened in a new tab. If it didn't, please check your popup blocker settings.
             </p>
             <Button
@@ -773,9 +765,9 @@ const PortalPage = ({ isEmbedded = false }) => {
 
       {/* Footer - Powered by InterGuide */}
       {!inIframe && (
-        <footer className="border-t border-slate-200/50 bg-white/80 backdrop-blur-sm py-6 px-6">
+        <footer className="glass border-t border-slate-200/50 py-6 px-6">
           <div className="max-w-7xl mx-auto text-center">
-            <p className="text-sm text-slate-600 mb-2">
+            <p className="text-sm text-slate-300 mb-2">
               {t('portal.poweredBy')}
             </p>
             <p className="text-sm text-slate-500 mb-3">
@@ -797,7 +789,7 @@ const PortalPage = ({ isEmbedded = false }) => {
             <DialogTitle>Admin Dashboard</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-300">
               You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?
             </p>
             <div className="flex gap-3 justify-end">

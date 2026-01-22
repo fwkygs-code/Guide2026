@@ -14,7 +14,7 @@ const DarkModeToggle = () => {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="sm" className="w-9 h-9 p-0">
+      <Button variant="ghost" size="sm" className="w-9 h-9 p-0 text-slate-200 hover:text-white">
         <Sun className="w-4 h-4" />
       </Button>
     );
@@ -27,7 +27,7 @@ const DarkModeToggle = () => {
       variant="ghost"
       size="sm"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="w-9 h-9 p-0"
+      className="w-9 h-9 p-0 text-slate-200 hover:text-white"
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       data-testid="dark-mode-toggle"
     >

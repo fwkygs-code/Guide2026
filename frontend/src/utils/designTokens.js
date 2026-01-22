@@ -43,8 +43,8 @@ export const SURFACES = {
   // Dark workspace background - exact from KnowledgeSystemsPage
   dark: 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900',
 
-  // Glass morphism - exact from KnowledgeSystemsNavigationBar and PolicyPortalPage
-  glass: 'bg-white/95 backdrop-blur-sm',
+  // Glass morphism - Knowledge Systems-inspired dark glass
+  glass: 'bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/60 backdrop-blur-xl',
 
   // Card surfaces - exact from KnowledgeSystemCard
   card: {
@@ -78,8 +78,8 @@ export const BORDERS = {
     decisionTree: 'border-indigo-500/30'
   },
 
-  // Glass borders - exact from KnowledgeSystemsNavigationBar
-  glass: 'border-slate-200/50',
+  // Glass borders - subtle, futuristic
+  glass: 'border-slate-700/50',
 
   // Policy borders - exact from PolicyPortalPage
   policy: 'border-amber-200/50'

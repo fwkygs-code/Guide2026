@@ -449,7 +449,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-lg font-heading font-semibold text-slate-900">
+                      <h3 className="text-lg font-heading font-semibold text-white">
                         {category.name}
                       </h3>
                       <div className="flex gap-2">
@@ -509,7 +509,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
                                 <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
                               )}
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-slate-900">{subCat.name}</div>
+                                <div className="text-sm font-medium text-white">{subCat.name}</div>
                                 {subCat.description && (
                                   <div className="text-xs text-slate-600 truncate">{subCat.description}</div>
                                 )}
@@ -547,7 +547,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
         ) : (
           <div className="text-center py-16">
             <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
+            <h3 className="text-xl font-heading font-semibold text-white mb-2">
               {t('category.noCategories')}
             </h3>
             <p className="text-slate-600 mb-6">{t('category.createFirst')}</p>

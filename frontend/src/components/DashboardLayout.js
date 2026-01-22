@@ -10,7 +10,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import DarkModeToggle from './DarkModeToggle';
 import NotificationsMenu from './NotificationsMenu';
 import QuotaDisplay from './QuotaDisplay';
-import { Surface, Button } from './ui/design-system';
+import { AppShell, Surface, Button } from './ui/design-system';
 
 const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
   const { t } = useTranslation();
@@ -61,7 +61,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
     : {};
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={backgroundStyle}>
+    <AppShell style={backgroundStyle}>
       {/* Overlay for background image readability */}
       {backgroundUrl && (
         <div className="fixed inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 -z-10" />
@@ -75,7 +75,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               variant="ghost"
               size="sm"
               onClick={() => navigate(-1)}
-              className="shrink-0"
+              className="shrink-0 text-slate-200 hover:text-white"
               data-testid="nav-back-button"
               title={t('common.back')}
             >
@@ -116,6 +116,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               variant="ghost"
               size="sm"
               onClick={() => navigate('/dashboard')}
+              className="text-slate-200 hover:text-white"
               data-testid="nav-home-button"
             >
               <Home className="w-4 h-4 mr-2" />
@@ -126,6 +127,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 variant="ghost"
                 size="sm"
                 onClick={() => window.open(`/portal/${workspaceSlug}`, '_blank')}
+                className="text-slate-200 hover:text-white"
                 data-testid="nav-portal-button"
                 title="Open Portal in new tab"
               >
@@ -140,6 +142,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                     variant="ghost"
                     size="sm"
                     title="View workspace limits"
+                    className="text-slate-200 hover:text-white"
                   >
                     <Database className="w-4 h-4 mr-2" />
                     Limits
@@ -158,6 +161,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/admin')}
+                className="text-slate-200 hover:text-white"
                 title="Admin Dashboard"
               >
                 <Shield className="w-4 h-4 mr-2" />
@@ -171,6 +175,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               variant="ghost"
               size="sm"
               onClick={handleLogout}
+              className="text-slate-200 hover:text-white"
               data-testid="nav-logout-button"
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -251,7 +256,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
       <main className="relative max-w-6xl mx-auto px-6 py-8">
         {children}
       </main>
-    </div>
+    </AppShell>
   );
 };
 

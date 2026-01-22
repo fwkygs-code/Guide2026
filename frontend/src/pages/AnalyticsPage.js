@@ -154,7 +154,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
               </div>
               <div className="text-sm text-slate-600">Completions</div>
             </div>
-            <div className="text-3xl font-heading font-bold text-slate-900">{totalCompletions}</div>
+            <div className="text-3xl font-heading font-bold text-white">{totalCompletions}</div>
           </motion.div>
 
           <motion.div
@@ -169,13 +169,13 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
               </div>
               <div className="text-sm text-slate-600">Completion Rate</div>
             </div>
-            <div className="text-3xl font-heading font-bold text-slate-900">{avgCompletionRate}%</div>
+            <div className="text-3xl font-heading font-bold text-white">{avgCompletionRate}%</div>
           </motion.div>
         </div>
 
         {/* Walkthrough Stats */}
         <div className="glass rounded-xl p-6">
-          <h2 className="text-xl font-heading font-semibold text-slate-900 mb-4">Walkthrough Performance</h2>
+          <h2 className="text-xl font-heading font-semibold text-white mb-4">Walkthrough Performance</h2>
           
           {walkthroughs.length > 0 ? (
             <div className="space-y-4">
@@ -223,26 +223,26 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
                       </div>
                       {totalFeedback > 0 && (
                         <div className="mt-3 grid grid-cols-3 gap-3">
-                          <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
-                            <div className="text-sm font-medium text-slate-700">😊 Happy</div>
-                            <div className="text-xs text-slate-600">{happyCount} ({pct(happyCount)}%)</div>
+                          <div className="glass rounded-xl px-3 py-2">
+                            <div className="text-sm font-medium text-slate-200">😊 Happy</div>
+                            <div className="text-xs text-slate-400">{happyCount} ({pct(happyCount)}%)</div>
                           </div>
-                          <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
-                            <div className="text-sm font-medium text-slate-700">😐 Neutral</div>
-                            <div className="text-xs text-slate-600">{neutralCount} ({pct(neutralCount)}%)</div>
+                          <div className="glass rounded-xl px-3 py-2">
+                            <div className="text-sm font-medium text-slate-200">😐 Neutral</div>
+                            <div className="text-xs text-slate-400">{neutralCount} ({pct(neutralCount)}%)</div>
                           </div>
-                          <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
-                            <div className="text-sm font-medium text-slate-700">☹️ Sad</div>
-                            <div className="text-xs text-slate-600">{unhappyCount} ({pct(unhappyCount)}%)</div>
+                          <div className="glass rounded-xl px-3 py-2">
+                            <div className="text-sm font-medium text-slate-200">☹️ Sad</div>
+                            <div className="text-xs text-slate-400">{unhappyCount} ({pct(unhappyCount)}%)</div>
                           </div>
                         </div>
                       )}
                       {feedback.length > 0 ? (
                         <div className="mt-3 space-y-2">
                           {feedback.slice(0, 3).map((f) => (
-                            <div key={f.id} className="text-sm text-gray-700 bg-gray-50/50 backdrop-blur-sm rounded-xl px-3 py-2">
+                            <div key={f.id} className="text-sm text-slate-200 glass rounded-xl px-3 py-2">
                               <span className="font-medium">{f.rating}</span>
-                              {f.comment ? <span className="text-slate-600"> — {f.comment}</span> : null}
+                              {f.comment ? <span className="text-slate-400"> — {f.comment}</span> : null}
                             </div>
                           ))}
                           {feedback.length > 3 && (
@@ -272,8 +272,8 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
             <div className="text-2xl font-heading font-bold text-white">{walkthroughs.length}</div>
           </div>
           <div className="glass rounded-xl p-6">
-            <div className="text-sm text-slate-600 mb-1">Published</div>
-            <div className="text-2xl font-heading font-bold text-slate-900">
+            <div className="text-sm text-slate-400 mb-1">Published</div>
+            <div className="text-2xl font-heading font-bold text-white">
               {walkthroughs.filter(w => w.status === 'published').length}
             </div>
           </div>

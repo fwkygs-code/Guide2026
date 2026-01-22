@@ -225,7 +225,7 @@ const NotificationsMenu = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative w-9 h-9 p-0">
+        <Button variant="ghost" size="sm" className="relative w-9 h-9 p-0 text-slate-200 hover:text-white">
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
             <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">

@@ -161,10 +161,10 @@ code {
 @layer utilities {
   /* Apple-style glassmorphism */
   .glass {
-    @apply bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50;
+      @apply bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/60 backdrop-blur-xl border border-slate-700/50;
   }
   .glass-dark {
-    @apply bg-black/80 backdrop-blur-xl border border-gray-800/50;
+      @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/50;
   }
   /* Apple bubble button */
   .bubble-button {

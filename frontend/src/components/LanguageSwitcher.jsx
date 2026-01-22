@@ -29,7 +29,7 @@ const LanguageSwitcher = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="flex items-center gap-2 relative z-[10006]"
+          className="flex items-center gap-2 relative z-[10006] text-slate-200 hover:text-white"
           data-testid="language-switcher-button"
         >
           <Languages className="w-4 h-4" />

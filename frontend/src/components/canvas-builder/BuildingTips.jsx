@@ -180,7 +180,7 @@ const BuildingTips = () => {
             ) : (
               <Lightbulb className="w-5 h-5 text-primary" />
             )}
-            <h3 className="text-sm font-semibold text-slate-900">
+            <h3 className="text-sm font-semibold text-white">
               {showBlockReference ? (currentLang === 'he' ? 'מדריך לבלוקים' : 'Block Reference') : t('builder.buildingTips')}
             </h3>
           </div>
@@ -228,7 +228,7 @@ const BuildingTips = () => {
                       {tip.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-sm font-semibold text-slate-900 mb-1">
+                      <CardTitle className="text-sm font-semibold text-white mb-1">
                         {tip.title}
                       </CardTitle>
                       <CardDescription className="text-xs text-slate-600 leading-relaxed">
@@ -266,7 +266,7 @@ const BuildingTips = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-xl flex-shrink-0">{getBlockIcon(blockType)}</span>
-                      <span className="font-medium text-sm text-slate-900 truncate">
+                      <span className="font-medium text-sm text-white truncate">
                         {blockLabels[blockType]?.[currentLang] || getBlockLabel(blockType)}
                       </span>
                     </div>

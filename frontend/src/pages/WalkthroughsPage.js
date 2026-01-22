@@ -735,8 +735,8 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
-              <div className="mt-3 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl border border-gray-200/50">
-                <p className="text-xs text-gray-600 mb-2">{t('walkthrough.preview')}</p>
+              <div className="mt-3 p-3 glass rounded-xl">
+                <p className="text-xs text-slate-400 mb-2">{t('walkthrough.preview')}</p>
                 <iframe 
                   src={embedUrl}
                   className="w-full h-96 border border-gray-200 rounded-lg"

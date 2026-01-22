@@ -18,7 +18,7 @@ import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
 import WorkspaceLockModal from '../components/WorkspaceLockModal';
 import OnboardingTour from '../components/OnboardingTour';
-import { Surface, Card, Button, Panel } from '../components/ui/design-system';
+import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -140,26 +140,28 @@ const DashboardPage = () => {
       <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
       <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-heading font-bold text-slate-900">{t('dashboard.welcome', { name: user?.name })}</h1>
-                <p className="text-slate-600 mt-1">{t('dashboard.manageWorkspaces')}</p>
-              </div>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="rounded-full" data-testid="create-workspace-button">
-                <Plus className="w-4 h-4 mr-2" />
-                {t('dashboard.newWorkspace')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t('workspace.create')}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreateWorkspace} className="space-y-4 mt-4">
+      <PageHeader
+        title={t('dashboard.welcome', { name: user?.name })}
+        description={t('dashboard.manageWorkspaces')}
+        actions={
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="rounded-full"
+            data-testid="create-workspace-button"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {t('dashboard.newWorkspace')}
+          </Button>
+        }
+      />
+
+      <PageSurface>
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('workspace.create')}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateWorkspace} className="space-y-4 mt-4">
                 <div>
                   <Label htmlFor="workspace-name">{t('workspace.workspaces')} {t('common.name')}</Label>
                   <Input
@@ -287,7 +289,6 @@ const DashboardPage = () => {
               </form>
             </DialogContent>
             </Dialog>
-            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {workspaces.map((workspace, index) => (
@@ -341,7 +342,7 @@ const DashboardPage = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-heading font-semibold text-slate-900">
+                    <h3 className="text-lg font-heading font-semibold text-white">
                       {workspace.name}
                     </h3>
                     {workspace.owner_id && workspace.owner_id !== user?.id && (
@@ -479,14 +480,13 @@ const DashboardPage = () => {
             </Surface>
           </div>
         )}
-          </div>
 
           {/* Quota Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-6">
             <QuotaDisplay showWarnings={true} onUpgrade={() => setUpgradePromptOpen(true)} />
             <BillingInfo />
           </div>
-        </div>
+      </PageSurface>
     </DashboardLayout>
   );
 };

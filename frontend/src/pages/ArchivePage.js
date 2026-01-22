@@ -124,7 +124,7 @@ const ArchivePage = () => {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-heading font-semibold text-slate-900 mb-1">
+                    <h3 className="text-lg font-heading font-semibold text-white mb-1">
                       {walkthrough.title}
                     </h3>
                     <p className="text-sm text-slate-600 line-clamp-2">
@@ -167,8 +167,8 @@ const ArchivePage = () => {
         ) : (
           <div className="text-center py-16">
             <Archive className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">{t('archive.empty')}</h3>
-            <p className="text-slate-600">{t('archive.emptyDescription')}</p>
+            <h3 className="text-xl font-heading font-semibold text-white mb-2">{t('archive.empty')}</h3>
+            <p className="text-slate-400">{t('archive.emptyDescription')}</p>
           </div>
         )}
       </PageSurface>

@@ -678,8 +678,8 @@ const SettingsPage = () => {
                     <SelectItem value="xl">Extra Large</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="mt-3 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl border border-gray-200/50">
-                  <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                <div className="mt-3 p-3 glass rounded-xl">
+                  <p className="text-xs text-slate-400 mb-2">Preview:</p>
                   <div className="space-y-1">
                     <p className={`${textSize === 'small' ? 'text-sm' : textSize === 'medium' ? 'text-base' : textSize === 'large' ? 'text-lg' : 'text-xl'}`}>
                       This is how body text will look
@@ -837,8 +837,8 @@ const SettingsPage = () => {
                       <Copy className="w-4 h-4" />
                     </Button>
                   </div>
-                  <div className="mt-3 p-3 bg-gray-50/50 backdrop-blur-sm rounded-xl border border-gray-200/50">
-                    <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                  <div className="mt-3 p-3 glass rounded-xl">
+                    <p className="text-xs text-slate-400 mb-2">Preview:</p>
                     <iframe 
                       src={portalEmbedUrl}
                       className="w-full h-96 border border-gray-200 rounded-lg"
@@ -888,9 +888,9 @@ const SettingsPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 p-4 bg-blue-50/50 backdrop-blur-sm rounded-xl border border-blue-200/50">
-                    <p className="text-sm font-medium text-gray-900 mb-2">Integration Tips:</p>
-                    <ul className="text-xs text-gray-600 space-y-1 list-disc list-inside">
+                  <div className="mt-4 p-4 glass rounded-xl">
+                    <p className="text-sm font-medium text-slate-200 mb-2">Integration Tips:</p>
+                    <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
                       <li>Use the embed URL in iframes for seamless integration</li>
                       <li>API endpoint returns JSON data for custom integrations</li>
                       <li>All portal routes support CORS for cross-origin embedding</li>
