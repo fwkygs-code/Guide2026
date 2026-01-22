@@ -5,6 +5,12 @@
  * DO NOT MODIFY - This matches Knowledge Systems visual language.
  */
 
+// Core layout primitives
+export { default as AppShell } from './AppShell';
+export { default as PageHeader } from './PageHeader';
+export { default as PageSurface } from './PageSurface';
+
+// UI primitives
 export { default as Surface } from './Surface';
 export { default as Card } from './Card';
 export { default as Panel } from './Panel';
