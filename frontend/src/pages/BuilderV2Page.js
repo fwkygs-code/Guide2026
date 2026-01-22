@@ -600,7 +600,7 @@ const BuilderV2Page = () => {
       <div className="w-screen h-screen flex items-center justify-center bg-slate-50 p-8">
         <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8 max-h-[90vh] overflow-y-auto">
           <div className="space-y-2 mb-6">
-            <h2 className="text-2xl font-semibold text-white">Create New Walkthrough</h2>
+            <h2 className="text-2xl font-semibold">Create New Walkthrough</h2>
             <p className="text-sm text-slate-500">Set up your walkthrough before adding steps</p>
           </div>
 
@@ -936,7 +936,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
   return (
     <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white">Steps</h2>
+        <h2 className="text-sm font-semibold">Steps</h2>
         <Button variant="ghost" size="sm" onClick={onAddStep} className="h-7 w-7 p-0">
           <Plus className="w-4 h-4" />
         </Button>
@@ -963,7 +963,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">
+                    <div className="text-sm font-medium truncate">
                       {step.title || `Step ${index + 1}`}
                     </div>
                   </div>
@@ -1241,7 +1241,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
                 type="button"
               >
                 <div className="text-lg mb-1">{getBlockIcon(type)}</div>
-                <div className="text-xs font-medium text-white leading-tight">{t(`walkthrough.blocks.${type}`)}</div>
+                <div className="text-xs font-medium leading-tight">{t(getBlockLabelKey(type))}</div>
               </button>
             ))}
           </div>
@@ -3040,7 +3040,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[1px]">
             <div className="bg-white rounded-lg shadow-lg p-6 text-center space-y-2">
               <div className="text-2xl">📌</div>
-              <div className="font-medium text-white">{t('builder.messages.clickAnywhereToAdd')}</div>
+              <div className="font-medium">{t('builder.messages.clickAnywhereToAdd')}</div>
               <div className="text-sm text-slate-500">{t('builder.messages.interactiveMarkersAppear')}</div>
             </div>
           </div>
@@ -3050,7 +3050,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       {/* Annotations list and editing panel */}
       <div className="border border-slate-200 rounded-lg bg-white p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="font-medium text-sm text-white">
+          <div className="font-medium text-sm">
             📌 Annotations ({markers.length})
           </div>
           <Button
@@ -3091,7 +3091,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">
+                    <div className="text-sm font-medium truncate">
                       {marker.title || t('builder.labels.untitled')}
                     </div>
                     <div className="text-xs text-slate-500">
@@ -3109,7 +3109,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       {editingMarker !== null && markers[editingMarker] && (
         <div className="border border-primary rounded-lg bg-primary/5 p-4">
           <div className="flex items-center justify-between mb-3 pb-3 border-b border-primary/20">
-            <span className="font-semibold text-sm text-white">
+            <span className="font-semibold text-sm">
               {t('builder.labels.editingAnnotation', { number: editingMarker + 1 })}
             </span>
             <Button
@@ -3584,7 +3584,7 @@ const InspectorPanel = ({
   return (
     <div className="w-80 flex-shrink-0 border-l border-slate-200 bg-white overflow-hidden flex flex-col">
       <div className="p-4 border-b border-slate-200">
-        <h2 className="text-sm font-semibold text-white">Inspector</h2>
+        <h2 className="text-sm font-semibold">Inspector</h2>
       </div>
       <div className="flex-1 p-4">
         <div className="text-sm text-slate-400 text-center py-8">
