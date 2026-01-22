@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
-import { BLOCK_TYPES, createBlock, getBlockLabelKey, getBlockIcon } from '../utils/blockUtils';
+import { BLOCK_TYPES, createBlock, getBlockLabelKey, getBlockLabel, getBlockIcon } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
@@ -36,7 +36,11 @@ import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
  * - Inspector Panel (right, fixed width, no scroll)
  */
 const BuilderV2Page = () => {
-  const { t } = useTranslation();
+  const { t: rawT, ready } = useTranslation();
+
+  // Safe translation function that falls back to key if translations not ready
+  const t = (key, options) => ready ? rawT(key, options) : key;
+
   const { workspaceSlug, walkthroughId } = useParams();
   const navigate = useNavigate();
   const isEditing = !!walkthroughId && walkthroughId !== 'new';
@@ -1160,7 +1164,10 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
 
 // Add Block Button with Popover - Always visible, keyboard accessible
 const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
-  const { t } = useTranslation();
+  const { t: rawT, ready } = useTranslation();
+
+  // Safe translation function that falls back to key if translations not ready
+  const t = (key, options) => ready ? rawT(key, options) : key;
   const blockTypes = [
     BLOCK_TYPES.HEADING,
     BLOCK_TYPES.TEXT,
