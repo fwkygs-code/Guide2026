@@ -2434,8 +2434,6 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       }
       return; // Exit early for resizing
     }
-
-    }
   };
   
   const handleImagePointerUp = () => {
