@@ -889,6 +889,7 @@ const BuilderV2Page = () => {
             onBlockPickerOpen={setBlockPickerOpen}
             isStepLoaded={!loading && !!currentStep}
             canUploadFile={canUploadFile}
+            walkthrough={walkthrough}
           />
         </div>
 
@@ -993,7 +994,8 @@ const CanvasStage = ({
   blockPickerOpen,
   onBlockPickerOpen,
   isStepLoaded,
-  canUploadFile
+  canUploadFile,
+  walkthrough
 }) => {
   if (!currentStep) {
     return (

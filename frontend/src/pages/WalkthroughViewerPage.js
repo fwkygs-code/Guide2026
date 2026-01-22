@@ -866,6 +866,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         };
                         
                         const handleButtonClick = () => {
+                          console.log('[Button Click]', { action, blockData: block.data });
+                          
                           switch (action) {
                             case 'next':
                               handleNext();
@@ -874,22 +876,32 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             case 'go_to_step':
                               if (block.data?.targetStepId) {
                                 const targetIndex = walkthrough.steps.findIndex(s => s.id === block.data.targetStepId);
+                                console.log('[Go to Step]', { targetStepId: block.data.targetStepId, targetIndex });
                                 if (targetIndex !== -1) {
                                   setCurrentStep(targetIndex);
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
+                                } else {
+                                  console.error('[Go to Step] Target step not found');
                                 }
+                              } else {
+                                console.error('[Go to Step] No targetStepId configured');
                               }
                               break;
                               
                             case 'end':
-                              // End walkthrough - show completion or navigate away
+                              console.log('[End Walkthrough]');
                               if (window.confirm('Are you sure you want to end this walkthrough?')) {
-                                // Could add completion tracking here
-                                window.history.back();
+                                // Try to go back, or navigate to portal if no history
+                                if (window.history.length > 1) {
+                                  window.history.back();
+                                } else {
+                                  window.location.href = `/portal/${slug}`;
+                                }
                               }
                               break;
                               
                             case 'restart':
+                              console.log('[Restart Walkthrough]');
                               if (window.confirm('Restart walkthrough from the beginning?')) {
                                 setCurrentStep(0);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -897,28 +909,47 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               break;
                               
                             case 'support':
+                              console.log('[Get Support]', { 
+                                usePortal: block.data?.usePortalContactInfo, 
+                                workspaceWhatsapp: walkthrough?.workspace?.contact_whatsapp,
+                                customWhatsapp: block.data?.supportWhatsapp,
+                                customPhone: block.data?.supportPhone
+                              });
+                              
                               // Use portal contact info or custom fields
                               if (block.data?.usePortalContactInfo !== false && walkthrough?.workspace?.contact_whatsapp) {
-                                window.open(`https://wa.me/${walkthrough.workspace.contact_whatsapp.replace(/[^0-9]/g, '')}`, '_blank');
+                                const number = walkthrough.workspace.contact_whatsapp.replace(/[^0-9]/g, '');
+                                console.log('[Get Support] Opening WhatsApp with portal number:', number);
+                                window.open(`https://wa.me/${number}`, '_blank');
                               } else if (block.data?.supportWhatsapp) {
-                                window.open(`https://wa.me/${block.data.supportWhatsapp.replace(/[^0-9]/g, '')}`, '_blank');
+                                const number = block.data.supportWhatsapp.replace(/[^0-9]/g, '');
+                                console.log('[Get Support] Opening WhatsApp with custom number:', number);
+                                window.open(`https://wa.me/${number}`, '_blank');
                               } else if (block.data?.supportPhone) {
+                                console.log('[Get Support] Opening phone dialer:', block.data.supportPhone);
                                 window.open(`tel:${block.data.supportPhone}`, '_self');
+                              } else {
+                                console.warn('[Get Support] No contact info configured');
+                                alert('Support contact information not configured. Please contact the walkthrough creator.');
                               }
                               break;
                               
                             case 'link':
+                              console.log('[External Link]', block.data?.url);
                               if (block.data?.url) {
                                 window.open(block.data.url, '_blank');
                               }
                               break;
                               
                             case 'check':
-                              // Checkpoint action (existing behavior)
+                              console.log('[Checkpoint]');
+                              // Checkpoint action - mark step as completed
+                              setCompletedSteps(prev => new Set([...prev, currentStep]));
                               handleNext();
                               break;
                               
                             default:
+                              console.log('[Default action] Moving to next');
                               handleNext();
                           }
                         };
