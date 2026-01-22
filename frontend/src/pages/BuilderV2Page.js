@@ -2029,6 +2029,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       y1: Math.max(0, Math.min(100, y)), // Start point for line
       x2: Math.max(0, Math.min(100, x + 10)), // End point for line
       y2: Math.max(0, Math.min(100, y)), // End point for line
+      color: '#3b82f6', // Default blue color
       title: '',
       description: ''
     };
@@ -2401,6 +2402,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           const markerSize = marker.size || 30;
           const markerWidth = marker.width || 10;
           const markerHeight = marker.height || 10;
+          const markerColor = marker.color || '#3b82f6';
           
           if (markerShape === 'rectangle') {
             // Rectangle marker with corner resize handles
@@ -2409,8 +2411,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 <div
                   className={`absolute border-2 cursor-move select-none ${
                     isActive
-                      ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
-                      : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
+                      ? 'shadow-lg ring-2'
+                      : 'hover:shadow-md shadow-md'
                   }`}
                   style={{
                     left: `${marker.x}%`,
@@ -2418,6 +2420,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     width: `${markerWidth}%`,
                     height: `${markerHeight}%`,
                     transform: 'translate(-50%, -50%)',
+                    borderColor: markerColor,
+                    backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // 10% and 5% opacity
+                    ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
                   }}
@@ -2436,14 +2441,15 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   }}
                 >
                   {/* Number badge positioned outside top-right corner like an exponent */}
-                  <span 
-                    className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  <span
+                    className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                     style={{
                       width: '18px',
                       height: '18px',
                       top: '-9px',
                       right: '-9px',
-                      fontSize: '10px'
+                      fontSize: '10px',
+                      backgroundColor: markerColor
                     }}
                   >
                     {idx + 1}
@@ -2456,10 +2462,11 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                         <div
                           key={corner}
                           data-resize-handle="true"
-                          className="absolute w-4 h-4 bg-white border-2 border-primary rounded-full hover:scale-125 transition-transform"
+                          className="absolute w-4 h-4 bg-white rounded-full hover:scale-125 transition-transform"
                           style={{
                             [corner.includes('n') ? 'top' : 'bottom']: '-8px',
                             [corner.includes('w') ? 'left' : 'right']: '-8px',
+                            border: `2px solid ${markerColor}`,
                             cursor: corner === 'nw' || corner === 'se' ? 'nwse-resize' : 'nesw-resize',
                             zIndex: 20,
                             pointerEvents: 'auto',
@@ -2486,10 +2493,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           return (
             <div key={marker.id || idx}>
               <div
-                className={`absolute border-2 cursor-move select-none ${
+                className={`absolute cursor-move select-none ${
                   isActive
-                    ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
-                    : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
+                    ? 'shadow-lg ring-2'
+                    : 'hover:shadow-md shadow-md'
                 }`}
                 style={{
                   left: `${marker.x}%`,
@@ -2498,6 +2505,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   height: `${markerSize || 30}px`,
                   borderRadius: '50%',
                   transform: 'translate(-50%, -50%)',
+                  border: `2px solid ${markerColor}`,
+                  backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // 10% and 5% opacity
+                  ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
                 }}
@@ -2517,13 +2527,14 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               >
                 {/* Number badge positioned outside top-right corner like an exponent */}
                 <span
-                  className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
                     width: '18px',
                     height: '18px',
                     top: '-9px',
                     right: '-9px',
-                    fontSize: '10px'
+                    fontSize: '10px',
+                    backgroundColor: markerColor
                   }}
                 >
                   {idx + 1}
@@ -2533,11 +2544,12 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 {isActive && (
                   <div
                     data-resize-handle="true"
-                    className="absolute w-4 h-4 bg-white border-2 border-primary rounded-full hover:scale-125 transition-transform"
+                    className="absolute w-4 h-4 bg-white rounded-full hover:scale-125 transition-transform"
                     style={{
                       right: '-8px',
                       top: '50%',
                       transform: 'translateY(-50%)',
+                      border: `2px solid ${markerColor}`,
                       cursor: 'ew-resize',
                       zIndex: 20,
                       pointerEvents: 'auto',
@@ -2568,6 +2580,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
+                    color: markerColor
                   }}
                   onPointerDown={(e) => {
                     // Check if clicking on handles
@@ -2585,7 +2598,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 >
                   {/* Arrow shaft */}
                   <div
-                    className={`absolute bg-primary ${isActive ? 'shadow-lg' : 'shadow-md'}`}
+                    className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                     style={{
                       left: '50%',
                       top: '50%',
@@ -2593,6 +2606,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       height: '2px',
                       transform: 'translate(-50%, -50%)',
                       transformOrigin: 'left center',
+                      backgroundColor: markerColor
                     }}
                   />
 
@@ -2604,7 +2618,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                       top: '50%',
                       width: '0',
                       height: '0',
-                      borderLeft: '8px solid var(--primary)',
+                      borderLeft: `8px solid ${markerColor}`,
                       borderTop: '4px solid transparent',
                       borderBottom: '4px solid transparent',
                       transform: 'translate(-50%, -50%)',
@@ -2614,14 +2628,15 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
                   {/* Number badge */}
                   <span
-                    className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                    className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                     style={{
                       width: '18px',
                       height: '18px',
                       left: '50%',
                       top: '50%',
                       transform: 'translate(-50%, -50%) translateY(-20px)',
-                      fontSize: '10px'
+                      fontSize: '10px',
+                      backgroundColor: markerColor
                     }}
                   >
                     {idx + 1}
@@ -2631,11 +2646,12 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   {isActive && (
                     <div
                       data-rotation-handle="true"
-                      className="absolute w-4 h-4 bg-blue-500 border-2 border-white rounded-full hover:scale-125 transition-transform shadow-md"
+                      className="absolute w-4 h-4 border-2 border-white rounded-full hover:scale-125 transition-transform shadow-md"
                       style={{
                         left: '50%',
                         top: '50%',
                         transform: 'translate(-50%, -50%) translateY(-30px)',
+                        backgroundColor: markerColor,
                         cursor: 'alias',
                         zIndex: 20,
                         pointerEvents: 'auto',
@@ -2650,18 +2666,19 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
                   {/* Resize handle at arrowhead */}
                   {isActive && (
-                    <div
-                      data-resize-handle="true"
-                      className="absolute w-4 h-4 bg-green-500 border-2 border-white rounded-full hover:scale-125 transition-transform shadow-md"
-                      style={{
-                        left: `calc(50% + ${arrowLength + 8}px)`,
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        cursor: 'ew-resize',
-                        zIndex: 20,
-                        pointerEvents: 'auto',
-                        touchAction: 'none'
-                      }}
+                  <div
+                    data-resize-handle="true"
+                    className="absolute w-4 h-4 border-2 border-white rounded-full hover:scale-125 transition-transform shadow-md"
+                    style={{
+                      left: `calc(50% + ${arrowLength + 8}px)`,
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      backgroundColor: markerColor,
+                      cursor: 'ew-resize',
+                      zIndex: 20,
+                      pointerEvents: 'auto',
+                      touchAction: 'none'
+                    }}
                       onPointerDown={(e) => handleArrowPointerDown(e, idx, 'resize')}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -2698,7 +2715,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     y1={`${startY}%`}
                     x2={`${endX}%`}
                     y2={`${endY}%`}
-                    stroke="var(--primary)"
+                    stroke={markerColor}
                     strokeWidth={isActive ? "3" : "2"}
                     style={{ pointerEvents: 'stroke', cursor: 'move' }}
                     onPointerDown={(e) => {
@@ -2713,7 +2730,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     cy={`${startY}%`}
                     r="6"
                     fill="white"
-                    stroke="var(--primary)"
+                    stroke={markerColor}
                     strokeWidth="2"
                     style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
                     onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_start')}
@@ -2725,7 +2742,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     cy={`${endY}%`}
                     r="6"
                     fill="white"
-                    stroke="var(--primary)"
+                    stroke={markerColor}
                     strokeWidth="2"
                     style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
                     onPointerDown={(e) => handleLinePointerDown(e, idx, 'resize_end')}
@@ -2737,7 +2754,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     y={`${(startY + endY) / 2 - 2}%`}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill="var(--primary)"
+                    fill={markerColor}
                     fontSize="10"
                     fontWeight="bold"
                     style={{ pointerEvents: 'none' }}
@@ -2861,7 +2878,17 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 className="text-sm"
               />
             </div>
-            
+
+            <div>
+              <Label className="text-xs text-slate-700 mb-1 block">Color</Label>
+              <input
+                type="color"
+                value={markers[editingMarker].color || '#3b82f6'}
+                onChange={(e) => updateMarker(editingMarker, { color: e.target.value })}
+                className="w-full h-9 rounded-md border border-slate-300 cursor-pointer"
+              />
+            </div>
+
             <div>
               <Label className="text-xs text-slate-700 mb-1 block">Shape</Label>
               <Select
