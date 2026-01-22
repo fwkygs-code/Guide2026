@@ -1241,7 +1241,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
                 type="button"
               >
                 <div className="text-lg mb-1">{getBlockIcon(type)}</div>
-                <div className="text-xs font-medium leading-tight">{t(getBlockLabelKey(type))}</div>
+                <div className="text-xs font-medium leading-tight">{t(`walkthrough.blocks.${type}`)}</div>
               </button>
             ))}
           </div>
