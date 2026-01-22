@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Surface, Card, Button, Badge, Panel } from '../components/ui/design-system';
+import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
 
 const WalkthroughsPage = () => {
   const { t } = useTranslation();
@@ -267,26 +267,10 @@ const WalkthroughsPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t('common.backToWorkspace', 'Back to Workspace')}
-            </Button>
-            <div>
-              <Surface variant="floating" className="inline-block px-6 py-3">
-                <h1 className="text-3xl font-heading font-bold text-white">
-                  {workspace?.name} - {t('workspace.walkthroughs')}
-                </h1>
-                <p className="text-slate-400 mt-1">{t('walkthrough.createAndManage')}</p>
-              </Surface>
-            </div>
-          </div>
+      <PageHeader
+        title={`${workspace?.name} - ${t('workspace.walkthroughs')}`}
+        description={t('walkthrough.createAndManage')}
+        actions={
           <div className="flex gap-3">
             <Button
               variant="secondary"
@@ -312,7 +296,10 @@ const WalkthroughsPage = () => {
               {t('walkthrough.new')}
             </Button>
           </div>
-        </div>
+        }
+      />
+
+      <PageSurface>
 
         {Object.keys(walkthroughsByCategory).length > 0 ? (
           <div className="space-y-8">
@@ -440,10 +427,14 @@ const WalkthroughsPage = () => {
                             <Edit className="w-3 h-3 mr-1" />
                             {t('common.edit')}
                           </Button>
-                          <WalkthroughShareButton 
-                            walkthrough={walkthrough} 
-                            workspaceSlug={workspace?.slug}
-                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled
+                            title="Share functionality temporarily disabled"
+                          >
+                            <Share2 className="w-3 h-3" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -647,12 +638,13 @@ const WalkthroughsPage = () => {
             )}
           </DialogContent>
         </Dialog>
-      </div>
+      </PageSurface>
     </DashboardLayout>
   );
 };
 
-// Share Button Component for Walkthroughs
+// Share Button Component for Walkthroughs - TEMPORARILY DISABLED
+/*
 const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
   const { t } = useTranslation();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -758,5 +750,6 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
     </Dialog>
   );
 };
+*/
 
 export default WalkthroughsPage;
