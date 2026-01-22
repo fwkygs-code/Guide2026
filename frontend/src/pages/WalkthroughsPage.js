@@ -390,7 +390,7 @@ const WalkthroughsPage = () => {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-heading font-semibold text-white mb-1">
+                            <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors mb-1">
                               {walkthrough.title}
                             </h3>
                             <p className="text-sm text-slate-400 line-clamp-2">

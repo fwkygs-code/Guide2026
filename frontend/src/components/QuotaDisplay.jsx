@@ -200,7 +200,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     <div className="space-y-4">
       {/* Plan Badge and Upgrade Button */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">{t('quota.usage')}</h3>
+        <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.usage')}</h3>
         <div className="flex items-center gap-2">
           {onUpgrade && (
             <Button size="sm" variant="default" onClick={onUpgrade}>
@@ -345,7 +345,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Database className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium text-white">{t('quota.storage')}</CardTitle>
+              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.storage')}</CardTitle>
             </div>
             <span className="text-xs text-slate-400">
               {formatBytes(quota.storage_used, t)} / {formatBytes(quota.storage_allowed, t)}
@@ -371,7 +371,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium text-white">{t('quota.workspaces')}</CardTitle>
+              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.workspaces')}</CardTitle>
             </div>
             <span className="text-xs text-slate-400">
               {quota.workspaces_used} / {formatNumber(quota.workspaces_limit, t)}
@@ -401,7 +401,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium text-white">{t('quota.walkthroughs')}</CardTitle>
+              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.walkthroughs')}</CardTitle>
             </div>
             <span className="text-xs text-slate-400">
               {quota.walkthroughs_used} / {formatNumber(quota.walkthroughs_limit, t)}
@@ -431,7 +431,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-sm font-medium text-white">{t('quota.categories')}</CardTitle>
+              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.categories')}</CardTitle>
             </div>
             <span className="text-xs text-slate-400">
               {quota.categories_used} / {formatNumber(quota.categories_limit, t)}
@@ -459,7 +459,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       {workspaceQuota && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-white">{t('quota.thisWorkspace')}</CardTitle>
+            <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.thisWorkspace')}</CardTitle>
             <CardDescription className="text-xs">
               {t('quota.workspaceQuota')}
             </CardDescription>
@@ -484,7 +484,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       {/* Plan Limits Info */}
       <Card interactive={true}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-white">{t('quota.planLimits')}</CardTitle>
+          <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.planLimits')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-xs text-slate-400">
           <div className="flex items-center justify-between">

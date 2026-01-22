@@ -196,7 +196,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
                   <div key={wt.id} className="border border-slate-700 rounded-lg p-4 bg-gradient-to-br from-slate-800 to-slate-900">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="font-heading font-semibold text-white">{wt.title}</h3>
+                        <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">{wt.title}</h3>
                         <p className="text-sm text-slate-400">{wt.steps?.length || 0} steps</p>
                       </div>
                     </div>

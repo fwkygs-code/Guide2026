@@ -449,7 +449,7 @@ const CategoriesPage = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-lg font-heading font-semibold text-white">
+                      <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">
                         {category.name}
                       </h3>
                       <div className="flex gap-2">
@@ -509,7 +509,7 @@ const CategoriesPage = () => {
                                 <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
                               )}
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-white">{subCat.name}</div>
+                                <div className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{subCat.name}</div>
                                 {subCat.description && (
                                   <div className="text-xs text-slate-400 truncate">{subCat.description}</div>
                                 )}
