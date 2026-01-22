@@ -144,7 +144,7 @@ function KnowledgeSystemsPage() {
               className="mt-6 flex gap-3"
             >
               <Button variant="outline" onClick={handleDiscardChanges} className="border-slate-600 text-slate-300 hover:bg-slate-800">
-                Discard Changes
+                Reset Changes
               </Button>
               <Button onClick={handleSaveAll} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
                 Save All Changes
