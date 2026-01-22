@@ -12,6 +12,7 @@ import axios from 'axios';
 import { normalizeImageUrl } from '../lib/utils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
+import { AppShell } from '../components/ui/design-system';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
