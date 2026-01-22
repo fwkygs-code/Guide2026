@@ -2159,7 +2159,15 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setDraggingMarker(index);
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
-      dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
+      const marker = markers[index];
+      // Store initial marker position for correct delta calculation
+      dragStartPos.current = { 
+        x: e.clientX, 
+        y: e.clientY, 
+        rect,
+        initialX: marker.x,
+        initialY: marker.y
+      };
     } else if (action === 'rotate') {
       setInteractionMode('rotating');
       setResizingMarker(index);
@@ -2172,7 +2180,14 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setResizeCorner('arrow');
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
-      dragStartPos.current = { x: e.clientX, y: e.clientY, rect };
+      const marker = markers[index];
+      // Store initial length for delta-based resize
+      dragStartPos.current = { 
+        x: e.clientX, 
+        y: e.clientY, 
+        rect,
+        initialLength: marker.length || 80
+      };
     }
 
     console.log('[Arrow] Stored dragStartPos', dragStartPos.current);
@@ -2190,7 +2205,19 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       setDraggingMarker(index);
       setEditingMarker(null);
       const rect = imageRef.current.getBoundingClientRect();
-      dragStartPos.current = { x: e.clientX, y: e.clientY, rect, markerIndex: index };
+      const marker = markers[index];
+      // Store initial pointer AND marker positions for correct delta calculation
+      dragStartPos.current = { 
+        x: e.clientX, 
+        y: e.clientY, 
+        rect, 
+        markerIndex: index,
+        // Store initial line endpoints
+        initialX1: marker.x1,
+        initialY1: marker.y1,
+        initialX2: marker.x2,
+        initialY2: marker.y2
+      };
     } else if (action === 'resize_start') {
       setInteractionMode('resizing_start');
       setResizingMarker(index);
@@ -2224,22 +2251,35 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         const y = ((e.clientY - rect.top) / rect.height) * 100;
 
         const marker = markers[draggingMarker];
-        if (marker.shape === 'line') {
-          // Line dragging: move both endpoints together while preserving relative positions
+        if (marker.shape === 'line' && dragStartPos.current.initialX1 !== undefined) {
+          // Line dragging: move both endpoints together using INITIAL positions + delta
           const startPointerX = ((dragStartPos.current.x - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
           const startPointerY = ((dragStartPos.current.y - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
 
           const deltaX = x - startPointerX;
           const deltaY = y - startPointerY;
 
-          const newX1 = Math.max(0, Math.min(100, marker.x1 + deltaX));
-          const newY1 = Math.max(0, Math.min(100, marker.y1 + deltaY));
-          const newX2 = Math.max(0, Math.min(100, marker.x2 + deltaX));
-          const newY2 = Math.max(0, Math.min(100, marker.y2 + deltaY));
+          // Use INITIAL positions (stored on pointer down) + delta, NOT current positions
+          const newX1 = Math.max(0, Math.min(100, dragStartPos.current.initialX1 + deltaX));
+          const newY1 = Math.max(0, Math.min(100, dragStartPos.current.initialY1 + deltaY));
+          const newX2 = Math.max(0, Math.min(100, dragStartPos.current.initialX2 + deltaX));
+          const newY2 = Math.max(0, Math.min(100, dragStartPos.current.initialY2 + deltaY));
 
           updateMarker(draggingMarker, { x1: newX1, y1: newY1, x2: newX2, y2: newY2 });
+        } else if (marker.shape === 'arrow' && dragStartPos.current.initialX !== undefined) {
+          // Arrow dragging: use delta-based movement from initial position
+          const startPointerX = ((dragStartPos.current.x - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
+          const startPointerY = ((dragStartPos.current.y - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
+
+          const deltaX = x - startPointerX;
+          const deltaY = y - startPointerY;
+
+          updateMarker(draggingMarker, {
+            x: Math.max(0, Math.min(100, dragStartPos.current.initialX + deltaX)),
+            y: Math.max(0, Math.min(100, dragStartPos.current.initialY + deltaY))
+          });
         } else {
-          // Regular marker dragging
+          // Regular marker dragging (dot, rectangle) - direct position
           updateMarker(draggingMarker, {
             x: Math.max(0, Math.min(100, x)),
             y: Math.max(0, Math.min(100, y))
@@ -2274,19 +2314,22 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
           updateMarker(resizingMarker, { size: newSize });
         } else if (resizeCorner === 'arrow') {
-          // Arrow resize: change length
+          // Arrow resize: change length using signed delta along arrow axis
           const marker = markers[resizingMarker];
-          const { x: startX, y: startY } = dragStartPos.current;
+          const { x: startX, y: startY, initialLength } = dragStartPos.current;
 
           const startPointerX = ((startX - dragStartPos.current.rect.left) / dragStartPos.current.rect.width) * 100;
           const startPointerY = ((startY - dragStartPos.current.rect.top) / dragStartPos.current.rect.height) * 100;
 
           const currentDeltaX = currentX - startPointerX;
           const currentDeltaY = currentY - startPointerY;
-          const distance = Math.sqrt(currentDeltaX * currentDeltaX + currentDeltaY * currentDeltaY);
-
-          const startLength = marker.length || 80;
-          const newLength = Math.max(20, Math.min(300, startLength + distance));
+          
+          // Project delta onto arrow direction to get signed length change
+          const rotation = marker.rotation || 0;
+          const signedDelta = currentDeltaX * Math.cos(rotation) + currentDeltaY * Math.sin(rotation);
+          
+          // Use initial length + signed delta (can grow or shrink)
+          const newLength = Math.max(20, Math.min(300, initialLength + signedDelta * 2));
 
           updateMarker(resizingMarker, { length: newLength });
         } else {

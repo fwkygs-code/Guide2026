@@ -468,17 +468,6 @@
     "checkoffRequired": "סימון כשסיימת",
     "autoAdvance": "קידום אוטומטי",
     "deleteStep": "מחק שלב",
-    "placeholders": {
-      "walkthroughName": "הכנס שם מדריך",
-      "walkthroughDescription": "הכנס תיאור (אופציונלי)",
-      "imageUrl": "הכנס כתובת תמונה",
-      "pasteImageUrl": "הדבק כתובת תמונה",
-      "headingText": "טקסט כותרת...",
-      "addCaption": "הוסף כיתוב...",
-      "addSlideCaption": "הוסף כיתוב לשקופית זו...",
-      "annotationTitle": "כותרת הערה",
-      "annotationDescription": "תיאור הערה"
-    },
     "buttons": {
       "undo": "בטל (בקרוב)",
       "redo": "בצע שוב (בקרוב)"
