@@ -775,7 +775,7 @@ const BuilderV2Page = () => {
             onClick={() => window.open(`/portal/${workspaceSlug}/${walkthroughId || 'preview'}`, '_blank')}
           >
             <Eye className="w-4 h-4 mr-2" />
-            Preview
+            {t('walkthrough.preview')}
           </Button>
           <Button size="sm" onClick={saveWalkthrough} disabled={isSaving}>
             <Save className="w-4 h-4 mr-2" />
@@ -936,7 +936,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
   return (
     <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Steps</h2>
+        <h2 className="text-sm font-semibold">{t('walkthrough.steps')}</h2>
         <Button variant="ghost" size="sm" onClick={onAddStep} className="h-7 w-7 p-0">
           <Plus className="w-4 h-4" />
         </Button>
@@ -1167,13 +1167,15 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
 
   // Create a mapping of block types to display names
   const getBlockDisplayName = (type) => {
-    // Try translation first, fallback to hardcoded names
-    const translated = t(`walkthrough.blocks.${type}`);
-    if (translated && translated !== `walkthrough.blocks.${type}`) {
+    // Try translation first
+    const translated = t(`walkthrough.blocks.${type}`, { defaultValue: null });
+
+    // If translation succeeded (not null and not the key itself), use it
+    if (translated && translated !== `walkthrough.blocks.${type}` && translated !== type) {
       return translated;
     }
 
-    // Fallback hardcoded mapping
+    // Fallback to hardcoded English names (same as translation values)
     const names = {
       heading: 'Heading',
       text: 'Text',
