@@ -660,7 +660,7 @@ const WalkthroughsPage = () => {
             )}
           </DialogContent>
         </Dialog>
-      </div>
+      </Panel>
     </DashboardLayout>
   );
 };
