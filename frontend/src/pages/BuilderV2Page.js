@@ -2092,7 +2092,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     setResizingMarker(index);
     setResizeCorner('dot');
     setEditingMarker(null);
-    const markerSize = marker.size || 3;
+    const markerSize = marker.size || 3; // Keep default for resize calculation
     const radius = markerSize / 2;
     dragStartPos.current = { 
       initialRadius: radius,
@@ -2284,9 +2284,15 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         {markers.map((marker, idx) => {
           const isActive = editingMarker === idx || draggingMarker === idx || resizingMarker === idx;
           const markerShape = marker.shape || 'dot';
-          const markerSize = marker.size || 3; // Now in %
+          // Use marker.size directly - no defaults, let undefined/falsy values be handled by CSS minWidth/minHeight
+          const markerSize = marker.size;
           const markerWidth = marker.width || 10;
           const markerHeight = marker.height || 10;
+
+          // Debug dot size at render time
+          if (markerShape === 'dot') {
+            console.log('[Dot Render] marker.size at render:', marker.size, 'markerSize var:', markerSize, 'idx:', idx);
+          }
           
           if (markerShape === 'rectangle') {
             // Rectangle marker with corner resize handles
@@ -2385,9 +2391,9 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     ? 'bg-primary text-white scale-110 shadow-lg ring-2 ring-primary/30'
                     : 'bg-primary text-white hover:scale-110 shadow-md hover:shadow-lg'
                 }`}
-                style={{ 
-                  width: `${markerSize}%`,
-                  height: `${markerSize}%`,
+                style={{
+                  width: markerSize ? `${markerSize}%` : '30px',
+                  height: markerSize ? `${markerSize}%` : '30px',
                   aspectRatio: '1',
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
