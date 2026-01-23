@@ -650,6 +650,12 @@
     "uploadNotCompleted": "Upload not completed (status: {{status}}). Please try again.",
     "uploadNoUrl": "Upload succeeded but no URL returned. Please try again.",
     "recoveredBlocks": "Recovered {{count}} image blocks!",
-    "failedToRecover": "Failed to recover blocks"
+    "failedToRecover": "Failed to recover blocks",
+    "passwordResetEmailSent": "If the email is registered, you'll receive a reset link shortly. Check your spam folder.",
+    "passwordResetSuccess": "Password reset successfully. You can now log in with your new password.",
+    "passwordTooShort": "Password must be at least 8 characters long",
+    "passwordsDontMatch": "Passwords do not match",
+    "invalidResetToken": "Invalid or expired reset token",
+    "resetTokenExpired": "Reset token has expired"
   }
 }

@@ -195,6 +195,14 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+    confirm_password: str
+
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -207,6 +215,8 @@ class User(BaseModel):
     email_verified: bool = False  # Email verification status
     email_verification_token: Optional[str] = None  # Hashed verification token
     email_verification_expires_at: Optional[datetime] = None  # Token expiration
+    password_reset_token: Optional[str] = None  # Hashed password reset token
+    password_reset_expires_at: Optional[datetime] = None  # Password reset token expiration
     disabled: bool = False  # Admin can disable user login
     deleted_at: Optional[datetime] = None  # Soft delete timestamp
     grace_period_ends_at: Optional[datetime] = None  # Grace period end date for expired subscriptions
@@ -596,6 +606,119 @@ Guide2026
         return False
     except Exception as e:
         logging.error(f"[EMAIL][FAILED] email={email} error={str(e)}", exc_info=True)
+        return False
+
+def send_password_reset_email(email: str, reset_url: str, name: Optional[str] = None) -> bool:
+    """
+    Send password reset email via Resend HTTP API.
+    Returns True on success, False on failure.
+    Never raises exceptions - called from background tasks.
+    """
+    if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
+        logging.warning(f"[EMAIL][FAILED] email={email} error=Resend not configured")
+        return False
+
+    try:
+        # Use provided name or extract from email for personalization
+        if not name:
+            name = email.split('@')[0].replace('.', ' ').title()
+
+        subject = "Reset your InterGuide password"
+
+        # Plain text version
+        text_content = f"""Hi {name},
+
+You requested a password reset for your InterGuide account.
+
+Click the link below to reset your password:
+{reset_url}
+
+This link will expire in 1 hour for security reasons.
+
+If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
+
+Best regards,
+InterGuide Team
+"""
+
+        # HTML version
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .button {{ display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .warning {{ background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 5px; padding: 15px; margin: 20px 0; }}
+        .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Reset your InterGuide password</h2>
+
+        <p>Hi {name},</p>
+
+        <p>You requested a password reset for your InterGuide account.</p>
+
+        <p><a href="{reset_url}" class="button">Reset Password</a></p>
+
+        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+        <p><a href="{reset_url}">{reset_url}</a></p>
+
+        <div class="warning">
+            <strong>Security Notice:</strong> This link will expire in 1 hour for your security.
+        </div>
+
+        <p>If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+
+        <div class="footer">
+            <p>Best regards,<br>InterGuide Team</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+        payload = {
+            "from": RESEND_FROM_EMAIL,
+            "to": [email],
+            "subject": subject,
+            "text": text_content,
+            "html": html_content
+        }
+
+        headers = {
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        logging.info(f"[EMAIL][REQUEST] Password reset email to {email}")
+        response = requests.post(RESEND_API_URL, json=payload, headers=headers, timeout=10)
+
+        if response.status_code == 200:
+            response_data = response.json()
+            resend_id = response_data.get('id', 'unknown')
+            logging.info(f"[EMAIL][SUCCESS] Password reset email sent to {email}, resend_id={resend_id}")
+            return True
+        else:
+            try:
+                error_data = response.json()
+                error_detail = error_data.get('message', str(error_data))
+            except:
+                error_detail = response.text or f"HTTP {response.status_code}"
+
+            logging.error(f"[EMAIL][FAILED] Password reset email to {email}, status={response.status_code}, error={error_detail}")
+            return False
+
+    except requests.exceptions.Timeout:
+        logging.error(f"[EMAIL][FAILED] Password reset email to {email}, error=Resend API timeout (10s)")
+        return False
+    except requests.exceptions.RequestException as e:
+        logging.error(f"[EMAIL][FAILED] Password reset email to {email}, error=Resend API request error: {str(e)}")
+        return False
+    except Exception as e:
+        logging.error(f"[EMAIL][FAILED] Password reset email to {email}, error={str(e)}", exc_info=True)
         return False
 
 def send_invitation_email(email: str, workspace_name: str, inviter_name: str) -> bool:
@@ -2174,6 +2297,133 @@ async def dismiss_onboarding(current_user: User = Depends(get_current_user)):
     except Exception as error:
         logging.error(f"Failed to dismiss onboarding: {error}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update onboarding status")
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks
+):
+    """
+    Request password reset for user.
+    Always returns success message regardless of whether email exists (security).
+    Generates secure reset token and sends reset email.
+    """
+    try:
+        # Check if user exists (but don't reveal this information)
+        user_doc = await db.users.find_one({"email": request.email}, {"_id": 0})
+
+        if user_doc:
+            # Generate password reset token
+            reset_token = generate_verification_token()
+            token_hash = hash_verification_token(reset_token)
+            token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)  # 1 hour expiry
+
+            # Update user with reset token
+            await db.users.update_one(
+                {"email": request.email},
+                {
+                    "$set": {
+                        "password_reset_token": token_hash,
+                        "password_reset_expires_at": token_expires_at.isoformat(),
+                        "updated_at": datetime.now(timezone.utc)
+                    }
+                }
+            )
+
+            # Send reset email in background
+            reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+            background_tasks.add_task(
+                send_password_reset_email,
+                request.email,
+                reset_url,
+                user_doc.get('name')
+            )
+
+        # Always return success to prevent user enumeration
+        return {
+            "success": True,
+            "message": "If the email is registered, you'll receive a reset link shortly. Check your spam folder if needed."
+        }
+
+    except Exception as error:
+        logging.error(f"Failed to process password reset request: {error}", exc_info=True)
+        # Still return success for security
+        return {
+            "success": True,
+            "message": "If the email is registered, you'll receive a reset link shortly. Check your spam folder if needed."
+        }
+
+@api_router.post("/auth/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    """
+    Reset user password using valid reset token.
+    Validates token, updates password, and invalidates all reset tokens.
+    """
+    if not request.token:
+        raise HTTPException(status_code=400, detail="Reset token is required")
+
+    if request.new_password != request.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    # Validate password strength
+    if len(request.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+
+    try:
+        # Find user with valid reset token
+        user_doc = await db.users.find_one({
+            "password_reset_token": {"$ne": None},
+            "password_reset_expires_at": {"$ne": None}
+        }, {"_id": 0})
+
+        if not user_doc:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+        # Verify token
+        stored_hash = user_doc.get('password_reset_token')
+        expires_at_str = user_doc.get('password_reset_expires_at')
+
+        if not stored_hash or not expires_at_str:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+        # Check if token is expired
+        try:
+            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+            if datetime.now(timezone.utc) > expires_at:
+                raise HTTPException(status_code=400, detail="Reset token has expired")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid reset token format")
+
+        # Verify token hash
+        if not verify_verification_token(request.token, stored_hash):
+            raise HTTPException(status_code=400, detail="Invalid reset token")
+
+        # Hash new password
+        hashed_password = hash_password(request.new_password)
+
+        # Update password and clear reset tokens
+        await db.users.update_one(
+            {"id": user_doc['id']},
+            {
+                "$set": {
+                    "password": hashed_password,
+                    "password_reset_token": None,
+                    "password_reset_expires_at": None,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+
+        return {
+            "success": True,
+            "message": "Password reset successfully. You can now log in with your new password."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"Failed to reset password: {error}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to reset password")
 
 # Notification Routes
 @api_router.get("/notifications")

@@ -758,7 +758,13 @@
     "uploadNotCompleted": "ההעלאה לא הושלמה (סטטוס: {{status}}). אנא נסה שוב.",
     "uploadNoUrl": "ההעלאה הצליחה אך לא הוחזר URL. אנא נסה שוב.",
     "recoveredBlocks": "שוחזרו {{count}} בלוקי תמונה!",
-    "failedToRecover": "נכשל בשחזור בלוקים"
+    "failedToRecover": "נכשל בשחזור בלוקים",
+    "passwordResetEmailSent": "אם האימייל רשום, תקבל קישור לאיפוס סיסמה בקרוב. בדוק את תיקיית הספאם.",
+    "passwordResetSuccess": "איפוס הסיסמה הצליח. כעת תוכל להתחבר עם הסיסמה החדשה שלך.",
+    "passwordTooShort": "הסיסמה חייבת להכיל לפחות 8 תווים",
+    "passwordsDontMatch": "הסיסמאות לא תואמות",
+    "invalidResetToken": "אסימון איפוס לא תקף או פג תוקף",
+    "resetTokenExpired": "אסימון האיפוס פג תוקף"
   },
   "onboardingTour": {
     "progress": "שלב {{current}} מתוך {{total}}",

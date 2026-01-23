@@ -76,6 +76,11 @@ export const api = {
   completeOnboarding: () => axios.post(`${API}/onboarding/complete`),
   dismissOnboarding: () => axios.post(`${API}/onboarding/dismiss`),
 
+  // Password Reset
+  forgotPassword: (email) => axios.post(`${API}/auth/forgot-password`, { email }),
+  resetPassword: (token, newPassword, confirmPassword) =>
+    axios.post(`${API}/auth/reset-password`, { token, new_password: newPassword, confirm_password: confirmPassword }),
+
   // Upload
   uploadFile: (file, options = {}) => {
     console.log('[API] uploadFile called:', {

@@ -23,6 +23,8 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import BillingPolicyPage from './pages/BillingPolicyPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import EmailVerificationRequiredPage from './pages/EmailVerificationRequiredPage';
 import AccountBlockedPage from './pages/AccountBlockedPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -215,6 +217,8 @@ const AppContent = () => {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/billing-policy" element={<BillingPolicyPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/portal/:slug" element={<PortalPage />} />
           <Route path="/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage />} />
           <Route path={POLICY_ROUTES.portal} element={<PolicyPortalRoute />} />
