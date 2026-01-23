@@ -634,7 +634,7 @@ const BuilderV2Page = () => {
       <div className="w-screen h-screen flex items-center justify-center bg-slate-50 p-8">
         <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8 max-h-[90vh] overflow-y-auto" data-onboarding="walkthrough-setup-form">
           <div className="space-y-2 mb-6">
-            <h2 className="text-2xl font-semibold">Create New Walkthrough</h2>
+            <h2 className="text-2xl font-semibold text-slate-900">Create New Walkthrough</h2>
             <p className="text-sm text-slate-500">Set up your walkthrough before adding steps</p>
           </div>
 
@@ -648,7 +648,7 @@ const BuilderV2Page = () => {
                     id="title"
                     value={setupData.title}
                     onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder={t('placeholders.walkthroughName')}
+                    placeholder="Enter walkthrough name"
                     className="w-full"
                     data-testid="walkthrough-name-input"
                   />
@@ -663,7 +663,7 @@ const BuilderV2Page = () => {
                     id="description"
                     value={setupData.description}
                     onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder={t('placeholders.walkthroughDescription')}
+                    placeholder="Enter description (optional)"
                     rows={3}
                     className="w-full"
                     required
@@ -705,7 +705,7 @@ const BuilderV2Page = () => {
                       />
                       <p className="text-sm text-slate-500">or</p>
                       <Input
-                        placeholder={t('placeholders.imageUrl')}
+                        placeholder="Enter image URL"
                         value={setupData.icon_url}
                         onChange={(e) => setSetupData(prev => ({ ...prev, icon_url: e.target.value }))}
                         className="w-full"
@@ -737,7 +737,7 @@ const BuilderV2Page = () => {
                               }));
                             }}
                           />
-                          <Label htmlFor={`cat-${category.id}`} className="text-sm cursor-pointer">
+                          <Label htmlFor={`cat-${category.id}`} className="text-sm cursor-pointer text-slate-900">
                             {category.name}
                           </Label>
                         </div>
