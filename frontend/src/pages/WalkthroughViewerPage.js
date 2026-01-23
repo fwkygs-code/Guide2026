@@ -1843,7 +1843,6 @@ const AnnotatedImageViewer = ({ block }) => {
         const scaledY = marker.y * scaleY;
         const scaledSize = markerSize * Math.min(scaleX, scaleY); // Uniform scaling for circles
 
-        console.log(`VIEWER: Rendering ${markerShape} at x:${marker.x} y:${marker.y} -> scaled x:${scaledX} y:${scaledY}, size:${markerSize}->${scaledSize}`);
 
         return (
           <div
