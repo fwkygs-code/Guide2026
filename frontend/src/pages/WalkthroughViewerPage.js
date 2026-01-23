@@ -1567,7 +1567,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   );
 };
 
-// Annotated Image Viewer Component (for end users) - Supports normalized coordinates
+// Annotated Image Viewer Component (for end users) - Supports dots (%) and rectangles
 const AnnotatedImageViewer = ({ block }) => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const imageRef = useRef(null);
@@ -1575,11 +1575,6 @@ const AnnotatedImageViewer = ({ block }) => {
   const markers = block.data?.markers || [];
 
   if (!imageUrl) return null;
-
-  // Denormalize coordinates based on rendered image size
-  const denormalizeCoordinate = (normalizedValue, renderedSize) => {
-    return normalizedValue * renderedSize;
-  };
 
   return (
     <div
@@ -1596,39 +1591,23 @@ const AnnotatedImageViewer = ({ block }) => {
       />
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
-
-        // Get rendered image dimensions for denormalization
-        const renderedWidth = imageRef.current?.clientWidth || 100;
-        const renderedHeight = imageRef.current?.clientHeight || 100;
-        const minRenderedDimension = Math.min(renderedWidth, renderedHeight);
-
-        // Denormalize coordinates and measurements
-        const x = marker.x * 100; // Convert back to percentage for CSS
-        const y = marker.y * 100;
-        const markerSize = marker.size * minRenderedDimension; // Denormalize circle radius
-        const markerWidth = marker.width * 100; // Denormalize rectangle width (%)
-        const markerHeight = marker.height * 100; // Denormalize rectangle height (%)
-        const arrowLength = marker.length * minRenderedDimension; // Denormalize arrow length
-
-        // Denormalize line coordinates
-        const x1 = marker.x1 * 100;
-        const y1 = marker.y1 * 100;
-        const x2 = marker.x2 * 100;
-        const y2 = marker.y2 * 100;
-
+        // Support both old (px) and new (%) size values
+        const markerSize = marker.size || 3; // Circle diameter as percentage of image
+        const markerWidth = marker.width || 10;
+        const markerHeight = marker.height || 10;
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
         if (markerShape === 'rectangle') {
           // Rectangle marker
           return (
-            <div
-              key={marker.id || idx}
+            <div 
+              key={marker.id || idx} 
               className="absolute"
               style={{
                 position: 'absolute',
-                left: `${x}%`,
-                top: `${y}%`,
+                left: `${marker.x}%`,
+                top: `${marker.y}%`,
                 width: `${markerWidth}%`,
                 height: `${markerHeight}%`,
                 transform: 'translate(-50%, -50%)',
@@ -1684,6 +1663,7 @@ const AnnotatedImageViewer = ({ block }) => {
 
         if (markerShape === 'arrow') {
           // Arrow marker - matching builder appearance
+          const arrowLength = marker.length || 80;
           const arrowRotation = marker.rotation || 0;
 
           return (
@@ -1770,10 +1750,10 @@ const AnnotatedImageViewer = ({ block }) => {
 
         if (markerShape === 'line') {
           // Line marker
-          const startX = x1;
-          const startY = y1;
-          const endX = x2;
-          const endY = y2;
+          const startX = marker.x1 || marker.x || 0;
+          const startY = marker.y1 || marker.y || 0;
+          const endX = marker.x2 || marker.x || 10;
+          const endY = marker.y2 || marker.y || 0;
 
           return (
             <div key={marker.id || idx}>
@@ -1849,8 +1829,8 @@ const AnnotatedImageViewer = ({ block }) => {
             className="absolute"
             style={{
               position: 'absolute',
-              left: `${x}%`,
-              top: `${y}%`,
+              left: `${marker.x}%`,
+              top: `${marker.y}%`,
               transform: 'translate(-50%, -50%)',
               // Ensure markers are positioned relative to the image, not container
               pointerEvents: 'auto',
@@ -1862,8 +1842,8 @@ const AnnotatedImageViewer = ({ block }) => {
                 isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
               }`}
               style={{
-                width: `${markerSize}px`,
-                height: `${markerSize}px`,
+                width: `${markerSize}%`,
+                height: `${markerSize}%`,
                 border: `2px solid ${markerColor}`,
                 backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // Match builder opacity
                 ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
