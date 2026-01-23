@@ -1602,6 +1602,8 @@ const AnnotatedImageViewer = ({ block }) => {
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
+        console.log(`VIEWER: Rendering ${markerShape} at x:${marker.x} y:${marker.y}`);
+
         if (markerShape === 'rectangle') {
           // Rectangle marker
           return (
@@ -1666,7 +1668,7 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         if (markerShape === 'arrow') {
-          // Arrow marker - consistent with builder
+          // Arrow marker - TIP points to exact click position
           const arrowRotation = marker.rotation || 0;
 
           return (
@@ -1676,49 +1678,49 @@ const AnnotatedImageViewer = ({ block }) => {
                 style={{
                   left: `${marker.x}%`,
                   top: `${marker.y}%`,
-                  transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
+                  transform: `rotate(${arrowRotation}rad)`, // No center translation - tip at click position
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                {/* Arrow shaft - extends from center rightward */}
+                {/* Arrow shaft - extends leftward from tip */}
                 <div
                   className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
-                    left: '50%',
+                    left: '0',
                     top: '50%',
                     width: `${arrowLength - 8}px`, // Subtract arrowhead size
                     height: '2px',
-                    transform: 'translate(0, -50%)', // Start at center, no horizontal offset
-                    transformOrigin: 'left center',
+                    transform: 'translateX(-100%) translateY(-50%)', // Extend left from tip
+                    transformOrigin: 'right center', // Rotate from tip end
                     backgroundColor: markerColor
                   }}
                 />
 
-                {/* Arrowhead - positioned exactly at shaft end */}
+                {/* Arrowhead - positioned at tip (click position) */}
                 <div
                   className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
-                    left: `calc(50% + ${arrowLength - 8}px)`, // At the end of shaft
+                    left: '0',
                     top: '50%',
                     width: '0',
                     height: '0',
                     borderLeft: `8px solid ${markerColor}`,
                     borderTop: '4px solid transparent',
                     borderBottom: '4px solid transparent',
-                    transform: 'translate(0, -50%)', // No horizontal offset needed
+                    transform: 'translateY(-50%)', // Center vertically at tip
                     transformOrigin: 'left center',
                   }}
                 />
 
-                {/* Number badge positioned above the arrow (matching builder) */}
+                {/* Number badge positioned above the tip (matching builder) */}
                 <span
                   className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
                     width: '18px',
                     height: '18px',
-                    left: '50%',
+                    left: '0',
                     top: '50%',
                     transform: 'translate(-50%, -50%) translateY(-20px)',
                     backgroundColor: markerColor,
@@ -1733,9 +1735,9 @@ const AnnotatedImageViewer = ({ block }) => {
                 <div
                   className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                   style={{
-                    left: `${marker.x}%`,
-                    top: `${marker.y}%`,
-                    transform: 'translate(-50%, calc(100% + 10px))', // Position below since arrow now points up
+                    left: '0',
+                    top: '50%',
+                    transform: 'translate(-50%, calc(100% + 10px))', // Position below tip
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >

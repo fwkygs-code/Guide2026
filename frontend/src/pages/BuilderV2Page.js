@@ -2086,6 +2086,8 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       description: ''
     };
 
+    console.log('BUILDER: Creating annotation at:', { baseX, baseY, shape: newMarker.shape });
+
     
     const newMarkers = [...markers, newMarker];
     onUpdate({ data: { ...block.data, markers: newMarkers } });
@@ -2819,7 +2821,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   style={{
                     left: `${marker.x}%`,
                     top: `${marker.y}%`,
-                    transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
+                    transform: `rotate(${arrowRotation}rad)`, // No center translation - tip at click position
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
                     color: markerColor
@@ -2838,43 +2840,43 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                     }
                   }}
                 >
-                  {/* Arrow shaft - extends from center rightward */}
+                  {/* Arrow shaft - extends leftward from tip */}
                   <div
                     className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                     style={{
-                      left: '50%',
+                      left: '0',
                       top: '50%',
-                      width: `${arrowLength - 8}px`, // Subtract arrowhead size to prevent overlap
+                      width: `${arrowLength - 8}px`, // Subtract arrowhead size
                       height: '2px',
-                      transform: 'translate(0, -50%)', // Start at center, no horizontal offset
-                      transformOrigin: 'left center',
+                      transform: 'translateX(-100%) translateY(-50%)', // Extend left from tip
+                      transformOrigin: 'right center', // Rotate from tip end
                       backgroundColor: markerColor
                     }}
                   />
 
-                  {/* Arrowhead - positioned exactly at shaft end */}
+                  {/* Arrowhead - positioned at tip (click position) */}
                   <div
                     className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                     style={{
-                      left: `calc(50% + ${arrowLength - 8}px)`, // At the end of shaft
+                      left: '0',
                       top: '50%',
                       width: '0',
                       height: '0',
                       borderLeft: `8px solid ${markerColor}`,
                       borderTop: '4px solid transparent',
                       borderBottom: '4px solid transparent',
-                      transform: 'translate(0, -50%)', // No horizontal offset needed
+                      transform: 'translateY(-50%)', // Center vertically at tip
                       transformOrigin: 'left center',
                     }}
                   />
 
-                  {/* Number badge */}
+                  {/* Number badge - positioned above tip */}
                   <span
                     className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                     style={{
                       width: '18px',
                       height: '18px',
-                      left: '50%',
+                      left: '0',
                       top: '50%',
                       transform: 'translate(-50%, -50%) translateY(-20px)',
                       fontSize: '10px',
