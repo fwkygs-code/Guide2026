@@ -648,7 +648,7 @@ const BuilderV2Page = () => {
                     id="title"
                     value={setupData.title}
                     onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder={t('walkthrough.placeholders.walkthroughName')}
+                    placeholder={t('placeholders.walkthroughName')}
                     className="w-full text-slate-900"
                     data-testid="walkthrough-name-input"
                   />
@@ -657,13 +657,13 @@ const BuilderV2Page = () => {
                 {/* Description */}
                 <div>
                   <Label htmlFor="description" className="text-sm font-medium text-slate-900 mb-2 block">
-                    {t('walkthrough.labels.description')}
+                    {t('labels.description')}
                   </Label>
                   <Textarea
                     id="description"
                     value={setupData.description}
                     onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder={t('walkthrough.placeholders.walkthroughDescription')}
+                    placeholder={t('placeholders.walkthroughDescription')}
                     rows={3}
                     className="w-full text-slate-900"
                     required
@@ -705,7 +705,7 @@ const BuilderV2Page = () => {
                       />
                       <p className="text-sm text-slate-500">or</p>
                       <Input
-                        placeholder={t('walkthrough.placeholders.imageUrl')}
+                        placeholder={t('placeholders.imageUrl')}
                         value={setupData.icon_url}
                         onChange={(e) => setSetupData(prev => ({ ...prev, icon_url: e.target.value }))}
                         className="w-full text-slate-900"
