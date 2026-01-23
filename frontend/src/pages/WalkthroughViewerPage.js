@@ -1673,34 +1673,36 @@ const AnnotatedImageViewer = ({ block }) => {
               >
                 {/* Arrow shaft - extends from center leftward */}
                 <div
-                  className="absolute bg-primary"
+                  className="absolute bg-primary rounded-full"
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `${Math.max(arrowLength - 8, 20)}px`, // Fixed pixel sizing, subtract arrowhead
-                    height: '2px',
+                    width: `${Math.max(arrowLength - 16, 24)}px`, // Fixed pixel sizing, ensure minimum visible length
+                    height: '3px', // Slightly thicker for visibility
                     transform: 'translate(-100%, -50%)', // Start at center, extend leftward
                     transformOrigin: 'right center',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)', // Add subtle shadow
                   }}
                 />
 
-                {/* Arrowhead - positioned at shaft start (now pointing left) */}
+                {/* Arrowhead - Unicode arrow symbol for reliability */}
                 <div
-                  className="absolute"
+                  className="absolute flex items-center justify-center text-primary font-bold drop-shadow-sm"
                   style={{
-                    left: `calc(50% - ${Math.max(arrowLength - 8, 20)}px)`, // At the start of shaft (left end)
+                    left: `calc(50% - ${Math.max(arrowLength - 16, 24)}px - 6px)`, // Position at shaft start
                     top: '50%',
-                    width: '0',
-                    height: '0',
-                    borderRight: '8px solid var(--primary)', // Point left instead of right
-                    borderTop: '4px solid transparent',
-                    borderBottom: '4px solid transparent',
                     transform: 'translate(0, -50%)',
-                    transformOrigin: 'right center',
+                    fontSize: '14px',
+                    lineHeight: '1',
+                    width: '14px',
+                    height: '14px',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                   }}
-                />
+                >
+                  ←
+                </div>
 
-                {/* Number badge - positioned above the arrow point */}
+                {/* Number badge - positioned above the arrow */}
                 <span
                   className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
@@ -1708,7 +1710,7 @@ const AnnotatedImageViewer = ({ block }) => {
                     height: '18px',
                     left: '50%',
                     top: '50%',
-                    transform: 'translate(-50%, -50%) translateY(-18px)', // Position above the arrowhead
+                    transform: 'translate(-50%, -50%) translateY(-20px)', // Position above the arrow
                     fontSize: '10px'
                   }}
                 >
