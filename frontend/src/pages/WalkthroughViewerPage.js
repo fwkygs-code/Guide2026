@@ -1865,30 +1865,23 @@ const AnnotatedImageViewer = ({ block }) => {
 
         // Dot marker - positioned relative to image dimensions
         return (
-          <div
-            key={marker.id || idx}
-            className="absolute"
-            style={{
-              position: 'absolute',
-              left: marker.x + '%',
-              top: marker.y + '%',
-              transform: 'translate(-50%, -50%)',
-              // Ensure markers are positioned relative to the image, not container
-              pointerEvents: 'auto',
-            }}
-          >
+          <div key={marker.id || idx}>
             {/* Circle marker - centered at marker position */}
             <div
-              className={'relative rounded-full cursor-pointer select-none transition-all ' +
+              className={'absolute rounded-full cursor-pointer select-none transition-all ' +
                 (isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md')}
               style={{
+                left: marker.x + '%',
+                top: marker.y + '%',
                 width: markerSize + 'px',
                 height: markerSize + 'px',
+                transform: 'translate(-50%, -50%)',
                 border: '2px solid ' + markerColor,
                 backgroundColor: isActive ? markerColor + '1a' : 'transparent', // Hollow ring - no fill
                 ringColor: isActive ? markerColor + '4d' : undefined, // 30% opacity ring
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
+                pointerEvents: 'auto',
               }}
               onClick={() => setSelectedMarker(isActive ? null : idx)}
             >
