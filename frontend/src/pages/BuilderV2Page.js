@@ -2057,10 +2057,12 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   // Add marker at click position (percentage-based)
   const handleImageClick = (e) => {
     if (!imageRef.current || interactionMode !== 'idle') return;
-    
+
     const rect = imageRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    console.log('BUILDER: Click coordinates calculated:', { x, y, rect, clientX: e.clientX, clientY: e.clientY });
     
     const newMarker = {
       id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -2080,10 +2082,14 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       title: '',
       description: ''
     };
+
+    console.log('BUILDER: New marker created:', newMarker);
     
     const newMarkers = [...markers, newMarker];
+    console.log('BUILDER: About to save markers array:', newMarkers);
     onUpdate({ data: { ...block.data, markers: newMarkers } });
     setEditingMarker(markers.length); // Edit the new marker
+    console.log('BUILDER: Marker saved, editing marker index:', markers.length);
   };
   
   const updateMarker = (index, updates) => {
