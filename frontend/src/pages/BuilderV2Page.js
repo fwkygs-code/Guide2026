@@ -649,7 +649,7 @@ const BuilderV2Page = () => {
                     value={setupData.title}
                     onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder={t('placeholders.walkthroughName')}
-                    className="w-full text-slate-900"
+                    className="w-full"
                     data-testid="walkthrough-name-input"
                   />
                 </div>
@@ -665,7 +665,7 @@ const BuilderV2Page = () => {
                     onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder={t('placeholders.walkthroughDescription')}
                     rows={3}
-                    className="w-full text-slate-900"
+                    className="w-full"
                     required
                   />
                 </div>
@@ -708,7 +708,7 @@ const BuilderV2Page = () => {
                         placeholder={t('placeholders.imageUrl')}
                         value={setupData.icon_url}
                         onChange={(e) => setSetupData(prev => ({ ...prev, icon_url: e.target.value }))}
-                        className="w-full text-slate-900"
+                        className="w-full"
                       />
                     </div>
                   )}
@@ -984,7 +984,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
   return (
     <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">{t('walkthrough.steps')}</h2>
+        <h2 className="text-sm font-semibold text-slate-900">{t('walkthrough.steps')}</h2>
         <Button variant="ghost" size="sm" onClick={onAddStep} className="h-7 w-7 p-0" data-onboarding="add-step-button">
           <Plus className="w-4 h-4" />
         </Button>
@@ -1011,7 +1011,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
+                    <div className="text-sm font-medium text-slate-900 truncate">
                       {step.title || `Step ${index + 1}`}
                     </div>
                   </div>

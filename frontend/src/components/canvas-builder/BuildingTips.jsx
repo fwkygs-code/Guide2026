@@ -228,7 +228,7 @@ const BuildingTips = () => {
                       {tip.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-sm font-semibold mb-1">
+                      <CardTitle className="text-sm font-semibold text-slate-900 mb-1">
                         {tip.title}
                       </CardTitle>
                       <CardDescription className="text-xs text-slate-800 leading-relaxed">

@@ -175,7 +175,7 @@ const DashboardPage = () => {
                     placeholder="My Company"
                     required
                     data-testid="workspace-name-input"
-                    className="mt-1.5 text-slate-900"
+                    className="mt-1.5"
                   />
                 </div>
                 <div>
@@ -194,7 +194,7 @@ const DashboardPage = () => {
                       type="text"
                       value={newWorkspaceColor}
                       onChange={(e) => setNewWorkspaceColor(e.target.value)}
-                      className="flex-1 text-slate-900"
+                      className="flex-1"
                       required
                     />
                   </div>
@@ -222,7 +222,7 @@ const DashboardPage = () => {
                         value={newWorkspaceLogo}
                         onChange={(e) => setNewWorkspaceLogo(e.target.value)}
                         placeholder="Logo URL (optional)"
-                        className="flex-1 text-sm text-slate-900"
+                        className="flex-1 text-sm"
                       />
                       <label>
                         <input
@@ -267,7 +267,7 @@ const DashboardPage = () => {
                         value={newWorkspaceBackground}
                         onChange={(e) => setNewWorkspaceBackground(e.target.value)}
                         placeholder="Background image URL (optional)"
-                        className="flex-1 text-sm text-slate-900"
+                        className="flex-1 text-sm"
                       />
                       <label>
                         <input
