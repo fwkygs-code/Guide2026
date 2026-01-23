@@ -137,8 +137,8 @@ const AnalyticsPage = () => {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Analytics"
-        description="Track performance of your walkthroughs"
+        title={t('analytics.title')}
+        description={t('analytics.description')}
       />
 
       <PageSurface>
@@ -154,7 +154,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Eye className="w-5 h-5 text-primary" />
               </div>
-              <div className="text-sm text-slate-400">Total Views</div>
+              <div className="text-sm text-slate-400">{t('analytics.totalViews')}</div>
             </div>
             <div className="text-3xl font-heading font-bold text-white">{totalViews}</div>
           </motion.div>
@@ -169,7 +169,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                 <Play className="w-5 h-5 text-accent" />
               </div>
-              <div className="text-sm text-slate-400">Total Starts</div>
+              <div className="text-sm text-slate-400">{t('analytics.totalStarts')}</div>
             </div>
             <div className="text-3xl font-heading font-bold text-white">{totalStarts}</div>
           </motion.div>

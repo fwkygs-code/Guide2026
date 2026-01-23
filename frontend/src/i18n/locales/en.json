@@ -497,6 +497,27 @@
     "startBuildingNow": "Start Building Now",
     "copyright": "© 2025 InterGuide. All rights reserved."
   },
+  "analytics": {
+    "title": "Analytics",
+    "description": "Track performance of your walkthroughs",
+    "totalViews": "Total Views",
+    "totalStarts": "Total Starts",
+    "totalCompletions": "Total Completions",
+    "completionRate": "Completion Rate",
+    "walkthroughPerformance": "Walkthrough Performance",
+    "views": "Views",
+    "starts": "Starts",
+    "completions": "Completions",
+    "rate": "Rate",
+    "feedback": "Feedback",
+    "noPublishedWalkthroughs": "No published walkthroughs yet",
+    "analyticsReset": "Analytics reset for"
+  },
+  "knowledgeSystems": {
+    "title": "Knowledge Systems",
+    "description": "Manage isolated knowledge systems with dedicated editors and portals.",
+    "backToSettings": "Back to Settings"
+  },
   "blocked": {
     "title": "Account Disabled",
     "message": "Your account has been disabled or deleted.",

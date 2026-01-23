@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ const SYSTEM_DEFINITIONS = [
 ];
 
 function KnowledgeSystemsPage() {
+  const { t } = useTranslation();
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -134,14 +136,14 @@ function KnowledgeSystemsPage() {
                 className="text-slate-200 hover:text-white"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Settings
+                {t('knowledgeSystems.backToSettings')}
               </Button>
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Knowledge Systems
+              {t('knowledgeSystems.title')}
             </h1>
             <p className="text-slate-400 mt-2 text-lg">
-              Manage isolated knowledge systems with dedicated editors and portals.
+              {t('knowledgeSystems.description')}
             </p>
           </motion.div>
         </div>

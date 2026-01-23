@@ -649,6 +649,27 @@
     "startBuildingNow": "התחל לבנות עכשיו",
     "copyright": "© 2025 InterGuide. כל הזכויות שמורות."
   },
+  "analytics": {
+    "title": "אנליטיקה",
+    "description": "עקוב אחר ביצועי המדריכים שלך",
+    "totalViews": "סך צפיות",
+    "totalStarts": "סך התחלות",
+    "totalCompletions": "סך השלמות",
+    "completionRate": "שיעור השלמה",
+    "walkthroughPerformance": "ביצועי מדריך",
+    "views": "צפיות",
+    "starts": "התחלות",
+    "completions": "השלמות",
+    "rate": "שיעור",
+    "feedback": "משוב",
+    "noPublishedWalkthroughs": "אין עדיין מדריכים מפורסמים",
+    "analyticsReset": "אנליטיקה אופסה עבור"
+  },
+  "knowledgeSystems": {
+    "title": "מערכות ידע",
+    "description": "נהל מערכות ידע מבודדות עם עורכים ועמודי פורטל ייעודיים.",
+    "backToSettings": "חזרה להגדרות"
+  },
   "blocked": {
     "title": "חשבון מושבת",
     "message": "החשבון שלך הושבת או נמחק.",
