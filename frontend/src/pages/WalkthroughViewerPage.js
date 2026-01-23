@@ -1591,8 +1591,25 @@ const AnnotatedImageViewer = ({ block }) => {
       />
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
-        // Support both old (px) and new (%) size values
-        const markerSize = marker.size || 3; // Circle diameter as percentage of image
+
+        // Get rendered image dimensions for scaling
+        const renderedWidth = imageRef.current?.clientWidth || 400; // fallback
+        const renderedHeight = imageRef.current?.clientHeight || 300; // fallback
+
+        // Builder reference dimensions (typical values - adjust if needed)
+        const builderWidth = 400; // Reference width
+        const builderHeight = 300; // Reference height
+
+        // Compute scale factors
+        const scaleX = renderedWidth / builderWidth;
+        const scaleY = renderedHeight / builderHeight;
+        const uniformScale = Math.min(scaleX, scaleY);
+
+        // Scale measurements for circle and arrow only
+        const markerSize = markerShape === 'dot' ? (marker.size || 30) * uniformScale : marker.size || 3;
+        const arrowLength = markerShape === 'arrow' ? (marker.length || 80) * uniformScale : marker.length || 80;
+
+        // Rectangle and line use original logic (unchanged)
         const markerWidth = marker.width || 10;
         const markerHeight = marker.height || 10;
         const markerColor = marker.color || '#3b82f6';
@@ -1662,8 +1679,7 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         if (markerShape === 'arrow') {
-          // Arrow marker - matching builder appearance
-          const arrowLength = marker.length || 80;
+          // Arrow marker - scaled to viewer dimensions
           const arrowRotation = marker.rotation || 0;
 
           return (
@@ -1679,31 +1695,31 @@ const AnnotatedImageViewer = ({ block }) => {
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                {/* Arrow shaft - extends from center rightward (matching builder) */}
+                {/* Arrow shaft - extends from center rightward (scaled) */}
                 <div
                   className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `${arrowLength - 8}px`, // Subtract arrowhead size to prevent overlap
-                    height: '2px',
+                    width: `${arrowLength - 8 * uniformScale}px`, // Scale arrowhead size too
+                    height: `${2 * uniformScale}px`, // Scale shaft thickness
                     transform: 'translate(0, -50%)', // Start at center, no horizontal offset
                     transformOrigin: 'left center',
                     backgroundColor: markerColor
                   }}
                 />
 
-                {/* Arrowhead - positioned exactly at shaft end (matching builder) */}
+                {/* Arrowhead - positioned exactly at shaft end (scaled) */}
                 <div
                   className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
-                    left: `calc(50% + ${arrowLength - 8}px)`, // At the end of shaft
+                    left: `calc(50% + ${arrowLength - 8 * uniformScale}px)`, // At the end of scaled shaft
                     top: '50%',
                     width: '0',
                     height: '0',
-                    borderLeft: `8px solid ${markerColor}`,
-                    borderTop: '4px solid transparent',
-                    borderBottom: '4px solid transparent',
+                    borderLeft: `${8 * uniformScale}px solid ${markerColor}`,
+                    borderTop: `${4 * uniformScale}px solid transparent`,
+                    borderBottom: `${4 * uniformScale}px solid transparent`,
                     transform: 'translate(0, -50%)', // No horizontal offset needed
                     transformOrigin: 'left center',
                   }}
@@ -1836,14 +1852,14 @@ const AnnotatedImageViewer = ({ block }) => {
               pointerEvents: 'auto',
             }}
           >
-            {/* Circle marker - matching builder styling */}
+            {/* Circle marker - scaled to viewer dimensions */}
             <div
               className={`absolute rounded-full cursor-pointer select-none transition-all ${
                 isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
               }`}
               style={{
-                width: `${markerSize}%`,
-                height: `${markerSize}%`,
+                width: `${markerSize}px`,
+                height: `${markerSize}px`,
                 border: `2px solid ${markerColor}`,
                 backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // Match builder opacity
                 ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
