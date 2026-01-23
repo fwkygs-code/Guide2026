@@ -1648,10 +1648,10 @@ const AnnotatedImageViewer = ({ block }) => {
               className="absolute"
               style={{
                 position: 'absolute',
-                left: `${marker.x}%`,
-                top: `${marker.y}%`,
-                width: `${markerWidth}%`,
-                height: `${markerHeight}%`,
+                left: marker.x + '%',
+                top: marker.y + '%',
+                width: markerWidth + '%',
+                height: markerHeight + '%',
                 transform: 'translate(-50%, -50%)',
               }}
             >
@@ -1659,8 +1659,8 @@ const AnnotatedImageViewer = ({ block }) => {
                 className={`w-full h-full border-2 cursor-pointer transition-all select-none ${isActive ? 'shadow-lg ring-2' : 'shadow-md'}`}
                 style={{
                   borderColor: markerColor,
-                  backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // 10% and 5% opacity
-                  ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
+                  backgroundColor: isActive ? markerColor + '1a' : markerColor + '0d', // 10% and 5% opacity
+                  ringColor: isActive ? markerColor + '4d' : undefined, // 30% opacity ring
                   userSelect: 'none',
                   position: 'relative',
                 }}
@@ -1712,9 +1712,9 @@ const AnnotatedImageViewer = ({ block }) => {
               <div
                 className="absolute cursor-pointer select-none"
                 style={{
-                  left: `${marker.x}%`,
-                  top: `${marker.y}%`,
-                  transform: `rotate(${arrowRotation}rad)`, // No center translation - tip at click position
+                  left: marker.x + '%',
+                  top: marker.y + '%',
+                  transform: 'rotate(' + arrowRotation + 'rad)', // No center translation - tip at click position
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
                 }}
@@ -1726,7 +1726,7 @@ const AnnotatedImageViewer = ({ block }) => {
                   style={{
                     left: '0',
                     top: '50%',
-                    width: `${arrowLength - 8}px`, // Subtract arrowhead size
+                    width: (arrowLength - 8) + 'px', // Subtract arrowhead size
                     height: '2px',
                     transform: 'translateX(-100%) translateY(-50%)', // Extend left from tip
                     transformOrigin: 'right center', // Rotate from tip end
@@ -1742,10 +1742,10 @@ const AnnotatedImageViewer = ({ block }) => {
                     top: '50%',
                     width: '0',
                     height: '0',
-                    borderLeft: `8px solid ${markerColor}`,
+                    borderLeft: '8px solid ' + markerColor,
                     borderTop: '4px solid transparent',
                     borderBottom: '4px solid transparent',
-                    transform: 'translateY(-50%)', // Center vertically at tip
+                    transform: 'translateY(-50%)',
                     transformOrigin: 'left center',
                   }}
                 />
@@ -1810,10 +1810,10 @@ const AnnotatedImageViewer = ({ block }) => {
               >
                 {/* Main line */}
                 <line
-                  x1={`${startX}%`}
-                  y1={`${startY}%`}
-                  x2={`${endX}%`}
-                  y2={`${endY}%`}
+                  x1={startX + '%'}
+                  y1={startY + '%'}
+                  x2={endX + '%'}
+                  y2={endY + '%'}
                   stroke={markerColor}
                   strokeWidth="3"
                   style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
@@ -1822,15 +1822,15 @@ const AnnotatedImageViewer = ({ block }) => {
 
                 {/* Number badge at midpoint */}
                 <circle
-                  cx={`${(startX + endX) / 2}%`}
-                  cy={`${(startY + endY) / 2 - 2}%`}
+                  cx={(startX + endX) / 2 + '%'}
+                  cy={(startY + endY) / 2 - 2 + '%'}
                   r="9"
                   fill={markerColor}
                   style={{ pointerEvents: 'none' }}
                 />
                 <text
-                  x={`${(startX + endX) / 2}%`}
-                  y={`${(startY + endY) / 2 - 2}%`}
+                  x={(startX + endX) / 2 + '%'}
+                  y={(startY + endY) / 2 - 2 + '%'}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="white"
@@ -1845,8 +1845,8 @@ const AnnotatedImageViewer = ({ block }) => {
                 <div
                   className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                   style={{
-                    left: `${(startX + endX) / 2}%`,
-                    top: `${(startY + endY) / 2}%`,
+                    left: (startX + endX) / 2 + '%',
+                    top: (startY + endY) / 2 + '%',
                     transform: 'translate(-50%, calc(-100% - 10px))',
                   }}
                   onClick={(e) => e.stopPropagation()}
@@ -1870,8 +1870,8 @@ const AnnotatedImageViewer = ({ block }) => {
             className="absolute"
             style={{
               position: 'absolute',
-              left: `${marker.x}%`,
-              top: `${marker.y}%`,
+              left: marker.x + '%',
+              top: marker.y + '%',
               transform: 'translate(-50%, -50%)',
               // Ensure markers are positioned relative to the image, not container
               pointerEvents: 'auto',
@@ -1883,11 +1883,11 @@ const AnnotatedImageViewer = ({ block }) => {
                 isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
               }`}
               style={{
-                width: `${markerSize}px`,
-                height: `${markerSize}px`,
-                border: `2px solid ${markerColor}`,
-                backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // Match builder opacity
-                ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
+                width: markerSize + 'px',
+                height: markerSize + 'px',
+                border: '2px solid ' + markerColor,
+                backgroundColor: isActive ? markerColor + '1a' : markerColor + '0d', // Match builder opacity
+                ringColor: isActive ? markerColor + '4d' : undefined, // 30% opacity ring
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
               }}
