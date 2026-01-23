@@ -191,8 +191,12 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               <Button
                 variant={location.pathname.includes('/walkthroughs') ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => navigate(`/workspace/${workspaceId}/walkthroughs`)}
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('onboarding:navGuides'));
+                  navigate(`/workspace/${workspaceId}/walkthroughs`);
+                }}
                 data-testid="nav-workspace-walkthroughs"
+                data-onboarding="tab-guides"
               >
                 <BookText className="w-4 h-4 mr-2" />
                 {t('workspace.guides')}
@@ -209,8 +213,12 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               <Button
                 variant={location.pathname.includes('/categories') ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => navigate(`/workspace/${workspaceId}/categories`)}
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('onboarding:navCategories'));
+                  navigate(`/workspace/${workspaceId}/categories`);
+                }}
                 data-testid="nav-workspace-categories"
+                data-onboarding="tab-categories"
               >
                 <FolderOpen className="w-4 h-4 mr-2" />
                 {t('workspace.categories')}

@@ -39,12 +39,30 @@ const writeJson = (key: string, value: unknown) => {
 const loadIndex = (workspaceId: string): string[] => {
   const stored = readJson<string[]>(indexKey(workspaceId));
   if (Array.isArray(stored)) return stored;
-  writeJson(indexKey(workspaceId), []);
   return [];
 };
 
 const saveIndex = (workspaceId: string, ids: string[]) => {
   writeJson(indexKey(workspaceId), ids);
+};
+
+const getWorkspaceIds = (workspaceId: string): string[] => {
+  if (!workspaceId) return [];
+  const stored = loadIndex(workspaceId);
+  if (stored.length > 0) return stored;
+  const ids: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(`${DOCUMENTATION_PREFIX}:meta:`)) continue;
+    const meta = readJson<DocumentationMeta>(key);
+    if (meta?.workspaceId === workspaceId) {
+      ids.push(meta.id);
+    }
+  }
+  if (ids.length > 0) {
+    saveIndex(workspaceId, ids);
+  }
+  return ids;
 };
 
 export const createDocumentationEntry = (workspaceId: string, forcedId?: string) => {
@@ -123,12 +141,12 @@ export const publishDocumentation = (id: string) => {
 export const loadDocumentationPublished = (id: string): DocumentationPublished | null => readJson<DocumentationPublished>(publishedKey(id));
 
 export const listDocumentationMeta = (workspaceId: string): DocumentationMeta[] => {
-  const ids = loadIndex(workspaceId);
+  const ids = getWorkspaceIds(workspaceId);
   return ids.map((id) => loadDocumentationMeta(id)).filter(Boolean) as DocumentationMeta[];
 };
 
 export const listPublishedDocumentation = (workspaceId: string) => {
-  const ids = loadIndex(workspaceId);
+  const ids = getWorkspaceIds(workspaceId);
   return ids
     .map((id) => {
       const meta = loadDocumentationMeta(id);

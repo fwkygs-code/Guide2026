@@ -292,6 +292,7 @@ const WalkthroughsPage = () => {
             <Button
               onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/new`)}
               data-testid="create-walkthrough-button"
+              data-onboarding="create-walkthrough-button"
             >
               <Plus className="w-4 h-4 mr-2" />
               {t('walkthrough.new')}
@@ -358,6 +359,8 @@ const WalkthroughsPage = () => {
                         transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
                         className="transition-all relative"
                         data-testid={`walkthrough-card-${walkthrough.id}`}
+                        data-onboarding="walkthrough-card"
+                        data-onboarding-walkthrough-id={walkthrough.id}
                       >
                         {/* Transparent 3D Bubble with Category and Company Name */}
                         <div
@@ -454,7 +457,7 @@ const WalkthroughsPage = () => {
               {t('walkthrough.noWalkthroughs')}
             </h3>
             <p className="text-slate-400 mb-6">{t('walkthrough.createFirst')}</p>
-            <Button onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/new`)} data-testid="empty-create-walkthrough-button">
+            <Button onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/new`)} data-testid="empty-create-walkthrough-button" data-onboarding="create-walkthrough-button">
               <Plus className="w-4 h-4 mr-2" />
               {t('walkthrough.createWalkthrough')}
             </Button>

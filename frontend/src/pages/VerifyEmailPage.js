@@ -27,6 +27,11 @@ const VerifyEmailPage = () => {
   const verificationAttempted = React.useRef(false);
 
   useEffect(() => {
+    if (window.location.hostname.includes('onrender.com')) {
+      window.location.replace(`https://interguide.app${window.location.pathname}${window.location.search}`);
+      return;
+    }
+
     // Prevent double verification attempts (React StrictMode or re-renders)
     if (verificationAttempted.current) {
       return;

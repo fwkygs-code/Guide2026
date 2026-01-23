@@ -24,6 +24,7 @@ import BuildingTips from '../components/canvas-builder/BuildingTips';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useQuota } from '../hooks/useQuota';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
+import { getOnboardingSession } from '../onboarding/onboardingSession';
 
 /**
  * Builder V2 - Clean, stable, creation-first walkthrough builder
@@ -45,6 +46,13 @@ const BuilderV2Page = () => {
   // Resolve workspace slug to ID
   const { workspaceId, loading: workspaceLoading, error: workspaceError } = useWorkspaceSlug(workspaceSlug);
   const { canUploadFile } = useQuota(workspaceId);
+
+  const emitOnboardingEvent = useCallback((name, detail) => {
+    const session = getOnboardingSession();
+    if (session?.active) {
+      window.dispatchEvent(new CustomEvent(name, { detail }));
+    }
+  }, []);
 
   // Core state
   const [walkthrough, setWalkthrough] = useState({
@@ -210,6 +218,18 @@ const BuilderV2Page = () => {
     }
   }, [isEditing, walkthroughId, workspaceId, navigate, workspaceLoading, workspaceError]);
 
+  useEffect(() => {
+    if (setupComplete || isEditing) return;
+    const session = getOnboardingSession();
+    if (!session?.active || !session.categoryId) return;
+    if (!categories.some(category => category.id === session.categoryId)) return;
+    setSetupData(prev => (
+      prev.category_ids.includes(session.categoryId)
+        ? prev
+        : { ...prev, category_ids: [...prev.category_ids, session.categoryId] }
+    ));
+  }, [categories, setupComplete, isEditing]);
+
   // Save walkthrough
   const saveWalkthrough = async () => {
     try {
@@ -299,6 +319,15 @@ const BuilderV2Page = () => {
       toast.error('Please enter a walkthrough name');
       return;
     }
+    if (!setupData.description || !setupData.description.trim()) {
+      toast.error('Please enter a walkthrough description');
+      return;
+    }
+    const onboardingSession = getOnboardingSession();
+    if (onboardingSession?.active && onboardingSession.categoryId && !setupData.category_ids.includes(onboardingSession.categoryId)) {
+      toast.error('Please select the category you just created');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -329,6 +358,7 @@ const BuilderV2Page = () => {
       // Navigate to the new walkthrough
       navigate(`/workspace/${workspaceSlug}/walkthroughs/${newWalkthroughId}/edit`.replace(/\/+/g, '/'), { replace: true });
       toast.success('Walkthrough created! Start adding steps.');
+      emitOnboardingEvent('onboarding:walkthroughCreated', { walkthroughId: newWalkthroughId, categoryIds: walkthroughData.category_ids || [] });
     } catch (error) {
       console.error('Failed to create walkthrough:', error);
       toast.error(error.response?.data?.detail || 'Failed to create walkthrough');
@@ -390,8 +420,11 @@ const BuilderV2Page = () => {
     if (newSteps[currentStepIndex]) {
       newSteps[currentStepIndex] = { ...newSteps[currentStepIndex], ...updates };
       setWalkthrough(prev => ({ ...prev, steps: newSteps }));
+      if (Object.prototype.hasOwnProperty.call(updates, 'title')) {
+        emitOnboardingEvent('onboarding:stepTitleUpdated', { title: updates.title });
+      }
     }
-  }, [walkthrough.steps, currentStepIndex]);
+  }, [walkthrough.steps, currentStepIndex, emitOnboardingEvent]);
 
   // Debounced save for step updates
   const saveStepDebounced = useRef(null);
@@ -472,11 +505,12 @@ const BuilderV2Page = () => {
       setWalkthrough(prev => ({ ...prev, steps: newSteps }));
       setSelectedBlockId(newBlock.id);
       setBlockPickerOpen(null);
+      emitOnboardingEvent('onboarding:blockAdded', { blockType: newBlock.type, stepIndex: currentStepIndex });
     } catch (error) {
       console.error('Error adding block:', error);
       toast.error('Failed to add block');
     }
-  }, [walkthrough.steps, currentStepIndex]);
+  }, [walkthrough.steps, currentStepIndex, emitOnboardingEvent]);
 
   // Update block
   const updateBlock = (blockId, updates) => {
@@ -598,7 +632,7 @@ const BuilderV2Page = () => {
     
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-50 p-8">
-        <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8 max-h-[90vh] overflow-y-auto">
+        <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8 max-h-[90vh] overflow-y-auto" data-onboarding="walkthrough-setup-form">
           <div className="space-y-2 mb-6">
             <h2 className="text-2xl font-semibold">Create New Walkthrough</h2>
             <p className="text-sm text-slate-500">Set up your walkthrough before adding steps</p>
@@ -632,6 +666,7 @@ const BuilderV2Page = () => {
                     placeholder={t('walkthrough.placeholders.walkthroughDescription')}
                     rows={3}
                     className="w-full"
+                    required
                   />
                 </div>
 
@@ -721,8 +756,20 @@ const BuilderV2Page = () => {
                   </Button>
                   <Button
                     onClick={handleSetupComplete}
-                    disabled={!setupData.title?.trim() || loading || uploadingIcon}
+                    disabled={
+                      !setupData.title?.trim() ||
+                      !setupData.description?.trim() ||
+                      loading ||
+                      uploadingIcon ||
+                      (() => {
+                        const currentSession = getOnboardingSession();
+                        return currentSession?.active &&
+                          currentSession.categoryId &&
+                          !setupData.category_ids.includes(currentSession.categoryId);
+                      })()
+                    }
                     className="flex-1"
+                    data-onboarding="walkthrough-setup-submit"
                   >
                     {loading ? 'Creating...' : 'Create Walkthrough'}
                   </Button>
@@ -831,6 +878,7 @@ const BuilderV2Page = () => {
               const newIndex = newSteps.length - 1;
               setCurrentStepIndex(newIndex);
               setSelectedBlockId(null);
+              emitOnboardingEvent('onboarding:stepAdded', { stepId: newStep.id, stepIndex: newIndex });
               
               // Persist to backend if walkthrough exists
               if (walkthroughId) {
@@ -937,13 +985,13 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
     <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
         <h2 className="text-sm font-semibold">{t('walkthrough.steps')}</h2>
-        <Button variant="ghost" size="sm" onClick={onAddStep} className="h-7 w-7 p-0">
+        <Button variant="ghost" size="sm" onClick={onAddStep} className="h-7 w-7 p-0" data-onboarding="add-step-button">
           <Plus className="w-4 h-4" />
         </Button>
       </div>
       <div className="flex-1 overflow-hidden">
         {steps.length === 0 ? (
-          <div className="p-4 text-sm text-slate-500 text-center">
+          <div className="p-4 text-sm text-slate-800 text-center">
             No steps yet
           </div>
         ) : (
@@ -959,7 +1007,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <div className="flex items-start gap-2">
-                  <span className="text-xs font-medium text-slate-500 w-6 flex-shrink-0">
+                  <span className="text-xs font-medium text-slate-800 w-6 flex-shrink-0">
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -1148,16 +1196,18 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
   }
 
   return (
-    <InlineRichEditor
-      content={htmlContent || (title ? `<p style="text-align: center;">${title}</p>` : '<p style="text-align: center;"></p>')}
-      onChange={handleChange}
-      placeholder="Step title..."
-      isRTL={false}
-      textSize="text-3xl"
-      isBold={true}
-      align="center"
-      className="text-slate-900 font-heading"
-    />
+    <div data-onboarding="step-title-editor">
+      <InlineRichEditor
+        content={htmlContent || (title ? `<p style="text-align: center;">${title}</p>` : '<p style="text-align: center;"></p>')}
+        onChange={handleChange}
+        placeholder="Step title..."
+        isRTL={false}
+        textSize="text-3xl"
+        isBold={true}
+        align="center"
+        className="text-slate-900 font-heading"
+      />
+    </div>
   );
 };
 
@@ -1167,11 +1217,10 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
 
   // Create a mapping of block types to display names
   const getBlockDisplayName = (type) => {
-    // Try translation first
-    const translated = t(`walkthrough.blocks.${type}`, { defaultValue: null });
+    const labelKey = getBlockLabelKey(type);
+    const translated = t(labelKey, { defaultValue: null });
 
-    // If translation succeeded (not null and not the key itself), use it
-    if (translated && translated !== `walkthrough.blocks.${type}` && translated !== type) {
+    if (translated && translated !== labelKey && translated !== type) {
       return translated;
     }
 
@@ -1252,6 +1301,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
           }}
           aria-label={t('builder.labels.addBlock')}
           type="button"
+          data-onboarding="add-block-button"
         >
           <Plus className="w-4 h-4 text-slate-400" />
         </button>

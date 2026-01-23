@@ -49,6 +49,7 @@ import { DecisionTreePortalRoot } from './decision-tree-system/PortalRoot';
 
 // Mandatory surface component - guarantees no white backgrounds
 import { AppSurface } from './components/ui/design-system/AppSurface';
+import OnboardingController from './onboarding/OnboardingController';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading, isBlocked } = useAuth();
@@ -205,6 +206,7 @@ const AppContent = () => {
           <BrowserRouter>
           <WorkspaceProvider>
           <AppSurface>
+          <OnboardingController />
           <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />

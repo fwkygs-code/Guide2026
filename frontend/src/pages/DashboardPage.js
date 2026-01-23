@@ -17,7 +17,6 @@ import OverQuotaBanner from '../components/OverQuotaBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
 import WorkspaceLockModal from '../components/WorkspaceLockModal';
-import OnboardingTour from '../components/OnboardingTour';
 import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
 import { CardContent } from '@/components/ui/card';
 
@@ -107,6 +106,7 @@ const DashboardPage = () => {
       });
       toast.success('Workspace created!');
       setWorkspaces([...workspaces, response.data]);
+      window.dispatchEvent(new CustomEvent('onboarding:workspaceCreated', { detail: { workspaceId: response.data.id, workspaceSlug: response.data.slug } }));
       setCreateDialogOpen(false);
       setNewWorkspaceName('');
       setNewWorkspaceColor('#4f46e5');
@@ -137,7 +137,6 @@ const DashboardPage = () => {
 
   return (
     <DashboardLayout backgroundUrl={dashboardBackground}>
-      <OnboardingTour />
       <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
       <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
 
@@ -146,9 +145,13 @@ const DashboardPage = () => {
         description={t('dashboard.manageWorkspaces')}
         actions={
           <Button
-            onClick={() => setCreateDialogOpen(true)}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('onboarding:createWorkspace'));
+              setCreateDialogOpen(true);
+            }}
             className="rounded-full"
             data-testid="create-workspace-button"
+            data-onboarding="create-workspace-button"
           >
             <Plus className="w-4 h-4 mr-2" />
             {t('dashboard.newWorkspace')}
@@ -162,7 +165,7 @@ const DashboardPage = () => {
             <DialogHeader>
               <DialogTitle>{t('workspace.create')}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreateWorkspace} className="space-y-4 mt-4">
+            <form onSubmit={handleCreateWorkspace} className="space-y-4 mt-4" data-onboarding="workspace-create-form">
                 <div>
                   <Label htmlFor="workspace-name">{t('workspace.workspaces')} {t('common.name')}</Label>
                   <Input
@@ -185,12 +188,14 @@ const DashboardPage = () => {
                       onChange={(e) => setNewWorkspaceColor(e.target.value)}
                       className="w-20 h-10"
                       data-testid="brand-color-input"
+                      required
                     />
                     <Input
                       type="text"
                       value={newWorkspaceColor}
                       onChange={(e) => setNewWorkspaceColor(e.target.value)}
                       className="flex-1"
+                      required
                     />
                   </div>
                 </div>
@@ -284,7 +289,7 @@ const DashboardPage = () => {
                     </div>
                   </div>
                 </div>
-                <Button type="submit" className="w-full rounded-full" data-testid="create-workspace-submit">
+                <Button type="submit" className="w-full rounded-full" data-testid="create-workspace-submit" data-onboarding="workspace-create-submit">
                   Create Workspace
                 </Button>
               </form>
@@ -311,15 +316,19 @@ const DashboardPage = () => {
                     setLockModalOpen(true);
                   } else {
                     // Not locked, navigate - workspace page will acquire lock
+                    window.dispatchEvent(new CustomEvent('onboarding:workspaceEntered', { detail: { workspaceId: workspace.id, workspaceSlug: workspace.slug } }));
                     navigate(`/workspace/${workspace.slug}/walkthroughs`);
                   }
                 } catch (error) {
                   // If lock check fails, still navigate - workspace page will handle it
                   console.error('Lock check failed:', error);
+                  window.dispatchEvent(new CustomEvent('onboarding:workspaceEntered', { detail: { workspaceId: workspace.id, workspaceSlug: workspace.slug } }));
                   navigate(`/workspace/${workspace.slug}/walkthroughs`);
                 }
               }}
               data-testid={`workspace-card-${workspace.id}`}
+              data-onboarding="workspace-card"
+              data-onboarding-workspace-id={workspace.id}
             >
               {/* Animated background effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />

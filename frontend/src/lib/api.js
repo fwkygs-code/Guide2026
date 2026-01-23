@@ -72,7 +72,9 @@ export const api = {
   getFeedback: (workspaceId, walkthroughId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/feedback`),
 
   // Onboarding
-  completeOnboarding: () => axios.post(`${API}/auth/complete-onboarding`),
+  getOnboardingStatus: () => axios.get(`${API}/onboarding/status`),
+  completeOnboarding: () => axios.post(`${API}/onboarding/complete`),
+  dismissOnboarding: () => axios.post(`${API}/onboarding/dismiss`),
 
   // Upload
   uploadFile: (file, options = {}) => {

@@ -31,6 +31,7 @@ const LanguageSwitcher = () => {
           size="sm"
           className="flex items-center gap-2 relative z-[10006] text-slate-200 hover:text-white"
           data-testid="language-switcher-button"
+          data-onboarding-allow="true"
         >
           <Languages className="w-4 h-4" />
           <span className="hidden sm:inline">{currentLanguage.nativeName}</span>
@@ -39,6 +40,7 @@ const LanguageSwitcher = () => {
       <DropdownMenuContent 
         align={i18n.language === 'he' ? 'start' : 'end'}
         className="bg-white border-slate-200 text-slate-900 z-[10006]"
+        data-onboarding-allow="true"
       >
         {languages.map((lang) => (
           <DropdownMenuItem

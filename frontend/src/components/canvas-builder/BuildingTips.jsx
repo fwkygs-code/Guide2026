@@ -208,7 +208,7 @@ const BuildingTips = () => {
           </Button>
         </div>
         
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-xs text-slate-800 mt-2">
           {showBlockReference 
             ? (currentLang === 'he' ? 'לחץ על בלוק כדי לראות הסבר' : 'Click any block to see details')
             : t('builder.buildingTipsDescription')}
@@ -231,7 +231,7 @@ const BuildingTips = () => {
                       <CardTitle className="text-sm font-semibold mb-1">
                         {tip.title}
                       </CardTitle>
-                      <CardDescription className="text-xs text-slate-600 leading-relaxed">
+                      <CardDescription className="text-xs text-slate-800 leading-relaxed">
                         {tip.description}
                       </CardDescription>
                       {tip.link && (
@@ -280,7 +280,7 @@ const BuildingTips = () => {
                 
                 {selectedBlock === blockType && (
                   <div className="mt-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
-                    <p className="text-xs text-slate-700 leading-relaxed">
+                    <p className="text-xs text-slate-800 leading-relaxed">
                       {blockExplanations[blockType]?.[currentLang] || blockExplanations[blockType]?.en || (
                         currentLang === 'he' 
                           ? 'אין תיאור זמין לבלוק זה.'

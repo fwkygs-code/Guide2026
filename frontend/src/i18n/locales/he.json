@@ -170,7 +170,20 @@
     "whatsapp": "וואטסאפ",
     "poweredBy": "מופעל על ידי InterGuide",
     "wantKnowledgeBase": "רוצה מרכז מאגר ידע משלך?",
-    "getStarted": "התחל"
+    "getStarted": "התחל",
+    "knowledgeSystems": {
+      "title": "מערכות ידע",
+      "description": "עיין במדיניות, נהלים, תיעוד, שאלות נפוצות והחלטות שפורסמו.",
+      "available": "{{count}} זמינים",
+      "none": "עדיין לא פורסמו מערכות ידע.",
+      "labels": {
+        "policies": "מדיניות",
+        "procedures": "נהלים",
+        "documentation": "תיעוד",
+        "faqs": "שאלות נפוצות",
+        "decisions": "עצי החלטה"
+      }
+    }
   },
   "category": {
     "create": "צור קטגוריה",
@@ -642,73 +655,49 @@
     "contactSupport": "אנא צור קשר עם התמיכה:",
     "backToLogin": "חזרה להתחברות"
   },
-  "onboarding": {
-    "welcome": "ברוכים הבאים ל-InterGuide!",
-    "startTour": "התחל סיור",
-    "skipTour": "דלג על הסיור",
-    "next": "הבא",
-    "back": "חזור",
-    "finish": "סיים",
-    "skip": "דלג",
-    "step": "שלב {{current}} מתוך {{total}}",
-    "clickToNavigate": "לחץ על הכפתור המודגש כדי להמשיך",
-    "clickToOpen": "לחץ על הכפתור המודגש כדי לפתוח את הטופס",
-    "fillAndSubmit": "מלא את השדות הנדרשים ושלח את הטופס",
-    "languageAvailable": "אתה יכול להחליף שפות בכל עת באמצעות כפתור 🌐 בתפריט העליון. הסיור יתעדכן מיד!",
+  "onboardingTour": {
+    "progress": "שלב {{current}} מתוך {{total}}",
+    "skip": "דלג על ההדרכה",
+    "waiting": "ממתין לטעינת המסך הבא...",
+    "welcome": {
+      "title": "ברוכים הבאים ל-InterGuide",
+      "body": "בואו נקים את אזור העבודה, הקטגוריה והמדריך הראשונים שלך.",
+      "start": "בואו נתחיל"
+    },
     "steps": {
       "createWorkspace": {
-        "title": "צור את אזור העבודה הראשון שלך",
-        "description": "התחל ביצירת אזור עבודה. זה יהיה המיכל שלך למדריכים וקטגוריות. לחץ על הכפתור \"+ אזור עבודה חדש\" כדי להתחיל."
+        "title": "צור אזור עבודה",
+        "body": "לחץ על \"+ אזור עבודה חדש\" כדי להתחיל."
       },
       "workspaceForm": {
         "title": "מלא פרטי אזור עבודה",
-        "description": "הזן שם אזור עבודה (נדרש) וצבע מותג (נדרש). לוגו ותמונות רקע הם אופציונליים - תוכל להוסיף אותם מאוחר יותר בהגדרות."
+        "body": "הזן שם אזור עבודה וצבע מותג, ואז לחץ על \"צור אזור עבודה\"."
       },
       "enterWorkspace": {
-        "title": "היכנס לאזור העבודה שלך",
-        "description": "מעולה! עכשיו לחץ על כרטיס אזור העבודה שזה עתה נוצר כדי להיכנס אליו."
+        "title": "היכנס לאזור העבודה",
+        "body": "לחץ על כרטיס אזור העבודה החדש כדי לפתוח אותו."
       },
-      "guidesTab": {
-        "title": "זה הטאב 'מדריכים'",
-        "description": "אתה נמצא כעת בטאב מדריכים (תצוגת ברירת מחדל). כאן תראה ותנהל את כל המדריכים שלך."
-      },
-      "navigateToCategories": {
-        "title": "נווט לקטגוריות",
-        "description": "לפני יצירת מדריך, בוא ניצור קטגוריה כדי לארגן אותו. לחץ על הטאב \"קטגוריות\"."
+      "goCategories": {
+        "title": "עבור לקטגוריות",
+        "body": "לחץ על לשונית \"קטגוריות\" כדי לארגן את המדריכים."
       },
       "createCategory": {
-        "title": "צור את הקטגוריה הראשונה שלך",
-        "description": "קטגוריות עוזרות לארגן את המדריכים שלך. לחץ על \"+ קטגוריה חדשה\" כדי ליצור אחת."
+        "title": "צור קטגוריה",
+        "body": "הוסף שם ותיאור לקטגוריה ואז צור אותה."
       },
-      "categoryForm": {
-        "title": "מלא פרטי קטגוריה",
-        "description": "הזן שם קטגוריה (נדרש) ותיאור (נדרש). אייקון וקישור NotebookLM/Gemini הם אופציונליים. עבור \"קטגוריית אב\", השאר את זה כ\"אין\" כדי ליצור קטגוריה ברמה העליונה."
-      },
-      "navigateToGuides": {
+      "goGuides": {
         "title": "חזרה למדריכים",
-        "description": "מושלם! עכשיו בוא ניצור את המדריך הראשון שלך. לחץ על הטאב \"מדריכים\" כדי לחזור."
+        "body": "לחץ על לשונית \"מדריכים\" כדי ליצור מדריך."
       },
       "createWalkthrough": {
-        "title": "צור את המדריך הראשון שלך",
-        "description": "לחץ על \"+ מדריך חדש\" כדי ליצור מדריך אינטראקטיבי."
+        "title": "צור מדריך",
+        "body": "מלא את פרטי המדריך ובחר את הקטגוריה שיצרת."
       },
-      "walkthroughForm": {
-        "title": "הגדר מדריך",
-        "description": "הזן שם מדריך, תיאור ואייקון (אופציונלי). בחר את הקטגוריה שזה עתה יצרת מהתפריט הנפתח."
-      },
-      "addSteps": {
-        "title": "הוסף שלבים למדריך שלך",
-        "description": "לחץ על הכפתור \"+\" כדי להוסיף שלבים. כל שלב יכול להכיל שם ומספר בלוקי תוכן (טקסט, תמונות, GIFs, סרטונים וכו')."
-      },
-      "complete": {
-        "title": "הכל מוכן!",
-        "description": "כל הכבוד! יצרת את אזור העבודה, הקטגוריה והמדריך הראשונים שלך. חקור את הממשק והתחל לבנות מדריכים מדהימים!"
+      "addFirstStep": {
+        "title": "הוסף את השלב הראשון",
+        "body": "הוסף שלב, תן לו שם ואז הוסף בלוק כדי לסיים."
       }
-    },
-    "languageSwitchTip": "כפתור השפה נשאר נגיש לאורך כל הסיור. נסה להחליף כדי לראות את הסיור בשפות שונות!",
-    "waitingForElement": "מחכה שהאלמנט יהיה מוכן...",
-    "elementNotFound": "האלמנט לא נמצא. אנא נווט למיקום הנכון כדי להמשיך.",
-    "pausedForNavigation": "הסיור מושהה. אנא השלם את הפעולה כדי להמשיך."
+    }
   },
   "toast": {
     "welcomeBack": "ברוך שובך!",

@@ -203,14 +203,14 @@ const PortalPage = ({ isEmbedded = false }) => {
     if (!workspaceId || !slug) return [];
     const id = String(workspaceId);
     const systems = [
-      { key: 'policy', label: 'Policies', path: `/portal/${slug}/knowledge/policies`, count: listPublishedPolicies(id).length },
-      { key: 'procedure', label: 'Procedures', path: `/portal/${slug}/knowledge/procedures`, count: listPublishedProcedures(id).length },
-      { key: 'documentation', label: 'Documentation', path: `/portal/${slug}/knowledge/documentation`, count: listPublishedDocumentation(id).length },
-      { key: 'faq', label: 'FAQs', path: `/portal/${slug}/knowledge/faqs`, count: listPublishedFAQs(id).length },
-      { key: 'decision-tree', label: 'Decision Trees', path: `/portal/${slug}/knowledge/decisions`, count: listPublishedDecisionTrees(id).length }
+      { key: 'policy', label: t('portal.knowledgeSystems.labels.policies', { defaultValue: 'Policies' }), path: `/portal/${slug}/knowledge/policies`, count: listPublishedPolicies(id).length },
+      { key: 'procedure', label: t('portal.knowledgeSystems.labels.procedures', { defaultValue: 'Procedures' }), path: `/portal/${slug}/knowledge/procedures`, count: listPublishedProcedures(id).length },
+      { key: 'documentation', label: t('portal.knowledgeSystems.labels.documentation', { defaultValue: 'Documentation' }), path: `/portal/${slug}/knowledge/documentation`, count: listPublishedDocumentation(id).length },
+      { key: 'faq', label: t('portal.knowledgeSystems.labels.faqs', { defaultValue: 'FAQs' }), path: `/portal/${slug}/knowledge/faqs`, count: listPublishedFAQs(id).length },
+      { key: 'decision-tree', label: t('portal.knowledgeSystems.labels.decisions', { defaultValue: 'Decision Trees' }), path: `/portal/${slug}/knowledge/decisions`, count: listPublishedDecisionTrees(id).length }
     ];
     return systems.filter(system => system.count > 0);
-  }, [portal, slug]);
+  }, [portal, slug, t]);
 
   if (loading) {
     return (
@@ -625,15 +625,15 @@ const PortalPage = ({ isEmbedded = false }) => {
             <div className="glass rounded-2xl border border-slate-200/50 px-6 py-6">
               <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-heading font-semibold text-white">Knowledge Systems</h3>
-                  <p className="text-sm text-slate-300">Browse published policies, procedures, docs, FAQs, and decisions.</p>
+                  <h3 className="text-lg font-heading font-semibold text-white">{t('portal.knowledgeSystems.title', { defaultValue: 'Knowledge Systems' })}</h3>
+                  <p className="text-sm text-slate-300">{t('portal.knowledgeSystems.description', { defaultValue: 'Browse published policies, procedures, docs, FAQs, and decisions.' })}</p>
                 </div>
                 <div className="text-xs text-slate-400">
-                  {knowledgeSystemsMenu.length} available
+                  {t('portal.knowledgeSystems.available', { defaultValue: '{{count}} available', count: knowledgeSystemsMenu.length })}
                 </div>
               </div>
               {knowledgeSystemsMenu.length === 0 ? (
-                <div className="text-sm text-slate-400">No knowledge systems published yet.</div>
+                <div className="text-sm text-slate-400">{t('portal.knowledgeSystems.none', { defaultValue: 'No knowledge systems published yet.' })}</div>
               ) : (
                 <div className="flex flex-wrap gap-3">
                   {knowledgeSystemsMenu.map(system => (

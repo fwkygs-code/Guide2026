@@ -47,12 +47,30 @@ const writeJson = (key: string, value: unknown) => {
 const loadIndex = (workspaceId: string): string[] => {
   const stored = readJson<string[]>(indexKey(workspaceId));
   if (Array.isArray(stored)) return stored;
-  writeJson(indexKey(workspaceId), []);
   return [];
 };
 
 const saveIndex = (workspaceId: string, ids: string[]) => {
   writeJson(indexKey(workspaceId), ids);
+};
+
+const getWorkspaceIds = (workspaceId: string): string[] => {
+  if (!workspaceId) return [];
+  const stored = loadIndex(workspaceId);
+  if (stored.length > 0) return stored;
+  const ids: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(`${DECISION_TREE_PREFIX}:meta:`)) continue;
+    const meta = readJson<DecisionTreeMeta>(key);
+    if (meta?.workspaceId === workspaceId) {
+      ids.push(meta.id);
+    }
+  }
+  if (ids.length > 0) {
+    saveIndex(workspaceId, ids);
+  }
+  return ids;
 };
 
 export const createDecisionTreeEntry = (workspaceId: string, forcedId?: string) => {
@@ -135,12 +153,12 @@ export const loadDecisionTreePublished = (id: string): DecisionTreePublished | n
   readJson<DecisionTreePublished>(publishedKey(id));
 
 export const listDecisionTreeMeta = (workspaceId: string): DecisionTreeMeta[] => {
-  const ids = loadIndex(workspaceId);
+  const ids = getWorkspaceIds(workspaceId);
   return ids.map((id) => loadDecisionTreeMeta(id)).filter(Boolean) as DecisionTreeMeta[];
 };
 
 export const listPublishedDecisionTrees = (workspaceId: string) => {
-  const ids = loadIndex(workspaceId);
+  const ids = getWorkspaceIds(workspaceId);
   return ids
     .map((id) => {
       const meta = loadDecisionTreeMeta(id);

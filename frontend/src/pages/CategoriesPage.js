@@ -135,6 +135,10 @@ const CategoriesPage = () => {
       toast.error('Category name is required');
       return;
     }
+    if (!newCategoryDesc.trim()) {
+      toast.error('Category description is required');
+      return;
+    }
     try {
       const parentId = creatingForParent || (newCategoryParent && newCategoryParent !== 'none' ? newCategoryParent : null);
       const response = await api.createCategory(workspaceId, {
@@ -154,6 +158,9 @@ const CategoriesPage = () => {
       setNewCategoryNotebooklmUrl('');
       setCreatingForParent(null);
       toast.success(parentId ? 'Sub-category created!' : 'Category created!');
+      if (!parentId && response?.data?.id) {
+        window.dispatchEvent(new CustomEvent('onboarding:categoryCreated', { detail: { categoryId: response.data.id, categoryName: response.data.name } }));
+      }
     } catch (error) {
       console.error('Create category error:', error);
       toast.error(error.response?.data?.detail || 'Failed to create category');
@@ -242,7 +249,7 @@ const CategoriesPage = () => {
         title={t('workspace.categories')}
         description={t('category.organizeWalkthroughs')}
         actions={
-          <Button onClick={() => setDialogOpen(true)} data-testid="create-category-button">
+          <Button onClick={() => setDialogOpen(true)} data-testid="create-category-button" data-onboarding="create-category-button">
             <Plus className="w-4 h-4 mr-2" />
             {t('category.newCategory')}
           </Button>
@@ -269,7 +276,7 @@ const CategoriesPage = () => {
                     : t('category.create')}
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreateCategory} className="space-y-4 mt-4">
+              <form onSubmit={handleCreateCategory} className="space-y-4 mt-4" data-onboarding="category-create-form">
                 <div>
                   <Label htmlFor="category-name">{t('category.name')}</Label>
                   <Input
@@ -292,6 +299,7 @@ const CategoriesPage = () => {
                     rows={3}
                     data-testid="category-description-input"
                     className="mt-1.5"
+                    required
                   />
                 </div>
                 <div>
@@ -417,7 +425,7 @@ const CategoriesPage = () => {
                       {t('common.cancel')}
                     </Button>
                   )}
-                  <Button type="submit" className={creatingForParent ? "flex-1" : "w-full"} data-testid="create-category-submit">
+                  <Button type="submit" className={creatingForParent ? "flex-1" : "w-full"} data-testid="create-category-submit" data-onboarding="category-create-submit">
                     {creatingForParent ? t('category.createSubcategory') : t('category.create')}
                   </Button>
                 </div>
@@ -434,6 +442,8 @@ const CategoriesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 data-testid={`category-card-${category.id}`}
+                data-onboarding="category-card"
+                data-onboarding-category-id={category.id}
               >
                 <Card className="relative overflow-hidden border border-slate-700/50 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 group">
                   {/* Animated background effect */}
@@ -575,7 +585,7 @@ const CategoriesPage = () => {
               {t('category.noCategories')}
             </h3>
             <p className="text-slate-600 mb-6">{t('category.createFirst')}</p>
-            <Button onClick={() => setDialogOpen(true)} data-testid="empty-create-category-button">
+            <Button onClick={() => setDialogOpen(true)} data-testid="empty-create-category-button" data-onboarding="create-category-button">
               <Plus className="w-4 h-4 mr-2" />
               {t('category.create')}
             </Button>

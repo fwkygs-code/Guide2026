@@ -39,12 +39,30 @@ const writeJson = (key: string, value: unknown) => {
 const loadIndex = (workspaceId: string): string[] => {
   const stored = readJson<string[]>(indexKey(workspaceId));
   if (Array.isArray(stored)) return stored;
-  writeJson(indexKey(workspaceId), []);
   return [];
 };
 
 const saveIndex = (workspaceId: string, ids: string[]) => {
   writeJson(indexKey(workspaceId), ids);
+};
+
+const getWorkspaceIds = (workspaceId: string): string[] => {
+  if (!workspaceId) return [];
+  const stored = loadIndex(workspaceId);
+  if (stored.length > 0) return stored;
+  const ids: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(`${POLICY_PREFIX}:meta:`)) continue;
+    const meta = readJson<PolicyMeta>(key);
+    if (meta?.workspaceId === workspaceId) {
+      ids.push(meta.id);
+    }
+  }
+  if (ids.length > 0) {
+    saveIndex(workspaceId, ids);
+  }
+  return ids;
 };
 
 export const createPolicyEntry = (workspaceId: string, forcedId?: string) => {
@@ -123,12 +141,12 @@ export const publishPolicy = (id: string) => {
 export const loadPolicyPublished = (id: string): PolicyPublished | null => readJson<PolicyPublished>(publishedKey(id));
 
 export const listPolicyMeta = (workspaceId: string): PolicyMeta[] => {
-  const ids = loadIndex(workspaceId);
+  const ids = getWorkspaceIds(workspaceId);
   return ids.map((id) => loadPolicyMeta(id)).filter(Boolean) as PolicyMeta[];
 };
 
 export const listPublishedPolicies = (workspaceId: string) => {
-  const ids = loadIndex(workspaceId);
+  const ids = getWorkspaceIds(workspaceId);
   return ids
     .map((id) => {
       const meta = loadPolicyMeta(id);
