@@ -1654,8 +1654,8 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         if (markerShape === 'arrow') {
-          // Arrow marker
-          const arrowLength = marker.length || 80;
+          // Arrow marker - Fixed direction and sizing
+          const arrowLength = Math.max(marker.length || 80, 40); // Minimum length
           const arrowRotation = marker.rotation || 0;
 
           return (
@@ -1665,42 +1665,42 @@ const AnnotatedImageViewer = ({ block }) => {
                 style={{
                   left: `${marker.x}%`,
                   top: `${marker.y}%`,
-                  transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
+                  transform: `translate(-50%, -50%) rotate(${arrowRotation + Math.PI}rad)`, // Rotate 180° to point left instead of right
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                {/* Arrow shaft - extends from center rightward */}
+                {/* Arrow shaft - extends from center leftward */}
                 <div
                   className="absolute bg-primary"
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `calc(${arrowLength * 0.1}vw - 4px)`, // Scale for viewer, subtract arrowhead
-                    height: '1px',
-                    transform: 'translate(0, -50%)', // Start at center, no horizontal offset
-                    transformOrigin: 'left center',
+                    width: `${Math.max(arrowLength - 8, 20)}px`, // Fixed pixel sizing, subtract arrowhead
+                    height: '2px',
+                    transform: 'translate(-100%, -50%)', // Start at center, extend leftward
+                    transformOrigin: 'right center',
                   }}
                 />
 
-                {/* Arrowhead - positioned exactly at shaft end */}
+                {/* Arrowhead - positioned at shaft start (now pointing left) */}
                 <div
                   className="absolute"
                   style={{
-                    left: `calc(50% + ${arrowLength * 0.1}vw - 4px)`, // At the end of shaft
+                    left: `calc(50% - ${Math.max(arrowLength - 8, 20)}px)`, // At the start of shaft (left end)
                     top: '50%',
                     width: '0',
                     height: '0',
-                    borderLeft: '4px solid var(--primary)',
-                    borderTop: '2px solid transparent',
-                    borderBottom: '2px solid transparent',
-                    transform: 'translate(0, -50%)', // No horizontal offset needed
-                    transformOrigin: 'left center',
+                    borderRight: '8px solid var(--primary)', // Point left instead of right
+                    borderTop: '4px solid transparent',
+                    borderBottom: '4px solid transparent',
+                    transform: 'translate(0, -50%)',
+                    transformOrigin: 'right center',
                   }}
                 />
 
-                {/* Number badge */}
+                {/* Number badge - positioned above the arrow point */}
                 <span
                   className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
@@ -1708,7 +1708,7 @@ const AnnotatedImageViewer = ({ block }) => {
                     height: '18px',
                     left: '50%',
                     top: '50%',
-                    transform: 'translate(-50%, -50%) translateY(-15px)',
+                    transform: 'translate(-50%, -50%) translateY(-18px)', // Position above the arrowhead
                     fontSize: '10px'
                   }}
                 >
@@ -1721,7 +1721,7 @@ const AnnotatedImageViewer = ({ block }) => {
                   style={{
                     left: `${marker.x}%`,
                     top: `${marker.y}%`,
-                    transform: 'translate(-50%, calc(-100% - 10px))',
+                    transform: 'translate(-50%, calc(100% + 10px))', // Position below since arrow now points up
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -1804,10 +1804,10 @@ const AnnotatedImageViewer = ({ block }) => {
           );
         }
 
-        // Dot marker (now % based)
+        // Dot marker (fixed pixel-based sizing)
         return (
-          <div 
-            key={marker.id || idx} 
+          <div
+            key={marker.id || idx}
             className="absolute"
             style={{
               position: 'absolute',
@@ -1817,14 +1817,14 @@ const AnnotatedImageViewer = ({ block }) => {
             }}
           >
             <button
-              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all select-none ${
+              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all select-none border-2 border-white ${
                 isActive
                   ? 'bg-primary text-white scale-110 shadow-lg ring-2 ring-primary/30'
-                  : 'bg-primary text-white hover:scale-110 shadow-md'
+                  : 'bg-transparent text-primary hover:bg-primary hover:text-white shadow-md'
               }`}
               style={{
-                width: `${markerSize}vw`,
-                height: `${markerSize}vw`,
+                width: `${Math.max(markerSize, 24)}px`,
+                height: `${Math.max(markerSize, 24)}px`,
                 minWidth: '24px',
                 minHeight: '24px',
                 aspectRatio: '1',
