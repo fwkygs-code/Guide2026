@@ -1592,17 +1592,6 @@ const AnnotatedImageViewer = ({ block }) => {
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
 
-        // DIAGNOSTIC: Log marker data and image dimensions for first marker
-        if (idx === 0) {
-          console.log('VIEWER DIAGNOSTIC:', {
-            marker,
-            imageNaturalWidth: imageRef.current?.naturalWidth,
-            imageNaturalHeight: imageRef.current?.naturalHeight,
-            imageRenderedWidth: imageRef.current?.clientWidth || 400,
-            imageRenderedHeight: imageRef.current?.clientHeight || 300,
-            rect: imageRef.current?.getBoundingClientRect()
-          });
-        }
 
         // ALL shapes use consistent coordinate system - positions as % of rendered image
         const markerSize = marker.size || 30; // Circle diameter in pixels (fixed visual size)
@@ -1613,19 +1602,7 @@ const AnnotatedImageViewer = ({ block }) => {
         const isActive = selectedMarker === idx;
 
         if (markerShape === 'rectangle') {
-          // Rectangle marker - DIAGNOSTIC LOG
-          if (idx === 0) {
-            console.log('VIEWER RECTANGLE:', {
-              x: marker.x,
-              y: marker.y,
-              width: markerWidth,
-              height: markerHeight,
-              finalLeft: `${marker.x}%`,
-              finalTop: `${marker.y}%`,
-              finalWidth: `${markerWidth}%`,
-              finalHeight: `${markerHeight}%`
-            });
-          }
+          // Rectangle marker
 
           return (
             <div
@@ -1692,20 +1669,6 @@ const AnnotatedImageViewer = ({ block }) => {
           // Arrow marker - consistent with builder
           const arrowRotation = marker.rotation || 0;
 
-          // DIAGNOSTIC LOG
-          if (idx === 0) {
-            console.log('VIEWER ARROW:', {
-              markerX: marker.x,
-              markerY: marker.y,
-              markerLength: marker.length,
-              finalLength: arrowLength,
-              rotation: arrowRotation,
-              finalLeft: `${marker.x}%`,
-              finalTop: `${marker.y}%`,
-              shaftWidth: `${arrowLength - 8}px`,
-              arrowheadSize: '8px'
-            });
-          }
 
           return (
             <div key={marker.id || idx}>
@@ -1796,19 +1759,6 @@ const AnnotatedImageViewer = ({ block }) => {
           const endX = marker.x2 || marker.x || 10;
           const endY = marker.y2 || marker.y || 0;
 
-          // DIAGNOSTIC LOG
-          if (idx === 0) {
-            console.log('VIEWER LINE:', {
-              startX,
-              startY,
-              endX,
-              endY,
-              markerX1: marker.x1,
-              markerY1: marker.y1,
-              markerX2: marker.x2,
-              markerY2: marker.y2
-            });
-          }
 
           return (
             <div key={marker.id || idx}>
@@ -1922,19 +1872,6 @@ const AnnotatedImageViewer = ({ block }) => {
               onClick={() => setSelectedMarker(isActive ? null : idx)}
             />
 
-            {/* DIAGNOSTIC LOG */}
-            if (idx === 0) {
-              console.log('VIEWER CIRCLE:', {
-                markerX: marker.x,
-                markerY: marker.y,
-                markerSize: marker.size,
-                finalSize: markerSize,
-                finalLeft: `${marker.x}%`,
-                finalTop: `${marker.y}%`,
-                finalWidth: `${markerSize}px`,
-                finalHeight: `${markerSize}px`
-              });
-            }
 
             {/* Number badge positioned outside top-right corner like exponent */}
             <span
