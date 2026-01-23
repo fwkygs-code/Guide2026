@@ -1605,6 +1605,21 @@ const AnnotatedImageViewer = ({ block }) => {
         const scaleY = renderedHeight / builderHeight;
         const uniformScale = Math.min(scaleX, scaleY);
 
+        // DIAGNOSTIC: Log marker data and image dimensions for first marker
+        if (idx === 0) {
+          console.log('VIEWER DIAGNOSTIC:', {
+            marker,
+            imageNaturalWidth: imageRef.current?.naturalWidth,
+            imageNaturalHeight: imageRef.current?.naturalHeight,
+            imageRenderedWidth: renderedWidth,
+            imageRenderedHeight: renderedHeight,
+            scaleX,
+            scaleY,
+            uniformScale,
+            rect: imageRef.current?.getBoundingClientRect()
+          });
+        }
+
         // Scale measurements for circle and arrow only
         const markerSize = markerShape === 'dot' ? (marker.size || 30) * uniformScale : marker.size || 3;
         const arrowLength = markerShape === 'arrow' ? (marker.length || 80) * uniformScale : marker.length || 80;
@@ -1616,10 +1631,23 @@ const AnnotatedImageViewer = ({ block }) => {
         const isActive = selectedMarker === idx;
 
         if (markerShape === 'rectangle') {
-          // Rectangle marker
+          // Rectangle marker - DIAGNOSTIC LOG
+          if (idx === 0) {
+            console.log('VIEWER RECTANGLE:', {
+              x: marker.x,
+              y: marker.y,
+              width: markerWidth,
+              height: markerHeight,
+              finalLeft: `${marker.x}%`,
+              finalTop: `${marker.y}%`,
+              finalWidth: `${markerWidth}%`,
+              finalHeight: `${markerHeight}%`
+            });
+          }
+
           return (
-            <div 
-              key={marker.id || idx} 
+            <div
+              key={marker.id || idx}
               className="absolute"
               style={{
                 position: 'absolute',
@@ -1681,6 +1709,21 @@ const AnnotatedImageViewer = ({ block }) => {
         if (markerShape === 'arrow') {
           // Arrow marker - scaled to viewer dimensions
           const arrowRotation = marker.rotation || 0;
+
+          // DIAGNOSTIC LOG
+          if (idx === 0) {
+            console.log('VIEWER ARROW:', {
+              markerX: marker.x,
+              markerY: marker.y,
+              markerLength: marker.length,
+              scaledLength: arrowLength,
+              rotation: arrowRotation,
+              finalLeft: `${marker.x}%`,
+              finalTop: `${marker.y}%`,
+              shaftWidth: `${arrowLength - 8 * uniformScale}px`,
+              arrowheadSize: `${8 * uniformScale}px`
+            });
+          }
 
           return (
             <div key={marker.id || idx}>
@@ -1771,6 +1814,20 @@ const AnnotatedImageViewer = ({ block }) => {
           const endX = marker.x2 || marker.x || 10;
           const endY = marker.y2 || marker.y || 0;
 
+          // DIAGNOSTIC LOG
+          if (idx === 0) {
+            console.log('VIEWER LINE:', {
+              startX,
+              startY,
+              endX,
+              endY,
+              markerX1: marker.x1,
+              markerY1: marker.y1,
+              markerX2: marker.x2,
+              markerY2: marker.y2
+            });
+          }
+
           return (
             <div key={marker.id || idx}>
               <svg
@@ -1839,6 +1896,20 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         // Dot marker - positioned relative to image dimensions
+        // DIAGNOSTIC LOG
+        if (idx === 0) {
+          console.log('VIEWER CIRCLE:', {
+            markerX: marker.x,
+            markerY: marker.y,
+            markerSize: marker.size,
+            scaledSize: markerSize,
+            finalLeft: `${marker.x}%`,
+            finalTop: `${marker.y}%`,
+            finalWidth: `${markerSize}px`,
+            finalHeight: `${markerSize}px`
+          });
+        }
+
         return (
           <div
             key={marker.id || idx}

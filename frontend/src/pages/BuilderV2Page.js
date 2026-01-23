@@ -2627,6 +2627,18 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         {/* Render markers */}
         {markers.map((marker, idx) => {
           const isActive = editingMarker === idx || draggingMarker === idx || resizingMarker === idx;
+
+          // DIAGNOSTIC: Log marker data and image dimensions
+          if (idx === 0) { // Log first marker for diagnosis
+            console.log('BUILDER DIAGNOSTIC:', {
+              marker,
+              imageNaturalWidth: imageRef.current?.naturalWidth,
+              imageNaturalHeight: imageRef.current?.naturalHeight,
+              imageRenderedWidth: imageRef.current?.clientWidth,
+              imageRenderedHeight: imageRef.current?.clientHeight,
+              rect: imageRef.current?.getBoundingClientRect()
+            });
+          }
           const markerShape = marker.shape || 'dot';
           const markerSize = marker.size || 30;
           const markerWidth = marker.width || 10;
