@@ -115,7 +115,7 @@ const RichTextEditor = ({
 
   return (
     <motion.div
-      className={cn('relative rounded-xl overflow-hidden', getEditorSurface(), className)}
+      className={cn('relative rounded-xl overflow-visible', getEditorSurface(), className)}
       initial={{ opacity: 0.9 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
@@ -130,15 +130,15 @@ const RichTextEditor = ({
         </div>
       )}
 
-      {/* Enhanced Floating Toolbar */}
+      {/* Enhanced Floating Toolbar - positioned inside container */}
       <AnimatePresence>
         {showToolbar && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute z-[9999] left-1/2 transform -translate-x-1/2 top-[-56px] flex items-center gap-1 bg-slate-900 backdrop-blur-xl rounded-xl p-2 shadow-2xl border-2 border-white/20"
+            className="absolute z-[9999] left-1/2 transform -translate-x-1/2 bottom-full mb-2 flex items-center gap-1 bg-slate-900 backdrop-blur-xl rounded-xl p-2 shadow-2xl border-2 border-white/20"
             style={{ minWidth: 'fit-content' }}
           >
             {/* Test indicator */}

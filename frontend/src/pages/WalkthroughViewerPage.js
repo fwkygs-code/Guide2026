@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { detectRTL } from '../utils/blockUtils';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -679,8 +680,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         />
                       )}
                       {block.type === 'text' && (
-                        <div 
+                        <div
                           className="prose max-w-none text-slate-700"
+                          style={{ direction: detectRTL(block.data?.content) ? 'rtl' : 'ltr' }}
                           dangerouslySetInnerHTML={{ __html: block.data?.content }}
                         />
                       )}
