@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
@@ -34,7 +34,7 @@ const OnboardingOverlay = ({
   const tooltipRef = useRef(null);
   const [tooltipStyle, setTooltipStyle] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
 
-  const paddedRect = getPaddedRect(rect);
+  const paddedRect = useMemo(() => getPaddedRect(rect), [rect]);
 
   useLayoutEffect(() => {
     if (!tooltipRef.current) return;
@@ -57,7 +57,7 @@ const OnboardingOverlay = ({
     left = clamp(left, TOOLTIP_MARGIN, viewportWidth - tooltipRect.width - TOOLTIP_MARGIN);
 
     setTooltipStyle({ top: `${top}px`, left: `${left}px` });
-  }, [paddedRect, stepIndex, isRTL, isWaiting]);
+  }, [paddedRect, isRTL]);
 
   if (!step) return null;
 
