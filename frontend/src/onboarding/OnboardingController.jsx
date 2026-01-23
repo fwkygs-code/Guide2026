@@ -23,7 +23,7 @@ const OnboardingController = () => {
   const targetSelector = useMemo(() => {
     if (!step?.target) return null;
     return typeof step.target === 'function' ? step.target(session) : step.target;
-  }, [step, session, location.pathname]);
+  }, [step?.id, step?.target, session?.workspaceId, session?.categoryId, session?.walkthroughId, session?.step8, location.pathname]);
 
   const { rect, isReady } = useTargetRect(targetSelector, active);
 
@@ -42,7 +42,7 @@ const OnboardingController = () => {
     setSession(nextSession);
     setStepIndex(nextIndex);
     setActive(true);
-  }, [user?.id]);
+  }, []);
 
   const markDismissed = useCallback(async () => {
     try {
@@ -201,7 +201,7 @@ const OnboardingController = () => {
       window.removeEventListener('onboarding:stepTitleUpdated', handleStepTitleUpdated);
       window.removeEventListener('onboarding:blockAdded', handleBlockAdded);
     };
-  }, [active, stepIndex, setStep]);
+  }, [active, stepIndex]);
 
   useEffect(() => {
     if (!active) return;
@@ -250,7 +250,7 @@ const OnboardingController = () => {
         setStep(8, { walkthroughId: walkthroughEl.getAttribute('data-onboarding-walkthrough-id') });
       }
     }
-  }, [active, step, stepIndex, location.pathname, setStep]);
+  }, [active, step, stepIndex, location.pathname]);
 
   useEffect(() => {
     if (!active) return;

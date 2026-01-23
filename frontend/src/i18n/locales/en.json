@@ -547,6 +547,50 @@
       }
     }
   },
+  "onboardingTour": {
+    "progress": "Step {{current}} of {{total}}",
+    "waiting": "Waiting for element to be ready...",
+    "skip": "Skip onboarding",
+    "welcome": {
+      "title": "Welcome to InterGuide!",
+      "body": "Let's get you started with a quick tour to create your first workspace, category, and walkthrough.",
+      "start": "Start Tour"
+    },
+    "steps": {
+      "createWorkspace": {
+        "title": "Create Your First Workspace",
+        "body": "Click the \"+ New Workspace\" button to create a workspace for organizing your guides."
+      },
+      "workspaceForm": {
+        "title": "Set Up Your Workspace",
+        "body": "Enter a workspace name and brand color. Logo and background are optional and can be added later."
+      },
+      "enterWorkspace": {
+        "title": "Enter Your Workspace",
+        "body": "Great! Now click on your newly created workspace to enter it."
+      },
+      "goCategories": {
+        "title": "Navigate to Categories",
+        "body": "Before creating guides, let's create a category to organize them. Click the \"Categories\" tab."
+      },
+      "createCategory": {
+        "title": "Create Your First Category",
+        "body": "Categories help organize your walkthroughs. Click \"+ New Category\" to create one."
+      },
+      "goGuides": {
+        "title": "Navigate to Guides",
+        "body": "Perfect! Now let's create your first walkthrough. Click the \"Guides\" tab to go back."
+      },
+      "createWalkthrough": {
+        "title": "Create Your First Walkthrough",
+        "body": "Click \"+ New Walkthrough\" to create an interactive guide."
+      },
+      "addFirstStep": {
+        "title": "Add Content to Your Walkthrough",
+        "body": "Click the \"+\" button to add a step, give it a title, then click \"+\" again to add content blocks."
+      }
+    }
+  },
   "toast": {
     "welcomeBack": "Welcome back!",
     "accountCreated": "Account created successfully!",
