@@ -1877,13 +1877,32 @@ const AnnotatedImageViewer = ({ block }) => {
               pointerEvents: 'auto',
             }}
           >
-            {/* Circle marker - stroke-only hollow ring */}
+            {/* Number badge positioned at center (where marker is) */}
+            <span
+              className="absolute text-white rounded-full flex items-center justify-center text-[8px] font-bold pointer-events-none shadow-md"
+              style={{
+                width: '14px',
+                height: '14px',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                backgroundColor: markerColor,
+                fontSize: '8px',
+                zIndex: 10,
+              }}
+            >
+              {idx + 1}
+            </span>
+
+            {/* Circle marker positioned outside top-right corner like exponent */}
             <div
               className={'absolute rounded-full cursor-pointer select-none transition-all ' +
                 (isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md')}
               style={{
                 width: markerSize + 'px',
                 height: markerSize + 'px',
+                top: '-9px',
+                right: '-9px',
                 border: '2px solid ' + markerColor,
                 backgroundColor: isActive ? markerColor + '1a' : 'transparent', // Hollow ring - no fill
                 ringColor: isActive ? markerColor + '4d' : undefined, // 30% opacity ring
@@ -1892,23 +1911,6 @@ const AnnotatedImageViewer = ({ block }) => {
               }}
               onClick={() => setSelectedMarker(isActive ? null : idx)}
             />
-
-
-            {/* Number badge positioned outside top-right corner like exponent */}
-            <span
-              className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
-              style={{
-                width: '18px',
-                height: '18px',
-                top: '-9px',
-                right: '-9px',
-                backgroundColor: markerColor,
-                fontSize: '10px',
-                zIndex: 10,
-              }}
-            >
-              {idx + 1}
-            </span>
             {isActive && (marker.title || marker.description) && (
               <div
                 className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
