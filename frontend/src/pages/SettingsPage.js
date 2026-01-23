@@ -322,12 +322,12 @@ const SettingsPage = () => {
 
             <div className="space-y-6">
           {/* Basic Settings */}
-          <Card interactive={true} className="mb-6 overflow-hidden">
+          <Card interactive={true} className="mb-6">
             <Card.Header>
               <Card.Title className="text-white">Basic Information</Card.Title>
             </Card.Header>
-            <Card.Content className="space-y-4">
-            <div className="space-y-4">
+            <Card.Content className="space-y-6">
+            <div className="space-y-6">
               <div>
                 <Label htmlFor="workspace-name" className="text-white">Workspace Name</Label>
                 <Input
@@ -366,7 +366,7 @@ const SettingsPage = () => {
               </div>
               <div>
                 <Label htmlFor="brand-color" className="text-white">Brand Color</Label>
-                <div className="flex flex-col sm:flex-row gap-3 mt-1.5">
+                <div className="flex flex-col sm:flex-row gap-3 mt-1.5 items-start">
                   <Input
                     id="brand-color"
                     type="color"
