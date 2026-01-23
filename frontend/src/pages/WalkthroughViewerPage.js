@@ -1594,10 +1594,10 @@ const AnnotatedImageViewer = ({ block }) => {
 
 
         // ALL shapes use consistent coordinate system - positions as % of rendered image
-        const markerSize = marker.size || 30; // Circle diameter in pixels (fixed visual size)
+        const markerSize = marker.size || 3; // Circle diameter as percentage of image width
         const markerWidth = marker.width || 10; // Rectangle width as percentage
         const markerHeight = marker.height || 10; // Rectangle height as percentage
-        const arrowLength = marker.length || 80; // Arrow length in pixels (fixed visual size)
+        const arrowLength = marker.length || 10; // Arrow length as percentage of image width
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
@@ -1689,7 +1689,7 @@ const AnnotatedImageViewer = ({ block }) => {
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `${arrowLength - 8}px`, // Subtract arrowhead size
+                    width: `${arrowLength - 1}%`, // Subtract arrowhead size (percentage)
                     height: '2px',
                     transform: 'translate(0, -50%)', // Start at center, no horizontal offset
                     transformOrigin: 'left center',
@@ -1701,7 +1701,7 @@ const AnnotatedImageViewer = ({ block }) => {
                 <div
                   className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
-                    left: `calc(50% + ${arrowLength - 8}px)`, // At the end of shaft
+                    left: `calc(50% + ${arrowLength - 1}%)`, // At the end of shaft
                     top: '50%',
                     width: '0',
                     height: '0',
@@ -1848,8 +1848,8 @@ const AnnotatedImageViewer = ({ block }) => {
                 isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
               }`}
               style={{
-                width: `${markerSize}px`,
-                height: `${markerSize}px`,
+                width: `${markerSize}%`,
+                height: `${markerSize}%`,
                 border: `2px solid ${markerColor}`,
                 backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // Match builder opacity
                 ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
