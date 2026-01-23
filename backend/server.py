@@ -71,7 +71,7 @@ RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL')
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
 RESEND_API_URL = "https://api.resend.com/emails"
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://guide2026-frontend.onrender.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://interguide.app')
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
 # IMPORTANT: Sandbox vs Production behavior differences:
 # - Sandbox may NOT open PayPal UI on cancellation (PayPal sandbox limitation)
