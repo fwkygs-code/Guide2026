@@ -1743,8 +1743,8 @@ const AnnotatedImageViewer = ({ block }) => {
                     width: '0',
                     height: '0',
                     borderLeft: `8px solid ${markerColor}`,
-                    borderTop: '4px solid transparent`,
-                    borderBottom: '4px solid transparent`,
+                    borderTop: '4px solid transparent',
+                    borderBottom: '4px solid transparent',
                     transform: 'translateY(-50%)', // Center vertically at tip
                     transformOrigin: 'left center',
                   }}
