@@ -1828,19 +1828,6 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         // Dot marker - positioned relative to image dimensions
-        // DIAGNOSTIC LOG
-        if (idx === 0) {
-          console.log('VIEWER CIRCLE:', {
-            markerX: marker.x,
-            markerY: marker.y,
-            markerSize: marker.size,
-            scaledSize: markerSize,
-            finalLeft: `${marker.x}%`,
-            finalTop: `${marker.y}%`,
-            finalWidth: `${markerSize}px`,
-            finalHeight: `${markerSize}px`
-          });
-        }
 
         return (
           <div
