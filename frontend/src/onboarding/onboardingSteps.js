@@ -57,18 +57,4 @@ export const ONBOARDING_STEPS = [
       '[data-onboarding="create-walkthrough-button"]'
     ]
   },
-  {
-    id: 'addFirstStep',
-    titleKey: 'onboardingTour.steps.addFirstStep.title',
-    bodyKey: 'onboardingTour.steps.addFirstStep.body',
-    target: (session) => {
-      if (session?.step8?.hasStep && !session?.step8?.hasTitle) {
-        return '[data-onboarding="step-title-editor"]';
-      }
-      if (session?.step8?.hasStep && session?.step8?.hasTitle && !session?.step8?.hasBlock) {
-        return '[data-onboarding="add-block-button"]';
-      }
-      return '[data-onboarding="add-step-button"]';
-    }
-  }
 ];

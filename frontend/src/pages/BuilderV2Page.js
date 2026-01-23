@@ -649,7 +649,7 @@ const BuilderV2Page = () => {
                     value={setupData.title}
                     onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder={t('walkthrough.placeholders.walkthroughName')}
-                    className="w-full"
+                    className="w-full text-slate-900"
                     data-testid="walkthrough-name-input"
                   />
                 </div>
@@ -665,7 +665,7 @@ const BuilderV2Page = () => {
                     onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder={t('walkthrough.placeholders.walkthroughDescription')}
                     rows={3}
-                    className="w-full"
+                    className="w-full text-slate-900"
                     required
                   />
                 </div>
@@ -708,7 +708,7 @@ const BuilderV2Page = () => {
                         placeholder={t('walkthrough.placeholders.imageUrl')}
                         value={setupData.icon_url}
                         onChange={(e) => setSetupData(prev => ({ ...prev, icon_url: e.target.value }))}
-                        className="w-full"
+                        className="w-full text-slate-900"
                       />
                     </div>
                   )}
