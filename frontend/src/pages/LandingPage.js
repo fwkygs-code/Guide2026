@@ -57,7 +57,7 @@ const LandingPage = () => {
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <Link to="/login">
-              <Button variant="ghost" data-testid="nav-login-button">{t('common.login')}</Button>
+              <Button variant="ghost" className="text-white hover:text-white" data-testid="nav-login-button">{t('common.login')}</Button>
             </Link>
             <Link to="/signup">
               <Button data-testid="nav-signup-button">{t('portal.getStarted')}</Button>

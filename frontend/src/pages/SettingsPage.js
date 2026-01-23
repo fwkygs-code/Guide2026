@@ -322,11 +322,11 @@ const SettingsPage = () => {
 
             <div className="space-y-6">
           {/* Basic Settings */}
-          <Card interactive={true} className="mb-6">
+          <Card interactive={true} className="mb-6 overflow-hidden">
             <Card.Header>
               <Card.Title className="text-white">Basic Information</Card.Title>
             </Card.Header>
-            <Card.Content>
+            <Card.Content className="space-y-4">
             <div className="space-y-4">
               <div>
                 <Label htmlFor="workspace-name" className="text-white">Workspace Name</Label>
@@ -342,7 +342,9 @@ const SettingsPage = () => {
                 <Label htmlFor="logo" className="text-white">Workspace Logo</Label>
                 <div className="mt-1.5 space-y-2">
                   {logoUrl && (
-                    <img src={logoUrl} alt="Logo" className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
+                    <div className="relative inline-block">
+                      <img src={logoUrl} alt="Logo" className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
+                    </div>
                   )}
                   <Input
                     type="file"
@@ -364,13 +366,13 @@ const SettingsPage = () => {
               </div>
               <div>
                 <Label htmlFor="brand-color" className="text-white">Brand Color</Label>
-                <div className="flex gap-3 mt-1.5">
+                <div className="flex flex-col sm:flex-row gap-3 mt-1.5">
                   <Input
                     id="brand-color"
                     type="color"
                     value={brandColor}
                     onChange={(e) => setBrandColor(e.target.value)}
-                    className="w-20 h-10 text-white"
+                    className="w-full sm:w-20 h-10 text-white"
                     data-testid="brand-color-input"
                   />
                   <Input
