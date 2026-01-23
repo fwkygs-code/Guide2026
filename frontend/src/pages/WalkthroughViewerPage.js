@@ -1702,20 +1702,23 @@ const AnnotatedImageViewer = ({ block }) => {
                   ←
                 </div>
 
-                {/* Number badge - positioned above the arrow */}
-                <span
-                  className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                {/* Number positioned above the arrow - no circle background */}
+                <div
+                  className="absolute flex items-center justify-center text-sm font-bold pointer-events-none select-none"
                   style={{
-                    width: '18px',
-                    height: '18px',
                     left: '50%',
                     top: '50%',
                     transform: 'translate(-50%, -50%) translateY(-20px)', // Position above the arrow
-                    fontSize: '10px'
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    color: 'var(--primary)',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    userSelect: 'none',
+                    zIndex: 10,
                   }}
                 >
                   {idx + 1}
-                </span>
+                </div>
               </div>
               {isActive && (marker.title || marker.description) && (
                 <div
@@ -1818,6 +1821,7 @@ const AnnotatedImageViewer = ({ block }) => {
               transform: 'translate(-50%, -50%)',
             }}
           >
+            {/* Circle marker */}
             <button
               className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all select-none border-2 border-white ${
                 isActive
@@ -1834,8 +1838,28 @@ const AnnotatedImageViewer = ({ block }) => {
               }}
               onClick={() => setSelectedMarker(isActive ? null : idx)}
             >
-              {idx + 1}
+              {/* Empty circle - no number inside */}
             </button>
+
+            {/* Number outside the circle */}
+            <div
+              className={`absolute flex items-center justify-center text-sm font-bold pointer-events-none select-none ${
+                isActive ? 'text-primary scale-110' : 'text-primary'
+              }`}
+              style={{
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%) translateY(-100%) translateY(-8px)', // Position above the circle
+                userSelect: 'none',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                color: 'var(--primary)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                zIndex: 10,
+              }}
+            >
+              {idx + 1}
+            </div>
             {isActive && (marker.title || marker.description) && (
               <div
                 className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
