@@ -209,8 +209,8 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
 
         {/* Walkthrough Stats */}
         <Card interactive={true} className="mb-6">
-          <Card.Header>
-            <Card.Title className="text-white">Walkthrough Performance</Card.Title>
+          <Card.Header className="pb-4">
+            <Card.Title className="text-white text-xl font-semibold">Walkthrough Performance</Card.Title>
           </Card.Header>
           <Card.Content>
           
