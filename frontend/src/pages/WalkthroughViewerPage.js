@@ -1573,6 +1573,39 @@ const AnnotatedImageViewer = ({ block }) => {
   const imageRef = useRef(null);
   const imageUrl = block.data?.url;
   const markers = block.data?.markers || [];
+  const [imageDimensions, setImageDimensions] = useState({ width: 400, height: 300 }); // Default fallback
+
+  // Get actual rendered image dimensions
+  useEffect(() => {
+    if (imageRef.current) {
+      const updateDimensions = () => {
+        if (imageRef.current) {
+          setImageDimensions({
+            width: imageRef.current.offsetWidth || imageRef.current.clientWidth || 400,
+            height: imageRef.current.offsetHeight || imageRef.current.clientHeight || 300
+          });
+        }
+      };
+
+      // Update immediately and on resize
+      updateDimensions();
+      window.addEventListener('resize', updateDimensions);
+
+      // Also update when image loads
+      if (imageRef.current.complete) {
+        updateDimensions();
+      } else {
+        imageRef.current.addEventListener('load', updateDimensions);
+      }
+
+      return () => {
+        window.removeEventListener('resize', updateDimensions);
+        if (imageRef.current) {
+          imageRef.current.removeEventListener('load', updateDimensions);
+        }
+      };
+    }
+  }, [imageUrl]);
 
   if (!imageUrl) return null;
 
@@ -1604,8 +1637,8 @@ const AnnotatedImageViewer = ({ block }) => {
 
         // Scale coordinates from builder (284x284) to viewer dimensions - DECLARE FIRST
         const builderSize = 284; // Builder canvas size
-        const scaleX = imageRenderedWidth / builderSize;
-        const scaleY = imageRenderedHeight / builderSize;
+        const scaleX = imageDimensions.width / builderSize;
+        const scaleY = imageDimensions.height / builderSize;
 
 
         if (markerShape === 'rectangle') {
