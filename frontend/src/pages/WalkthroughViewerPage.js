@@ -1592,41 +1592,23 @@ const AnnotatedImageViewer = ({ block }) => {
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
 
-        // Get rendered image dimensions for scaling
-        const renderedWidth = imageRef.current?.clientWidth || 400; // fallback
-        const renderedHeight = imageRef.current?.clientHeight || 300; // fallback
-
-        // Builder reference dimensions (typical values - adjust if needed)
-        const builderWidth = 400; // Reference width
-        const builderHeight = 300; // Reference height
-
-        // Compute scale factors
-        const scaleX = renderedWidth / builderWidth;
-        const scaleY = renderedHeight / builderHeight;
-        const uniformScale = Math.min(scaleX, scaleY);
-
         // DIAGNOSTIC: Log marker data and image dimensions for first marker
         if (idx === 0) {
           console.log('VIEWER DIAGNOSTIC:', {
             marker,
             imageNaturalWidth: imageRef.current?.naturalWidth,
             imageNaturalHeight: imageRef.current?.naturalHeight,
-            imageRenderedWidth: renderedWidth,
-            imageRenderedHeight: renderedHeight,
-            scaleX,
-            scaleY,
-            uniformScale,
+            imageRenderedWidth: imageRef.current?.clientWidth || 400,
+            imageRenderedHeight: imageRef.current?.clientHeight || 300,
             rect: imageRef.current?.getBoundingClientRect()
           });
         }
 
-        // Scale measurements for circle and arrow only
-        const markerSize = markerShape === 'dot' ? (marker.size || 30) * uniformScale : marker.size || 3;
-        const arrowLength = markerShape === 'arrow' ? (marker.length || 80) * uniformScale : marker.length || 80;
-
-        // Rectangle and line use original logic (unchanged)
-        const markerWidth = marker.width || 10;
-        const markerHeight = marker.height || 10;
+        // ALL shapes use consistent coordinate system - positions as % of rendered image
+        const markerSize = marker.size || 30; // Circle diameter in pixels (fixed visual size)
+        const markerWidth = marker.width || 10; // Rectangle width as percentage
+        const markerHeight = marker.height || 10; // Rectangle height as percentage
+        const arrowLength = marker.length || 80; // Arrow length in pixels (fixed visual size)
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
@@ -1707,7 +1689,7 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         if (markerShape === 'arrow') {
-          // Arrow marker - scaled to viewer dimensions
+          // Arrow marker - consistent with builder
           const arrowRotation = marker.rotation || 0;
 
           // DIAGNOSTIC LOG
@@ -1716,12 +1698,12 @@ const AnnotatedImageViewer = ({ block }) => {
               markerX: marker.x,
               markerY: marker.y,
               markerLength: marker.length,
-              scaledLength: arrowLength,
+              finalLength: arrowLength,
               rotation: arrowRotation,
               finalLeft: `${marker.x}%`,
               finalTop: `${marker.y}%`,
-              shaftWidth: `${arrowLength - 8 * uniformScale}px`,
-              arrowheadSize: `${8 * uniformScale}px`
+              shaftWidth: `${arrowLength - 8}px`,
+              arrowheadSize: '8px'
             });
           }
 
@@ -1738,31 +1720,31 @@ const AnnotatedImageViewer = ({ block }) => {
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                {/* Arrow shaft - extends from center rightward (scaled) */}
+                {/* Arrow shaft - extends from center rightward */}
                 <div
                   className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `${arrowLength - 8 * uniformScale}px`, // Scale arrowhead size too
-                    height: `${2 * uniformScale}px`, // Scale shaft thickness
+                    width: `${arrowLength - 8}px`, // Subtract arrowhead size
+                    height: '2px',
                     transform: 'translate(0, -50%)', // Start at center, no horizontal offset
                     transformOrigin: 'left center',
                     backgroundColor: markerColor
                   }}
                 />
 
-                {/* Arrowhead - positioned exactly at shaft end (scaled) */}
+                {/* Arrowhead - positioned exactly at shaft end */}
                 <div
                   className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
-                    left: `calc(50% + ${arrowLength - 8 * uniformScale}px)`, // At the end of scaled shaft
+                    left: `calc(50% + ${arrowLength - 8}px)`, // At the end of shaft
                     top: '50%',
                     width: '0',
                     height: '0',
-                    borderLeft: `${8 * uniformScale}px solid ${markerColor}`,
-                    borderTop: `${4 * uniformScale}px solid transparent`,
-                    borderBottom: `${4 * uniformScale}px solid transparent`,
+                    borderLeft: `8px solid ${markerColor}`,
+                    borderTop: '4px solid transparent',
+                    borderBottom: '4px solid transparent',
                     transform: 'translate(0, -50%)', // No horizontal offset needed
                     transformOrigin: 'left center',
                   }}
@@ -1923,7 +1905,7 @@ const AnnotatedImageViewer = ({ block }) => {
               pointerEvents: 'auto',
             }}
           >
-            {/* Circle marker - scaled to viewer dimensions */}
+            {/* Circle marker - consistent with builder */}
             <div
               className={`absolute rounded-full cursor-pointer select-none transition-all ${
                 isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
@@ -1939,6 +1921,20 @@ const AnnotatedImageViewer = ({ block }) => {
               }}
               onClick={() => setSelectedMarker(isActive ? null : idx)}
             />
+
+            {/* DIAGNOSTIC LOG */}
+            if (idx === 0) {
+              console.log('VIEWER CIRCLE:', {
+                markerX: marker.x,
+                markerY: marker.y,
+                markerSize: marker.size,
+                finalSize: markerSize,
+                finalLeft: `${marker.x}%`,
+                finalTop: `${marker.y}%`,
+                finalWidth: `${markerSize}px`,
+                finalHeight: `${markerSize}px`
+              });
+            }
 
             {/* Number badge positioned outside top-right corner like exponent */}
             <span
