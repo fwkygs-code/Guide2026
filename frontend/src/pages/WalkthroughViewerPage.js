@@ -1592,7 +1592,7 @@ const AnnotatedImageViewer = ({ block }) => {
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
         // Support both old (px) and new (%) size values
-        const markerSize = marker.size || 30; // Circle diameter in pixels
+        const markerSize = marker.size || 3; // Circle diameter as percentage of image
         const markerWidth = marker.width || 10;
         const markerHeight = marker.height || 10;
         const markerColor = marker.color || '#3b82f6';
@@ -1842,8 +1842,8 @@ const AnnotatedImageViewer = ({ block }) => {
                 isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
               }`}
               style={{
-                width: `${markerSize || 30}px`,
-                height: `${markerSize || 30}px`,
+                width: `${markerSize}%`,
+                height: `${markerSize}%`,
                 border: `2px solid ${markerColor}`,
                 backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // Match builder opacity
                 ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
