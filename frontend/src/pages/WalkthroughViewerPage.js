@@ -1902,8 +1902,8 @@ const AnnotatedImageViewer = ({ block }) => {
               style={{
                 width: '18px',
                 height: '18px',
-                top: '-9px',
-                right: '-9px',
+                top: '-12px',
+                right: '-12px',
                 backgroundColor: markerColor,
                 fontSize: '10px',
                 zIndex: 10,
