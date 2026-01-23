@@ -1602,6 +1602,11 @@ const AnnotatedImageViewer = ({ block }) => {
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
+        // Scale coordinates from builder (284x284) to viewer dimensions - DECLARE FIRST
+        const builderSize = 284; // Builder canvas size
+        const scaleX = imageRenderedWidth / builderSize;
+        const scaleY = imageRenderedHeight / builderSize;
+
 
         if (markerShape === 'rectangle') {
           // Rectangle marker - scale position like other markers
@@ -1833,12 +1838,7 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         // Dot marker - positioned relative to image dimensions
-        // Scale coordinates from builder (284x284) to viewer dimensions
-        const builderSize = 284; // Builder canvas size
-        const scaleX = imageRenderedWidth / builderSize;
-        const scaleY = imageRenderedHeight / builderSize;
-
-        // Scale marker position and size
+        // Scale marker position and size (scaleX/scaleY declared above)
         const scaledX = marker.x * scaleX;
         const scaledY = marker.y * scaleY;
         const scaledSize = markerSize * Math.min(scaleX, scaleY); // Uniform scaling for circles
