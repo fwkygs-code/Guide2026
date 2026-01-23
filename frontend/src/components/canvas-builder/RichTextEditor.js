@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
@@ -9,10 +10,18 @@ import { FontFamily } from '@tiptap/extension-font-family';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Bold, Italic, Underline as UnderlineIcon, Code, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { cn } from '../../lib/utils';
+import { SURFACES, BORDERS } from '../../utils/designTokens';
 
-const RichTextEditor = ({ content, onChange, placeholder = 'Start typing...', isRTL = false }) => {
+const RichTextEditor = ({
+  content,
+  onChange,
+  placeholder = 'Start typing...',
+  system = null,
+  className = ''
+}) => {
   const [showToolbar, setShowToolbar] = React.useState(false);
+  const [focused, setFocused] = React.useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -47,10 +56,17 @@ const RichTextEditor = ({ content, onChange, placeholder = 'Start typing...', is
     onSelectionUpdate: ({ editor }) => {
       setShowToolbar(!editor.state.selection.empty);
     },
+    onFocus: () => setFocused(true),
+    onBlur: () => setFocused(false),
     editorProps: {
       attributes: {
-        class: 'prose max-w-none focus:outline-none min-h-[100px] p-4',
-        dir: 'auto' // Auto-detect direction for proper bidirectional text support (RTL/LTR)
+        class: cn(
+          'prose max-w-none focus:outline-none min-h-[120px] p-6 text-white',
+          'prose-headings:text-white prose-p:text-slate-200 prose-strong:text-white',
+          'prose-a:text-current prose-code:text-current',
+          system && getProseClasses(system)
+        ),
+        dir: 'auto'
       },
     },
   });
@@ -66,109 +82,136 @@ const RichTextEditor = ({ content, onChange, placeholder = 'Start typing...', is
     }
   };
 
-  return (
-    <div className="border border-slate-200 rounded-lg bg-white relative">
-      {/* Floating Toolbar */}
-      {showToolbar && !editor.state.selection.empty && (
-        <div className="absolute z-[100] left-1/2 transform -translate-x-1/2 top-[-48px] flex items-center gap-1 bg-slate-900 rounded-lg p-1 shadow-xl">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`h-8 w-8 p-0 ${editor.isActive('bold') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <Bold className="w-4 h-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`h-8 w-8 p-0 ${editor.isActive('italic') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <Italic className="w-4 h-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-            className={`h-8 w-8 p-0 ${editor.isActive('underline') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <UnderlineIcon className="w-4 h-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleCode().run()}
-            className={`h-8 w-8 p-0 ${editor.isActive('code') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <Code className="w-4 h-4" />
-          </Button>
-          <div className="w-px h-6 bg-slate-700 mx-1" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().setTextAlign('left').run()}
-            className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <AlignLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().setTextAlign('center').run()}
-            className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <AlignCenter className="w-4 h-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().setTextAlign('right').run()}
-            className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <AlignRight className="w-4 h-4" />
-          </Button>
-          <div className="w-px h-6 bg-slate-700 mx-1" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`h-8 w-8 p-0 ${editor.isActive('bulletList') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <List className="w-4 h-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={`h-8 w-8 p-0 ${editor.isActive('orderedList') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <ListOrdered className="w-4 h-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={setLink}
-            className={`h-8 w-8 p-0 ${editor.isActive('link') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
-          >
-            <LinkIcon className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+  // Get content-type specific prose styling
+  const getProseClasses = (systemType) => {
+    const proseMap = {
+      policy: 'prose-headings:text-amber-100 prose-p:text-amber-50/90',
+      procedure: 'prose-headings:text-cyan-100 prose-p:text-cyan-50/90',
+      documentation: 'prose-headings:text-purple-100 prose-p:text-purple-50/90',
+      faq: 'prose-headings:text-emerald-100 prose-p:text-emerald-50/90',
+      decisionTree: 'prose-headings:text-indigo-100 prose-p:text-indigo-50/90'
+    };
+    return proseMap[systemType] || '';
+  };
 
-      <EditorContent editor={editor} />
-    </div>
+  // Get glass surface styling for the editor
+  const getEditorSurface = () => {
+    if (system) {
+      return cn(
+        SURFACES.glass.secondary,
+        BORDERS.glass.primary,
+        'transition-all duration-300',
+        focused && `${BORDERS.interactive.focus} ring-2 ring-white/10`
+      );
+    }
+    return 'bg-slate-800/50 border border-slate-600 rounded-xl';
+  };
+
+  return (
+    <motion.div
+      className={cn('relative rounded-xl overflow-hidden', getEditorSurface(), className)}
+      initial={{ opacity: 0.9 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      {/* Subtle inner gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+
+      {/* Enhanced Floating Toolbar */}
+      <AnimatePresence>
+        {showToolbar && !editor.state.selection.empty && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute z-[100] left-1/2 transform -translate-x-1/2 top-[-56px] flex items-center gap-1 bg-slate-900/95 backdrop-blur-xl rounded-xl p-2 shadow-2xl border border-white/10"
+          >
+            {/* Formatting buttons */}
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              active={editor.isActive('bold')}
+              icon={Bold}
+            />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              active={editor.isActive('italic')}
+              icon={Italic}
+            />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              active={editor.isActive('underline')}
+              icon={UnderlineIcon}
+            />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleCode().run()}
+              active={editor.isActive('code')}
+              icon={Code}
+            />
+
+            <div className="w-px h-6 bg-white/20 mx-1" />
+
+            {/* Alignment buttons */}
+            <ToolbarButton
+              onClick={() => editor.chain().focus().setTextAlign('left').run()}
+              active={editor.isActive({ textAlign: 'left' })}
+              icon={AlignLeft}
+            />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().setTextAlign('center').run()}
+              active={editor.isActive({ textAlign: 'center' })}
+              icon={AlignCenter}
+            />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().setTextAlign('right').run()}
+              active={editor.isActive({ textAlign: 'right' })}
+              icon={AlignRight}
+            />
+
+            <div className="w-px h-6 bg-white/20 mx-1" />
+
+            {/* List buttons */}
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              active={editor.isActive('bulletList')}
+              icon={List}
+            />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              active={editor.isActive('orderedList')}
+              icon={ListOrdered}
+            />
+            <ToolbarButton
+              onClick={setLink}
+              active={editor.isActive('link')}
+              icon={LinkIcon}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="relative">
+        <EditorContent editor={editor} />
+      </div>
+    </motion.div>
   );
 };
+
+// Enhanced Toolbar Button Component
+const ToolbarButton = ({ onClick, active, icon: Icon }) => (
+  <motion.button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      'h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200',
+      'hover:bg-white/10 text-white/80 hover:text-white',
+      active && 'bg-white/20 text-white shadow-lg'
+    )}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+  >
+    <Icon className="w-4 h-4" />
+  </motion.button>
+);
 
 export default RichTextEditor;

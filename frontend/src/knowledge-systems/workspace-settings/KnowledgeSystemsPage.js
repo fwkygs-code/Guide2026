@@ -20,8 +20,9 @@ import {
   updateKnowledgeSystem,
   initializeWorkspaceKnowledgeSystems
 } from '../models/KnowledgeSystemService';
-import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
+import { getKnowledgeSystemConfig, ICONOGRAPHY } from '../registry/KnowledgeSystemRegistry';
 import KnowledgeSystemEditor from './KnowledgeSystemEditor';
+import { Surface, MOTION } from '@/components/ui/design-system';
 
 /**
  * Main Knowledge Systems Settings Page - Futuristic Design
@@ -209,92 +210,122 @@ function KnowledgeSystemCard({ system, onToggle, onEdit, index }) {
     return null;
   }
 
-  // Type-specific visual styling
-  const getTypeStyling = (type) => {
-    switch (type) {
-      case 'policy':
-        return {
-          gradient: 'from-amber-500/20 via-red-500/10 to-slate-800',
-          border: 'border-amber-500/30',
-          glow: 'shadow-amber-500/20',
-          iconBg: 'bg-gradient-to-br from-amber-400 to-orange-500',
-          statusColor: system.enabled ? 'text-green-400' : 'text-slate-500'
-        };
-      case 'procedure':
-        return {
-          gradient: 'from-blue-500/20 via-cyan-500/10 to-slate-800',
-          border: 'border-blue-500/30',
-          glow: 'shadow-blue-500/20',
-          iconBg: 'bg-gradient-to-br from-blue-400 to-cyan-500',
-          statusColor: system.enabled ? 'text-green-400' : 'text-slate-500'
-        };
-      case 'documentation':
-        return {
-          gradient: 'from-purple-500/20 via-pink-500/10 to-slate-800',
-          border: 'border-purple-500/30',
-          glow: 'shadow-purple-500/20',
-          iconBg: 'bg-gradient-to-br from-purple-400 to-pink-500',
-          statusColor: system.enabled ? 'text-green-400' : 'text-slate-500'
-        };
-      case 'faq':
-        return {
-          gradient: 'from-green-500/20 via-emerald-500/10 to-slate-800',
-          border: 'border-green-500/30',
-          glow: 'shadow-green-500/20',
-          iconBg: 'bg-gradient-to-br from-green-400 to-emerald-500',
-          statusColor: system.enabled ? 'text-green-400' : 'text-slate-500'
-        };
-      case 'decision_tree':
-        return {
-          gradient: 'from-indigo-500/20 via-violet-500/10 to-slate-800',
-          border: 'border-indigo-500/30',
-          glow: 'shadow-indigo-500/20',
-          iconBg: 'bg-gradient-to-br from-indigo-400 to-violet-500',
-          statusColor: system.enabled ? 'text-green-400' : 'text-slate-500'
-        };
-      default:
-        return {
-          gradient: 'from-slate-500/20 to-slate-800',
-          border: 'border-slate-500/30',
-          glow: 'shadow-slate-500/20',
-          iconBg: 'bg-slate-500',
-          statusColor: system.enabled ? 'text-green-400' : 'text-slate-500'
-        };
-    }
+  // Enhanced type-specific visual identity with purpose-driven design
+  const getTypeIdentity = (type) => {
+    const identities = {
+      policy: {
+        purpose: 'Authority & Compliance',
+        visualTheme: 'Warm Authority',
+        accentColor: 'amber',
+        description: 'Establish official guidelines and legal requirements'
+      },
+      procedure: {
+        purpose: 'Precision & Workflow',
+        visualTheme: 'Cool Structure',
+        accentColor: 'cyan',
+        description: 'Guide systematic processes and operational excellence'
+      },
+      documentation: {
+        purpose: 'Knowledge & Reference',
+        visualTheme: 'Regal Wisdom',
+        accentColor: 'purple',
+        description: 'Provide comprehensive technical knowledge and insights'
+      },
+      faq: {
+        purpose: 'Help & Accessibility',
+        visualTheme: 'Warm Approachable',
+        accentColor: 'emerald',
+        description: 'Offer clear answers to common questions and concerns'
+      },
+      decision_tree: {
+        purpose: 'Logic & Intelligence',
+        visualTheme: 'Electric Analysis',
+        accentColor: 'indigo',
+        description: 'Navigate complex decisions with structured guidance'
+      }
+    };
+    return identities[type] || {
+      purpose: 'Content System',
+      visualTheme: 'Neutral',
+      accentColor: 'slate',
+      description: 'Organized content delivery'
+    };
   };
 
-  const styling = getTypeStyling(system.type);
+  const identity = getTypeIdentity(system.type);
+
+  // Get appropriate icon from iconography system
+  const getPrimaryIcon = (type) => {
+    const icons = {
+      policy: 'Shield',
+      procedure: 'Workflow',
+      documentation: 'BookOpen',
+      faq: 'MessageCircle',
+      decision_tree: 'GitBranch'
+    };
+    return icons[type] || 'FileText';
+  };
+
+  const IconComponent = getPrimaryIcon(system.type);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.6, delay: index * 0.15, ease: 'easeOut' }}
     >
-      <Card className={`relative overflow-hidden border ${styling.border} bg-gradient-to-br ${styling.gradient} backdrop-blur-sm ${styling.glow} hover:shadow-2xl transition-all duration-300 group`}>
-        {/* Animated background effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-
-        <CardContent className="relative p-6">
+      <Card system={system.type} animated={false} interactive={true} className="h-full">
+        <CardHeader system={system.type} className="pb-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl ${styling.iconBg} flex items-center justify-center text-white text-xl shadow-lg`}>
-                {config.icon}
-              </div>
+              <motion.div
+                className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-${identity.accentColor}-400 to-${identity.accentColor === 'amber' ? 'orange' : identity.accentColor === 'cyan' ? 'blue' : identity.accentColor === 'purple' ? 'violet' : identity.accentColor === 'emerald' ? 'green' : 'purple'}-500 flex items-center justify-center shadow-xl`}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ duration: 0.2 }}
+              >
+                <span className="text-2xl">{config.icon}</span>
+              </motion.div>
               <div>
-                <h3 className="text-xl font-bold text-white mb-1">{config.displayName}</h3>
-                <p className="text-slate-300 text-sm leading-relaxed">{config.description}</p>
+                <h3 className={`text-2xl font-bold mb-1 bg-gradient-to-r from-${identity.accentColor}-100 to-white bg-clip-text text-transparent`}>
+                  {config.displayName}
+                </h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs px-2 py-1 rounded-full bg-${identity.accentColor}-500/20 text-${identity.accentColor}-200 border border-${identity.accentColor}-500/30`}>
+                    {identity.purpose}
+                  </span>
+                </div>
+                <p className={`text-${identity.accentColor}-100/80 text-sm leading-relaxed`}>
+                  {identity.description}
+                </p>
               </div>
             </div>
 
-            <div className={`text-sm font-medium ${styling.statusColor}`}>
-              {system.enabled ? 'Active' : 'Inactive'}
-            </div>
+            <motion.div
+              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                system.enabled
+                  ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                  : 'bg-slate-600/50 text-slate-400 border border-slate-500/30'
+              }`}
+              whileHover={{ scale: 1.05 }}
+            >
+              {system.enabled ? '● Active' : '○ Inactive'}
+            </motion.div>
           </div>
 
+          {/* Purpose statement */}
+          <div className={`p-4 rounded-xl bg-${identity.accentColor}-500/10 border border-${identity.accentColor}-500/20`}>
+            <p className={`text-${identity.accentColor}-100/90 text-sm italic`}>
+              "{identity.visualTheme} design for {config.description.toLowerCase()}"
+            </p>
+          </div>
+        </CardHeader>
+
+        <CardContent system={system.type} className="flex-1 flex flex-col">
           {/* Enable Toggle */}
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-300 text-sm">Enable in Portal</span>
+          <div className="flex items-center justify-between mb-6">
+            <span className={`text-${identity.accentColor}-100/80 text-sm font-medium`}>
+              Enable in Portal
+            </span>
             <Switch
               checked={system.enabled}
               onCheckedChange={(checked) => onToggle(system.id, checked)}
@@ -302,36 +333,47 @@ function KnowledgeSystemCard({ system, onToggle, onEdit, index }) {
             />
           </div>
 
-          {/* System Stats */}
+          {/* System Stats - Enhanced with glass effect */}
           {system.enabled && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="space-y-2 mb-4 pt-4 border-t border-white/20"
+              className="mb-6"
             >
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Title:</span>
-                <span className="text-white font-medium truncate ml-2">{system.title}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Last Updated:</span>
-                <span className="text-slate-300">{new Date(system.updatedAt).toLocaleDateString()}</span>
-              </div>
+              <Surface variant="glass-secondary" className="p-4 rounded-lg">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className={`text-${identity.accentColor}-200/60 text-sm`}>Title:</span>
+                    <span className={`text-${identity.accentColor}-100 font-medium text-sm truncate ml-2`}>
+                      {system.title}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-${identity.accentColor}-200/60 text-sm`}>Last Updated:</span>
+                    <span className={`text-${identity.accentColor}-200/80 text-sm`}>
+                      {new Date(system.updatedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </Surface>
             </motion.div>
           )}
 
-          {/* Action Button */}
-          <Button
-            onClick={() => onEdit(system)}
-            disabled={!system.enabled}
-            className={`w-full ${system.enabled
-              ? 'bg-white/10 hover:bg-white/20 text-white border-white/30'
-              : 'bg-slate-700 text-slate-400 cursor-not-allowed'
-            } transition-all duration-200`}
-            variant="outline"
-          >
-            {system.enabled ? 'Configure System' : 'Enable to Configure'}
-          </Button>
+          {/* Action Button - Enhanced with type-specific styling */}
+          <div className="mt-auto">
+            <Button
+              onClick={() => onEdit(system)}
+              disabled={!system.enabled}
+              className={`w-full h-12 text-sm font-medium transition-all duration-300 ${
+                system.enabled
+                  ? `bg-${identity.accentColor}-500/20 hover:bg-${identity.accentColor}-500/30 text-${identity.accentColor}-100 border border-${identity.accentColor}-500/40 hover:border-${identity.accentColor}-500/60`
+                  : 'bg-slate-700/50 text-slate-400 cursor-not-allowed border border-slate-600/50'
+              } backdrop-blur-sm`}
+              variant="outline"
+            >
+              {system.enabled ? '⚙️ Configure System' : '🔒 Enable to Configure'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </motion.div>

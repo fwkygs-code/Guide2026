@@ -14,6 +14,7 @@ export { default as PageSurface } from './PageSurface';
 export { default as Surface } from './Surface';
 export { default as Card } from './Card';
 export { default as Panel } from './Panel';
+export { default as ConfigPanel } from './ConfigPanel';
 export { default as Badge } from './Badge';
 export { default as Button } from './Button';
 
