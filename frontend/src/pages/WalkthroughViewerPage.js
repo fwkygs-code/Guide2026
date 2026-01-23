@@ -1611,14 +1611,19 @@ const AnnotatedImageViewer = ({ block }) => {
 
   return (
     <div
-      className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 select-none"
-      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+      className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 select-none mx-auto"
+      style={{
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        maxWidth: '400px',
+        aspectRatio: '1/1' // Force square aspect ratio like builder
+      }}
     >
       <img
         ref={imageRef}
         src={imageUrl}
         alt={block.data?.alt || 'Annotated image'}
-        className="w-full"
+        className="w-full h-full object-cover"
         draggable={false}
         style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
       />
@@ -1635,25 +1640,16 @@ const AnnotatedImageViewer = ({ block }) => {
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
-        // Scale coordinates from builder (284x284) to viewer dimensions - DECLARE FIRST
-        const builderSize = 284; // Builder canvas size
-        const scaleX = imageDimensions.width / builderSize;
-        const scaleY = imageDimensions.height / builderSize;
-
-
         if (markerShape === 'rectangle') {
-          // Rectangle marker - scale position like other markers
-          const rectScaledX = marker.x * scaleX;
-          const rectScaledY = marker.y * scaleY;
-
+          // Rectangle marker
           return (
             <div
               key={marker.id || idx}
               className="absolute"
               style={{
                 position: 'absolute',
-                left: `${rectScaledX}%`,
-                top: `${rectScaledY}%`,
+                left: `${marker.x}%`,
+                top: `${marker.y}%`,
                 width: `${markerWidth}%`,
                 height: `${markerHeight}%`,
                 transform: 'translate(-50%, -50%)',
