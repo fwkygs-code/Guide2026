@@ -13,6 +13,11 @@ import { normalizeImageUrl } from '../lib/utils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
 import { AppShell } from '../components/ui/design-system';
+import { listPublishedPolicies } from '../policy-system/service';
+import { listPublishedProcedures } from '../procedure-system/service';
+import { listPublishedDocumentation } from '../documentation-system/service';
+import { listPublishedFAQs } from '../faq-system/service';
+import { listPublishedDecisionTrees } from '../decision-tree-system/service';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -192,6 +197,20 @@ const PortalPage = ({ isEmbedded = false }) => {
     }
     return grouped;
   }, [categoryTree, filteredWalkthroughs]);
+
+  const knowledgeSystemsMenu = useMemo(() => {
+    const workspaceId = portal?.workspace?.id || portal?.workspace_id;
+    if (!workspaceId || !slug) return [];
+    const id = String(workspaceId);
+    const systems = [
+      { key: 'policy', label: 'Policies', path: `/portal/${slug}/knowledge/policies`, count: listPublishedPolicies(id).length },
+      { key: 'procedure', label: 'Procedures', path: `/portal/${slug}/knowledge/procedures`, count: listPublishedProcedures(id).length },
+      { key: 'documentation', label: 'Documentation', path: `/portal/${slug}/knowledge/documentation`, count: listPublishedDocumentation(id).length },
+      { key: 'faq', label: 'FAQs', path: `/portal/${slug}/knowledge/faqs`, count: listPublishedFAQs(id).length },
+      { key: 'decision-tree', label: 'Decision Trees', path: `/portal/${slug}/knowledge/decisions`, count: listPublishedDecisionTrees(id).length }
+    ];
+    return systems.filter(system => system.count > 0);
+  }, [portal, slug]);
 
   if (loading) {
     return (
@@ -599,13 +618,36 @@ const PortalPage = ({ isEmbedded = false }) => {
         </div>
       </section>
 
-      {/* Footer - Hide in iframe mode */}
+      {/* Knowledge Systems Menu - Hide in iframe mode */}
       {!inIframe && (
-      <footer className="bg-slate-900 text-slate-300 py-8 px-6 mt-20">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-sm">Powered by InterGuide</p>
-        </div>
-      </footer>
+        <section className="py-8 px-6 mt-20">
+          <div className="max-w-7xl mx-auto">
+            <div className="glass rounded-2xl border border-slate-200/50 px-6 py-6">
+              <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-heading font-semibold text-white">Knowledge Systems</h3>
+                  <p className="text-sm text-slate-300">Browse published policies, procedures, docs, FAQs, and decisions.</p>
+                </div>
+                <div className="text-xs text-slate-400">
+                  {knowledgeSystemsMenu.length} available
+                </div>
+              </div>
+              {knowledgeSystemsMenu.length === 0 ? (
+                <div className="text-sm text-slate-400">No knowledge systems published yet.</div>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {knowledgeSystemsMenu.map(system => (
+                    <Link key={system.key} to={system.path}>
+                      <Button variant="outline" size="sm" className="text-white">
+                        {system.label}
+                      </Button>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Floating Help Button */}
