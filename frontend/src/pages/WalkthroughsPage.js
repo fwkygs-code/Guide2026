@@ -316,36 +316,45 @@ const WalkthroughsPage = () => {
                   <div className="mb-6">
                     <button
                       onClick={() => toggleCategory(category.id)}
-                      className="flex items-center gap-3 group"
+                      className="flex items-center gap-3 group px-4 py-3 rounded-2xl bg-gradient-to-r from-slate-800/80 to-slate-700/80 border border-slate-600/50 hover:border-slate-500/70 transition-all duration-200 hover:shadow-lg hover:shadow-slate-900/20"
                     >
                       <ChevronRight
-                        className={`w-5 h-5 text-slate-400 transition-transform ${
+                        className={`w-5 h-5 text-slate-300 transition-transform duration-200 ${
                           expandedCategories.has(category.id) ? 'rotate-90' : ''
                         }`}
                       />
-                      <FolderOpen className="w-6 h-6 text-primary" />
-                      <div className="text-left">
-                        <h2 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">
-                          {category.name}
-                        </h2>
-                        {category.description && (
-                          <p className="text-sm text-slate-400 mt-1">{category.description}</p>
-                        )}
-                        {category.children.length > 0 && (
-                          <div className="flex gap-2 mt-2">
-                            {category.children.map(subCat => (
-                              <Badge key={subCat.id} variant="secondary" className="text-xs">
-                                {subCat.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+                          <FolderOpen className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="text-left">
+                          <h2 className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">
+                            {category.name}
+                          </h2>
+                          {category.description && (
+                            <p className="text-sm text-slate-300 mt-0.5">{category.description}</p>
+                          )}
+                          {category.children.length > 0 && (
+                            <div className="flex gap-2 mt-2">
+                              {category.children.map(subCat => (
+                                <span key={subCat.id} className="px-2 py-1 text-xs rounded-full bg-slate-600/50 text-slate-200 border border-slate-500/30">
+                                  {subCat.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </button>
                   </div>
                 ) : (
                   <div className="mb-6">
-                    <h2 className="text-2xl font-heading font-bold text-white inline-block group-hover:text-primary transition-colors">{t('walkthrough.uncategorized')}</h2>
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-slate-800/80 to-slate-700/80 border border-slate-600/50">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-500/20 to-slate-400/10 flex items-center justify-center border border-slate-400/20">
+                        <FolderOpen className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <h2 className="text-lg font-heading font-bold text-white">{t('walkthrough.uncategorized')}</h2>
+                    </div>
                   </div>
                 )}
 
