@@ -215,4 +215,7 @@ Card.Description = CardDescription;
 Card.Content = CardContent;
 Card.Footer = CardFooter;
 
+// Export individual components for named imports
+export { CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+
 export default Card;
