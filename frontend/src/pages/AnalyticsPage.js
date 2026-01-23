@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BarChart3, Eye, Play, CheckCircle, TrendingUp } from 'lucide-react';
+import { BarChart3, Eye, Play, CheckCircle, TrendingUp, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
@@ -91,6 +91,38 @@ const AnalyticsPage = () => {
   const totalStarts = Object.values(analyticsData).reduce((sum, data) => sum + (data.starts || 0), 0);
   const totalCompletions = Object.values(analyticsData).reduce((sum, data) => sum + (data.completions || 0), 0);
   const avgCompletionRate = totalStarts > 0 ? ((totalCompletions / totalStarts) * 100).toFixed(1) : 0;
+
+  const handleResetAnalytics = async (walkthroughId, walkthroughTitle) => {
+    if (!window.confirm(`Are you sure you want to reset all analytics data for "${walkthroughTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await api.resetAnalytics(workspaceId, walkthroughId);
+
+      // Update local state to reflect reset analytics
+      setAnalyticsData(prev => ({
+        ...prev,
+        [walkthroughId]: {
+          views: 0,
+          starts: 0,
+          completions: 0,
+          completion_rate: 0,
+          step_stats: {}
+        }
+      }));
+
+      // Also reset feedback data
+      setFeedbackData(prev => ({
+        ...prev,
+        [walkthroughId]: []
+      }));
+
+      toast.success(`Analytics reset for "${walkthroughTitle}"`);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reset analytics');
+    }
+  };
 
   if (loading || workspaceLoading || !workspaceId) {
     return (
@@ -199,6 +231,14 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
                         <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">{wt.title}</h3>
                         <p className="text-sm text-slate-400">{wt.steps?.length || 0} steps</p>
                       </div>
+                      <button
+                        onClick={() => handleResetAnalytics(wt.id, wt.title)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                        title="Reset all analytics data for this walkthrough"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Reset
+                      </button>
                     </div>
                     <div className="grid grid-cols-4 gap-4">
                       <div>

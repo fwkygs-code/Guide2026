@@ -4919,6 +4919,32 @@ async def get_analytics(workspace_id: str, walkthrough_id: str, current_user: Us
         "step_stats": step_stats
     }
 
+@api_router.delete("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/analytics")
+async def reset_analytics(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Reset all analytics data for a specific walkthrough.
+    Deletes all analytics events for the walkthrough.
+    """
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Verify walkthrough exists and belongs to workspace
+    walkthrough = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id}, {"_id": 0})
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
+
+    # Delete all analytics events for this walkthrough
+    result = await db.analytics_events.delete_many({"walkthrough_id": walkthrough_id})
+
+    logging.info(f"Reset analytics for walkthrough {walkthrough_id}: deleted {result.deleted_count} events")
+
+    return {
+        "success": True,
+        "message": f"Analytics reset successfully. Deleted {result.deleted_count} events.",
+        "deleted_count": result.deleted_count
+    }
+
 # Feedback Routes
 @api_router.post("/feedback")
 async def submit_feedback(feedback: Feedback):

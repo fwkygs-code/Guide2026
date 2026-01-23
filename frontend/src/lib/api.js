@@ -66,6 +66,7 @@ export const api = {
   // Analytics
   trackEvent: (data) => axios.post(`${API}/analytics/event`, data),
   getAnalytics: (workspaceId, walkthroughId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/analytics`),
+  resetAnalytics: (workspaceId, walkthroughId) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/analytics`),
 
   // Feedback
   submitFeedback: (data) => axios.post(`${API}/feedback`, data),
