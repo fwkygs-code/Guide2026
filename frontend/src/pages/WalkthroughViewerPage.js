@@ -1604,15 +1604,18 @@ const AnnotatedImageViewer = ({ block }) => {
 
 
         if (markerShape === 'rectangle') {
-          // Rectangle marker
+          // Rectangle marker - scale position like other markers
+          const rectScaledX = marker.x * scaleX;
+          const rectScaledY = marker.y * scaleY;
+
           return (
             <div
               key={marker.id || idx}
               className="absolute"
               style={{
                 position: 'absolute',
-                left: `${marker.x}%`,
-                top: `${marker.y}%`,
+                left: `${rectScaledX}%`,
+                top: `${rectScaledY}%`,
                 width: `${markerWidth}%`,
                 height: `${markerHeight}%`,
                 transform: 'translate(-50%, -50%)',
@@ -1667,16 +1670,19 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         if (markerShape === 'arrow') {
-          // Arrow marker - TIP points to exact click position
+          // Arrow marker - TIP points to exact click position, scaled
           const arrowRotation = marker.rotation || 0;
+          const arrowScaledX = marker.x * scaleX;
+          const arrowScaledY = marker.y * scaleY;
+          const scaledArrowLength = arrowLength * Math.min(scaleX, scaleY);
 
           return (
             <div key={marker.id || idx}>
               <div
                 className="absolute cursor-pointer select-none"
                 style={{
-                  left: `${marker.x}%`,
-                  top: `${marker.y}%`,
+                  left: `${arrowScaledX}%`,
+                  top: `${arrowScaledY}%`,
                   transform: `rotate(${arrowRotation}rad)`, // No center translation - tip at click position
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
@@ -1689,7 +1695,7 @@ const AnnotatedImageViewer = ({ block }) => {
                   style={{
                     left: '0',
                     top: '50%',
-                    width: `${arrowLength - 8}px`, // Subtract arrowhead size
+                    width: `${scaledArrowLength - 8}px`, // Subtract arrowhead size (scaled)
                     height: '2px',
                     transform: 'translateX(-100%) translateY(-50%)', // Extend left from tip
                     transformOrigin: 'right center', // Rotate from tip end
@@ -1705,9 +1711,9 @@ const AnnotatedImageViewer = ({ block }) => {
                     top: '50%',
                     width: '0',
                     height: '0',
-                    borderLeft: `8px solid ${markerColor}`,
-                    borderTop: '4px solid transparent',
-                    borderBottom: '4px solid transparent',
+                    borderLeft: `${8 * Math.min(scaleX, scaleY)}px solid ${markerColor}`, // Scale arrowhead size
+                    borderTop: `${4 * Math.min(scaleX, scaleY)}px solid transparent`,
+                    borderBottom: `${4 * Math.min(scaleX, scaleY)}px solid transparent`,
                     transform: 'translateY(-50%)', // Center vertically at tip
                     transformOrigin: 'left center',
                   }}
@@ -1753,11 +1759,11 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         if (markerShape === 'line') {
-          // Line marker
-          const startX = marker.x1 || marker.x || 0;
-          const startY = marker.y1 || marker.y || 0;
-          const endX = marker.x2 || marker.x || 10;
-          const endY = marker.y2 || marker.y || 0;
+          // Line marker - scale coordinates
+          const startX = (marker.x1 || marker.x || 0) * scaleX;
+          const startY = (marker.y1 || marker.y || 0) * scaleY;
+          const endX = (marker.x2 || marker.x || 10) * scaleX;
+          const endY = (marker.y2 || marker.y || 0) * scaleY;
 
           return (
             <div key={marker.id || idx}>
@@ -1827,6 +1833,17 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         // Dot marker - positioned relative to image dimensions
+        // Scale coordinates from builder (284x284) to viewer dimensions
+        const builderSize = 284; // Builder canvas size
+        const scaleX = imageRenderedWidth / builderSize;
+        const scaleY = imageRenderedHeight / builderSize;
+
+        // Scale marker position and size
+        const scaledX = marker.x * scaleX;
+        const scaledY = marker.y * scaleY;
+        const scaledSize = markerSize * Math.min(scaleX, scaleY); // Uniform scaling for circles
+
+        console.log(`VIEWER: Rendering ${markerShape} at x:${marker.x} y:${marker.y} -> scaled x:${scaledX} y:${scaledY}, size:${markerSize}->${scaledSize}`);
 
         return (
           <div
@@ -1834,21 +1851,21 @@ const AnnotatedImageViewer = ({ block }) => {
             className="absolute"
             style={{
               position: 'absolute',
-              left: `${marker.x}%`,
-              top: `${marker.y}%`,
+              left: `${scaledX}%`,
+              top: `${scaledY}%`,
               transform: 'translate(-50%, -50%)',
               // Ensure markers are positioned relative to the image, not container
               pointerEvents: 'auto',
             }}
           >
-            {/* Circle marker - consistent with builder */}
+            {/* Circle marker - scaled to match builder appearance */}
             <div
               className={`absolute rounded-full cursor-pointer select-none transition-all ${
                 isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
               }`}
               style={{
-                width: `${markerSize}px`,
-                height: `${markerSize}px`,
+                width: `${scaledSize}px`,
+                height: `${scaledSize}px`,
                 border: `2px solid ${markerColor}`,
                 backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // Match builder opacity
                 ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
