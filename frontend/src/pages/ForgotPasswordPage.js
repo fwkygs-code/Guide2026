@@ -91,7 +91,7 @@ const ForgotPasswordPage = () => {
             <div className="text-center">
               <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Email Sent!</h3>
-              <p className="text-sm text-slate-600 mb-6">
+              <p className="text-sm text-slate-900 mb-6">
                 If the email address is registered with our service, you'll receive a password reset link shortly.
                 Please check your inbox and spam folder.
               </p>
@@ -148,7 +148,7 @@ const ForgotPasswordPage = () => {
               <div className="mt-6 text-center">
                 <Link
                   to="/login"
-                  className="text-sm text-slate-600 hover:text-slate-800 hover:underline transition-colors"
+                  className="text-sm text-slate-900 hover:text-slate-700 hover:underline transition-colors"
                   data-testid="forgot-password-back-to-login"
                 >
                   Back to Login

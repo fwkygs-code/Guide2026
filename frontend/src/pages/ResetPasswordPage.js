@@ -139,7 +139,7 @@ const ResetPasswordPage = () => {
             <div className="text-center">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Link Expired or Invalid</h3>
-              <p className="text-sm text-slate-600 mb-6">
+              <p className="text-sm text-slate-900 mb-6">
                 Password reset links expire after 1 hour for security reasons. Please request a new one.
               </p>
               <Button asChild className="w-full rounded-full">
@@ -214,7 +214,7 @@ const ResetPasswordPage = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-xs text-slate-500 mt-1">Must be at least 8 characters long</p>
+              <p className="text-xs text-slate-700 mt-1">Must be at least 8 characters long</p>
             </div>
 
             <div>
@@ -259,7 +259,7 @@ const ResetPasswordPage = () => {
           <div className="mt-6 text-center">
             <Link
               to="/login"
-              className="text-sm text-slate-600 hover:text-slate-800 hover:underline transition-colors"
+              className="text-sm text-slate-900 hover:text-slate-700 hover:underline transition-colors"
             >
               Back to Login
             </Link>
