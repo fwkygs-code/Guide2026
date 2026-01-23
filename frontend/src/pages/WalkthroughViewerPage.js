@@ -1882,8 +1882,6 @@ const AnnotatedImageViewer = ({ block }) => {
               className={'absolute rounded-full cursor-pointer select-none transition-all ' +
                 (isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md')}
               style={{
-                left: marker.x + '%',
-                top: marker.y + '%',
                 width: markerWidth + '%',
                 height: markerWidth + '%', // Use width for square/circular shape
                 border: '2px solid ' + markerColor,
