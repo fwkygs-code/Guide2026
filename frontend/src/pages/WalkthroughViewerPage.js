@@ -1579,25 +1579,53 @@ const AnnotatedImageViewer = ({ block }) => {
   return (
     <div
       className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 select-none"
-      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+      style={{ userSelect: 'none', WebkitUserSelect: 'none', maxWidth: '100%', height: 'auto' }}
     >
       <img
         ref={imageRef}
         src={imageUrl}
         alt={block.data?.alt || 'Annotated image'}
-        className="w-full"
+        className="w-full h-auto object-contain pointer-events-none"
         draggable={false}
-        style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+        style={{ userSelect: 'none', WebkitUserSelect: 'none', maxWidth: '100%' }}
       />
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
 
+        // Coordinate normalization for proper positioning
+        const imageElement = imageRef.current;
+        const containerRect = imageElement?.parentElement?.getBoundingClientRect();
+        const imageRect = imageElement?.getBoundingClientRect();
 
-        // ALL shapes use consistent coordinate system - positions as % of rendered image
-        const markerSize = marker.size || 30; // Circle diameter in pixels (fixed visual size)
+        if (!containerRect || !imageRect) {
+          return null; // Wait for image to load
+        }
+
+        // Calculate how the image is positioned within its container
+        const containerAspect = containerRect.width / containerRect.height;
+        const imageAspect = imageRect.width / imageRect.height;
+
+        // Normalize coordinates to account for letterboxing/pillarboxing
+        let normalizedX = marker.x;
+        let normalizedY = marker.y;
+
+        if (containerAspect > imageAspect) {
+          // Image is letterboxed (shorter than container), centered horizontally
+          const scaleX = imageRect.width / containerRect.width;
+          const offsetX = (containerRect.width - imageRect.width) / 2;
+          normalizedX = (marker.x / 100 * containerRect.width - offsetX) / imageRect.width * 100;
+        } else if (containerAspect < imageAspect) {
+          // Image is pillarboxed (narrower than container), centered vertically
+          const scaleY = imageRect.height / containerRect.height;
+          const offsetY = (containerRect.height - imageRect.height) / 2;
+          normalizedY = (marker.y / 100 * containerRect.height - offsetY) / imageRect.height * 100;
+        }
+
+        // ALL shapes use consistent coordinate system
+        const markerSize = marker.size || 30; // Circle diameter in pixels
         const markerWidth = marker.width || 10; // Rectangle width as percentage
         const markerHeight = marker.height || 10; // Rectangle height as percentage
-        const arrowLength = marker.length || 80; // Arrow length in pixels (fixed visual size)
+        const arrowLength = marker.length || 80; // Arrow length in pixels
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
@@ -1610,8 +1638,8 @@ const AnnotatedImageViewer = ({ block }) => {
               className="absolute"
               style={{
                 position: 'absolute',
-                left: `${marker.x}%`,
-                top: `${marker.y}%`,
+                left: `${normalizedX}%`,
+                top: `${normalizedY}%`,
                 width: `${markerWidth}%`,
                 height: `${markerHeight}%`,
                 transform: 'translate(-50%, -50%)',
@@ -1675,8 +1703,8 @@ const AnnotatedImageViewer = ({ block }) => {
               <div
                 className="absolute cursor-pointer select-none"
                 style={{
-                  left: `${marker.x}%`,
-                  top: `${marker.y}%`,
+                  left: `${normalizedX}%`,
+                  top: `${normalizedY}%`,
                   transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
@@ -1754,10 +1782,19 @@ const AnnotatedImageViewer = ({ block }) => {
 
         if (markerShape === 'line') {
           // Line marker
-          const startX = marker.x1 || marker.x || 0;
-          const startY = marker.y1 || marker.y || 0;
-          const endX = marker.x2 || marker.x || 10;
-          const endY = marker.y2 || marker.y || 0;
+          let startX = marker.x1 || marker.x || 0;
+          let startY = marker.y1 || marker.y || 0;
+          let endX = marker.x2 || marker.x || 10;
+          let endY = marker.y2 || marker.y || 0;
+
+          // Normalize line coordinates
+          if (containerAspect > imageAspect) {
+            startX = (startX / 100 * containerRect.width - (containerRect.width - imageRect.width) / 2) / imageRect.width * 100;
+            endX = (endX / 100 * containerRect.width - (containerRect.width - imageRect.width) / 2) / imageRect.width * 100;
+          } else if (containerAspect < imageAspect) {
+            startY = (startY / 100 * containerRect.height - (containerRect.height - imageRect.height) / 2) / imageRect.height * 100;
+            endY = (endY / 100 * containerRect.height - (containerRect.height - imageRect.height) / 2) / imageRect.height * 100;
+          }
 
 
           return (
@@ -1835,8 +1872,8 @@ const AnnotatedImageViewer = ({ block }) => {
             className="absolute"
             style={{
               position: 'absolute',
-              left: `${marker.x}%`,
-              top: `${marker.y}%`,
+              left: `${normalizedX}%`,
+              top: `${normalizedY}%`,
               transform: 'translate(-50%, -50%)',
               // Ensure markers are positioned relative to the image, not container
               pointerEvents: 'auto',
