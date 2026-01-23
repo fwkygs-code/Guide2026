@@ -1592,6 +1592,9 @@ const AnnotatedImageViewer = ({ block }) => {
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
 
+        // DEBUG: Log marker processing
+        console.log('Processing marker:', idx, marker);
+
 
         // ALL shapes use consistent coordinate system - positions as % of rendered image
         const markerSize = marker.size || 30; // Circle diameter in pixels (fixed visual size)
@@ -1603,7 +1606,7 @@ const AnnotatedImageViewer = ({ block }) => {
 
         if (markerShape === 'rectangle') {
           // Rectangle marker
-
+          console.log('Rendering rectangle:', marker);
           return (
             <div
               key={marker.id || idx}
@@ -1667,8 +1670,8 @@ const AnnotatedImageViewer = ({ block }) => {
 
         if (markerShape === 'arrow') {
           // Arrow marker - consistent with builder
+          console.log('Rendering arrow:', marker);
           const arrowRotation = marker.rotation || 0;
-
 
           return (
             <div key={marker.id || idx}>
@@ -1754,11 +1757,11 @@ const AnnotatedImageViewer = ({ block }) => {
 
         if (markerShape === 'line') {
           // Line marker
+          console.log('Rendering line:', marker);
           const startX = marker.x1 || marker.x || 0;
           const startY = marker.y1 || marker.y || 0;
           const endX = marker.x2 || marker.x || 10;
           const endY = marker.y2 || marker.y || 0;
-
 
           return (
             <div key={marker.id || idx}>
@@ -1828,6 +1831,7 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         // Dot marker - positioned relative to image dimensions
+        console.log('Rendering circle (dot):', marker);
 
         return (
           <div
