@@ -1656,8 +1656,8 @@ const AnnotatedImageViewer = ({ block }) => {
         }
 
         if (markerShape === 'arrow') {
-          // Arrow marker - Fixed direction and sizing
-          const arrowLength = Math.max(marker.length || 80, 40); // Minimum length
+          // Arrow marker - matching builder appearance
+          const arrowLength = marker.length || 80;
           const arrowRotation = marker.rotation || 0;
 
           return (
@@ -1667,59 +1667,58 @@ const AnnotatedImageViewer = ({ block }) => {
                 style={{
                   left: `${marker.x}%`,
                   top: `${marker.y}%`,
-                  transform: `translate(-50%, -50%) rotate(${arrowRotation + Math.PI}rad)`, // Rotate 180° to point left instead of right
+                  transform: `translate(-50%, -50%) rotate(${arrowRotation}rad)`,
                   userSelect: 'none',
                   WebkitUserSelect: 'none',
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
-                {/* Arrow shaft - extends from center leftward */}
+                {/* Arrow shaft - extends from center rightward (matching builder) */}
                 <div
-                  className="absolute bg-primary"
+                  className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `${Math.max(arrowLength - 20, 30)}px`, // Longer minimum shaft
-                    height: '2px', // Thinner line for better proportion
-                    transform: 'translate(-100%, -50%)', // Start at center, extend leftward
-                    transformOrigin: 'right center',
+                    width: `${arrowLength - 8}px`, // Subtract arrowhead size to prevent overlap
+                    height: '2px',
+                    transform: 'translate(0, -50%)', // Start at center, no horizontal offset
+                    transformOrigin: 'left center',
+                    backgroundColor: 'var(--primary)',
                   }}
                 />
 
-                {/* Arrowhead - Larger Unicode arrow symbol */}
+                {/* Arrowhead - positioned exactly at shaft end (matching builder) */}
                 <div
-                  className="absolute flex items-center justify-center text-primary font-bold"
+                  className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
                   style={{
-                    left: `calc(50% - ${Math.max(arrowLength - 20, 30)}px)`, // Position at exact shaft start
+                    left: `calc(50% + ${arrowLength - 8}px)`, // At the end of shaft
                     top: '50%',
-                    transform: 'translate(0, -50%)',
-                    fontSize: '18px', // Larger arrowhead
-                    lineHeight: '1',
+                    width: '0',
+                    height: '0',
+                    borderLeft: '8px solid var(--primary)',
+                    borderTop: '4px solid transparent',
+                    borderBottom: '4px solid transparent',
+                    transform: 'translate(0, -50%)', // No horizontal offset needed
+                    transformOrigin: 'left center',
+                  }}
+                />
+
+                {/* Number badge positioned above the arrow (matching builder) */}
+                <span
+                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  style={{
                     width: '18px',
                     height: '18px',
-                    textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                  }}
-                >
-                  ←
-                </div>
-
-                {/* Number positioned above the arrow - no circle background */}
-                <div
-                  className="absolute flex items-center justify-center text-sm font-bold pointer-events-none select-none"
-                  style={{
                     left: '50%',
                     top: '50%',
-                    transform: 'translate(-50%, -50%) translateY(-24px)', // Position above larger arrow
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    color: 'var(--primary)',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                    userSelect: 'none',
+                    transform: 'translate(-50%, -50%) translateY(-15px)',
+                    backgroundColor: 'var(--primary)',
+                    fontSize: '10px',
                     zIndex: 10,
                   }}
                 >
                   {idx + 1}
-                </div>
+                </span>
               </div>
               {isActive && (marker.title || marker.description) && (
                 <div
@@ -1810,7 +1809,7 @@ const AnnotatedImageViewer = ({ block }) => {
           );
         }
 
-        // Dot marker (fixed pixel-based sizing)
+        // Dot marker - matching builder appearance
         return (
           <div
             key={marker.id || idx}
@@ -1822,45 +1821,40 @@ const AnnotatedImageViewer = ({ block }) => {
               transform: 'translate(-50%, -50%)',
             }}
           >
-            {/* Circle marker */}
-            <button
-              className={`rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all select-none border-2 border-white ${
+            {/* Circle marker - matching builder styling */}
+            <div
+              className={`absolute rounded-full cursor-pointer select-none transition-all ${
                 isActive
-                  ? 'bg-primary text-white scale-110 shadow-lg ring-2 ring-primary/30'
-                  : 'bg-transparent text-primary hover:bg-primary hover:text-white shadow-md'
+                  ? 'shadow-lg ring-2'
+                  : 'hover:shadow-md shadow-md'
               }`}
               style={{
-                width: `${Math.max(markerSize, 24)}px`,
-                height: `${Math.max(markerSize, 24)}px`,
-                minWidth: '24px',
-                minHeight: '24px',
-                aspectRatio: '1',
+                width: `${markerSize || 30}px`,
+                height: `${markerSize || 30}px`,
+                borderRadius: '50%',
+                border: `2px solid var(--primary)`,
+                backgroundColor: isActive ? `var(--primary)1a` : `var(--primary)0d`, // Match builder opacity
                 userSelect: 'none',
+                WebkitUserSelect: 'none',
               }}
               onClick={() => setSelectedMarker(isActive ? null : idx)}
-            >
-              {/* Empty circle - no number inside */}
-            </button>
+            />
 
-            {/* Number outside the circle */}
-            <div
-              className={`absolute flex items-center justify-center text-sm font-bold pointer-events-none select-none ${
-                isActive ? 'text-primary scale-110' : 'text-primary'
-              }`}
+            {/* Number badge positioned outside top-right corner like builder */}
+            <span
+              className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
               style={{
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%) translateY(-100%) translateY(-8px)', // Position above the circle
-                userSelect: 'none',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                color: 'var(--primary)',
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                width: '18px',
+                height: '18px',
+                top: '-9px',
+                right: '-9px',
+                backgroundColor: 'var(--primary)',
+                fontSize: '10px',
                 zIndex: 10,
               }}
             >
               {idx + 1}
-            </div>
+            </span>
             {isActive && (marker.title || marker.description) && (
               <div
                 className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
