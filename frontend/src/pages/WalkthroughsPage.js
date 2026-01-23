@@ -626,6 +626,20 @@ const WalkthroughsPage = () => {
                 {/* Actions */}
                 <div className="flex gap-3 pt-4">
                   <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to move "${editingWalkthrough?.title}" to archive? You can restore it later from the Archive page.`)) {
+                        handleDelete(editingWalkthrough.id);
+                        setSettingsDialogOpen(false);
+                        setEditingWalkthrough(null);
+                      }
+                    }}
+                    className="mr-auto"
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    Archive Walkthrough
+                  </Button>
+                  <Button
                     variant="outline"
                     onClick={() => {
                       setSettingsDialogOpen(false);
