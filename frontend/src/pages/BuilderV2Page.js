@@ -2062,7 +2062,6 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    console.log('BUILDER: Click coordinates calculated:', { x, y, rect, clientX: e.clientX, clientY: e.clientY });
     
     // Ensure ALL annotation types save identical x,y coordinates
     const baseX = Math.max(0, Math.min(100, x));
@@ -2087,13 +2086,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       description: ''
     };
 
-    console.log('BUILDER: New marker created:', newMarker);
     
     const newMarkers = [...markers, newMarker];
-    console.log('BUILDER: About to save markers array:', newMarkers);
     onUpdate({ data: { ...block.data, markers: newMarkers } });
     setEditingMarker(markers.length); // Edit the new marker
-    console.log('BUILDER: Marker saved, editing marker index:', markers.length);
   };
   
   const updateMarker = (index, updates) => {
