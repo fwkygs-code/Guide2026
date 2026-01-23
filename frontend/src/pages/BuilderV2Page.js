@@ -2054,28 +2054,48 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   const imageUrl = block.data?.url ? normalizeImageUrl(block.data.url) : null;
   const markers = block.data?.markers || [];
   
-  // Add marker at click position (percentage-based)
+  // Add marker at click position (normalized to natural image size)
   const handleImageClick = (e) => {
     if (!imageRef.current || interactionMode !== 'idle') return;
-    
+
     const rect = imageRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
+    const naturalWidth = imageRef.current.naturalWidth;
+    const naturalHeight = imageRef.current.naturalHeight;
+
+    // Calculate position as percentage of rendered size, then normalize to natural size
+    const renderedX = ((e.clientX - rect.left) / rect.width);
+    const renderedY = ((e.clientY - rect.top) / rect.height);
+
+    const xNorm = renderedX;
+    const yNorm = renderedY;
+
+    // Normalize measurements relative to natural image size
+    const minDimension = Math.min(naturalWidth, naturalHeight);
+    const sizeNorm = 30 / minDimension; // Circle radius normalized
+    const lengthNorm = 80 / minDimension; // Arrow length normalized
+    const widthNorm = 10 / 100; // Rectangle width as fraction (10% -> 0.1)
+    const heightNorm = 10 / 100; // Rectangle height as fraction (10% -> 0.1)
+
+    // Line points normalized
+    const x1Norm = Math.max(0, Math.min(1, renderedX - 10 / rect.width));
+    const y1Norm = renderedY;
+    const x2Norm = Math.max(0, Math.min(1, renderedX + 10 / rect.width));
+    const y2Norm = renderedY;
+
     const newMarker = {
       id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      x: Math.max(0, Math.min(100, x)),
-      y: Math.max(0, Math.min(100, y)),
+      x: xNorm, // Normalized x position (0-1)
+      y: yNorm, // Normalized y position (0-1)
       shape: 'dot', // 'dot', 'rectangle', 'arrow', or 'line'
-      size: 30, // Diameter in pixels for dot
-      width: 10, // Width in % for rectangle
-      height: 10, // Height in % for rectangle
-      length: 80, // Length in pixels for arrow
+      size: sizeNorm, // Normalized circle radius
+      width: widthNorm, // Normalized rectangle width
+      height: heightNorm, // Normalized rectangle height
+      length: lengthNorm, // Normalized arrow length
       rotation: 0, // Rotation in radians for arrow (0-2π)
-      x1: Math.max(0, Math.min(100, x - 10)), // Start point for line
-      y1: Math.max(0, Math.min(100, y)), // Start point for line
-      x2: Math.max(0, Math.min(100, x + 10)), // End point for line
-      y2: Math.max(0, Math.min(100, y)), // End point for line
+      x1: x1Norm, // Normalized line start x
+      y1: y1Norm, // Normalized line start y
+      x2: x2Norm, // Normalized line end x
+      y2: y2Norm, // Normalized line end y
       color: '#3b82f6', // Default blue color
       title: '',
       description: ''
