@@ -1570,24 +1570,29 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 // Annotated Image Viewer Component (for end users) - Supports dots (%) and rectangles
 const AnnotatedImageViewer = ({ block }) => {
   const [selectedMarker, setSelectedMarker] = useState(null);
+  const imageRef = useRef(null);
   const imageUrl = block.data?.url;
   const markers = block.data?.markers || [];
 
   if (!imageUrl) return null;
 
   return (
-    <div className="relative select-none" style={{ userSelect: 'none', position: 'relative' }}>
+    <div
+      className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 select-none"
+      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+    >
       <img
+        ref={imageRef}
         src={imageUrl}
         alt={block.data?.alt || 'Annotated image'}
-        className="w-full rounded-xl block"
+        className="w-full"
         draggable={false}
-        style={{ position: 'relative' }}
+        style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
       />
       {markers.map((marker, idx) => {
         const markerShape = marker.shape || 'dot';
         // Support both old (px) and new (%) size values
-        const markerSize = marker.size || 3; // Now in %
+        const markerSize = marker.size || 30; // Circle diameter in pixels
         const markerWidth = marker.width || 10;
         const markerHeight = marker.height || 10;
         const markerColor = marker.color || '#3b82f6';
@@ -1817,7 +1822,7 @@ const AnnotatedImageViewer = ({ block }) => {
           );
         }
 
-        // Dot marker - matching builder appearance
+        // Dot marker - positioned relative to image dimensions
         return (
           <div
             key={marker.id || idx}
@@ -1827,6 +1832,8 @@ const AnnotatedImageViewer = ({ block }) => {
               left: `${marker.x}%`,
               top: `${marker.y}%`,
               transform: 'translate(-50%, -50%)',
+              // Ensure markers are positioned relative to the image, not container
+              pointerEvents: 'auto',
             }}
           >
             {/* Circle marker - matching builder styling */}
