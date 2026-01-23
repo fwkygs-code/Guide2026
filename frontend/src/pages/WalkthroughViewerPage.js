@@ -1680,10 +1680,11 @@ const AnnotatedImageViewer = ({ block }) => {
                     left: '50%',
                     top: '50%',
                     width: `${arrowLength - 8}px`, // Subtract arrowhead size to prevent overlap
-                    height: '2px',
+                    height: '3px',
                     transform: 'translate(0, -50%)', // Start at center, no horizontal offset
                     transformOrigin: 'left center',
-                    backgroundColor: 'var(--primary)',
+                    backgroundColor: '#3b82f6',
+                    borderRadius: '2px',
                   }}
                 />
 
@@ -1695,9 +1696,9 @@ const AnnotatedImageViewer = ({ block }) => {
                     top: '50%',
                     width: '0',
                     height: '0',
-                    borderLeft: '8px solid var(--primary)',
-                    borderTop: '4px solid transparent',
-                    borderBottom: '4px solid transparent',
+                    borderLeft: '10px solid #3b82f6',
+                    borderTop: '5px solid transparent',
+                    borderBottom: '5px solid transparent',
                     transform: 'translate(0, -50%)', // No horizontal offset needed
                     transformOrigin: 'left center',
                   }}
@@ -1705,14 +1706,13 @@ const AnnotatedImageViewer = ({ block }) => {
 
                 {/* Number badge positioned above the arrow (matching builder) */}
                 <span
-                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md bg-blue-500"
                   style={{
                     width: '18px',
                     height: '18px',
                     left: '50%',
                     top: '50%',
-                    transform: 'translate(-50%, -50%) translateY(-15px)',
-                    backgroundColor: 'var(--primary)',
+                    transform: 'translate(-50%, -50%) translateY(-20px)',
                     fontSize: '10px',
                     zIndex: 10,
                   }}
@@ -1767,19 +1767,26 @@ const AnnotatedImageViewer = ({ block }) => {
                   y1={`${startY}%`}
                   x2={`${endX}%`}
                   y2={`${endY}%`}
-                  stroke="var(--primary)"
-                  strokeWidth="2"
+                  stroke="#3b82f6"
+                  strokeWidth="3"
                   style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
                   onClick={() => setSelectedMarker(isActive ? null : idx)}
                 />
 
                 {/* Number badge at midpoint */}
+                <circle
+                  cx={`${(startX + endX) / 2}%`}
+                  cy={`${(startY + endY) / 2 - 2}%`}
+                  r="9"
+                  fill="#3b82f6"
+                  style={{ pointerEvents: 'none' }}
+                />
                 <text
                   x={`${(startX + endX) / 2}%`}
-                  y={`${(startY + endY) / 2 - 1}%`}
+                  y={`${(startY + endY) / 2 - 2}%`}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill="var(--primary)"
+                  fill="white"
                   fontSize="10"
                   fontWeight="bold"
                   style={{ pointerEvents: 'none' }}
@@ -1823,32 +1830,28 @@ const AnnotatedImageViewer = ({ block }) => {
           >
             {/* Circle marker - matching builder styling */}
             <div
-              className={`absolute rounded-full cursor-pointer select-none transition-all ${
+              className={`absolute rounded-full cursor-pointer select-none transition-all border-2 ${
                 isActive
-                  ? 'shadow-lg ring-2'
-                  : 'hover:shadow-md shadow-md'
+                  ? 'shadow-lg ring-2 ring-blue-500/30 bg-blue-500/20'
+                  : 'hover:shadow-md shadow-md bg-blue-500/10 border-blue-500'
               }`}
               style={{
                 width: `${markerSize || 30}px`,
                 height: `${markerSize || 30}px`,
-                borderRadius: '50%',
-                border: `2px solid var(--primary)`,
-                backgroundColor: isActive ? `var(--primary)1a` : `var(--primary)0d`, // Match builder opacity
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
               }}
               onClick={() => setSelectedMarker(isActive ? null : idx)}
             />
 
-            {/* Number badge positioned outside top-right corner like builder */}
+            {/* Number badge positioned outside top-right corner like exponent */}
             <span
-              className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+              className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md bg-blue-500"
               style={{
                 width: '18px',
                 height: '18px',
                 top: '-9px',
                 right: '-9px',
-                backgroundColor: 'var(--primary)',
                 fontSize: '10px',
                 zIndex: 10,
               }}
