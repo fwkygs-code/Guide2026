@@ -1656,7 +1656,7 @@ const AnnotatedImageViewer = ({ block }) => {
               }}
             >
               <div
-                className={`w-full h-full border-2 cursor-pointer transition-all select-none ${isActive ? 'shadow-lg ring-2' : 'shadow-md'}`}
+                className={'w-full h-full border-2 cursor-pointer transition-all select-none ' + (isActive ? 'shadow-lg ring-2' : 'shadow-md')}
                 style={{
                   borderColor: markerColor,
                   backgroundColor: isActive ? markerColor + '1a' : markerColor + '0d', // 10% and 5% opacity
@@ -1722,7 +1722,7 @@ const AnnotatedImageViewer = ({ block }) => {
               >
                 {/* Arrow shaft - extends leftward from tip */}
                 <div
-                  className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
+                  className={'absolute ' + (isActive ? 'shadow-lg' : 'shadow-md')}
                   style={{
                     left: '0',
                     top: '50%',
@@ -1736,7 +1736,7 @@ const AnnotatedImageViewer = ({ block }) => {
 
                 {/* Arrowhead - positioned at tip (click position) */}
                 <div
-                  className={`absolute ${isActive ? 'shadow-lg' : 'shadow-md'}`}
+                  className={'absolute ' + (isActive ? 'shadow-lg' : 'shadow-md')}
                   style={{
                     left: '0',
                     top: '50%',
@@ -1879,9 +1879,8 @@ const AnnotatedImageViewer = ({ block }) => {
           >
             {/* Circle marker */}
             <div
-              className={`absolute rounded-full cursor-pointer select-none transition-all ${
-                isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
-              }`}
+              className={'absolute rounded-full cursor-pointer select-none transition-all ' +
+                (isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md')}
               style={{
                 width: markerSize + 'px',
                 height: markerSize + 'px',
