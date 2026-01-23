@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["src"],
+  "exclude": [
+    "src/knowledge-systems/decision-tree-system",
+    "src/knowledge-systems/documentation-system",
+    "src/knowledge-systems/faq-system",
+    "src/knowledge-systems/policy-system",
+    "src/knowledge-systems/procedure-system",
+    "src/knowledge-systems/models"
+  ]
+}

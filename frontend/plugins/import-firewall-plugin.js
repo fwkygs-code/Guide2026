@@ -10,6 +10,19 @@ class ImportFirewallPlugin {
     compiler.hooks.compilation.tap('ImportFirewallPlugin', (compilation) => {
       compilation.hooks.finishModules.tap('ImportFirewallPlugin', (modules) => {
         const violations = [];
+        const getPackageName = (request) => {
+          if (!request) return null;
+          const normalized = request.replace(/\\/g, '/');
+          const marker = '/node_modules/';
+          const index = normalized.lastIndexOf(marker);
+          if (index === -1) return null;
+          const remaining = normalized.slice(index + marker.length);
+          const parts = remaining.split('/');
+          if (parts[0]?.startsWith('@') && parts.length > 1) {
+            return `${parts[0]}/${parts[1]}`;
+          }
+          return parts[0] || null;
+        };
 
         for (const module of modules) {
           if (!module.resource) continue;
@@ -32,8 +45,10 @@ class ImportFirewallPlugin {
               return;
             }
 
+            const packageName = getPackageName(request);
+            const candidate = packageName || request;
             const isAllowed = this.allowedPackages.some(
-              (pkg) => request === pkg || request.startsWith(`${pkg}/`)
+              (pkg) => candidate === pkg || candidate.startsWith(`${pkg}/`)
             );
             if (!isAllowed) {
               violations.push(

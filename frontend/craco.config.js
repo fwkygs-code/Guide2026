@@ -73,6 +73,7 @@ const webpackConfig = {
             "react/jsx-runtime",
             "react/jsx-dev-runtime",
             "react-dom",
+            "@babel/runtime",
             "date-fns",
             "uuid",
             "debounce",
