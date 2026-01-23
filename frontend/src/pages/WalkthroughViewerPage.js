@@ -1877,13 +1877,15 @@ const AnnotatedImageViewer = ({ block }) => {
               pointerEvents: 'auto',
             }}
           >
-            {/* Circle marker */}
+            {/* Circle marker - derived from rectangle geometry */}
             <div
               className={'absolute rounded-full cursor-pointer select-none transition-all ' +
                 (isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md')}
               style={{
-                width: markerSize + 'px',
-                height: markerSize + 'px',
+                left: marker.x + '%',
+                top: marker.y + '%',
+                width: markerWidth + '%',
+                height: markerWidth + '%', // Use width for square/circular shape
                 border: '2px solid ' + markerColor,
                 backgroundColor: isActive ? markerColor + '1a' : markerColor + '0d', // Match builder opacity
                 ringColor: isActive ? markerColor + '4d' : undefined, // 30% opacity ring
