@@ -1673,30 +1673,29 @@ const AnnotatedImageViewer = ({ block }) => {
               >
                 {/* Arrow shaft - extends from center leftward */}
                 <div
-                  className="absolute bg-primary rounded-full"
+                  className="absolute bg-primary"
                   style={{
                     left: '50%',
                     top: '50%',
-                    width: `${Math.max(arrowLength - 16, 24)}px`, // Fixed pixel sizing, ensure minimum visible length
-                    height: '3px', // Slightly thicker for visibility
+                    width: `${Math.max(arrowLength - 20, 30)}px`, // Longer minimum shaft
+                    height: '2px', // Thinner line for better proportion
                     transform: 'translate(-100%, -50%)', // Start at center, extend leftward
                     transformOrigin: 'right center',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)', // Add subtle shadow
                   }}
                 />
 
-                {/* Arrowhead - Unicode arrow symbol for reliability */}
+                {/* Arrowhead - Larger Unicode arrow symbol */}
                 <div
-                  className="absolute flex items-center justify-center text-primary font-bold drop-shadow-sm"
+                  className="absolute flex items-center justify-center text-primary font-bold"
                   style={{
-                    left: `calc(50% - ${Math.max(arrowLength - 16, 24)}px - 6px)`, // Position at shaft start
+                    left: `calc(50% - ${Math.max(arrowLength - 20, 30)}px)`, // Position at exact shaft start
                     top: '50%',
                     transform: 'translate(0, -50%)',
-                    fontSize: '14px',
+                    fontSize: '18px', // Larger arrowhead
                     lineHeight: '1',
-                    width: '14px',
-                    height: '14px',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                    width: '18px',
+                    height: '18px',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.4)',
                   }}
                 >
                   ←
@@ -1708,7 +1707,7 @@ const AnnotatedImageViewer = ({ block }) => {
                   style={{
                     left: '50%',
                     top: '50%',
-                    transform: 'translate(-50%, -50%) translateY(-20px)', // Position above the arrow
+                    transform: 'translate(-50%, -50%) translateY(-24px)', // Position above larger arrow
                     fontSize: '14px',
                     fontWeight: 'bold',
                     color: 'var(--primary)',
