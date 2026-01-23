@@ -54,10 +54,16 @@ const RichTextEditor = ({
       onChange(editor.getHTML());
     },
     onSelectionUpdate: ({ editor }) => {
-      setShowToolbar(!editor.state.selection.empty);
+      setShowToolbar(!editor.state.selection.empty || focused);
     },
-    onFocus: () => setFocused(true),
-    onBlur: () => setFocused(false),
+    onFocus: () => {
+      setFocused(true);
+      setShowToolbar(true);
+    },
+    onBlur: () => {
+      setFocused(false);
+      setShowToolbar(false);
+    },
     editorProps: {
       attributes: {
         class: cn(
@@ -117,16 +123,29 @@ const RichTextEditor = ({
       {/* Subtle inner gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
 
+      {/* Rich text hint when focused */}
+      {focused && editor.state.selection.empty && (
+        <div className="absolute top-2 right-2 text-xs text-white/60 bg-slate-800/80 px-2 py-1 rounded-md pointer-events-none">
+          Select text for formatting options
+        </div>
+      )}
+
       {/* Enhanced Floating Toolbar */}
       <AnimatePresence>
-        {showToolbar && !editor.state.selection.empty && (
+        {showToolbar && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute z-[100] left-1/2 transform -translate-x-1/2 top-[-56px] flex items-center gap-1 bg-slate-900/95 backdrop-blur-xl rounded-xl p-2 shadow-2xl border border-white/10"
+            className="absolute z-[9999] left-1/2 transform -translate-x-1/2 top-[-56px] flex items-center gap-1 bg-slate-900 backdrop-blur-xl rounded-xl p-2 shadow-2xl border-2 border-white/20"
+            style={{ minWidth: 'fit-content' }}
           >
+            {/* Test indicator */}
+            <div className="text-xs text-white/60 px-2 py-1 bg-slate-700 rounded mr-2">
+              Rich Text Toolbar
+            </div>
+
             {/* Formatting buttons */}
             <ToolbarButton
               onClick={() => editor.chain().focus().toggleBold().run()}
