@@ -1602,7 +1602,6 @@ const AnnotatedImageViewer = ({ block }) => {
         const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
-        console.log(`VIEWER: Rendering ${markerShape} at x:${marker.x} y:${marker.y}`);
 
         if (markerShape === 'rectangle') {
           // Rectangle marker

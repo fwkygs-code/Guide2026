@@ -2086,7 +2086,6 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       description: ''
     };
 
-    console.log('BUILDER: Creating annotation at:', { baseX, baseY, shape: newMarker.shape });
 
     
     const newMarkers = [...markers, newMarker];
