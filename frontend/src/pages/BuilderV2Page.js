@@ -2064,20 +2064,24 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
     console.log('BUILDER: Click coordinates calculated:', { x, y, rect, clientX: e.clientX, clientY: e.clientY });
     
+    // Ensure ALL annotation types save identical x,y coordinates
+    const baseX = Math.max(0, Math.min(100, x));
+    const baseY = Math.max(0, Math.min(100, y));
+
     const newMarker = {
       id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      x: Math.max(0, Math.min(100, x)),
-      y: Math.max(0, Math.min(100, y)),
+      x: baseX, // IDENTICAL for all annotation types
+      y: baseY, // IDENTICAL for all annotation types
       shape: 'dot', // 'dot', 'rectangle', 'arrow', or 'line'
       size: 30, // Diameter in pixels for dot
       width: 10, // Width in % for rectangle
       height: 10, // Height in % for rectangle
       length: 80, // Length in pixels for arrow
       rotation: 0, // Rotation in radians for arrow (0-2π)
-      x1: Math.max(0, Math.min(100, x - 10)), // Start point for line
-      y1: Math.max(0, Math.min(100, y)), // Start point for line
-      x2: Math.max(0, Math.min(100, x + 10)), // End point for line
-      y2: Math.max(0, Math.min(100, y)), // End point for line
+      x1: Math.max(0, Math.min(100, baseX - 10)), // Start point for line (relative to base position)
+      y1: Math.max(0, Math.min(100, baseY)), // Start point for line
+      x2: Math.max(0, Math.min(100, baseX + 10)), // End point for line (relative to base position)
+      y2: Math.max(0, Math.min(100, baseY)), // End point for line
       color: '#3b82f6', // Default blue color
       title: '',
       description: ''
