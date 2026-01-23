@@ -1,14 +1,14 @@
 /**
- * Documentation Portal Page - Knowledge Hub & Reference Library
+ * Documentation Portal Page - Knowledge & Reference
  *
- * Purple-themed portal emphasizing deep knowledge, structured information hierarchy,
- * and comprehensive technical reference materials.
+ * Hierarchical knowledge display with persistent navigation.
+ * Regal purple theming represents wisdom and comprehensive understanding.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BookOpen, FolderTree, Search, Lightbulb, FileText, ChevronRight, Layers } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronRight, Hash, Clock, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,14 +17,15 @@ import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
 import axios from 'axios';
 
 /**
- * Documentation Portal Page - Knowledge-Focused Design
+ * Documentation Portal Page - Knowledge Repository
  */
 function DocumentationPortalPage() {
   const { slug } = useParams();
   const [system, setSystem] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedSections, setExpandedSections] = useState(new Set());
+  const [activeSection, setActiveSection] = useState(null);
+  const [activeSubsection, setActiveSubsection] = useState(null);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     loadSystem();
@@ -47,15 +48,38 @@ function DocumentationPortalPage() {
     }
   };
 
-  const toggleSection = (sectionId) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
+  // Scroll to section when navigation is clicked
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(`section-${sectionId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    setExpandedSections(newExpanded);
   };
+
+  // Track scroll position to highlight active section
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!contentRef.current) return;
+
+      const sections = contentRef.current.querySelectorAll('[data-section-id]');
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+
+      sections.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+        const sectionTop = rect.top + scrollTop;
+        const sectionHeight = rect.height;
+
+        if (scrollTop >= sectionTop - windowHeight / 2 &&
+            scrollTop < sectionTop + sectionHeight - windowHeight / 2) {
+          setActiveSection(section.getAttribute('data-section-id'));
+        }
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [system]);
 
   if (loading) {
     return (
@@ -79,17 +103,17 @@ function DocumentationPortalPage() {
           className="text-center space-y-8 max-w-md"
         >
           <Surface variant="glass-accent" className="p-8 rounded-2xl">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-violet-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
               <BookOpen className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent mb-4">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
               Documentation Not Available
             </h1>
             <p className="text-purple-100/80 leading-relaxed mb-6">
-              Technical documentation is not currently published for this workspace.
+              Product documentation is not currently published for this workspace.
             </p>
             <Link to={`/portal/${slug}`}>
-              <Button className="bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-lg">
+              <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Portal
               </Button>
@@ -102,7 +126,7 @@ function DocumentationPortalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
-      {/* Header - Purple knowledge theming */}
+      {/* Header - Glass morphism with purple theming */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -110,7 +134,7 @@ function DocumentationPortalPage() {
         className="relative overflow-hidden"
       >
         {/* Atmospheric background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-violet-500/5 to-slate-900/80 backdrop-blur-xl" />
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/5 to-slate-900/80 backdrop-blur-xl" />
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent" />
 
         <div className="relative max-w-7xl mx-auto px-6 py-12">
@@ -133,18 +157,18 @@ function DocumentationPortalPage() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex items-center gap-6 mb-8"
           >
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-500/25">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-400 via-pink-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-500/25">
               <BookOpen className="w-10 h-10 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent mb-2">
                 {system.title}
               </h1>
               <p className="text-purple-100/80 text-xl leading-relaxed">{system.description}</p>
             </div>
           </motion.div>
 
-          {/* Knowledge Stats & Search */}
+          {/* Trust Indicators - Glass morphism badges */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -152,68 +176,38 @@ function DocumentationPortalPage() {
             className="flex flex-wrap items-center gap-4 mb-8"
           >
             <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 rounded-xl">
-              <FolderTree className="w-4 h-4 text-purple-400" />
+              <Layers className="w-4 h-4 text-purple-400" />
               <span className="text-purple-100 text-sm font-medium">
-                {(system.content?.sections || []).length} Knowledge Sections
+                {system.content?.sections?.length || 0} Sections Available
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 rounded-xl">
-              <FileText className="w-4 h-4 text-purple-400" />
+              <Clock className="w-4 h-4 text-purple-400" />
               <span className="text-purple-100 text-sm font-medium">
                 Updated: {new Date(system.updatedAt).toLocaleDateString()}
               </span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 rounded-xl">
-              <Lightbulb className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-100 text-sm font-medium">
-                Technical Reference Library
-              </span>
-            </div>
           </motion.div>
 
-          {/* Search Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mb-8"
-          >
-            <div className="relative max-w-md">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-violet-500/20 rounded-xl blur-lg" />
-              <div className="relative bg-purple-500/10 backdrop-blur-xl border border-purple-500/30 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <Search className="w-5 h-5 text-purple-400" />
-                  <input
-                    type="text"
-                    placeholder="Search documentation..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex-1 bg-transparent text-purple-100 placeholder-purple-300/60 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Knowledge Hub Notice */}
+          {/* Knowledge Repository Notice - Enhanced glass card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
           >
             <Surface variant="glass-secondary" className="p-6 rounded-xl border-purple-500/30">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-violet-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                  <Layers className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <Hash className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h3 className="font-bold text-purple-100 mb-2 text-lg">Comprehensive Knowledge Base</h3>
                   <p className="text-purple-200/80 leading-relaxed">
-                    Explore our structured documentation library. Each section is carefully organized to provide deep technical insights, best practices, and comprehensive reference materials.
+                    This documentation provides authoritative knowledge and reference materials. Use the navigation sidebar to explore topics systematically and find the information you need.
                   </p>
                   <div className="flex items-center gap-2 mt-4">
-                    <Lightbulb className="w-4 h-4 text-purple-400" />
-                    <span className="text-purple-300/60 text-sm">Hierarchical Knowledge Structure</span>
+                    <BookOpen className="w-4 h-4 text-purple-400" />
+                    <span className="text-purple-300/60 text-sm">Official Documentation Repository</span>
                   </div>
                 </div>
               </div>
@@ -222,106 +216,155 @@ function DocumentationPortalPage() {
         </div>
       </motion.header>
 
-      {/* Content - Knowledge hierarchy layout */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="space-y-8">
-          {(system.content?.sections || []).length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
+      {/* Main Content with Navigation */}
+      <div className="max-w-7xl mx-auto px-6 pb-12">
+        <div className="flex gap-8">
+          {/* Navigation Sidebar */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="w-80 flex-shrink-0"
+          >
+            <div className="sticky top-6">
+              <DocumentationNavigation
+                sections={system.content?.sections || []}
+                activeSection={activeSection}
+                onSectionClick={scrollToSection}
+              />
+            </div>
+          </motion.div>
+
+          {/* Content Area */}
+          <motion.div
+            ref={contentRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="flex-1 space-y-12"
+          >
+            {(system.content?.sections || []).length === 0 ? (
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-purple-500/30">
                 <BookOpen className="w-16 h-16 text-purple-400/50 mx-auto mb-6" />
                 <h3 className="text-xl font-semibold text-purple-100 mb-4">No Documentation Published</h3>
                 <p className="text-purple-200/70">
-                  Technical documentation has not been published yet. Check back for comprehensive knowledge resources.
+                  Documentation content has not been published yet. Check back later for comprehensive knowledge materials.
                 </p>
               </Surface>
-            </motion.div>
-          ) : (
-            (system.content?.sections || [])
-              .sort((a, b) => (a.order || 0) - (b.order || 0))
-              .map((section, index) => (
-                <DocumentationSectionRenderer
+            ) : (
+              (system.content?.sections || []).map((section, index) => (
+                <DocumentationSection
                   key={section.id}
                   section={section}
                   index={index}
-                  isExpanded={expandedSections.has(section.id)}
-                  onToggle={() => toggleSection(section.id)}
+                  isActive={activeSection === section.id}
                 />
               ))
-          )}
+            )}
+          </motion.div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
 
 /**
- * Documentation Section Renderer - Hierarchical Knowledge Display
+ * Documentation Navigation Sidebar
  */
-function DocumentationSectionRenderer({ section, index, isExpanded, onToggle }) {
+function DocumentationNavigation({ sections, activeSection, onSectionClick }) {
+  return (
+    <Card className="border-purple-500/20 bg-slate-800/50 backdrop-blur-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-white flex items-center gap-2">
+          <BookOpen className="w-5 h-5" />
+          Table of Contents
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <nav className="space-y-1">
+          {sections.map((section) => (
+            <div key={section.id}>
+              <button
+                onClick={() => onSectionClick(section.id)}
+                className={`w-full text-left px-4 py-3 hover:bg-purple-500/10 transition-colors ${
+                  activeSection === section.id
+                    ? 'bg-purple-500/20 border-r-2 border-purple-400 text-purple-100'
+                    : 'text-purple-200/80 hover:text-purple-100'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ChevronRight className={`w-4 h-4 transition-transform ${
+                    activeSection === section.id ? 'rotate-90 text-purple-400' : 'text-purple-400/60'
+                  }`} />
+                  <span className="font-medium">{section.title || `Section ${section.order}`}</span>
+                </div>
+              </button>
+
+              {/* Subsections */}
+              {section.subsections && section.subsections.length > 0 && (
+                <div className={`ml-8 space-y-1 ${activeSection === section.id ? 'block' : 'hidden'}`}>
+                  {section.subsections.map((subsection) => (
+                    <button
+                      key={subsection.id}
+                      onClick={() => onSectionClick(section.id)}
+                      className="w-full text-left px-4 py-2 text-sm text-purple-300/60 hover:text-purple-200 hover:bg-purple-500/5 transition-colors"
+                    >
+                      {subsection.title || `Subsection ${subsection.order}`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </nav>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Individual Documentation Section - Hierarchical Display
+ */
+function DocumentationSection({ section, index, isActive }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6, delay: index * 0.12 }}
+      id={`section-${section.id}`}
+      data-section-id={section.id}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: index * 0.1 }}
+      className="scroll-mt-24"
     >
       <Card system="documentation" animated={false} className="overflow-hidden">
-        <CardHeader system="documentation">
-          <motion.button
-            onClick={onToggle}
-            className="w-full text-left flex items-center justify-between hover:bg-purple-500/5 p-2 -m-2 rounded-lg transition-colors group"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center gap-4">
-              <motion.div
-                className="w-12 h-12 bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg"
-                whileHover={{ rotate: 10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <span className="text-white font-bold text-lg">{index + 1}</span>
-              </motion.div>
-              <div>
-                <CardTitle system="documentation" className="text-2xl mb-1">{section.title}</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-purple-500/20 text-purple-200 border-purple-500/30 px-2 py-0.5 text-xs">
-                    Section {index + 1}
-                  </Badge>
-                  {(section.subsections || []).length > 0 && (
-                    <span className="text-purple-300/60 text-sm">
-                      {(section.subsections || []).length} subsections
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+        <CardHeader system="documentation" className="pb-6">
+          <div className="flex items-center gap-4">
             <motion.div
-              className="flex items-center gap-3"
-              animate={{ rotate: isExpanded ? 90 : 0 }}
+              className="w-12 h-12 bg-gradient-to-br from-purple-400 via-pink-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg"
+              whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ duration: 0.2 }}
             >
-              <ChevronRight className="w-5 h-5 text-purple-400" />
+              <span className="text-white font-bold text-lg">{section.order}</span>
             </motion.div>
-          </motion.button>
+            <div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-100 to-white bg-clip-text text-transparent mb-2">
+                {section.title}
+              </h2>
+              <Badge className="bg-purple-500/20 text-purple-200 border-purple-500/30 px-3 py-1">
+                Section {section.order}
+              </Badge>
+            </div>
+          </div>
         </CardHeader>
 
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <CardContent system="documentation" className="px-8 pb-8">
-              {/* Main section content */}
-              <div className="prose prose-lg max-w-none mb-8">
+        <CardContent system="documentation" className="px-8 pb-8">
+          {/* Main Section Content */}
+          {section.content && (
+            <div className="prose prose-lg max-w-none mb-12">
+              <div className="text-purple-50/90 leading-relaxed text-lg">
                 {section.content.split('\n\n').map((paragraph, i) => (
                   <motion.p
                     key={i}
-                    className="mb-6 text-purple-50/90 leading-relaxed last:mb-0 text-lg"
+                    className="mb-6 last:mb-0"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.4, delay: i * 0.1 }}
@@ -335,49 +378,72 @@ function DocumentationSectionRenderer({ section, index, isExpanded, onToggle }) 
                   </motion.p>
                 ))}
               </div>
+            </div>
+          )}
 
-              {/* Subsections - Hierarchical display */}
-              {section.subsections && section.subsections.length > 0 && (
+          {/* Subsections */}
+          {section.subsections && section.subsections.length > 0 && (
+            <div className="space-y-8">
+              <div className="border-t border-purple-500/20 pt-8">
+                <h3 className="text-xl font-semibold text-purple-100 mb-6">Detailed Topics</h3>
                 <div className="space-y-6">
-                  <div className="border-t border-purple-500/20 pt-6">
-                    <h4 className="text-purple-100 font-semibold mb-4 flex items-center gap-2">
-                      <FolderTree className="w-4 h-4 text-purple-400" />
-                      Detailed Topics
-                    </h4>
-                    <div className="space-y-4">
-                      {section.subsections
-                        .sort((a, b) => (a.order || 0) - (b.order || 0))
-                        .map((subsection, subIndex) => (
-                          <motion.div
-                            key={subsection.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.4, delay: subIndex * 0.1 }}
-                            className="border-l-4 border-purple-500/30 pl-6 py-4 bg-purple-500/5 rounded-r-lg"
-                          >
-                            <h5 className="font-semibold text-purple-100 mb-3 text-lg">{subsection.title}</h5>
-                            <div className="prose prose-base max-w-none">
-                              {subsection.content.split('\n\n').map((paragraph, i) => (
-                                <p key={i} className="mb-4 text-purple-50/80 leading-relaxed last:mb-0">
-                                  {paragraph.split('\n').map((line, j) => (
-                                    <span key={j}>
-                                      {line}
-                                      {j < paragraph.split('\n').length - 1 && <br />}
-                                    </span>
-                                  ))}
-                                </p>
-                              ))}
-                            </div>
-                          </motion.div>
-                        ))}
-                    </div>
-                  </div>
+                  {section.subsections.map((subsection, subIndex) => (
+                    <DocumentationSubsection
+                      key={subsection.id}
+                      subsection={subsection}
+                      index={subIndex}
+                    />
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </motion.div>
-        )}
+              </div>
+            </div>
+          )}
+        </CardContent>
       </Card>
+    </motion.div>
+  );
+}
+
+/**
+ * Documentation Subsection - Nested Content
+ */
+function DocumentationSubsection({ subsection, index }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="border-l-4 border-purple-500/30 pl-6 py-4"
+    >
+      <h4 className="text-xl font-semibold text-purple-200 mb-4 flex items-center gap-3">
+        <div className="w-6 h-6 bg-gradient-to-br from-purple-400/50 to-pink-500/50 rounded-full flex items-center justify-center text-purple-200 font-bold text-sm">
+          {subsection.order}
+        </div>
+        {subsection.title}
+      </h4>
+
+      {subsection.content && (
+        <div className="prose prose-base max-w-none">
+          <div className="text-purple-100/80 leading-relaxed">
+            {subsection.content.split('\n\n').map((paragraph, i) => (
+              <motion.p
+                key={i}
+                className="mb-4 last:mb-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+              >
+                {paragraph.split('\n').map((line, j) => (
+                  <span key={j}>
+                    {line}
+                    {j < paragraph.split('\n').length - 1 && <br />}
+                  </span>
+                ))}
+              </motion.p>
+            ))}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

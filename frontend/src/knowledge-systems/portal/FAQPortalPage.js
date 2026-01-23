@@ -1,23 +1,24 @@
 /**
- * FAQ Portal Page - Conversational Help Interface
+ * FAQ Portal Page - Help & Accessibility
  *
- * Emerald-themed portal emphasizing approachability, conversation, and smart assistance.
- * Interactive Q&A with search, categories, and conversational flow.
+ * Fast-scanning Q&A layout with friendly, approachable design.
+ * Warm emerald theming represents helpful assistance and user support.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, MessageCircle, HelpCircle, Search, Users, Heart, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, MessageCircle, HelpCircle, Search, Tag, Clock, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Surface } from '@/components/ui/design-system';
 import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
 import axios from 'axios';
 
 /**
- * FAQ Portal Page - Conversational Help Interface
+ * FAQ Portal Page - User-Friendly Help
  */
 function FAQPortalPage() {
   const { slug } = useParams();
@@ -25,7 +26,7 @@ function FAQPortalPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [expandedFaqs, setExpandedFaqs] = useState(new Set());
+  const [expandedFaq, setExpandedFaq] = useState(null);
 
   useEffect(() => {
     loadSystem();
@@ -48,43 +49,20 @@ function FAQPortalPage() {
     }
   };
 
-  const toggleFaq = (faqId) => {
-    const newExpanded = new Set(expandedFaqs);
-    if (newExpanded.has(faqId)) {
-      newExpanded.delete(faqId);
-    } else {
-      newExpanded.add(faqId);
-    }
-    setExpandedFaqs(newExpanded);
-  };
+  // Get all FAQs
+  const allFaqs = system?.content?.faqs || [];
 
-  // Get filtered and categorized FAQs
-  const { filteredFaqs, categories } = useMemo(() => {
-    if (!system?.content?.faqs) return { filteredFaqs: [], categories: [] };
+  // Get unique categories
+  const categories = ['all', ...new Set(allFaqs.map(faq => faq.category).filter(Boolean))];
 
-    const faqs = system.content.faqs;
-
-    // Get unique categories
-    const cats = ['all', ...new Set(faqs.map(faq => faq.category).filter(Boolean))];
-
-    // Filter FAQs based on search and category
-    let filtered = faqs;
-
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(faq =>
-        faq.question.toLowerCase().includes(searchLower) ||
-        faq.answer.toLowerCase().includes(searchLower) ||
-        faq.tags?.some(tag => tag.toLowerCase().includes(searchLower))
-      );
-    }
-
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(faq => faq.category === selectedCategory);
-    }
-
-    return { filteredFaqs: filtered, categories: cats };
-  }, [system, searchTerm, selectedCategory]);
+  // Filter FAQs based on search and category
+  const filteredFaqs = allFaqs.filter(faq => {
+    const matchesSearch = !searchTerm ||
+      faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) {
     return (
@@ -109,7 +87,7 @@ function FAQPortalPage() {
         >
           <Surface variant="glass-accent" className="p-8 rounded-2xl">
             <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-              <HelpCircle className="w-10 h-10 text-white" />
+              <MessageCircle className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-4">
               FAQs Not Available
@@ -131,7 +109,7 @@ function FAQPortalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
-      {/* Header - Emerald conversational theming */}
+      {/* Header - Glass morphism with emerald theming */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -173,7 +151,7 @@ function FAQPortalPage() {
             </div>
           </motion.div>
 
-          {/* FAQ Stats & Search */}
+          {/* Trust Indicators - Glass morphism badges */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -183,88 +161,36 @@ function FAQPortalPage() {
             <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 rounded-xl">
               <HelpCircle className="w-4 h-4 text-emerald-400" />
               <span className="text-emerald-100 text-sm font-medium">
-                {filteredFaqs.length} Questions Available
+                {allFaqs.length} Questions Answered
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 rounded-xl">
-              <Users className="w-4 h-4 text-emerald-400" />
+              <Clock className="w-4 h-4 text-emerald-400" />
               <span className="text-emerald-100 text-sm font-medium">
                 Updated: {new Date(system.updatedAt).toLocaleDateString()}
               </span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 rounded-xl">
-              <Heart className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-100 text-sm font-medium">
-                Community Support
-              </span>
-            </div>
           </motion.div>
 
-          {/* Search and Filter Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mb-8 space-y-4"
-          >
-            {/* Search */}
-            <div className="relative max-w-md">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-xl blur-lg" />
-              <div className="relative bg-emerald-500/10 backdrop-blur-xl border border-emerald-500/30 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <Search className="w-5 h-5 text-emerald-400" />
-                  <input
-                    type="text"
-                    placeholder="Search questions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex-1 bg-transparent text-emerald-100 placeholder-emerald-300/60 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Category Filter */}
-            {categories.length > 1 && (
-              <div className="flex flex-wrap gap-2">
-                {categories.map(category => (
-                  <motion.button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      selectedCategory === category
-                        ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/40'
-                        : 'bg-emerald-500/10 text-emerald-200/80 border border-emerald-500/20 hover:bg-emerald-500/15'
-                    }`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {category === 'all' ? 'All Questions' : category}
-                  </motion.button>
-                ))}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Help Notice */}
+          {/* Help Center Notice - Enhanced glass card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
           >
             <Surface variant="glass-secondary" className="p-6 rounded-xl border-emerald-500/30">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                  <MessageCircle className="w-6 h-6 text-white" />
+                  <Heart className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-emerald-100 mb-2 text-lg">Find Answers Quickly</h3>
+                  <h3 className="font-bold text-emerald-100 mb-2 text-lg">Help & Support Center</h3>
                   <p className="text-emerald-200/80 leading-relaxed">
-                    Browse our comprehensive FAQ collection or search for specific topics. Each question is designed to provide clear, helpful answers to common inquiries and concerns.
+                    Find quick answers to common questions. Use the search bar to find exactly what you need, or browse by category. We're here to help you succeed.
                   </p>
                   <div className="flex items-center gap-2 mt-4">
-                    <Heart className="w-4 h-4 text-emerald-400" />
-                    <span className="text-emerald-300/60 text-sm">Here to Help</span>
+                    <MessageCircle className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-300/60 text-sm">Your Questions, Answered</span>
                   </div>
                 </div>
               </div>
@@ -273,9 +199,62 @@ function FAQPortalPage() {
         </div>
       </motion.header>
 
-      {/* Content - Conversational FAQ layout */}
-      <main className="max-w-5xl mx-auto px-6 py-12">
-        <div className="space-y-6">
+      {/* Search and Filter Controls */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.6 }}
+        className="max-w-4xl mx-auto px-6 mb-8"
+      >
+        <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-slate-800/50 backdrop-blur-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 w-4 h-4" />
+                <Input
+                  placeholder="Search questions and answers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex gap-2">
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                    className={`${
+                      selectedCategory === category
+                        ? 'bg-emerald-500/20 text-emerald-100 border-emerald-500/30'
+                        : 'border-slate-600 text-slate-300 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <Tag className="w-3 h-3 mr-2" />
+                    {category === 'all' ? 'All Topics' : category}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Results count */}
+            <div className="mt-4 text-sm text-emerald-200/60">
+              {filteredFaqs.length === allFaqs.length
+                ? `Showing all ${allFaqs.length} questions`
+                : `Found ${filteredFaqs.length} of ${allFaqs.length} questions`
+              }
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* FAQ Content - Fast Scanning Layout */}
+      <main className="max-w-4xl mx-auto px-6 pb-12">
+        <div className="space-y-4">
           {filteredFaqs.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -285,24 +264,24 @@ function FAQPortalPage() {
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-emerald-500/30">
                 <HelpCircle className="w-16 h-16 text-emerald-400/50 mx-auto mb-6" />
                 <h3 className="text-xl font-semibold text-emerald-100 mb-4">
-                  {searchTerm ? 'No matching questions found' : 'No FAQs Published'}
+                  {searchTerm ? 'No matching questions found' : 'No FAQs published yet'}
                 </h3>
                 <p className="text-emerald-200/70">
                   {searchTerm
                     ? 'Try adjusting your search terms or browse all questions.'
-                    : 'Frequently asked questions have not been published yet. Check back for helpful answers.'
+                    : 'FAQ content has not been published yet. Check back later for helpful answers.'
                   }
                 </p>
               </Surface>
             </motion.div>
           ) : (
             filteredFaqs.map((faq, index) => (
-              <FAQItem
+              <FaqItem
                 key={faq.id}
                 faq={faq}
                 index={index}
-                isExpanded={expandedFaqs.has(faq.id)}
-                onToggle={() => toggleFaq(faq.id)}
+                isExpanded={expandedFaq === faq.id}
+                onToggle={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
               />
             ))
           )}
@@ -313,97 +292,101 @@ function FAQPortalPage() {
 }
 
 /**
- * Individual FAQ Item - Conversational Display
+ * Individual FAQ Item - Fast Scanning Design
  */
-function FAQItem({ faq, index, isExpanded, onToggle }) {
+function FaqItem({ faq, index, isExpanded, onToggle }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: index * 0.08 }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
+      className={`border border-slate-700/50 rounded-xl overflow-hidden transition-all duration-300 ${
+        isExpanded ? 'bg-emerald-500/5 border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'bg-slate-800/30 hover:bg-slate-800/50'
+      }`}
     >
-      <Card system="faq" animated={false} className="overflow-hidden">
-        <CardHeader system="faq">
-          <motion.button
-            onClick={onToggle}
-            className="w-full text-left flex items-start justify-between hover:bg-emerald-500/5 p-2 -m-2 rounded-lg transition-colors group"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-start gap-4 flex-1">
-              <motion.div
-                className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 mt-1"
-                whileHover={{ rotate: 10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <span className="text-white font-bold text-sm">Q</span>
-              </motion.div>
-              <div className="flex-1">
-                <CardTitle system="faq" className="text-lg mb-3 leading-relaxed">{faq.question}</CardTitle>
-                {faq.category && (
-                  <Badge className="bg-emerald-500/20 text-emerald-200 border-emerald-500/30 px-2 py-0.5 text-xs mb-2">
-                    {faq.category}
-                  </Badge>
-                )}
+      {/* Question Header - Clickable */}
+      <button
+        onClick={onToggle}
+        className="w-full text-left p-6 flex items-center justify-between hover:bg-emerald-500/5 transition-colors group"
+      >
+        <div className="flex items-start gap-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+            isExpanded
+              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+              : 'bg-gradient-to-br from-emerald-400 to-green-500 text-white group-hover:scale-105'
+          }`}>
+            <HelpCircle className={`w-5 h-5 transition-transform duration-300 ${
+              isExpanded ? 'scale-110' : ''
+            }`} />
+          </div>
+          <div className="flex-1">
+            <h3 className={`font-semibold text-lg mb-2 transition-colors ${
+              isExpanded ? 'text-emerald-100' : 'text-emerald-50 group-hover:text-emerald-100'
+            }`}>
+              {faq.question}
+            </h3>
+            {faq.category && (
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
+                {faq.category}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Expand/Collapse Icon */}
+        <motion.div
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-emerald-400"
+        >
+          <HelpCircle className="w-5 h-5" />
+        </motion.div>
+      </button>
+
+      {/* Answer Content - Expandable */}
+      {isExpanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="border-t border-emerald-500/20"
+        >
+          <div className="p-6 pt-4">
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
               </div>
-            </div>
-            <motion.div
-              className="flex items-center gap-3 ml-4"
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {isExpanded ? (
-                <ChevronUp className="w-5 h-5 text-emerald-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-emerald-400" />
-              )}
-            </motion.div>
-          </motion.button>
-        </CardHeader>
-
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <CardContent system="faq" className="px-8 pb-8">
-                <div className="pl-14">
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-green-500 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-                      <span className="text-white font-bold text-xs">A</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-emerald-50/90 leading-relaxed text-base">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  {faq.tags && faq.tags.length > 0 && (
-                    <div className="pl-12">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Tag className="w-4 h-4 text-emerald-400" />
-                        <span className="text-emerald-300/60 text-sm">Related topics:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {faq.tags.map(tag => (
-                          <Badge key={tag} className="bg-emerald-500/10 text-emerald-200 border-emerald-500/20 px-2 py-0.5 text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+              <div className="flex-1 prose prose-sm max-w-none">
+                <div className="text-emerald-50/90 leading-relaxed">
+                  {faq.answer ? (
+                    <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
+                  ) : (
+                    <span className="text-slate-500 italic">No answer provided yet</span>
                   )}
                 </div>
-              </CardContent>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Card>
+              </div>
+            </div>
+
+            {/* FAQ Footer */}
+            <div className="mt-6 pt-4 border-t border-emerald-500/10">
+              <div className="flex items-center justify-between text-sm">
+                <div className="text-emerald-300/60">
+                  Was this helpful?
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" className="text-emerald-400 hover:bg-emerald-500/10 h-8">
+                    👍 Yes
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-emerald-400 hover:bg-emerald-500/10 h-8">
+                    👎 No
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

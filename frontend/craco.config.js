@@ -1,5 +1,6 @@
 // craco.config.js
 const path = require("path");
+const ImportFirewallPlugin = require("./plugins/import-firewall-plugin");
 require("dotenv").config();
 
 // Check if we're in development/preview mode (not production build)
@@ -56,6 +57,29 @@ const webpackConfig = {
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
       }
+
+      // Import firewall - enforce system isolation
+      webpackConfig.plugins.push(
+        new ImportFirewallPlugin({
+          systemRoots: [
+            path.resolve(__dirname, "src/policy-system"),
+            path.resolve(__dirname, "src/procedure-system"),
+            path.resolve(__dirname, "src/documentation-system"),
+            path.resolve(__dirname, "src/faq-system"),
+            path.resolve(__dirname, "src/decision-tree-system")
+          ],
+          allowedPackages: [
+            "react",
+            "react/jsx-runtime",
+            "react/jsx-dev-runtime",
+            "react-dom",
+            "date-fns",
+            "uuid",
+            "debounce",
+            "lodash.debounce"
+          ]
+        })
+      );
       return webpackConfig;
     },
   },

@@ -1,14 +1,17 @@
 /**
  * Knowledge System Editor Router
  *
- * Routes to type-specific builders instead of generic modal.
- * This component is now used for editing individual content items.
+ * Routes to type-specific builders for full knowledge system editing.
+ * Each system has its own dedicated, purpose-built editor.
  */
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PolicyBuilder from './builders/PolicyBuilder';
-import KnowledgeSystemPlaceholderPage from './KnowledgeSystemPlaceholderPage';
+import ProcedureBuilder from './builders/ProcedureBuilder';
+import DocumentationBuilder from './builders/DocumentationBuilder';
+import FAQBuilder from './builders/FAQBuilder';
+import DecisionTreeBuilder from './builders/DecisionTreeBuilder';
 
 /**
  * Knowledge System Editor - Routes to Type-Specific Builders
@@ -39,12 +42,16 @@ function KnowledgeSystemEditor({ system, onSave, onClose }) {
     case 'policy':
       return <PolicyBuilder system={system} onSave={handleSave} onClose={handleClose} />;
     case 'procedure':
+      return <ProcedureBuilder system={system} onSave={handleSave} onClose={handleClose} />;
     case 'documentation':
+      return <DocumentationBuilder system={system} onSave={handleSave} onClose={handleClose} />;
     case 'faq':
+      return <FAQBuilder system={system} onSave={handleSave} onClose={handleClose} />;
     case 'decision_tree':
+      return <DecisionTreeBuilder system={system} onSave={handleSave} onClose={handleClose} />;
     default:
-      // Show placeholder for unimplemented builders
-      return <KnowledgeSystemPlaceholderPage />;
+      // This should never happen with proper routing
+      return null;
   }
 }
 

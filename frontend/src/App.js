@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TextSizeProvider } from './contexts/TextSizeContext';
@@ -28,16 +28,27 @@ import AccountBlockedPage from './pages/AccountBlockedPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminRoute from './components/AdminRoute';
 
-// Knowledge Systems (isolated module)
+// Knowledge Systems (isolated modules)
 import KnowledgeSystemsPage from './knowledge-systems/workspace-settings/KnowledgeSystemsPage';
-import KnowledgeSystemConfigPage from './knowledge-systems/workspace-settings/KnowledgeSystemConfigPage';
-import KnowledgeSystemContentPage from './knowledge-systems/workspace-settings/KnowledgeSystemContentPage';
-import KnowledgeSystemPlaceholderPage from './knowledge-systems/workspace-settings/KnowledgeSystemPlaceholderPage';
-import PolicyPortalPage from './knowledge-systems/portal/PolicyPortalPage';
-import ProcedurePortalPage from './knowledge-systems/portal/ProcedurePortalPage';
-import DocumentationPortalPage from './knowledge-systems/portal/DocumentationPortalPage';
-import FAQPortalPage from './knowledge-systems/portal/FAQPortalPage';
-import DecisionTreePortalPage from './knowledge-systems/portal/DecisionTreePortalPage';
+import { useWorkspaceSlug } from './hooks/useWorkspaceSlug';
+import { POLICY_ROUTES } from './policy-system/routes';
+import { PROCEDURE_ROUTES } from './procedure-system/routes';
+import { DOCUMENTATION_ROUTES } from './documentation-system/routes';
+import { FAQ_ROUTES } from './faq-system/routes';
+import { DECISION_TREE_ROUTES } from './decision-tree-system/routes';
+import { PolicyEditorRoot } from './policy-system/EditorRoot';
+import { ProcedureEditorRoot } from './procedure-system/EditorRoot';
+import { DocumentationEditorRoot } from './documentation-system/EditorRoot';
+import { FAQEditorRoot } from './faq-system/EditorRoot';
+import { DecisionTreeEditorRoot } from './decision-tree-system/EditorRoot';
+import { PolicyPortalRoot } from './policy-system/PortalRoot';
+import { ProcedurePortalRoot } from './procedure-system/PortalRoot';
+import { DocumentationPortalRoot } from './documentation-system/PortalRoot';
+import { FAQPortalRoot } from './faq-system/PortalRoot';
+import { DecisionTreePortalRoot } from './decision-tree-system/PortalRoot';
+
+// Mandatory surface component - guarantees no white backgrounds
+import { AppSurface } from './components/ui/design-system/AppSurface';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading, isBlocked } = useAuth();
@@ -69,6 +80,113 @@ const PrivateRoute = ({ children }) => {
   return children;
 };
 
+const WorkspaceLoader = ({ accent = 'cyan' }) => {
+  const accentClass = accent === 'amber'
+    ? 'border-amber-400'
+    : accent === 'purple'
+      ? 'border-purple-400'
+      : accent === 'emerald'
+        ? 'border-emerald-400'
+        : accent === 'indigo'
+          ? 'border-indigo-400'
+          : 'border-cyan-400';
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className={`h-10 w-10 rounded-full border-2 ${accentClass} border-t-transparent animate-spin`} />
+    </div>
+  );
+};
+
+const PolicyEditorRoute = () => {
+  const { workspaceSlug, itemId } = useParams();
+  const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
+  if (loading) return <WorkspaceLoader accent="amber" />;
+  return (
+    <PolicyEditorRoot
+      workspaceId={workspaceId || undefined}
+      itemId={itemId}
+      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge-systems` : undefined}
+    />
+  );
+};
+
+const ProcedureEditorRoute = () => {
+  const { workspaceSlug, itemId } = useParams();
+  const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
+  if (loading) return <WorkspaceLoader accent="cyan" />;
+  return (
+    <ProcedureEditorRoot
+      workspaceId={workspaceId || undefined}
+      itemId={itemId}
+      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge-systems` : undefined}
+    />
+  );
+};
+
+const DocumentationEditorRoute = () => {
+  const { workspaceSlug, itemId } = useParams();
+  const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
+  if (loading) return <WorkspaceLoader accent="purple" />;
+  return (
+    <DocumentationEditorRoot
+      workspaceId={workspaceId || undefined}
+      itemId={itemId}
+      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge-systems` : undefined}
+    />
+  );
+};
+
+const FAQEditorRoute = () => {
+  const { workspaceSlug, itemId } = useParams();
+  const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
+  if (loading) return <WorkspaceLoader accent="emerald" />;
+  return (
+    <FAQEditorRoot
+      workspaceId={workspaceId || undefined}
+      itemId={itemId}
+      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge-systems` : undefined}
+    />
+  );
+};
+
+const DecisionTreeEditorRoute = () => {
+  const { workspaceSlug, itemId } = useParams();
+  const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
+  if (loading) return <WorkspaceLoader accent="indigo" />;
+  return (
+    <DecisionTreeEditorRoot
+      workspaceId={workspaceId || undefined}
+      itemId={itemId}
+      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge-systems` : undefined}
+    />
+  );
+};
+
+const PolicyPortalRoute = () => {
+  const { slug } = useParams();
+  return <PolicyPortalRoot portalSlug={slug} />;
+};
+
+const ProcedurePortalRoute = () => {
+  const { slug } = useParams();
+  return <ProcedurePortalRoot portalSlug={slug} />;
+};
+
+const DocumentationPortalRoute = () => {
+  const { slug } = useParams();
+  return <DocumentationPortalRoot portalSlug={slug} />;
+};
+
+const FAQPortalRoute = () => {
+  const { slug } = useParams();
+  return <FAQPortalRoot portalSlug={slug} />;
+};
+
+const DecisionTreePortalRoute = () => {
+  const { slug } = useParams();
+  return <DecisionTreePortalRoot portalSlug={slug} />;
+};
+
 // Component to handle direction changes
 const AppContent = () => {
   const { i18n } = useTranslation();
@@ -86,6 +204,7 @@ const AppContent = () => {
         <AuthProvider>
           <BrowserRouter>
           <WorkspaceProvider>
+          <AppSurface>
           <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -96,11 +215,11 @@ const AppContent = () => {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/portal/:slug" element={<PortalPage />} />
           <Route path="/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage />} />
-          <Route path="/portal/:slug/knowledge/policies" element={<PolicyPortalPage />} />
-          <Route path="/portal/:slug/knowledge/procedures" element={<ProcedurePortalPage />} />
-          <Route path="/portal/:slug/knowledge/documentation" element={<DocumentationPortalPage />} />
-          <Route path="/portal/:slug/knowledge/faqs" element={<FAQPortalPage />} />
-          <Route path="/portal/:slug/knowledge/decisions" element={<DecisionTreePortalPage />} />
+          <Route path={POLICY_ROUTES.portal} element={<PolicyPortalRoute />} />
+          <Route path={PROCEDURE_ROUTES.portal} element={<ProcedurePortalRoute />} />
+          <Route path={DOCUMENTATION_ROUTES.portal} element={<DocumentationPortalRoute />} />
+          <Route path={FAQ_ROUTES.portal} element={<FAQPortalRoute />} />
+          <Route path={DECISION_TREE_ROUTES.portal} element={<DecisionTreePortalRoute />} />
           <Route path="/embed/portal/:slug" element={<PortalPage isEmbedded={true} />} />
           <Route path="/embed/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage isEmbedded={true} />} />
           
@@ -114,11 +233,18 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><KnowledgeSystemsPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/:systemType/configure" element={<PrivateRoute><KnowledgeSystemConfigPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/:systemType" element={<PrivateRoute><KnowledgeSystemContentPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/:systemType/new" element={<PrivateRoute><KnowledgeSystemPlaceholderPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/:systemType/:itemId/edit" element={<PrivateRoute><KnowledgeSystemPlaceholderPage /></PrivateRoute>} />
-        </Routes>
+          <Route path={POLICY_ROUTES.create} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
+          <Route path={POLICY_ROUTES.edit} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
+          <Route path={PROCEDURE_ROUTES.create} element={<PrivateRoute><ProcedureEditorRoute /></PrivateRoute>} />
+          <Route path={PROCEDURE_ROUTES.edit} element={<PrivateRoute><ProcedureEditorRoute /></PrivateRoute>} />
+          <Route path={DOCUMENTATION_ROUTES.create} element={<PrivateRoute><DocumentationEditorRoute /></PrivateRoute>} />
+          <Route path={DOCUMENTATION_ROUTES.edit} element={<PrivateRoute><DocumentationEditorRoute /></PrivateRoute>} />
+          <Route path={FAQ_ROUTES.create} element={<PrivateRoute><FAQEditorRoute /></PrivateRoute>} />
+          <Route path={FAQ_ROUTES.edit} element={<PrivateRoute><FAQEditorRoute /></PrivateRoute>} />
+          <Route path={DECISION_TREE_ROUTES.create} element={<PrivateRoute><DecisionTreeEditorRoute /></PrivateRoute>} />
+          <Route path={DECISION_TREE_ROUTES.edit} element={<PrivateRoute><DecisionTreeEditorRoute /></PrivateRoute>} />
+          </Routes>
+          </AppSurface>
           </WorkspaceProvider>
           </BrowserRouter>
           <Toaster position={i18n.language === 'he' ? 'top-left' : 'top-right'} />

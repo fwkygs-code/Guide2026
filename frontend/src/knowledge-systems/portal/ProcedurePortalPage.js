@@ -1,14 +1,14 @@
 /**
- * Procedure Portal Page - Structured Workflow Guidance
+ * Procedure Portal Page - Precision & Workflow
  *
- * Cyan-themed portal emphasizing precision, sequence, and operational efficiency.
- * Interactive step-by-step procedures with visual flow indicators.
+ * Clear step-by-step execution display with workflow visualization.
+ * Cool cyan theming represents systematic precision and operational excellence.
  */
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Workflow, CheckCircle2, ArrowRight, Clock, User, Zap } from 'lucide-react';
+import { ArrowLeft, Workflow, CheckCircle, Clock, ArrowRight, Play } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
 import axios from 'axios';
 
 /**
- * Procedure Portal Page - Workflow-Focused Design
+ * Procedure Portal Page - Systematic Display
  */
 function ProcedurePortalPage() {
   const { slug } = useParams();
@@ -74,7 +74,7 @@ function ProcedurePortalPage() {
               Procedures Not Available
             </h1>
             <p className="text-cyan-100/80 leading-relaxed mb-6">
-              Procedure documentation is not currently published for this workspace.
+              Standard operating procedures are not currently published for this workspace.
             </p>
             <Link to={`/portal/${slug}`}>
               <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg">
@@ -90,7 +90,7 @@ function ProcedurePortalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
-      {/* Header - Cyan workflow theming */}
+      {/* Header - Glass morphism with cyan theming */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,7 +132,7 @@ function ProcedurePortalPage() {
             </div>
           </motion.div>
 
-          {/* Workflow Stats - Interactive badges */}
+          {/* Trust Indicators - Glass morphism badges */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -140,9 +140,9 @@ function ProcedurePortalPage() {
             className="flex flex-wrap items-center gap-4 mb-8"
           >
             <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-xl">
-              <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+              <Workflow className="w-4 h-4 text-cyan-400" />
               <span className="text-cyan-100 text-sm font-medium">
-                {(system.content?.procedures || []).length} Procedures Available
+                {system.content?.procedures?.length || 0} Procedures Available
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-xl">
@@ -151,15 +151,9 @@ function ProcedurePortalPage() {
                 Updated: {new Date(system.updatedAt).toLocaleDateString()}
               </span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-xl">
-              <Zap className="w-4 h-4 text-cyan-400" />
-              <span className="text-cyan-100 text-sm font-medium">
-                Operational Efficiency
-              </span>
-            </div>
           </motion.div>
 
-          {/* Workflow Guidance Notice */}
+          {/* Operational Excellence Notice - Enhanced glass card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -168,16 +162,16 @@ function ProcedurePortalPage() {
             <Surface variant="glass-secondary" className="p-6 rounded-xl border-cyan-500/30">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                  <ArrowRight className="w-6 h-6 text-white" />
+                  <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-cyan-100 mb-2 text-lg">Structured Procedure Guidance</h3>
+                  <h3 className="font-bold text-cyan-100 mb-2 text-lg">Standard Operating Procedures</h3>
                   <p className="text-cyan-200/80 leading-relaxed">
-                    Follow these step-by-step procedures to ensure consistent, efficient, and safe operations. Each procedure is designed for clarity and precision in execution.
+                    These procedures establish standardized workflows and best practices. Follow each step systematically to ensure consistent, high-quality results across all operations.
                   </p>
                   <div className="flex items-center gap-2 mt-4">
-                    <User className="w-4 h-4 text-cyan-400" />
-                    <span className="text-cyan-300/60 text-sm">Designed for Operational Excellence</span>
+                    <Play className="w-4 h-4 text-cyan-400" />
+                    <span className="text-cyan-300/60 text-sm">Operational Excellence Framework</span>
                   </div>
                 </div>
               </div>
@@ -186,8 +180,8 @@ function ProcedurePortalPage() {
         </div>
       </motion.header>
 
-      {/* Content - Workflow layout */}
-      <main className="max-w-6xl mx-auto px-6 py-12">
+      {/* Content - Systematic workflow layout */}
+      <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="space-y-8">
           {(system.content?.procedures || []).length === 0 ? (
             <motion.div
@@ -199,13 +193,13 @@ function ProcedurePortalPage() {
                 <Workflow className="w-16 h-16 text-cyan-400/50 mx-auto mb-6" />
                 <h3 className="text-xl font-semibold text-cyan-100 mb-4">No Procedures Published</h3>
                 <p className="text-cyan-200/70">
-                  Procedure documentation has not been published yet. Check back for operational guidance.
+                  Standard procedures have not been published yet. Check back later for operational guidelines.
                 </p>
               </Surface>
             </motion.div>
           ) : (
             (system.content?.procedures || []).map((procedure, index) => (
-              <ProcedureRenderer key={procedure.id} procedure={procedure} index={index} />
+              <ProcedureWorkflow key={procedure.id} procedure={procedure} index={index} />
             ))
           )}
         </div>
@@ -215,135 +209,182 @@ function ProcedurePortalPage() {
 }
 
 /**
- * Procedure Renderer - Interactive Step-by-Step Display
+ * Individual Procedure Workflow - Systematic Display
  */
-function ProcedureRenderer({ procedure, index }) {
-  const [expandedSteps, setExpandedSteps] = useState(new Set([0])); // First step expanded by default
+function ProcedureWorkflow({ procedure, index }) {
+  const [completedSteps, setCompletedSteps] = useState(new Set());
 
-  const toggleStep = (stepId) => {
-    const newExpanded = new Set(expandedSteps);
-    if (newExpanded.has(stepId)) {
-      newExpanded.delete(stepId);
+  const toggleStep = (stepIndex) => {
+    const newCompleted = new Set(completedSteps);
+    if (newCompleted.has(stepIndex)) {
+      newCompleted.delete(stepIndex);
     } else {
-      newExpanded.add(stepId);
+      newCompleted.add(stepIndex);
     }
-    setExpandedSteps(newExpanded);
+    setCompletedSteps(newCompleted);
   };
+
+  const progress = procedure.steps ? (completedSteps.size / procedure.steps.length) * 100 : 0;
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -30 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay: index * 0.15 }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: index * 0.1 }}
     >
       <Card system="procedure" animated={false} className="overflow-hidden">
-        <CardHeader system="procedure">
-          <div className="flex items-start justify-between">
+        <CardHeader system="procedure" className="pb-6">
+          <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               <motion.div
-                className="w-12 h-12 bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg"
-                whileHover={{ scale: 1.05, rotate: 5 }}
+                className="w-14 h-14 bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-xl"
+                whileHover={{ scale: 1.1, rotate: 5 }}
                 transition={{ duration: 0.2 }}
               >
-                <span className="text-white font-bold text-lg">{index + 1}</span>
+                <span className="text-2xl font-bold text-white">{index + 1}</span>
               </motion.div>
               <div>
-                <CardTitle system="procedure" className="text-2xl mb-2">{procedure.title}</CardTitle>
-                {procedure.category && (
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-100 to-white bg-clip-text text-transparent mb-1">
+                  {procedure.title}
+                </h3>
+                <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-cyan-500/20 text-cyan-200 border-cyan-500/30 px-3 py-1">
-                    {procedure.category}
+                    {procedure.category || 'Procedure'}
                   </Badge>
+                  <Badge className="bg-blue-500/20 text-blue-200 border-blue-500/30 px-3 py-1">
+                    {procedure.steps?.length || 0} Steps
+                  </Badge>
+                </div>
+                {procedure.description && (
+                  <p className="text-cyan-100/80 text-sm leading-relaxed max-w-2xl">
+                    {procedure.description}
+                  </p>
                 )}
               </div>
             </div>
 
-            <div className="text-sm text-cyan-200/60 font-medium">
-              Updated {new Date(procedure.lastUpdated).toLocaleDateString()}
+            {/* Progress Indicator */}
+            <div className="text-right">
+              <div className="text-sm text-cyan-200/60 mb-1">Progress</div>
+              <div className="w-24 h-2 bg-slate-700 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+              <div className="text-xs text-cyan-300/60 mt-1">
+                {completedSteps.size} of {procedure.steps?.length || 0} complete
+              </div>
             </div>
           </div>
+
+          {/* Overview */}
+          {procedure.overview && (
+            <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
+              <p className="text-cyan-100/90 text-sm italic">
+                "{procedure.overview}"
+              </p>
+            </div>
+          )}
         </CardHeader>
 
         <CardContent system="procedure" className="px-8 pb-8">
-          {/* Step-by-step workflow */}
-          <div className="space-y-4">
-            {(procedure.steps || []).map((step, stepIndex) => (
-              <motion.div
-                key={step.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: stepIndex * 0.1 }}
-                className="relative"
-              >
-                {/* Connection line (except for first step) */}
-                {stepIndex > 0 && (
-                  <div className="absolute -top-4 left-6 w-0.5 h-8 bg-gradient-to-b from-cyan-500/50 to-transparent" />
-                )}
-
-                <div className="border border-cyan-500/30 rounded-xl overflow-hidden bg-cyan-500/5 backdrop-blur-sm">
-                  <motion.button
-                    onClick={() => toggleStep(step.id)}
-                    className="w-full text-left p-6 hover:bg-cyan-500/10 transition-all duration-200 group"
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <motion.div
-                          className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center shadow-md"
-                          whileHover={{ rotate: 10 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <span className="text-white font-bold">{stepIndex + 1}</span>
-                        </motion.div>
-                        <div>
-                          <span className="font-semibold text-cyan-100 text-lg group-hover:text-cyan-50 transition-colors">
-                            {step.title}
-                          </span>
-                          {stepIndex < (procedure.steps || []).length - 1 && (
-                            <div className="flex items-center gap-1 mt-1">
-                              <ArrowRight className="w-3 h-3 text-cyan-400" />
-                              <span className="text-cyan-300/60 text-xs">Continue to next step</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <motion.span
-                        className="text-cyan-400 transition-transform duration-200"
-                        animate={{ rotate: expandedSteps.has(step.id) ? 90 : 0 }}
-                      >
-                        ▶
-                      </motion.span>
-                    </div>
-                  </motion.button>
-
-                  {expandedSteps.has(step.id) && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="px-6 pb-6"
-                    >
-                      <div className="pl-14">
-                        <p className="text-cyan-50/90 leading-relaxed text-base">
-                          {step.description}
-                        </p>
-                        {stepIndex === (procedure.steps || []).length - 1 && (
-                          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-cyan-500/20">
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                            <span className="text-cyan-200/80 text-sm">Procedure Complete</span>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          {procedure.steps && procedure.steps.length > 0 ? (
+            <div className="space-y-4">
+              {procedure.steps.map((step, stepIndex) => (
+                <ProcedureStep
+                  key={step.id}
+                  step={step}
+                  stepIndex={stepIndex}
+                  isCompleted={completedSteps.has(stepIndex)}
+                  onToggle={() => toggleStep(stepIndex)}
+                  isLast={stepIndex === procedure.steps.length - 1}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Workflow className="w-12 h-12 text-cyan-400/50 mx-auto mb-4" />
+              <p className="text-cyan-200/70">No steps defined for this procedure.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
+  );
+}
+
+/**
+ * Individual Procedure Step - Interactive Execution
+ */
+function ProcedureStep({ step, stepIndex, isCompleted, onToggle, isLast }) {
+  return (
+    <>
+      <motion.div
+        className={`flex gap-4 p-6 rounded-xl border transition-all duration-300 cursor-pointer ${
+          isCompleted
+            ? 'bg-green-500/10 border-green-500/30 shadow-lg shadow-green-500/10'
+            : 'bg-slate-800/40 border-slate-700/50 hover:border-cyan-500/30 hover:bg-cyan-500/5'
+        }`}
+        onClick={onToggle}
+        whileHover={{ scale: 1.01 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div className="flex flex-col items-center gap-2">
+          <motion.div
+            className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 ${
+              isCompleted
+                ? 'bg-green-500 text-white shadow-lg shadow-green-500/25'
+                : 'bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-lg'
+            }`}
+            whileHover={{ scale: 1.1 }}
+            animate={isCompleted ? { rotate: [0, 10, -10, 0] } : {}}
+            transition={{ duration: 0.5 }}
+          >
+            {isCompleted ? <CheckCircle className="w-6 h-6" /> : stepIndex + 1}
+          </motion.div>
+          {!isLast && (
+            <ArrowRight className={`w-4 h-4 ${isCompleted ? 'text-green-400' : 'text-cyan-400/60'}`} />
+          )}
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <div className="flex items-start justify-between">
+            <h4 className={`font-semibold text-lg ${
+              isCompleted ? 'text-green-100' : 'text-cyan-100'
+            }`}>
+              {step.title || `Step ${stepIndex + 1}`}
+            </h4>
+            <Badge
+              className={`text-xs ${
+                isCompleted
+                  ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                  : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+              }`}
+            >
+              {isCompleted ? 'Complete' : 'Pending'}
+            </Badge>
+          </div>
+
+          {step.description && (
+            <div className="prose prose-sm max-w-none">
+              <div
+                className={`leading-relaxed ${isCompleted ? 'text-green-50/80' : 'text-cyan-50/80'}`}
+                dangerouslySetInnerHTML={{ __html: step.description }}
+              />
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {!isLast && (
+        <div className="flex justify-center py-4">
+          <div className="w-px h-8 bg-gradient-to-b from-cyan-400/60 to-transparent"></div>
+        </div>
+      )}
+    </>
   );
 }
 

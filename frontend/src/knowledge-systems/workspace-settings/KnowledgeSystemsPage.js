@@ -1,99 +1,107 @@
-/**
- * Knowledge Systems Workspace Settings Page
- *
- * Futuristic, type-specific interface for managing workspace knowledge systems.
- * Each content type has distinct visual identity and minimal configuration.
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/design-system';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useWorkspaceSlug } from '../../hooks/useWorkspaceSlug';
-import {
-  getKnowledgeSystems,
-  updateKnowledgeSystem,
-  initializeWorkspaceKnowledgeSystems
-} from '../models/KnowledgeSystemService';
-import { getKnowledgeSystemConfig, ICONOGRAPHY } from '../registry/KnowledgeSystemRegistry';
-import KnowledgeSystemEditor from './KnowledgeSystemEditor';
-import { Surface, MOTION } from '@/components/ui/design-system';
+import { POLICY_ROUTES } from '../../policy-system/routes';
+import { PROCEDURE_ROUTES } from '../../procedure-system/routes';
+import { DOCUMENTATION_ROUTES } from '../../documentation-system/routes';
+import { FAQ_ROUTES } from '../../faq-system/routes';
+import { DECISION_TREE_ROUTES } from '../../decision-tree-system/routes';
+import { listPolicyMeta, listPublishedPolicies } from '../../policy-system/service';
+import { listProcedureMeta, listPublishedProcedures } from '../../procedure-system/service';
+import { listDocumentationMeta, listPublishedDocumentation } from '../../documentation-system/service';
+import { listFAQMeta, listPublishedFAQs } from '../../faq-system/service';
+import { listDecisionTreeMeta, listPublishedDecisionTrees } from '../../decision-tree-system/service';
 
-/**
- * Main Knowledge Systems Settings Page - Futuristic Design
- */
+const SYSTEM_DEFINITIONS = [
+  {
+    id: 'policy',
+    title: 'Policies',
+    description: 'Authority, compliance, and legal governance.',
+    accent: '#f59e0b',
+    routes: POLICY_ROUTES,
+    listMeta: listPolicyMeta,
+    listPublished: listPublishedPolicies
+  },
+  {
+    id: 'procedure',
+    title: 'Procedures',
+    description: 'Operational playbooks and step execution.',
+    accent: '#22d3ee',
+    routes: PROCEDURE_ROUTES,
+    listMeta: listProcedureMeta,
+    listPublished: listPublishedProcedures
+  },
+  {
+    id: 'documentation',
+    title: 'Documentation',
+    description: 'Technical knowledge base with live preview.',
+    accent: '#a855f7',
+    routes: DOCUMENTATION_ROUTES,
+    listMeta: listDocumentationMeta,
+    listPublished: listPublishedDocumentation
+  },
+  {
+    id: 'faq',
+    title: 'FAQs',
+    description: 'Fast answers with question-first layout.',
+    accent: '#34d399',
+    routes: FAQ_ROUTES,
+    listMeta: listFAQMeta,
+    listPublished: listPublishedFAQs
+  },
+  {
+    id: 'decision-tree',
+    title: 'Decision Trees',
+    description: 'Guided outcomes with branching logic.',
+    accent: '#6366f1',
+    routes: DECISION_TREE_ROUTES,
+    listMeta: listDecisionTreeMeta,
+    listPublished: listPublishedDecisionTrees
+  }
+];
+
 function KnowledgeSystemsPage() {
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
-
-  const [systems, setSystems] = useState([]);
-  const [editingSystem, setEditingSystem] = useState(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [systemCards, setSystemCards] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load knowledge systems for this workspace
   useEffect(() => {
-    if (workspaceId) {
-      loadKnowledgeSystems();
-    }
+    if (!workspaceId) return;
+    const cards = SYSTEM_DEFINITIONS.map((system) => {
+      const meta = system.listMeta(workspaceId);
+      const published = system.listPublished(workspaceId);
+      const latest = meta
+        .slice()
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+      return {
+        ...system,
+        totalCount: meta.length,
+        publishedCount: published.length,
+        latestId: latest?.id || null
+      };
+    });
+    setSystemCards(cards);
+    setLoading(false);
   }, [workspaceId]);
 
-  const loadKnowledgeSystems = async () => {
-    setLoading(true);
-    try {
-      let workspaceSystems = getKnowledgeSystems(workspaceId);
-
-      // Initialize default systems if none exist
-      if (workspaceSystems.length === 0) {
-        initializeWorkspaceKnowledgeSystems(workspaceId);
-        workspaceSystems = getKnowledgeSystems(workspaceId);
-      }
-
-      setSystems(workspaceSystems);
-    } catch (error) {
-      console.error('Failed to load knowledge systems:', error);
-    } finally {
-      setLoading(false);
+  const handleOpen = (system) => {
+    if (!workspaceSlug) return;
+    if (system.latestId) {
+      const editPath = system.routes.edit
+        .replace(':workspaceSlug', workspaceSlug)
+        .replace(':itemId', system.latestId);
+      navigate(editPath);
+    } else {
+      const createPath = system.routes.create.replace(':workspaceSlug', workspaceSlug);
+      navigate(createPath);
     }
-  };
-
-  const handleSystemToggle = (systemId, enabled) => {
-    const updatedSystems = systems.map(system =>
-      system.id === systemId
-        ? { ...system, enabled }
-        : system
-    );
-    setSystems(updatedSystems);
-    setHasUnsavedChanges(true);
-  };
-
-  const handleSystemEdit = (system) => {
-    navigate(`/workspace/${workspaceSlug}/knowledge/${system.type}/configure`);
-  };
-
-  const handleSystemSave = (systemId, updates) => {
-    const updatedSystem = updateKnowledgeSystem(systemId, updates);
-    if (updatedSystem) {
-      setSystems(systems.map(system =>
-        system.id === systemId ? updatedSystem : system
-      ));
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleSaveAll = () => {
-    setHasUnsavedChanges(false);
-  };
-
-  const handleDiscardChanges = () => {
-    loadKnowledgeSystems();
-    setHasUnsavedChanges(false);
   };
 
   if (workspaceLoading || loading) {
@@ -110,7 +118,6 @@ function KnowledgeSystemsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10" />
         <div className="relative max-w-6xl mx-auto px-6 py-12">
@@ -134,249 +141,66 @@ function KnowledgeSystemsPage() {
               Knowledge Systems
             </h1>
             <p className="text-slate-400 mt-2 text-lg">
-              Configure structured knowledge content for your workspace portal
+              Manage isolated knowledge systems with dedicated editors and portals.
             </p>
           </motion.div>
-
-          {hasUnsavedChanges && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-6 flex gap-3"
-            >
-              <Button variant="outline" onClick={handleDiscardChanges} className="border-slate-600 text-slate-300 hover:bg-slate-800">
-                Reset Changes
-              </Button>
-              <Button onClick={handleSaveAll} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
-                Save All Changes
-              </Button>
-            </motion.div>
-          )}
         </div>
       </div>
 
-      {/* Systems Grid */}
-      <div className="max-w-6xl mx-auto px-6 pb-12">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {systems.map((system, index) => (
-            <KnowledgeSystemCard
-              key={system.id}
-              system={system}
-              onToggle={handleSystemToggle}
-              onEdit={handleSystemEdit}
-              index={index}
-            />
-          ))}
-        </motion.div>
-
-        {hasUnsavedChanges && (
+      <div className="max-w-6xl mx-auto px-6 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {systemCards.map((system, index) => (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            key={system.id}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8"
+            transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            <Alert className="border-yellow-500/20 bg-yellow-500/10">
-              <AlertDescription className="text-yellow-200">
-                You have unsaved changes. Changes are applied immediately but can be discarded.
-              </AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-      </div>
-
-      {editingSystem && (
-        <KnowledgeSystemEditor
-          system={editingSystem}
-          onSave={handleSystemSave}
-          onClose={() => setEditingSystem(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-/**
- * Individual Knowledge System Card - Futuristic Design
- */
-function KnowledgeSystemCard({ system, onToggle, onEdit, index }) {
-  const config = getKnowledgeSystemConfig(system.type);
-
-  if (!config) {
-    return null;
-  }
-
-  // Enhanced type-specific visual identity with purpose-driven design
-  const getTypeIdentity = (type) => {
-    const identities = {
-      policy: {
-        purpose: 'Authority & Compliance',
-        visualTheme: 'Warm Authority',
-        accentColor: 'amber',
-        description: 'Establish official guidelines and legal requirements'
-      },
-      procedure: {
-        purpose: 'Precision & Workflow',
-        visualTheme: 'Cool Structure',
-        accentColor: 'cyan',
-        description: 'Guide systematic processes and operational excellence'
-      },
-      documentation: {
-        purpose: 'Knowledge & Reference',
-        visualTheme: 'Regal Wisdom',
-        accentColor: 'purple',
-        description: 'Provide comprehensive technical knowledge and insights'
-      },
-      faq: {
-        purpose: 'Help & Accessibility',
-        visualTheme: 'Warm Approachable',
-        accentColor: 'emerald',
-        description: 'Offer clear answers to common questions and concerns'
-      },
-      decision_tree: {
-        purpose: 'Logic & Intelligence',
-        visualTheme: 'Electric Analysis',
-        accentColor: 'indigo',
-        description: 'Navigate complex decisions with structured guidance'
-      }
-    };
-    return identities[type] || {
-      purpose: 'Content System',
-      visualTheme: 'Neutral',
-      accentColor: 'slate',
-      description: 'Organized content delivery'
-    };
-  };
-
-  const identity = getTypeIdentity(system.type);
-
-  // Get appropriate icon from iconography system
-  const getPrimaryIcon = (type) => {
-    const icons = {
-      policy: 'Shield',
-      procedure: 'Workflow',
-      documentation: 'BookOpen',
-      faq: 'MessageCircle',
-      decision_tree: 'GitBranch'
-    };
-    return icons[type] || 'FileText';
-  };
-
-  const IconComponent = getPrimaryIcon(system.type);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.6, delay: index * 0.15, ease: 'easeOut' }}
-    >
-      <Card system={system.type} animated={false} interactive={true} className="h-full">
-        <CardHeader system={system.type} className="pb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <motion.div
-                className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-${identity.accentColor}-400 to-${identity.accentColor === 'amber' ? 'orange' : identity.accentColor === 'cyan' ? 'blue' : identity.accentColor === 'purple' ? 'violet' : identity.accentColor === 'emerald' ? 'green' : 'purple'}-500 flex items-center justify-center shadow-xl`}
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ duration: 0.2 }}
-              >
-                <span className="text-2xl">{config.icon}</span>
-              </motion.div>
-              <div>
-                <h3 className={`text-2xl font-bold mb-1 bg-gradient-to-r from-${identity.accentColor}-100 to-white bg-clip-text text-transparent`}>
-                  {config.displayName}
-                </h3>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs px-2 py-1 rounded-full bg-${identity.accentColor}-500/20 text-${identity.accentColor}-200 border border-${identity.accentColor}-500/30`}>
-                    {identity.purpose}
+            <Card className="h-full border border-slate-700/50 bg-slate-900/60">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-white text-2xl">{system.title}</CardTitle>
+                    <p className="text-slate-400 text-sm mt-2">{system.description}</p>
+                  </div>
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-medium border"
+                    style={{
+                      color: system.accent,
+                      borderColor: `${system.accent}55`,
+                      background: `${system.accent}22`
+                    }}
+                  >
+                    {system.publishedCount > 0 ? 'Published' : 'Draft'}
                   </span>
                 </div>
-                <p className={`text-${identity.accentColor}-100/80 text-sm leading-relaxed`}>
-                  {identity.description}
-                </p>
-              </div>
-            </div>
-
-            <motion.div
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                system.enabled
-                  ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                  : 'bg-slate-600/50 text-slate-400 border border-slate-500/30'
-              }`}
-              whileHover={{ scale: 1.05 }}
-            >
-              {system.enabled ? '● Active' : '○ Inactive'}
-            </motion.div>
-          </div>
-
-          {/* Purpose statement */}
-          <div className={`p-4 rounded-xl bg-${identity.accentColor}-500/10 border border-${identity.accentColor}-500/20`}>
-            <p className={`text-${identity.accentColor}-100/90 text-sm italic`}>
-              "{identity.visualTheme} design for {config.description.toLowerCase()}"
-            </p>
-          </div>
-        </CardHeader>
-
-        <CardContent system={system.type} className="flex-1 flex flex-col">
-          {/* Enable Toggle */}
-          <div className="flex items-center justify-between mb-6">
-            <span className={`text-${identity.accentColor}-100/80 text-sm font-medium`}>
-              Enable in Portal
-            </span>
-            <Switch
-              checked={system.enabled}
-              onCheckedChange={(checked) => onToggle(system.id, checked)}
-              className="data-[state=checked]:bg-white data-[state=checked]:border-white"
-            />
-          </div>
-
-          {/* System Stats - Enhanced with glass effect */}
-          {system.enabled && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mb-6"
-            >
-              <Surface variant="glass-secondary" className="p-4 rounded-lg">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className={`text-${identity.accentColor}-200/60 text-sm`}>Title:</span>
-                    <span className={`text-${identity.accentColor}-100 font-medium text-sm truncate ml-2`}>
-                      {system.title}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className={`text-${identity.accentColor}-200/60 text-sm`}>Last Updated:</span>
-                    <span className={`text-${identity.accentColor}-200/80 text-sm`}>
-                      {new Date(system.updatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="border-slate-600 text-slate-300">
+                    {system.totalCount} draft{system.totalCount === 1 ? '' : 's'}
+                  </Badge>
+                  <Badge variant="outline" className="border-slate-600 text-slate-300">
+                    {system.publishedCount} published
+                  </Badge>
                 </div>
-              </Surface>
-            </motion.div>
-          )}
-
-          {/* Action Button - Enhanced with type-specific styling */}
-          <div className="mt-auto">
-            <Button
-              onClick={() => onEdit(system)}
-              disabled={!system.enabled}
-              className={`w-full h-12 text-sm font-medium transition-all duration-300 ${
-                system.enabled
-                  ? `bg-${identity.accentColor}-500/20 hover:bg-${identity.accentColor}-500/30 text-${identity.accentColor}-100 border border-${identity.accentColor}-500/40 hover:border-${identity.accentColor}-500/60`
-                  : 'bg-slate-700/50 text-slate-400 cursor-not-allowed border border-slate-600/50'
-              } backdrop-blur-sm`}
-              variant="outline"
-            >
-              {system.enabled ? '⚙️ Configure System' : '🔒 Enable to Configure'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+                <Button
+                  onClick={() => handleOpen(system)}
+                  className="w-full"
+                  style={{
+                    background: `${system.accent}33`,
+                    borderColor: `${system.accent}55`,
+                    color: '#ffffff'
+                  }}
+                  variant="outline"
+                >
+                  {system.latestId ? 'Open Editor' : 'Create First'}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }
 

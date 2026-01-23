@@ -85,13 +85,14 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #FFFFFF;
-  color: #1D1D1F;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%);
+  color: #f1f5f9;
+  min-height: 100vh;
 }
 
 .dark body {
-  background-color: #000000;
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #020617 0%, #0f172a 25%, #1e293b 50%, #334155 75%, #475569 100%);
+  color: #f8fafc;
 }
 
 code {

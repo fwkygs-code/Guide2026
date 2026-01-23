@@ -5,7 +5,7 @@
  * Emphasizes trust, clarity, and official presentation.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,35 +13,77 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, FileText, Calendar, Plus, Trash2 } from 'lucide-react';
-import RichTextEditor from '../../../components/canvas-builder/RichTextEditor';
+import { Shield, FileText, Calendar, Plus, Trash2, Save, Upload } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { useWorkspaceSlug } from '../../../hooks/useWorkspaceSlug';
+import { getPolicySystem, updatePolicySystem, publishPolicySystemEntry } from '../../models/PolicyService';
+import PolicyRichTextEditor from '../../../components/canvas-builder/PolicyRichTextEditor';
 
 /**
- * Policy Builder Interface
+ * Policy Builder Interface - Isolated Draft/Publish System
  */
-function PolicyBuilder({ system, onSave, onClose }) {
-  const [formData, setFormData] = useState({
-    title: system.title || 'Company Policy',
-    description: system.description || '',
-    effectiveDate: system.content?.effectiveDate || '',
-    jurisdiction: system.content?.jurisdiction || '',
-    policies: system.content?.policies || []
-  });
+function PolicyBuilder({ onClose }) {
+  const { workspaceSlug, systemType, itemId } = useParams();
+  const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
 
-  const updateFormData = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const [system, setSystem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  // Load system data
+  useEffect(() => {
+    if (workspaceId && itemId) {
+      loadSystem();
+    } else if (workspaceId) {
+      // Create new system if no itemId
+      createNewSystem();
+    }
+  }, [workspaceId, itemId]);
+
+  const loadSystem = async () => {
+    try {
+      const systemData = getPolicySystem(itemId);
+      if (systemData) {
+        setSystem(systemData);
+      }
+    } catch (error) {
+      console.error('Failed to load policy system:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createNewSystem = async () => {
+    // For new systems, we'll create them when first saved
+    setSystem(null);
+    setLoading(false);
+  };
+
+  // Draft content management
+  const updateDraftContent = (updates) => {
+    if (!system) return;
+
+    const updatedSystem = {
+      ...system,
+      draftContent: {
+        ...system.draftContent,
+        ...updates
+      }
+    };
+
+    updatePolicySystem(system.id, { draftContent: updatedSystem.draftContent });
+    setSystem(updatedSystem);
   };
 
   const updatePolicy = (index, field, value) => {
-    const updatedPolicies = [...formData.policies];
+    const updatedPolicies = [...system.draftContent.policies];
     updatedPolicies[index] = {
       ...updatedPolicies[index],
-      [field]: value
+      [field]: value,
+      lastUpdated: new Date().toISOString()
     };
-    updateFormData('policies', updatedPolicies);
+    updateDraftContent({ policies: updatedPolicies });
   };
 
   const addPolicy = () => {
@@ -52,25 +94,82 @@ function PolicyBuilder({ system, onSave, onClose }) {
       category: '',
       lastUpdated: new Date().toISOString()
     };
-    updateFormData('policies', [...formData.policies, newPolicy]);
+    const updatedPolicies = [...system.draftContent.policies, newPolicy];
+    updateDraftContent({ policies: updatedPolicies });
   };
 
   const removePolicy = (index) => {
-    const updatedPolicies = formData.policies.filter((_, i) => i !== index);
-    updateFormData('policies', updatedPolicies);
+    const updatedPolicies = system.draftContent.policies.filter((_, i) => i !== index);
+    updateDraftContent({ policies: updatedPolicies });
   };
 
-  const handleSave = () => {
-    onSave(system.id, {
-      title: formData.title,
-      description: formData.description,
-      content: {
-        effectiveDate: formData.effectiveDate,
-        jurisdiction: formData.jurisdiction,
-        policies: formData.policies
-      }
-    });
+  const handleSaveDraft = async () => {
+    if (!system) {
+      // Create new system
+      const newSystemData = {
+        workspaceId,
+        title: 'Company Policies'
+      };
+      const createdSystem = createPolicySystemEntry(newSystemData);
+      setSystem(createdSystem);
+    }
+    // Draft is auto-saved
   };
+
+  const handlePublish = async () => {
+    if (!system) return;
+
+    setPublishing(true);
+    try {
+      const publishedSystem = publishPolicySystemEntry(system.id);
+      if (publishedSystem) {
+        setSystem(publishedSystem);
+        // Could show success message here
+      }
+    } catch (error) {
+      console.error('Failed to publish:', error);
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  if (workspaceLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-2 border-amber-400 border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  // For new systems, show initial form
+  if (!system) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          <div className="text-center space-y-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto">
+              <Shield className="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-4">Create Policy System</h1>
+              <p className="text-slate-400">Set up your authoritative policy documentation system</p>
+            </div>
+            <Button onClick={handleSaveDraft} className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Policy System
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const draftContent = system.draftContent;
+  const hasPublishedContent = system.publishedContent !== null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -90,10 +189,15 @@ function PolicyBuilder({ system, onSave, onClose }) {
 
             <div className="flex items-center gap-3">
               <Button variant="outline" onClick={onClose} className="border-slate-600 text-slate-300">
-                Cancel
+                Close
               </Button>
-              <Button onClick={handleSave} className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
-                Save Policy
+              <Button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {publishing ? 'Publishing...' : 'Publish to Portal'}
               </Button>
             </div>
           </div>
@@ -112,17 +216,30 @@ function PolicyBuilder({ system, onSave, onClose }) {
           >
             <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-slate-800 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <FileText className="w-5 h-5" />
-                  Policy Information
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <FileText className="w-5 h-5" />
+                    Policy Information
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {hasPublishedContent ? (
+                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+                        Published
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
+                        Draft
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <Label className="text-slate-300">Policy Title</Label>
                   <Input
-                    value={formData.title}
-                    onChange={(e) => updateFormData('title', e.target.value)}
+                    value={draftContent.title}
+                    onChange={(e) => updateDraftContent({ title: e.target.value })}
                     className="bg-slate-800/50 border-slate-600 text-white"
                     placeholder="Enter official policy title"
                   />
@@ -131,8 +248,8 @@ function PolicyBuilder({ system, onSave, onClose }) {
                 <div>
                   <Label className="text-slate-300">Description</Label>
                   <Textarea
-                    value={formData.description}
-                    onChange={(e) => updateFormData('description', e.target.value)}
+                    value={draftContent.description}
+                    onChange={(e) => updateDraftContent({ description: e.target.value })}
                     className="bg-slate-800/50 border-slate-600 text-white"
                     placeholder="Brief description of this policy"
                     rows={3}
@@ -147,8 +264,8 @@ function PolicyBuilder({ system, onSave, onClose }) {
                     </Label>
                     <Input
                       type="date"
-                      value={formData.effectiveDate}
-                      onChange={(e) => updateFormData('effectiveDate', e.target.value)}
+                      value={draftContent.effectiveDate}
+                      onChange={(e) => updateDraftContent({ effectiveDate: e.target.value })}
                       className="bg-slate-800/50 border-slate-600 text-white"
                     />
                   </div>
@@ -156,8 +273,8 @@ function PolicyBuilder({ system, onSave, onClose }) {
                   <div>
                     <Label className="text-slate-300">Jurisdiction</Label>
                     <Input
-                      value={formData.jurisdiction}
-                      onChange={(e) => updateFormData('jurisdiction', e.target.value)}
+                      value={draftContent.jurisdiction}
+                      onChange={(e) => updateDraftContent({ jurisdiction: e.target.value })}
                       className="bg-slate-800/50 border-slate-600 text-white"
                       placeholder="e.g., Global, United States"
                     />
@@ -185,7 +302,7 @@ function PolicyBuilder({ system, onSave, onClose }) {
             </div>
 
             <div className="space-y-6">
-              {formData.policies.length === 0 ? (
+              {draftContent.policies.length === 0 ? (
                 <Card className="border-dashed border-slate-600 bg-slate-800/30">
                   <CardContent className="p-8 text-center">
                     <Shield className="w-12 h-12 text-slate-500 mx-auto mb-4" />
@@ -197,7 +314,7 @@ function PolicyBuilder({ system, onSave, onClose }) {
                   </CardContent>
                 </Card>
               ) : (
-                formData.policies.map((policy, index) => (
+                draftContent.policies.map((policy, index) => (
                   <PolicySectionCard
                     key={policy.id}
                     policy={policy}
@@ -273,14 +390,11 @@ function PolicySectionCard({ policy, index, onUpdate, onRemove }) {
 
           <div>
             <Label className="text-slate-300">Content</Label>
-            <div className="min-h-[200px] bg-slate-800/30 rounded-md border border-slate-600">
-              <RichTextEditor
-                content={policy.content}
-                onChange={(content) => onUpdate('content', content)}
-                placeholder="Enter policy content with clear, authoritative language..."
-                className="text-white"
-              />
-            </div>
+            <PolicyRichTextEditor
+              content={policy.content}
+              onChange={(content) => onUpdate('content', content)}
+              placeholder="Enter policy content with clear, authoritative language..."
+            />
           </div>
         </CardContent>
       </Card>
