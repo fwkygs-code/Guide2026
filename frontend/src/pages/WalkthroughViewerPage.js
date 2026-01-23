@@ -1590,6 +1590,7 @@ const AnnotatedImageViewer = ({ block }) => {
         const markerSize = marker.size || 3; // Now in %
         const markerWidth = marker.width || 10;
         const markerHeight = marker.height || 10;
+        const markerColor = marker.color || '#3b82f6';
         const isActive = selectedMarker === idx;
 
         if (markerShape === 'rectangle') {
@@ -1608,25 +1609,25 @@ const AnnotatedImageViewer = ({ block }) => {
               }}
             >
               <div
-                className={`w-full h-full border-2 cursor-pointer transition-all select-none ${
-                  isActive
-                    ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
-                    : 'border-primary bg-primary/5 hover:border-primary/80 shadow-md'
-                }`}
+                className={`w-full h-full border-2 cursor-pointer transition-all select-none ${isActive ? 'shadow-lg ring-2' : 'shadow-md'}`}
                 style={{
+                  borderColor: markerColor,
+                  backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // 10% and 5% opacity
+                  ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
                   userSelect: 'none',
                   position: 'relative',
                 }}
                 onClick={() => setSelectedMarker(isActive ? null : idx)}
               >
                 {/* Number badge positioned outside top-right corner like an exponent */}
-                <span 
-                  className="absolute bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                <span
+                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
                     width: '18px',
                     height: '18px',
                     top: '-9px',
                     right: '-9px',
+                    backgroundColor: markerColor,
                     fontSize: '10px'
                   }}
                 >
@@ -1680,11 +1681,10 @@ const AnnotatedImageViewer = ({ block }) => {
                     left: '50%',
                     top: '50%',
                     width: `${arrowLength - 8}px`, // Subtract arrowhead size to prevent overlap
-                    height: '3px',
+                    height: '2px',
                     transform: 'translate(0, -50%)', // Start at center, no horizontal offset
                     transformOrigin: 'left center',
-                    backgroundColor: '#3b82f6',
-                    borderRadius: '2px',
+                    backgroundColor: markerColor
                   }}
                 />
 
@@ -1696,9 +1696,9 @@ const AnnotatedImageViewer = ({ block }) => {
                     top: '50%',
                     width: '0',
                     height: '0',
-                    borderLeft: '10px solid #3b82f6',
-                    borderTop: '5px solid transparent',
-                    borderBottom: '5px solid transparent',
+                    borderLeft: `8px solid ${markerColor}`,
+                    borderTop: '4px solid transparent',
+                    borderBottom: '4px solid transparent',
                     transform: 'translate(0, -50%)', // No horizontal offset needed
                     transformOrigin: 'left center',
                   }}
@@ -1706,13 +1706,14 @@ const AnnotatedImageViewer = ({ block }) => {
 
                 {/* Number badge positioned above the arrow (matching builder) */}
                 <span
-                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md bg-blue-500"
+                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
                     width: '18px',
                     height: '18px',
                     left: '50%',
                     top: '50%',
                     transform: 'translate(-50%, -50%) translateY(-20px)',
+                    backgroundColor: markerColor,
                     fontSize: '10px',
                     zIndex: 10,
                   }}
@@ -1767,7 +1768,7 @@ const AnnotatedImageViewer = ({ block }) => {
                   y1={`${startY}%`}
                   x2={`${endX}%`}
                   y2={`${endY}%`}
-                  stroke="#3b82f6"
+                  stroke={markerColor}
                   strokeWidth="3"
                   style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
                   onClick={() => setSelectedMarker(isActive ? null : idx)}
@@ -1778,7 +1779,7 @@ const AnnotatedImageViewer = ({ block }) => {
                   cx={`${(startX + endX) / 2}%`}
                   cy={`${(startY + endY) / 2 - 2}%`}
                   r="9"
-                  fill="#3b82f6"
+                  fill={markerColor}
                   style={{ pointerEvents: 'none' }}
                 />
                 <text
@@ -1830,14 +1831,15 @@ const AnnotatedImageViewer = ({ block }) => {
           >
             {/* Circle marker - matching builder styling */}
             <div
-              className={`absolute rounded-full cursor-pointer select-none transition-all border-2 ${
-                isActive
-                  ? 'shadow-lg ring-2 ring-blue-500/30 bg-blue-500/20'
-                  : 'hover:shadow-md shadow-md bg-blue-500/10 border-blue-500'
+              className={`absolute rounded-full cursor-pointer select-none transition-all ${
+                isActive ? 'shadow-lg ring-2' : 'hover:shadow-md shadow-md'
               }`}
               style={{
                 width: `${markerSize || 30}px`,
                 height: `${markerSize || 30}px`,
+                border: `2px solid ${markerColor}`,
+                backgroundColor: isActive ? `${markerColor}1a` : `${markerColor}0d`, // Match builder opacity
+                ringColor: isActive ? `${markerColor}4d` : undefined, // 30% opacity ring
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
               }}
@@ -1846,12 +1848,13 @@ const AnnotatedImageViewer = ({ block }) => {
 
             {/* Number badge positioned outside top-right corner like exponent */}
             <span
-              className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md bg-blue-500"
+              className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
               style={{
                 width: '18px',
                 height: '18px',
                 top: '-9px',
                 right: '-9px',
+                backgroundColor: markerColor,
                 fontSize: '10px',
                 zIndex: 10,
               }}
