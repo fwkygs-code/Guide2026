@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { DecisionNode, DecisionTreeDraft } from './model';
-import { disableDecisionTreePortalReadOnly, enableDecisionTreePortalReadOnly, getLatestPublishedDecisionTree } from './service';
+import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 
 type DecisionTreePortalRootProps = {
   portalSlug?: string;
@@ -8,16 +7,12 @@ type DecisionTreePortalRootProps = {
 
 export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootProps) => {
   const [loading, setLoading] = useState(true);
-  const [published, setPublished] = useState<DecisionTreeDraft | null>(null);
+  const [publishedTrees, setPublishedTrees] = useState<any[]>([]);
   const [workspaceName, setWorkspaceName] = useState('Workspace');
+  const [selectedTreeId, setSelectedTreeId] = useState<string | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [path, setPath] = useState<string[]>([]);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    enableDecisionTreePortalReadOnly();
-    return () => disableDecisionTreePortalReadOnly();
-  }, []);
 
   useEffect(() => {
     if (!portalSlug) return;
@@ -25,23 +20,28 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
     const loadPortal = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/portal/${portalSlug}`);
-        const data = await response.json();
-        const workspaceId = data?.workspace?.id || data?.workspace_id;
-        const workspaceLabel = data?.workspace?.name || data?.workspace?.slug || 'Workspace';
-        if (!workspaceId) {
-          setPublished(null);
-          setWorkspaceName(workspaceLabel);
-          return;
-        }
-        const latest = getLatestPublishedDecisionTree(String(workspaceId));
+        const portalResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000'}/api/portal/${portalSlug}`);
+        const portalData = await portalResponse.json();
+        const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
+        
+        const trees = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'decision_tree');
+        
         if (isMounted) {
           setWorkspaceName(workspaceLabel);
-          setPublished(latest?.published || null);
+          const treesArray = Array.isArray(trees) ? trees : [];
+          setPublishedTrees(treesArray);
+          if (treesArray.length > 0) {
+            setSelectedTreeId(treesArray[0].id);
+            const rootNode = treesArray[0].content?.nodes?.find((n: any) => n.type === 'root' || n.id === treesArray[0].content?.rootNodeId);
+            if (rootNode) {
+              setCurrentNodeId(rootNode.id);
+            }
+          }
         }
       } catch (error) {
+        console.error('[DecisionTreePortalRoot] Failed to load:', error);
         if (isMounted) {
-          setPublished(null);
+          setPublishedTrees([]);
         }
       } finally {
         if (isMounted) {
@@ -55,17 +55,21 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
     };
   }, [portalSlug]);
 
+  const selectedTree = useMemo(() => {
+    return publishedTrees.find(t => t.id === selectedTreeId);
+  }, [publishedTrees, selectedTreeId]);
+
   const nodeMap = useMemo(() => {
-    if (!published) return new Map<string, DecisionNode>();
-    return new Map(published.nodes.map((node) => [node.id, node]));
-  }, [published]);
+    if (!selectedTree?.content?.nodes) return new Map();
+    return new Map(selectedTree.content.nodes.map((node: any) => [node.id, node]));
+  }, [selectedTree]);
 
   useEffect(() => {
-    if (!published) return;
-    setCurrentNodeId(published.rootNodeId);
-    setPath([published.rootNodeId]);
+    if (!selectedTree?.content?.rootNodeId) return;
+    setCurrentNodeId(selectedTree.content.rootNodeId);
+    setPath([selectedTree.content.rootNodeId]);
     setError('');
-  }, [published]);
+  }, [selectedTree]);
 
   const currentNode = currentNodeId ? nodeMap.get(currentNodeId) : null;
 
@@ -84,9 +88,9 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
   };
 
   const restart = () => {
-    if (!published) return;
-    setCurrentNodeId(published.rootNodeId);
-    setPath([published.rootNodeId]);
+    if (!selectedTree?.content?.rootNodeId) return;
+    setCurrentNodeId(selectedTree.content.rootNodeId);
+    setPath([selectedTree.content.rootNodeId]);
     setError('');
   };
 
@@ -98,7 +102,7 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
     );
   }
 
-  if (!published) {
+  if (!publishedTrees || publishedTrees.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-indigo-50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center space-y-4 border border-indigo-500/20 bg-slate-900/70 rounded-2xl p-10">
@@ -112,7 +116,7 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
     );
   }
 
-  if (!currentNode) {
+  if (!currentNode || !selectedTree) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-indigo-50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center space-y-4 border border-indigo-500/20 bg-slate-900/70 rounded-2xl p-10">
@@ -130,14 +134,35 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
   }
 
   const isOutcome = currentNode.type === 'outcome';
+  const answers = currentNode.answers || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-indigo-50">
       <header className="border-b border-indigo-500/20 bg-slate-950/70 backdrop-blur">
         <div className="max-w-5xl mx-auto px-6 py-10">
           <p className="text-xs uppercase tracking-[0.3em] text-indigo-200/70">Decision Guide</p>
-          <h1 className="text-4xl font-semibold">{published.title}</h1>
-          <p className="text-indigo-200/70 mt-2">{published.description}</p>
+          <h1 className="text-4xl font-semibold">{selectedTree.title}</h1>
+          {selectedTree.description && <p className="text-indigo-200/70 mt-2">{selectedTree.description}</p>}
+          {publishedTrees.length > 1 && (
+            <div className="mt-4">
+              <select
+                value={selectedTreeId || ''}
+                onChange={(e) => {
+                  setSelectedTreeId(e.target.value);
+                  const tree = publishedTrees.find(t => t.id === e.target.value);
+                  if (tree?.content?.rootNodeId) {
+                    setCurrentNodeId(tree.content.rootNodeId);
+                    setPath([tree.content.rootNodeId]);
+                  }
+                }}
+                className="bg-slate-900/70 border border-indigo-500/20 rounded-lg px-4 py-2 text-indigo-50"
+              >
+                {publishedTrees.map(tree => (
+                  <option key={tree.id} value={tree.id}>{tree.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </header>
 
@@ -146,24 +171,17 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
           <p className="text-xs uppercase tracking-[0.3em] text-indigo-200/60">
             {isOutcome ? 'Outcome' : 'Decision'}
           </p>
-          <h2 className="text-3xl font-semibold">{currentNode.title || 'Decision Point'}</h2>
-          <p className="text-indigo-200/80">{currentNode.prompt || 'Choose the next step.'}</p>
-          {currentNode.content && (
-            <div
-              className="text-indigo-100/80 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: currentNode.content }}
-            />
-          )}
+          <h2 className="text-3xl font-semibold">{currentNode.content || 'Decision Point'}</h2>
 
-          {!isOutcome && currentNode.answers.length === 0 && (
+          {!isOutcome && answers.length === 0 && (
             <div className="text-red-300 border border-red-500/40 rounded-xl p-4 bg-red-500/10">
               Question nodes must include at least one answer.
             </div>
           )}
 
-          {!isOutcome && (
+          {!isOutcome && answers.length > 0 && (
             <div className="grid gap-3">
-              {currentNode.answers.map((answer) => (
+              {answers.map((answer: any) => (
                 <button
                   key={answer.id}
                   type="button"

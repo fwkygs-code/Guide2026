@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FAQDraft } from './model';
-import { disableFAQPortalReadOnly, enableFAQPortalReadOnly, getLatestPublishedFAQ } from './service';
+import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 
 type FAQPortalRootProps = {
   portalSlug?: string;
@@ -8,15 +7,10 @@ type FAQPortalRootProps = {
 
 export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
   const [loading, setLoading] = useState(true);
-  const [published, setPublished] = useState<FAQDraft | null>(null);
+  const [publishedFAQs, setPublishedFAQs] = useState<any[]>([]);
   const [workspaceName, setWorkspaceName] = useState('Workspace');
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
-
-  useEffect(() => {
-    enableFAQPortalReadOnly();
-    return () => disableFAQPortalReadOnly();
-  }, []);
 
   useEffect(() => {
     if (!portalSlug) return;
@@ -24,23 +18,20 @@ export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
     const loadPortal = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/portal/${portalSlug}`);
-        const data = await response.json();
-        const workspaceId = data?.workspace?.id || data?.workspace_id;
-        const workspaceLabel = data?.workspace?.name || data?.workspace?.slug || 'Workspace';
-        if (!workspaceId) {
-          setPublished(null);
-          setWorkspaceName(workspaceLabel);
-          return;
-        }
-        const latest = getLatestPublishedFAQ(String(workspaceId));
+        const portalResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000'}/api/portal/${portalSlug}`);
+        const portalData = await portalResponse.json();
+        const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
+        
+        const faqs = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'faq');
+        
         if (isMounted) {
           setWorkspaceName(workspaceLabel);
-          setPublished(latest?.published || null);
+          setPublishedFAQs(Array.isArray(faqs) ? faqs : []);
         }
       } catch (error) {
+        console.error('[FAQPortalRoot] Failed to load:', error);
         if (isMounted) {
-          setPublished(null);
+          setPublishedFAQs([]);
         }
       } finally {
         if (isMounted) {
@@ -55,13 +46,15 @@ export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
   }, [portalSlug]);
 
   const filteredItems = useMemo(() => {
-    if (!published) return [];
+    if (!publishedFAQs || publishedFAQs.length === 0) return [];
     const query = search.trim().toLowerCase();
-    if (!query) return published.items;
-    return published.items.filter((item) =>
-      item.question.toLowerCase().includes(query) || item.answer.toLowerCase().includes(query)
-    );
-  }, [published, search]);
+    if (!query) return publishedFAQs;
+    return publishedFAQs.filter((faq) => {
+      const question = (faq.content?.question || '').toLowerCase();
+      const answer = (faq.content?.answer || '').toLowerCase();
+      return question.includes(query) || answer.includes(query);
+    });
+  }, [publishedFAQs, search]);
 
   if (loading) {
     return (
@@ -71,7 +64,7 @@ export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
     );
   }
 
-  if (!published) {
+  if (!publishedFAQs || publishedFAQs.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-emerald-50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center space-y-4 border border-emerald-500/20 bg-slate-900/70 rounded-2xl p-10">
@@ -90,8 +83,8 @@ export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
       <header className="border-b border-emerald-500/20 bg-slate-950/70 backdrop-blur">
         <div className="max-w-5xl mx-auto px-6 py-10 space-y-4">
           <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">FAQs</p>
-          <h1 className="text-4xl font-semibold">{published.title}</h1>
-          <p className="text-emerald-200/70">{published.description}</p>
+          <h1 className="text-4xl font-semibold">Frequently Asked Questions</h1>
+          <p className="text-emerald-200/70">{publishedFAQs.length} published {publishedFAQs.length === 1 ? 'question' : 'questions'}</p>
           <div className="mt-6">
             <input
               value={search}
@@ -109,31 +102,38 @@ export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
             No matching questions found.
           </div>
         )}
-        {filteredItems.map((item) => (
-          <div key={item.id} className="border border-emerald-500/20 bg-slate-900/70 rounded-2xl p-6">
-            <button
-              type="button"
-              className="w-full text-left flex items-center justify-between gap-4"
-              onClick={() => setOpenId(openId === item.id ? null : item.id)}
-            >
-              <h2 className="text-lg font-semibold">{item.question || 'Untitled question'}</h2>
-              <span className="text-xs uppercase tracking-[0.2em] text-emerald-200/60">
-                {openId === item.id ? 'Hide' : 'View'}
-              </span>
-            </button>
-            {openId === item.id && (
-              <div
-                className="mt-4 text-emerald-100/80 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: item.answer || '<p>No answer provided.</p>' }}
-              />
-            )}
-            {item.category && (
-              <div className="mt-4 text-xs uppercase tracking-[0.2em] text-emerald-200/60">
-                {item.category}
-              </div>
-            )}
-          </div>
-        ))}
+        {filteredItems.map((faq) => {
+          const question = faq.content?.question || faq.title || 'Untitled question';
+          const answer = faq.content?.answer || '';
+          const category = faq.content?.category;
+          const faqId = faq.id;
+          
+          return (
+            <div key={faqId} className="border border-emerald-500/20 bg-slate-900/70 rounded-2xl p-6">
+              <button
+                type="button"
+                className="w-full text-left flex items-center justify-between gap-4"
+                onClick={() => setOpenId(openId === faqId ? null : faqId)}
+              >
+                <h2 className="text-lg font-semibold">{question}</h2>
+                <span className="text-xs uppercase tracking-[0.2em] text-emerald-200/60">
+                  {openId === faqId ? 'Hide' : 'View'}
+                </span>
+              </button>
+              {openId === faqId && answer && (
+                <div
+                  className="mt-4 text-emerald-100/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: answer }}
+                />
+              )}
+              {category && (
+                <div className="mt-4 text-xs uppercase tracking-[0.2em] text-emerald-200/60">
+                  {category}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </main>
     </div>
   );
