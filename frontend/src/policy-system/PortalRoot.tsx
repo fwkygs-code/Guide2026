@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { PolicyDraft } from './model';
-import { disablePolicyPortalReadOnly, enablePolicyPortalReadOnly, getLatestPublishedPolicy } from './service';
+import { PolicyDraft, POLICY_MODEL_VERSION } from './model';
+import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 
 type PolicyPortalRootProps = {
   portalSlug?: string;
 };
 
+const normalizePolicyDraft = (system: any): PolicyDraft => ({
+  version: POLICY_MODEL_VERSION,
+  title: system.title || '',
+  description: system.description || '',
+  effectiveDate: system.content?.effectiveDate || '',
+  jurisdiction: system.content?.jurisdiction || '',
+  sections: system.content?.sections || []
+});
+
 export const PolicyPortalRoot = ({ portalSlug }: PolicyPortalRootProps) => {
   const [loading, setLoading] = useState(true);
-  const [published, setPublished] = useState<PolicyDraft | null>(null);
+  const [publishedPolicies, setPublishedPolicies] = useState<any[]>([]);
   const [workspaceName, setWorkspaceName] = useState('Workspace');
-
-  useEffect(() => {
-    enablePolicyPortalReadOnly();
-    return () => disablePolicyPortalReadOnly();
-  }, []);
 
   useEffect(() => {
     if (!portalSlug) return;
@@ -22,23 +26,25 @@ export const PolicyPortalRoot = ({ portalSlug }: PolicyPortalRootProps) => {
     const loadPortal = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/portal/${portalSlug}`);
-        const data = await response.json();
-        const workspaceId = data?.workspace?.id || data?.workspace_id;
-        const workspaceLabel = data?.workspace?.name || data?.workspace?.slug || 'Workspace';
-        if (!workspaceId) {
-          setPublished(null);
-          setWorkspaceName(workspaceLabel);
-          return;
-        }
-        const latest = getLatestPublishedPolicy(String(workspaceId));
+        console.log('[PolicyPortalRoot] Loading portal for slug:', portalSlug);
+        
+        // Get workspace info
+        const portalResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000'}/api/portal/${portalSlug}`);
+        const portalData = await portalResponse.json();
+        const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
+        
+        // Get published policies from backend
+        const policies = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'policy');
+        console.log('[PolicyPortalRoot] Loaded policies:', policies);
+        
         if (isMounted) {
           setWorkspaceName(workspaceLabel);
-          setPublished(latest?.published || null);
+          setPublishedPolicies(Array.isArray(policies) ? policies : []);
         }
       } catch (error) {
+        console.error('[PolicyPortalRoot] Failed to load:', error);
         if (isMounted) {
-          setPublished(null);
+          setPublishedPolicies([]);
         }
       } finally {
         if (isMounted) {
@@ -60,7 +66,7 @@ export const PolicyPortalRoot = ({ portalSlug }: PolicyPortalRootProps) => {
     );
   }
 
-  if (!published) {
+  if (!publishedPolicies || publishedPolicies.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-amber-50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center space-y-4 border border-amber-500/20 bg-slate-900/70 rounded-2xl p-10">
@@ -81,37 +87,53 @@ export const PolicyPortalRoot = ({ portalSlug }: PolicyPortalRootProps) => {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-amber-200/70">Official Policies</p>
-              <h1 className="text-4xl font-semibold">{published.title}</h1>
-              <p className="text-amber-200/70 mt-2">{published.description}</p>
+              <h1 className="text-4xl font-semibold">Policy Documentation</h1>
+              <p className="text-amber-200/70 mt-2">{publishedPolicies.length} published {publishedPolicies.length === 1 ? 'policy' : 'policies'}</p>
             </div>
-            <div className="px-4 py-2 border border-amber-400/40 rounded-full text-xs uppercase tracking-[0.2em]">
-              Version badge
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-4 text-sm text-amber-200/70">
-            {published.effectiveDate && <span>Effective: {published.effectiveDate}</span>}
-            {published.jurisdiction && <span>Jurisdiction: {published.jurisdiction}</span>}
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12 space-y-8">
-        {published.sections.map((section, index) => (
-          <article key={section.id} className="border border-amber-500/20 bg-slate-900/70 rounded-2xl p-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-amber-200/60">Section {index + 1}</p>
-                <h2 className="text-2xl font-semibold">{section.title || 'Untitled Section'}</h2>
-                {section.category && <p className="text-sm text-amber-200/70 mt-1">Category: {section.category}</p>}
+        {publishedPolicies.map((policySystem) => {
+          const published = normalizePolicyDraft(policySystem);
+          return (
+            <div key={policySystem.id} className="space-y-8">
+              <div className="border-b border-amber-500/20 pb-6">
+                <h2 className="text-3xl font-semibold">{published.title}</h2>
+                {published.description && <p className="text-amber-200/70 mt-2">{published.description}</p>}
+                <div className="mt-4 flex flex-wrap gap-4 text-sm text-amber-200/70">
+                  {published.effectiveDate && <span>Effective: {published.effectiveDate}</span>}
+                  {published.jurisdiction && <span>Jurisdiction: {published.jurisdiction}</span>}
+                  {policySystem.updated_at && <span>Updated: {new Date(policySystem.updated_at).toLocaleDateString()}</span>}
+                </div>
               </div>
-              <span className="text-xs text-amber-200/60">{new Date(section.lastUpdated).toLocaleDateString()}</span>
+              
+              {published.sections && published.sections.length > 0 ? (
+                published.sections.map((section, index) => (
+                  <article key={section.id} className="border border-amber-500/20 bg-slate-900/70 rounded-2xl p-8">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-amber-200/60">Section {index + 1}</p>
+                        <h3 className="text-2xl font-semibold">{section.title || 'Untitled Section'}</h3>
+                        {section.category && <p className="text-sm text-amber-200/70 mt-1">Category: {section.category}</p>}
+                      </div>
+                      <span className="text-xs text-amber-200/60">{new Date(section.lastUpdated).toLocaleDateString()}</span>
+                    </div>
+                    <div
+                      className="mt-6 space-y-4 text-amber-50/90 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: section.content || '<p>No content provided.</p>' }}
+                    />
+                  </article>
+                ))
+              ) : (
+                <article className="border border-amber-500/20 bg-slate-900/70 rounded-2xl p-8">
+                  <p className="text-amber-200/70">No sections available for this policy.</p>
+                </article>
+              )}
             </div>
-            <div
-              className="mt-6 space-y-4 text-amber-50/90 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: section.content || '<p>No content provided.</p>' }}
-            />
-          </article>
-        ))}
+          );
+        })}
       </main>
     </div>
   );
