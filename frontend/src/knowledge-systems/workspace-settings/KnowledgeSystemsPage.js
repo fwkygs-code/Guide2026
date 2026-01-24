@@ -12,57 +12,48 @@ import { PROCEDURE_ROUTES } from '../../procedure-system/routes';
 import { DOCUMENTATION_ROUTES } from '../../documentation-system/routes';
 import { FAQ_ROUTES } from '../../faq-system/routes';
 import { DECISION_TREE_ROUTES } from '../../decision-tree-system/routes';
-import { listPolicyMeta, listPublishedPolicies } from '../../policy-system/service';
-import { listProcedureMeta, listPublishedProcedures } from '../../procedure-system/service';
-import { listDocumentationMeta, listPublishedDocumentation } from '../../documentation-system/service';
-import { listFAQMeta, listPublishedFAQs } from '../../faq-system/service';
-import { listDecisionTreeMeta, listPublishedDecisionTrees } from '../../decision-tree-system/service';
+import { api } from '../../lib/api';
 
 const SYSTEM_DEFINITIONS = [
   {
     id: 'policy',
+    systemType: 'policy',
     title: 'Policies',
     description: 'Authority, compliance, and legal governance.',
     accent: '#f59e0b',
-    routes: POLICY_ROUTES,
-    listMeta: listPolicyMeta,
-    listPublished: listPublishedPolicies
+    routes: POLICY_ROUTES
   },
   {
     id: 'procedure',
+    systemType: 'procedure',
     title: 'Procedures',
     description: 'Operational playbooks and step execution.',
     accent: '#22d3ee',
-    routes: PROCEDURE_ROUTES,
-    listMeta: listProcedureMeta,
-    listPublished: listPublishedProcedures
+    routes: PROCEDURE_ROUTES
   },
   {
     id: 'documentation',
+    systemType: 'documentation',
     title: 'Documentation',
     description: 'Technical knowledge base with live preview.',
     accent: '#a855f7',
-    routes: DOCUMENTATION_ROUTES,
-    listMeta: listDocumentationMeta,
-    listPublished: listPublishedDocumentation
+    routes: DOCUMENTATION_ROUTES
   },
   {
     id: 'faq',
+    systemType: 'faq',
     title: 'FAQs',
     description: 'Fast answers with question-first layout.',
     accent: '#34d399',
-    routes: FAQ_ROUTES,
-    listMeta: listFAQMeta,
-    listPublished: listPublishedFAQs
+    routes: FAQ_ROUTES
   },
   {
     id: 'decision-tree',
+    systemType: 'decision_tree',
     title: 'Decision Trees',
     description: 'Guided outcomes with branching logic.',
     accent: '#6366f1',
-    routes: DECISION_TREE_ROUTES,
-    listMeta: listDecisionTreeMeta,
-    listPublished: listPublishedDecisionTrees
+    routes: DECISION_TREE_ROUTES
   }
 ];
 
@@ -76,21 +67,40 @@ function KnowledgeSystemsPage() {
 
   useEffect(() => {
     if (!workspaceId) return;
-    const cards = SYSTEM_DEFINITIONS.map((system) => {
-      const meta = system.listMeta(workspaceId);
-      const published = system.listPublished(workspaceId);
-      const latest = meta
-        .slice()
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
-      return {
-        ...system,
-        totalCount: meta.length,
-        publishedCount: published.length,
-        latestId: latest?.id || null
-      };
-    });
-    setSystemCards(cards);
-    setLoading(false);
+    
+    const loadSystems = async () => {
+      const cards = await Promise.all(
+        SYSTEM_DEFINITIONS.map(async (system) => {
+          try {
+            const response = await api.getKnowledgeSystems(workspaceId, system.systemType);
+            const allSystems = response.data || [];
+            const published = allSystems.filter(s => s.status === 'published');
+            const latest = allSystems
+              .slice()
+              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+            
+            return {
+              ...system,
+              totalCount: allSystems.length,
+              publishedCount: published.length,
+              latestId: latest?.id || null
+            };
+          } catch (error) {
+            console.error(`Failed to load ${system.systemType}:`, error);
+            return {
+              ...system,
+              totalCount: 0,
+              publishedCount: 0,
+              latestId: null
+            };
+          }
+        })
+      );
+      setSystemCards(cards);
+      setLoading(false);
+    };
+    
+    loadSystems();
   }, [workspaceId]);
 
   const handleOpen = (system) => {
