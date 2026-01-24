@@ -39,6 +39,7 @@ import { DOCUMENTATION_ROUTES } from './documentation-system/routes';
 import { FAQ_ROUTES } from './faq-system/routes';
 import { DECISION_TREE_ROUTES } from './decision-tree-system/routes';
 import { PolicyEditorRoot } from './policy-system/EditorRoot';
+import { PolicyListPage } from './policy-system/ListPage';
 import { ProcedureEditorRoot } from './procedure-system/EditorRoot';
 import { DocumentationEditorRoot } from './documentation-system/EditorRoot';
 import { FAQEditorRoot } from './faq-system/EditorRoot';
@@ -108,7 +109,19 @@ const PolicyEditorRoute = () => {
     <PolicyEditorRoot
       workspaceId={workspaceId || undefined}
       itemId={itemId}
-      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge-systems` : undefined}
+      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge/policy` : undefined}
+    />
+  );
+};
+
+const PolicyListRoute = () => {
+  const { workspaceSlug } = useParams();
+  const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
+  if (loading) return <WorkspaceLoader accent="amber" />;
+  return (
+    <PolicyListPage
+      workspaceId={workspaceId || ''}
+      workspaceSlug={workspaceSlug || ''}
     />
   );
 };
@@ -239,6 +252,7 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><KnowledgeSystemsPage /></PrivateRoute>} />
+          <Route path={POLICY_ROUTES.list} element={<PrivateRoute><PolicyListRoute /></PrivateRoute>} />
           <Route path={POLICY_ROUTES.create} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
           <Route path={POLICY_ROUTES.edit} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
           <Route path={PROCEDURE_ROUTES.create} element={<PrivateRoute><ProcedureEditorRoute /></PrivateRoute>} />

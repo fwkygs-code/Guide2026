@@ -33,6 +33,7 @@ function PolicyPortalPage() {
     setLoading(true);
     try {
       const policies = await portalKnowledgeSystemsService.getAllByType(slug, 'policy');
+      console.log('[PolicyPortal] Loaded policies:', policies);
       setPublishedPolicies(policies);
     } catch (error) {
       console.error('Failed to load policy system:', error);

@@ -50,6 +50,13 @@ export const policyApiClient = {
     return response.data;
   },
 
+  async getAll(workspaceId: string): Promise<PolicySystem[]> {
+    const response = await axios.get(`${API}/workspaces/${workspaceId}/knowledge-systems`, {
+      params: { system_type: 'policy' }
+    });
+    return response.data;
+  },
+
   async getById(workspaceId: string, systemId: string): Promise<PolicySystem> {
     const response = await axios.get(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
     return response.data;
