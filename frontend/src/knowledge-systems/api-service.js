@@ -304,8 +304,38 @@ export const portalKnowledgeSystemsService = {
   },
 
   async getAllByType(portalSlug, systemType) {
-    const response = await api.getPortalKnowledgeSystems(portalSlug, systemType);
-    return response.data;
+    try {
+      console.log(`[PortalAPI] Fetching ${systemType} for slug: ${portalSlug}`);
+      const response = await api.getPortalKnowledgeSystems(portalSlug, systemType);
+      console.log(`[PortalAPI] Response status: ${response.status}`);
+      console.log(`[PortalAPI] Response data:`, response.data);
+      console.log(`[PortalAPI] Response data type:`, typeof response.data);
+      console.log(`[PortalAPI] Is array:`, Array.isArray(response.data));
+      
+      const data = response.data;
+      if (!data) {
+        console.warn(`[PortalAPI] No data in response for ${systemType}`);
+        return [];
+      }
+      
+      if (Array.isArray(data)) {
+        console.log(`[PortalAPI] Returning ${data.length} ${systemType} systems`);
+        return data;
+      }
+      
+      // Handle case where data might be wrapped
+      if (data.data && Array.isArray(data.data)) {
+        console.log(`[PortalAPI] Data wrapped, returning ${data.data.length} systems`);
+        return data.data;
+      }
+      
+      console.warn(`[PortalAPI] Unexpected data format for ${systemType}:`, data);
+      return [];
+    } catch (error) {
+      console.error(`[PortalAPI] Error fetching ${systemType}:`, error);
+      console.error(`[PortalAPI] Error response:`, error.response?.data);
+      throw error;
+    }
   }
 };
 

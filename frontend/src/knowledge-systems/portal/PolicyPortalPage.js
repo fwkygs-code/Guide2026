@@ -29,16 +29,30 @@ function PolicyPortalPage() {
     loadSystem();
   }, [slug]);
 
+  useEffect(() => {
+    console.log('[PolicyPortal] publishedPolicies state changed:', publishedPolicies);
+    console.log('[PolicyPortal] publishedPolicies length:', publishedPolicies?.length);
+  }, [publishedPolicies]);
+
   const loadSystem = async () => {
     setLoading(true);
     try {
       console.log('[PolicyPortal] Loading policies for slug:', slug);
       const policies = await portalKnowledgeSystemsService.getAllByType(slug, 'policy');
-      console.log('[PolicyPortal] Loaded policies:', policies);
-      console.log('[PolicyPortal] Number of policies:', policies.length);
-      setPublishedPolicies(policies);
+      console.log('[PolicyPortal] Raw response:', policies);
+      console.log('[PolicyPortal] Type:', typeof policies);
+      console.log('[PolicyPortal] Is array:', Array.isArray(policies));
+      
+      // Ensure policies is an array
+      const policiesArray = Array.isArray(policies) ? policies : (policies || []);
+      console.log('[PolicyPortal] Number of policies:', policiesArray.length);
+      console.log('[PolicyPortal] Policies array:', policiesArray);
+      
+      setPublishedPolicies(policiesArray);
     } catch (error) {
       console.error('[PolicyPortal] Failed to load policy system:', error);
+      console.error('[PolicyPortal] Error details:', error.response?.data || error.message);
+      setPublishedPolicies([]);
     } finally {
       setLoading(false);
     }
@@ -131,7 +145,7 @@ function PolicyPortalPage() {
       {/* Content - Futuristic layout */}
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="space-y-8">
-          {publishedPolicies.length === 0 ? (
+          {!publishedPolicies || publishedPolicies.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -143,12 +157,19 @@ function PolicyPortalPage() {
                 <p className="text-amber-200/70">
                   Policy content has not been published yet. Check back later for official documentation.
                 </p>
+                <p className="text-amber-200/50 text-xs mt-4">
+                  Debug: policies={publishedPolicies ? publishedPolicies.length : 'null'}
+                </p>
               </Surface>
             </motion.div>
           ) : (
-            publishedPolicies.map((policyData, index) => (
-              <PolicySection key={policyData.id} policy={policyData} index={index} />
-            ))
+            publishedPolicies.map((policyData, index) => {
+              const key = policyData?.id || `policy-${index}`;
+              console.log(`[PolicyPortal] Rendering policy ${index}:`, policyData);
+              return (
+                <PolicySection key={key} policy={policyData} index={index} />
+              );
+            })
           )}
         </div>
       </main>
