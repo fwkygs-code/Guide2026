@@ -13,11 +13,7 @@ import { normalizeImageUrl } from '../lib/utils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
 import { AppShell } from '../components/ui/design-system';
-import { listPublishedPolicies } from '../policy-system/service';
-import { listPublishedProcedures } from '../procedure-system/service';
-import { listPublishedDocumentation } from '../documentation-system/service';
-import { listPublishedFAQs } from '../faq-system/service';
-import { listPublishedDecisionTrees } from '../decision-tree-system/service';
+import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -44,6 +40,7 @@ const PortalPage = ({ isEmbedded = false }) => {
   const [categorySelectOpen, setCategorySelectOpen] = useState(false);
   const [selectedCategoryForChat, setSelectedCategoryForChat] = useState(null);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [knowledgeSystemCounts, setKnowledgeSystemCounts] = useState({});
   const isLoggedIn = !!localStorage.getItem('token');
   
   // Detect if we're in an iframe
@@ -198,19 +195,46 @@ const PortalPage = ({ isEmbedded = false }) => {
     return grouped;
   }, [categoryTree, filteredWalkthroughs]);
 
+  useEffect(() => {
+    if (!slug) return;
+    
+    const loadCounts = async () => {
+      try {
+        const [policies, procedures, documentation, faqs, decisionTrees] = await Promise.all([
+          portalKnowledgeSystemsService.getAllByType(slug, 'policy'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'procedure'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'documentation'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'faq'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'decision_tree')
+        ]);
+        
+        setKnowledgeSystemCounts({
+          policy: Array.isArray(policies) ? policies.length : 0,
+          procedure: Array.isArray(procedures) ? procedures.length : 0,
+          documentation: Array.isArray(documentation) ? documentation.length : 0,
+          faq: Array.isArray(faqs) ? faqs.length : 0,
+          'decision-tree': Array.isArray(decisionTrees) ? decisionTrees.length : 0
+        });
+      } catch (error) {
+        console.error('[PortalPage] Failed to load knowledge system counts:', error);
+        setKnowledgeSystemCounts({});
+      }
+    };
+    
+    loadCounts();
+  }, [slug]);
+
   const knowledgeSystemsMenu = useMemo(() => {
-    const workspaceId = portal?.workspace?.id || portal?.workspace_id;
-    if (!workspaceId || !slug) return [];
-    const id = String(workspaceId);
+    if (!slug) return [];
     const systems = [
-      { key: 'policy', label: t('portal.knowledgeSystems.labels.policies', { defaultValue: 'Policies' }), path: `/portal/${slug}/knowledge/policies`, count: listPublishedPolicies(id).length },
-      { key: 'procedure', label: t('portal.knowledgeSystems.labels.procedures', { defaultValue: 'Procedures' }), path: `/portal/${slug}/knowledge/procedures`, count: listPublishedProcedures(id).length },
-      { key: 'documentation', label: t('portal.knowledgeSystems.labels.documentation', { defaultValue: 'Documentation' }), path: `/portal/${slug}/knowledge/documentation`, count: listPublishedDocumentation(id).length },
-      { key: 'faq', label: t('portal.knowledgeSystems.labels.faqs', { defaultValue: 'FAQs' }), path: `/portal/${slug}/knowledge/faqs`, count: listPublishedFAQs(id).length },
-      { key: 'decision-tree', label: t('portal.knowledgeSystems.labels.decisions', { defaultValue: 'Decision Trees' }), path: `/portal/${slug}/knowledge/decisions`, count: listPublishedDecisionTrees(id).length }
+      { key: 'policy', label: t('portal.knowledgeSystems.labels.policies', { defaultValue: 'Policies' }), path: `/portal/${slug}/knowledge/policies`, count: knowledgeSystemCounts.policy || 0 },
+      { key: 'procedure', label: t('portal.knowledgeSystems.labels.procedures', { defaultValue: 'Procedures' }), path: `/portal/${slug}/knowledge/procedures`, count: knowledgeSystemCounts.procedure || 0 },
+      { key: 'documentation', label: t('portal.knowledgeSystems.labels.documentation', { defaultValue: 'Documentation' }), path: `/portal/${slug}/knowledge/documentation`, count: knowledgeSystemCounts.documentation || 0 },
+      { key: 'faq', label: t('portal.knowledgeSystems.labels.faqs', { defaultValue: 'FAQs' }), path: `/portal/${slug}/knowledge/faqs`, count: knowledgeSystemCounts.faq || 0 },
+      { key: 'decision-tree', label: t('portal.knowledgeSystems.labels.decisions', { defaultValue: 'Decision Trees' }), path: `/portal/${slug}/knowledge/decisions`, count: knowledgeSystemCounts['decision-tree'] || 0 }
     ];
     return systems.filter(system => system.count > 0);
-  }, [portal, slug, t]);
+  }, [slug, t, knowledgeSystemCounts]);
 
   if (loading) {
     return (
