@@ -1,10 +1,3 @@
-/**
- * FAQ Portal Page - Help & Accessibility
- *
- * Fast-scanning Q&A layout with friendly, approachable design.
- * Warm emerald theming represents helpful assistance and user support.
- */
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,16 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Surface } from '@/components/ui/design-system';
-import { listPublishedFAQs } from '../../faq-system/service';
-import axios from 'axios';
-
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
-
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
+import { portalKnowledgeSystemsService } from '../api-service';
 
 /**
  * FAQ Portal Page - User-Friendly Help
@@ -43,12 +27,14 @@ function FAQPortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      // Get workspace data from portal API
-      const portalResponse = await axios.get(`${API}/portal/${slug}`);
-      const workspaceId = portalResponse.data.workspace.id;
-
-      const faqs = listPublishedFAQs(workspaceId);
+      const faqs = await portalKnowledgeSystemsService.getAllByType(slug, 'faq');
       setPublishedFAQs(faqs);
+    } catch (error) {
+      console.error('Failed to load FAQ system:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
     } catch (error) {
       console.error('Failed to load FAQ system:', error);
     } finally {
@@ -60,14 +46,14 @@ function FAQPortalPage() {
   const allFaqs = publishedFAQs;
 
   // Get unique categories
-  const categories = ['all', ...new Set(allFaqs.map(faq => faq.meta.category).filter(Boolean))];
+  const categories = ['all', ...new Set(allFaqs.map(faq => faq.content?.category).filter(Boolean))];
 
   // Filter FAQs based on search and category
   const filteredFaqs = allFaqs.filter(faq => {
     const matchesSearch = !searchTerm ||
-      faq.meta.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faq.published.answer.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || faq.meta.category === selectedCategory;
+      faq.content?.question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      faq.content?.answer?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || faq.content?.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -284,11 +270,11 @@ function FAQPortalPage() {
           ) : (
             filteredFaqs.map((faq, index) => (
               <FaqItem
-                key={faq.meta.id}
+                key={faq.id}
                 faq={faq}
                 index={index}
-                isExpanded={expandedFaq === faq.meta.id}
-                onToggle={() => setExpandedFaq(expandedFaq === faq.meta.id ? null : faq.meta.id)}
+                isExpanded={expandedFaq === faq.id}
+                onToggle={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
               />
             ))
           )}
@@ -330,11 +316,11 @@ function FaqItem({ faq, index, isExpanded, onToggle }) {
             <h3 className={`font-semibold text-lg mb-2 transition-colors ${
               isExpanded ? 'text-emerald-100' : 'text-emerald-50 group-hover:text-emerald-100'
             }`}>
-              {faq.meta.question}
+              {faq.content?.question}
             </h3>
-            {faq.meta.category && (
+            {faq.content?.category && (
               <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
-                {faq.meta.category}
+                {faq.content.category}
               </Badge>
             )}
           </div>
@@ -366,8 +352,8 @@ function FaqItem({ faq, index, isExpanded, onToggle }) {
               </div>
               <div className="flex-1 prose prose-sm max-w-none">
                 <div className="text-emerald-50/90 leading-relaxed">
-                  {faq.published.answer ? (
-                    <div dangerouslySetInnerHTML={{ __html: faq.published.answer }} />
+                  {faq.content?.answer ? (
+                    <div dangerouslySetInnerHTML={{ __html: faq.content.answer }} />
                   ) : (
                     <span className="text-slate-500 italic">No answer provided yet</span>
                   )}

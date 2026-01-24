@@ -1,10 +1,3 @@
-/**
- * Procedure Portal Page - Precision & Workflow
- *
- * Clear step-by-step execution display with workflow visualization.
- * Cool cyan theming represents systematic precision and operational excellence.
- */
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,16 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
-import { listPublishedProcedures } from '../../procedure-system/service';
-import axios from 'axios';
-
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
-
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
+import { portalKnowledgeSystemsService } from '../api-service';
 
 /**
  * Procedure Portal Page - Systematic Display
@@ -39,11 +23,7 @@ function ProcedurePortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      // Get workspace data from portal API
-      const portalResponse = await axios.get(`${API}/portal/${slug}`);
-      const workspaceId = portalResponse.data.workspace.id;
-
-      const procedures = listPublishedProcedures(workspaceId);
+      const procedures = await portalKnowledgeSystemsService.getAllByType(slug, 'procedure');
       setPublishedProcedures(procedures);
     } catch (error) {
       console.error('Failed to load procedure system:', error);
@@ -60,37 +40,6 @@ function ProcedurePortalPage() {
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           className="w-12 h-12 border-2 border-cyan-400 border-t-transparent rounded-full"
         />
-      </div>
-    );
-  }
-
-  if (!system) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center space-y-8 max-w-md"
-        >
-          <Surface variant="glass-accent" className="p-8 rounded-2xl">
-            <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-              <Workflow className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-4">
-              Procedures Not Available
-            </h1>
-            <p className="text-cyan-100/80 leading-relaxed mb-6">
-              Standard operating procedures are not currently published for this workspace.
-            </p>
-            <Link to={`/portal/${slug}`}>
-              <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
-              </Button>
-            </Link>
-          </Surface>
-        </motion.div>
       </div>
     );
   }
@@ -251,19 +200,19 @@ function ProcedureWorkflow({ procedure, index }) {
               </motion.div>
               <div>
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-100 to-white bg-clip-text text-transparent mb-1">
-                  {procedure.meta.title}
+                  {procedure.title}
                 </h3>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-cyan-500/20 text-cyan-200 border-cyan-500/30 px-3 py-1">
-                    {procedure.meta.category || 'Procedure'}
+                    {procedure.content?.category || 'Procedure'}
                   </Badge>
                   <Badge className="bg-blue-500/20 text-blue-200 border-blue-500/30 px-3 py-1">
-                    {procedure.published.steps?.length || 0} Steps
+                    {procedure.content?.steps?.length || 0} Steps
                   </Badge>
                 </div>
-                {procedure.meta.description && (
+                {procedure.description && (
                   <p className="text-cyan-100/80 text-sm leading-relaxed max-w-2xl">
-                    {procedure.meta.description}
+                    {procedure.description}
                   </p>
                 )}
               </div>
@@ -281,32 +230,32 @@ function ProcedureWorkflow({ procedure, index }) {
                 />
               </div>
               <div className="text-xs text-cyan-300/60 mt-1">
-                {completedSteps.size} of {procedure.published.steps?.length || 0} complete
+                {completedSteps.size} of {procedure.content?.steps?.length || 0} complete
               </div>
             </div>
           </div>
 
           {/* Overview */}
-          {procedure.published.overview && (
+          {procedure.content?.overview && (
             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
               <p className="text-cyan-100/90 text-sm italic">
-                "{procedure.published.overview}"
+                "{procedure.content.overview}"
               </p>
             </div>
           )}
         </CardHeader>
 
         <CardContent system="procedure" className="px-8 pb-8">
-          {procedure.published.steps && procedure.published.steps.length > 0 ? (
+          {procedure.content?.steps && procedure.content.steps.length > 0 ? (
             <div className="space-y-4">
-              {procedure.published.steps.map((step, stepIndex) => (
+              {procedure.content.steps.map((step, stepIndex) => (
                 <ProcedureStep
                   key={step.id}
                   step={step}
                   stepIndex={stepIndex}
                   isCompleted={completedSteps.has(stepIndex)}
                   onToggle={() => toggleStep(stepIndex)}
-                  isLast={stepIndex === procedure.published.steps.length - 1}
+                  isLast={stepIndex === procedure.content.steps.length - 1}
                 />
               ))}
             </div>
