@@ -4581,22 +4581,32 @@ async def get_portal_knowledge_systems(slug: str, system_type: Optional[Knowledg
     print(f"[DEBUG] Portal query for slug={slug}, workspace_id={workspace['id']}, system_type={system_type}")
     print(f"[DEBUG] Query: {query}")
     
-    systems = await db.knowledge_systems.find(query, {"_id": 0}).to_list(1000)
+    systems_cursor = db.knowledge_systems.find(query, {"_id": 0})
+    systems = await systems_cursor.to_list(1000)
     
     print(f"[DEBUG] Found {len(systems)} systems")
     if systems:
-        print(f"[DEBUG] First system: {systems[0]}")
+        print(f"[DEBUG] First system keys: {list(systems[0].keys())}")
+        print(f"[DEBUG] First system status: {systems[0].get('status')}")
     
-    # Convert datetime objects to ISO strings for JSON serialization
+    # Convert MongoDB documents to dicts and serialize datetime objects
+    result = []
     for system in systems:
-        if 'created_at' in system and isinstance(system['created_at'], datetime):
-            system['created_at'] = system['created_at'].isoformat()
-        if 'updated_at' in system and isinstance(system['updated_at'], datetime):
-            system['updated_at'] = system['updated_at'].isoformat()
-        if 'timestamp' in system and isinstance(system['timestamp'], datetime):
-            system['timestamp'] = system['timestamp'].isoformat()
+        # Ensure it's a dict (not a MongoDB document)
+        system_dict = dict(system) if not isinstance(system, dict) else system
+        
+        # Convert datetime objects to ISO strings for JSON serialization
+        if 'created_at' in system_dict and isinstance(system_dict['created_at'], datetime):
+            system_dict['created_at'] = system_dict['created_at'].isoformat()
+        if 'updated_at' in system_dict and isinstance(system_dict['updated_at'], datetime):
+            system_dict['updated_at'] = system_dict['updated_at'].isoformat()
+        if 'timestamp' in system_dict and isinstance(system_dict['timestamp'], datetime):
+            system_dict['timestamp'] = system_dict['timestamp'].isoformat()
+        
+        result.append(system_dict)
     
-    return systems
+    print(f"[DEBUG] Returning {len(result)} serialized systems")
+    return result
 
 @api_router.get("/portal/{slug}/knowledge-systems/{system_id}")
 async def get_portal_knowledge_system(slug: str, system_id: str):
