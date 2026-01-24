@@ -3,7 +3,7 @@ export const POLICY_MODEL_VERSION = '2.0.0';
 export type PolicySection = {
   id: string;
   title: string;
-  category: string;
+  category?: string;
   content: string;
   lastUpdated: string;
 };
@@ -70,7 +70,7 @@ export const validatePolicyDraft = (draft: PolicyDraft): boolean => {
   return draft.sections.every((section) => (
     typeof section.id === 'string' &&
     typeof section.title === 'string' &&
-    typeof section.category === 'string' &&
+    (section.category === undefined || typeof section.category === 'string') &&
     typeof section.content === 'string' &&
     typeof section.lastUpdated === 'string'
   ));
