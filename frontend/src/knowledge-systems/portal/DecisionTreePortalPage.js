@@ -1,10 +1,3 @@
-/**
- * Decision Tree Portal Page - Logic & Intelligence
- *
- * Interactive decision-making flow with immersive navigation.
- * Electric indigo theming represents analytical intelligence and guided reasoning.
- */
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,16 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
-import { listPublishedDecisionTrees, loadDecisionTreePublished } from '../../decision-tree-system/service';
-import axios from 'axios';
-
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
-
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
+import { portalKnowledgeSystemsService } from '../api-service';
 
 /**
  * Decision Tree Portal Page - Interactive Guidance
@@ -43,12 +27,14 @@ function DecisionTreePortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      // Get workspace data from portal API
-      const portalResponse = await axios.get(`${API}/portal/${slug}`);
-      const workspaceId = portalResponse.data.workspace.id;
-
-      const trees = listPublishedDecisionTrees(workspaceId);
+      const trees = await portalKnowledgeSystemsService.getAllByType(slug, 'decision_tree');
       setPublishedTrees(trees);
+    } catch (error) {
+      console.error('Failed to load decision tree system:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
       // Auto-select first tree if available
       if (trees.length > 0) {
@@ -62,7 +48,7 @@ function DecisionTreePortalPage() {
   };
 
   const selectTree = (treeData) => {
-    const tree = treeData.published;
+    const tree = treeData.content;
     setCurrentTree(tree);
     setCurrentNode(tree.nodes.find(n => n.id === tree.rootNodeId));
     setDecisionPath([]);
@@ -266,21 +252,21 @@ function DecisionTreePortalPage() {
               <CardContent className="space-y-2">
                 {publishedTrees.map((treeData, index) => (
                   <motion.div
-                    key={treeData.meta.id}
+                    key={treeData.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <Button
-                      variant={currentTree?.id === treeData.published.id ? "default" : "ghost"}
+                      variant={currentTree?.id === treeData.content?.id ? "default" : "ghost"}
                       className={`w-full justify-start text-left ${
-                        currentTree?.id === treeData.published.id
+                        currentTree?.id === treeData.content?.id
                           ? 'bg-indigo-500/20 text-indigo-100 border-indigo-500/30'
                           : 'text-indigo-200/80 hover:bg-slate-700/50'
                       }`}
                       onClick={() => selectTree(treeData)}
                     >
                       <GitBranch className="w-4 h-4 mr-2" />
-                      <span className="truncate">{treeData.meta.title || `Tree ${index + 1}`}</span>
+                      <span className="truncate">{treeData.title || `Tree ${index + 1}`}</span>
                     </Button>
                   </motion.div>
                 ))}
