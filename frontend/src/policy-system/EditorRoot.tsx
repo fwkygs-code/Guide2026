@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PolicyDraft, PolicySection, PolicyMeta } from './model';
 import { createPolicyEntry, loadPolicyDraft, loadPolicyMeta, publishPolicy, savePolicyDraft } from './service';
-import { policyService } from '../knowledge-systems/api-service';
-import { toast } from 'sonner';
+import { policyApiClient } from './api-client';
 
 type PolicyEditorRootProps = {
   workspaceId?: string;
@@ -81,7 +80,7 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
         if (itemId) {
           // Try loading from backend first
           try {
-            const system = await policyService.getById(workspaceId, itemId);
+            const system = await policyApiClient.getById(workspaceId, itemId);
             setBackendId(system.id);
             setDraft({
               title: system.title,
@@ -115,7 +114,7 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
         }
 
         // Create new policy in backend
-        const newSystem = await policyService.create(workspaceId, 'New Policy', '');
+        const newSystem = await policyApiClient.create(workspaceId, 'New Policy', '');
         setBackendId(newSystem.id);
         setDraft({
           title: newSystem.title,
@@ -133,7 +132,6 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
         setLoading(false);
       } catch (error) {
         console.error('Failed to load policy from backend:', error);
-        toast.error('Failed to load policy');
         setLoading(false);
       }
     };
@@ -146,7 +144,7 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
     
     try {
       // Save to backend
-      await policyService.update(workspaceId!, backendId, {
+      await policyApiClient.update(workspaceId!, backendId, {
         title: nextDraft.title,
         description: '',
         content: {
@@ -161,7 +159,6 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
       setMeta({ ...meta, title: nextDraft.title, updatedAt: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to save policy:', error);
-      toast.error('Failed to save policy');
     }
   };
 
@@ -207,13 +204,11 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
   const handlePublish = async () => {
     if (!meta || !backendId) return;
     try {
-      await policyService.publish(workspaceId!, backendId);
+      await policyApiClient.publish(workspaceId!, backendId);
       setMeta({ ...meta, publishedAt: new Date().toISOString() });
       setPublishError('');
-      toast.success('Policy published successfully!');
     } catch (error) {
       setPublishError('Publish failed. Review draft before publishing.');
-      toast.error('Failed to publish policy');
     }
   };
 
