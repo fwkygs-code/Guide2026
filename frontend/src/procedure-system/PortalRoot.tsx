@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
+import { procedurePortalApiClient } from './portal-api-client';
 
 type ProcedurePortalRootProps = {
   portalSlug?: string;
@@ -20,7 +20,7 @@ export const ProcedurePortalRoot = ({ portalSlug }: ProcedurePortalRootProps) =>
         const portalData = await portalResponse.json();
         const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
         
-        const procedures = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'procedure');
+        const procedures = await procedurePortalApiClient.getAllByType(portalSlug);
         
         if (isMounted) {
           setWorkspaceName(workspaceLabel);

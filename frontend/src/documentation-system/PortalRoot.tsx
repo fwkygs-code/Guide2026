@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
+import { documentationPortalApiClient } from './portal-api-client';
 
 type DocumentationPortalRootProps = {
   portalSlug?: string;
@@ -21,7 +21,7 @@ export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootP
         const portalData = await portalResponse.json();
         const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
         
-        const docs = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'documentation');
+        const docs = await documentationPortalApiClient.getAllByType(portalSlug);
         
         if (isMounted) {
           setWorkspaceName(workspaceLabel);

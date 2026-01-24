@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
+import { decisionTreePortalApiClient } from './portal-api-client';
 
 type DecisionTreePortalRootProps = {
   portalSlug?: string;
@@ -24,7 +24,7 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
         const portalData = await portalResponse.json();
         const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
         
-        const trees = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'decision_tree');
+        const trees = await decisionTreePortalApiClient.getAllByType(portalSlug);
         
         if (isMounted) {
           setWorkspaceName(workspaceLabel);

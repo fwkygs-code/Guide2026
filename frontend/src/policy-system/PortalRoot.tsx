@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PolicyDraft, POLICY_MODEL_VERSION } from './model';
-import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
+import { policyPortalApiClient } from './portal-api-client';
 
 type PolicyPortalRootProps = {
   portalSlug?: string;
@@ -34,7 +34,7 @@ export const PolicyPortalRoot = ({ portalSlug }: PolicyPortalRootProps) => {
         const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
         
         // Get published policies from backend
-        const policies = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'policy');
+        const policies = await policyPortalApiClient.getAllByType(portalSlug);
         console.log('[PolicyPortalRoot] Loaded policies:', policies);
         
         if (isMounted) {

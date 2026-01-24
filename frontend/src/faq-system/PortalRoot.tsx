@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
+import { faqPortalApiClient } from './portal-api-client';
 
 type FAQPortalRootProps = {
   portalSlug?: string;
@@ -22,7 +22,7 @@ export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
         const portalData = await portalResponse.json();
         const workspaceLabel = portalData?.workspace?.name || portalData?.workspace?.slug || 'Workspace';
         
-        const faqs = await portalKnowledgeSystemsService.getAllByType(portalSlug, 'faq');
+        const faqs = await faqPortalApiClient.getAllByType(portalSlug);
         
         if (isMounted) {
           setWorkspaceName(workspaceLabel);
