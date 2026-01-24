@@ -1,13 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { PolicyDraft, PolicySection, PolicyMeta } from './model';
+import { PolicyDraft, PolicySection, PolicyMeta, POLICY_MODEL_VERSION } from './model';
 import { createPolicyEntry, loadPolicyDraft, loadPolicyMeta, publishPolicy, savePolicyDraft } from './service';
-import { policyApiClient } from './api-client';
+import { policyApiClient, PolicySystem } from './api-client';
 
 type PolicyEditorRootProps = {
   workspaceId?: string;
   itemId?: string;
   closeHref?: string;
 };
+
+const normalizePolicyDraft = (system: PolicySystem): PolicyDraft => ({
+  version: POLICY_MODEL_VERSION,
+  title: system.title || '',
+  description: system.description || '',
+  effectiveDate: system.content?.effectiveDate || '',
+  jurisdiction: system.content?.jurisdiction || '',
+  sections: system.content?.sections || []
+});
 
 const PolicyRichTextEditor = ({
   value,
@@ -82,18 +91,14 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
           try {
             const system = await policyApiClient.getById(workspaceId, itemId);
             setBackendId(system.id);
-            setDraft({
-              title: system.title,
-              effectiveDate: system.content?.effectiveDate || '',
-              jurisdiction: system.content?.jurisdiction || '',
-              sections: system.content?.sections || []
-            });
+            setDraft(normalizePolicyDraft(system));
             setMeta({
               id: system.id,
               workspaceId: system.workspace_id,
               title: system.title,
               createdAt: system.created_at,
-              updatedAt: system.updated_at
+              updatedAt: system.updated_at,
+              publishedAt: system.status === 'published' ? system.updated_at : null
             });
             setLoading(false);
             return;
@@ -116,18 +121,14 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
         // Create new policy in backend
         const newSystem = await policyApiClient.create(workspaceId, 'New Policy', '');
         setBackendId(newSystem.id);
-        setDraft({
-          title: newSystem.title,
-          effectiveDate: '',
-          jurisdiction: '',
-          sections: []
-        });
+        setDraft(normalizePolicyDraft(newSystem));
         setMeta({
           id: newSystem.id,
           workspaceId: newSystem.workspace_id,
           title: newSystem.title,
           createdAt: newSystem.created_at,
-          updatedAt: newSystem.updated_at
+          updatedAt: newSystem.updated_at,
+          publishedAt: null
         });
         setLoading(false);
       } catch (error) {
@@ -146,7 +147,7 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
       // Save to backend
       await policyApiClient.update(workspaceId!, backendId, {
         title: nextDraft.title,
-        description: '',
+        description: nextDraft.description,
         content: {
           effectiveDate: nextDraft.effectiveDate,
           jurisdiction: nextDraft.jurisdiction,

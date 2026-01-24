@@ -25,7 +25,7 @@ export type PolicyMeta = {
   createdAt: string;
   updatedAt: string;
   title: string;
-  publishedAt: string | null;
+  publishedAt?: string | null;
 };
 
 const createPolicySection = (title = ''): PolicySection => {
