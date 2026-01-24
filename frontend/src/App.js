@@ -39,7 +39,7 @@ import { DOCUMENTATION_ROUTES } from './documentation-system/routes';
 import { FAQ_ROUTES } from './faq-system/routes';
 import { DECISION_TREE_ROUTES } from './decision-tree-system/routes';
 import { PolicyEditorRoot } from './policy-system/EditorRoot';
-import { PolicyListPage } from './policy-system/ListPage';
+import { PolicyListPage } from './pages/PolicyListPage';
 import { ProcedureEditorRoot } from './procedure-system/EditorRoot';
 import { DocumentationEditorRoot } from './documentation-system/EditorRoot';
 import { FAQEditorRoot } from './faq-system/EditorRoot';

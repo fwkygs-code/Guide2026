@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Eye, FileText } from 'lucide-react';
-import { policyApiClient } from './api-client';
+import { api } from '../lib/api';
 
 type PolicyListPageProps = {
   workspaceId: string;
@@ -20,8 +20,8 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
 
   const loadPolicies = async () => {
     try {
-      const response = await policyApiClient.getAll(workspaceId);
-      setPolicies(response);
+      const response = await api.getKnowledgeSystems(workspaceId, 'policy');
+      setPolicies(response.data || []);
     } catch (error) {
       console.error('Failed to load policies:', error);
       setPolicies([]);
@@ -42,7 +42,7 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
     if (!confirm('Are you sure you want to delete this policy?')) return;
     
     try {
-      await policyApiClient.delete(workspaceId, policyId);
+      await api.deleteKnowledgeSystem(workspaceId, policyId);
       await loadPolicies();
     } catch (error) {
       console.error('Failed to delete policy:', error);
