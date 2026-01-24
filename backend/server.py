@@ -4587,6 +4587,15 @@ async def get_portal_knowledge_systems(slug: str, system_type: Optional[Knowledg
     if systems:
         print(f"[DEBUG] First system: {systems[0]}")
     
+    # Convert datetime objects to ISO strings for JSON serialization
+    for system in systems:
+        if 'created_at' in system and isinstance(system['created_at'], datetime):
+            system['created_at'] = system['created_at'].isoformat()
+        if 'updated_at' in system and isinstance(system['updated_at'], datetime):
+            system['updated_at'] = system['updated_at'].isoformat()
+        if 'timestamp' in system and isinstance(system['timestamp'], datetime):
+            system['timestamp'] = system['timestamp'].isoformat()
+    
     return systems
 
 @api_router.get("/portal/{slug}/knowledge-systems/{system_id}")

@@ -56,37 +56,6 @@ function PolicyPortalPage() {
     );
   }
 
-  if (!system) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center space-y-8 max-w-md"
-        >
-          <Surface variant="glass-accent" className="p-8 rounded-2xl">
-            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-              <Shield className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent mb-4">
-              Policies Not Available
-            </h1>
-            <p className="text-amber-100/80 leading-relaxed mb-6">
-              Policy documentation is not currently published for this workspace.
-            </p>
-            <Link to={`/portal/${slug}`}>
-              <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
-              </Button>
-            </Link>
-          </Surface>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
       {/* Header - Glass morphism with amber theming */}
