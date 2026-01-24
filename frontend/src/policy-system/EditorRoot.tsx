@@ -143,6 +143,10 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
   const persistDraft = async (nextDraft: PolicyDraft) => {
     if (!meta || !backendId) return;
     
+    // Update UI immediately
+    setDraft(nextDraft);
+    setMeta({ ...meta, title: nextDraft.title, updatedAt: new Date().toISOString() });
+    
     try {
       // Save to backend
       await policyApiClient.update(workspaceId!, backendId, {
@@ -154,10 +158,6 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
           sections: nextDraft.sections
         }
       });
-      
-      // Update local state
-      setDraft(nextDraft);
-      setMeta({ ...meta, title: nextDraft.title, updatedAt: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to save policy:', error);
     }
