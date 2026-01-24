@@ -13,15 +13,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
-import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
+import { listPublishedDocumentation } from '../../documentation-system/service';
 import axios from 'axios';
+
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 /**
  * Documentation Portal Page - Knowledge Repository
  */
 function DocumentationPortalPage() {
   const { slug } = useParams();
-  const [system, setSystem] = useState(null);
+  const [publishedDocumentation, setPublishedDocumentation] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState(null);
   const [activeSubsection, setActiveSubsection] = useState(null);
@@ -35,12 +43,11 @@ function DocumentationPortalPage() {
     setLoading(true);
     try {
       // Get workspace data from portal API
-      const portalResponse = await axios.get(`/api/portal/${slug}`);
+      const portalResponse = await axios.get(`${API}/portal/${slug}`);
       const workspaceId = portalResponse.data.workspace.id;
 
-      const systems = getKnowledgeSystems(workspaceId);
-      const documentationSystem = systems.find(s => s.type === 'documentation' && s.enabled);
-      setSystem(documentationSystem);
+      const documentation = listPublishedDocumentation(workspaceId);
+      setPublishedDocumentation(documentation);
     } catch (error) {
       console.error('Failed to load documentation system:', error);
     } finally {
@@ -162,9 +169,9 @@ function DocumentationPortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                {system.title}
+                Documentation
               </h1>
-              <p className="text-purple-100/80 text-xl leading-relaxed">{system.description}</p>
+              <p className="text-purple-100/80 text-xl leading-relaxed">Comprehensive technical documentation and knowledge base resources.</p>
             </div>
           </motion.div>
 
@@ -178,13 +185,12 @@ function DocumentationPortalPage() {
             <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 rounded-xl">
               <Layers className="w-4 h-4 text-purple-400" />
               <span className="text-purple-100 text-sm font-medium">
-                {system.content?.sections?.length || 0} Sections Available
+                {publishedDocumentation.length} Documents Available
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 rounded-xl">
               <Clock className="w-4 h-4 text-purple-400" />
               <span className="text-purple-100 text-sm font-medium">
-                Updated: {new Date(system.updatedAt).toLocaleDateString()}
               </span>
             </div>
           </motion.div>
@@ -228,7 +234,7 @@ function DocumentationPortalPage() {
           >
             <div className="sticky top-6">
               <DocumentationNavigation
-                sections={system.content?.sections || []}
+                documents={publishedDocumentation}
                 activeSection={activeSection}
                 onSectionClick={scrollToSection}
               />
@@ -243,7 +249,7 @@ function DocumentationPortalPage() {
             transition={{ duration: 0.6, delay: 0.7 }}
             className="flex-1 space-y-12"
           >
-            {(system.content?.sections || []).length === 0 ? (
+            {publishedDocumentation.length === 0 ? (
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-purple-500/30">
                 <BookOpen className="w-16 h-16 text-purple-400/50 mx-auto mb-6" />
                 <h3 className="text-xl font-semibold text-purple-100 mb-4">No Documentation Published</h3>
@@ -252,12 +258,12 @@ function DocumentationPortalPage() {
                 </p>
               </Surface>
             ) : (
-              (system.content?.sections || []).map((section, index) => (
+              publishedDocumentation.map((docData, index) => (
                 <DocumentationSection
-                  key={section.id}
-                  section={section}
+                  key={docData.meta.id}
+                  document={docData}
                   index={index}
-                  isActive={activeSection === section.id}
+                  isActive={activeSection === docData.meta.id}
                 />
               ))
             )}
@@ -282,12 +288,12 @@ function DocumentationNavigation({ sections, activeSection, onSectionClick }) {
       </CardHeader>
       <CardContent className="p-0">
         <nav className="space-y-1">
-          {sections.map((section) => (
-            <div key={section.id}>
+          {sections.map((docData) => (
+            <div key={docData.meta.id}>
               <button
-                onClick={() => onSectionClick(section.id)}
+                onClick={() => onSectionClick(docData.meta.id)}
                 className={`w-full text-left px-4 py-3 hover:bg-purple-500/10 transition-colors ${
-                  activeSection === section.id
+                  activeSection === docData.meta.id
                     ? 'bg-purple-500/20 border-r-2 border-purple-400 text-purple-100'
                     : 'text-purple-200/80 hover:text-purple-100'
                 }`}
@@ -296,14 +302,14 @@ function DocumentationNavigation({ sections, activeSection, onSectionClick }) {
                   <ChevronRight className={`w-4 h-4 transition-transform ${
                     activeSection === section.id ? 'rotate-90 text-purple-400' : 'text-purple-400/60'
                   }`} />
-                  <span className="font-medium">{section.title || `Section ${section.order}`}</span>
+                  <span className="font-medium">{docData.meta.title || `Document ${index + 1}`}</span>
                 </div>
               </button>
 
               {/* Subsections */}
-              {section.subsections && section.subsections.length > 0 && (
-                <div className={`ml-8 space-y-1 ${activeSection === section.id ? 'block' : 'hidden'}`}>
-                  {section.subsections.map((subsection) => (
+              {docData.published.subsections && docData.published.subsections.length > 0 && (
+                <div className={`ml-8 space-y-1 ${activeSection === docData.meta.id ? 'block' : 'hidden'}`}>
+                  {docData.published.subsections.map((subsection) => (
                     <button
                       key={subsection.id}
                       onClick={() => onSectionClick(section.id)}
@@ -325,11 +331,11 @@ function DocumentationNavigation({ sections, activeSection, onSectionClick }) {
 /**
  * Individual Documentation Section - Hierarchical Display
  */
-function DocumentationSection({ section, index, isActive }) {
+function DocumentationSection({ document, index, isActive }) {
   return (
     <motion.div
-      id={`section-${section.id}`}
-      data-section-id={section.id}
+      id={`section-${document.meta.id}`}
+      data-section-id={document.meta.id}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: index * 0.1 }}
@@ -343,14 +349,14 @@ function DocumentationSection({ section, index, isActive }) {
               whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ duration: 0.2 }}
             >
-              <span className="text-white font-bold text-lg">{section.order}</span>
+              <span className="text-white font-bold text-lg">{index + 1}</span>
             </motion.div>
             <div>
               <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-100 to-white bg-clip-text text-transparent mb-2">
-                {section.title}
+                {document.meta.title}
               </h2>
               <Badge className="bg-purple-500/20 text-purple-200 border-purple-500/30 px-3 py-1">
-                Section {section.order}
+                Document {index + 1}
               </Badge>
             </div>
           </div>
@@ -358,10 +364,10 @@ function DocumentationSection({ section, index, isActive }) {
 
         <CardContent system="documentation" className="px-8 pb-8">
           {/* Main Section Content */}
-          {section.content && (
+          {document.published.content && (
             <div className="prose prose-lg max-w-none mb-12">
               <div className="text-purple-50/90 leading-relaxed text-lg">
-                {section.content.split('\n\n').map((paragraph, i) => (
+                {document.published.content.split('\n\n').map((paragraph, i) => (
                   <motion.p
                     key={i}
                     className="mb-6 last:mb-0"
@@ -382,12 +388,12 @@ function DocumentationSection({ section, index, isActive }) {
           )}
 
           {/* Subsections */}
-          {section.subsections && section.subsections.length > 0 && (
+          {document.published.subsections && document.published.subsections.length > 0 && (
             <div className="space-y-8">
               <div className="border-t border-purple-500/20 pt-8">
                 <h3 className="text-xl font-semibold text-purple-100 mb-6">Detailed Topics</h3>
                 <div className="space-y-6">
-                  {section.subsections.map((subsection, subIndex) => (
+                  {document.published.subsections.map((subsection, subIndex) => (
                     <DocumentationSubsection
                       key={subsection.id}
                       subsection={subsection}

@@ -13,15 +13,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
-import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
+import { listPublishedDecisionTrees, loadDecisionTreePublished } from '../../decision-tree-system/service';
 import axios from 'axios';
+
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 /**
  * Decision Tree Portal Page - Interactive Guidance
  */
 function DecisionTreePortalPage() {
   const { slug } = useParams();
-  const [system, setSystem] = useState(null);
+  const [publishedTrees, setPublishedTrees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTree, setCurrentTree] = useState(null);
   const [currentNode, setCurrentNode] = useState(null);
@@ -36,16 +44,15 @@ function DecisionTreePortalPage() {
     setLoading(true);
     try {
       // Get workspace data from portal API
-      const portalResponse = await axios.get(`/api/portal/${slug}`);
+      const portalResponse = await axios.get(`${API}/portal/${slug}`);
       const workspaceId = portalResponse.data.workspace.id;
 
-      const systems = getKnowledgeSystems(workspaceId);
-      const decisionTreeSystem = systems.find(s => s.type === 'decision_tree' && s.enabled);
-      setSystem(decisionTreeSystem);
+      const trees = listPublishedDecisionTrees(workspaceId);
+      setPublishedTrees(trees);
 
       // Auto-select first tree if available
-      if (decisionTreeSystem?.content?.trees?.length > 0) {
-        selectTree(decisionTreeSystem.content.trees[0]);
+      if (trees.length > 0) {
+        selectTree(trees[0]);
       }
     } catch (error) {
       console.error('Failed to load decision tree system:', error);
@@ -54,9 +61,10 @@ function DecisionTreePortalPage() {
     }
   };
 
-  const selectTree = (tree) => {
+  const selectTree = (treeData) => {
+    const tree = treeData.published;
     setCurrentTree(tree);
-    setCurrentNode(tree.rootNode);
+    setCurrentNode(tree.nodes.find(n => n.id === tree.rootNodeId));
     setDecisionPath([]);
     setIsComplete(false);
   };
@@ -183,9 +191,9 @@ function DecisionTreePortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                {system.title}
+                Decision Trees
               </h1>
-              <p className="text-indigo-100/80 text-xl leading-relaxed">{system.description}</p>
+              <p className="text-indigo-100/80 text-xl leading-relaxed">Navigate complex decisions with structured guidance and logical branching.</p>
             </div>
           </motion.div>
 
@@ -199,7 +207,7 @@ function DecisionTreePortalPage() {
             <div className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 backdrop-blur-sm border border-indigo-500/20 rounded-xl">
               <Brain className="w-4 h-4 text-indigo-400" />
               <span className="text-indigo-100 text-sm font-medium">
-                {system.content?.trees?.length || 0} Decision Trees Available
+                {publishedTrees.length} Decision Trees Available
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 backdrop-blur-sm border border-indigo-500/20 rounded-xl">
@@ -256,28 +264,28 @@ function DecisionTreePortalPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {(system.content?.trees || []).map((tree, index) => (
+                {publishedTrees.map((treeData, index) => (
                   <motion.div
-                    key={tree.id}
+                    key={treeData.meta.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <Button
-                      variant={currentTree?.id === tree.id ? "default" : "ghost"}
+                      variant={currentTree?.id === treeData.published.id ? "default" : "ghost"}
                       className={`w-full justify-start text-left ${
-                        currentTree?.id === tree.id
+                        currentTree?.id === treeData.published.id
                           ? 'bg-indigo-500/20 text-indigo-100 border-indigo-500/30'
                           : 'text-indigo-200/80 hover:bg-slate-700/50'
                       }`}
-                      onClick={() => selectTree(tree)}
+                      onClick={() => selectTree(treeData)}
                     >
                       <GitBranch className="w-4 h-4 mr-2" />
-                      <span className="truncate">{tree.title || `Tree ${index + 1}`}</span>
+                      <span className="truncate">{treeData.meta.title || `Tree ${index + 1}`}</span>
                     </Button>
                   </motion.div>
                 ))}
 
-                {(system.content?.trees || []).length === 0 && (
+                {publishedTrees.length === 0 && (
                   <div className="text-center py-8">
                     <GitBranch className="w-8 h-8 text-slate-500 mx-auto mb-2" />
                     <p className="text-slate-500 text-sm">No decision trees available</p>

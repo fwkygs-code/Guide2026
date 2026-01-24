@@ -804,7 +804,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       )}
 
       {/* Knowledge Systems Navigation Bar */}
-      <KnowledgeSystemsNavigationBar workspaceId={portal?.workspace_id} />
+      <KnowledgeSystemsNavigationBar workspaceId={portal?.workspace?.id} />
 
       {/* Footer - Powered by InterGuide */}
       {!inIframe && (

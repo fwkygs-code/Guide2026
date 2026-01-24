@@ -14,15 +14,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Surface } from '@/components/ui/design-system';
-import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
+import { listPublishedFAQs } from '../../faq-system/service';
 import axios from 'axios';
+
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 /**
  * FAQ Portal Page - User-Friendly Help
  */
 function FAQPortalPage() {
   const { slug } = useParams();
-  const [system, setSystem] = useState(null);
+  const [publishedFAQs, setPublishedFAQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -36,12 +44,11 @@ function FAQPortalPage() {
     setLoading(true);
     try {
       // Get workspace data from portal API
-      const portalResponse = await axios.get(`/api/portal/${slug}`);
+      const portalResponse = await axios.get(`${API}/portal/${slug}`);
       const workspaceId = portalResponse.data.workspace.id;
 
-      const systems = getKnowledgeSystems(workspaceId);
-      const faqSystem = systems.find(s => s.type === 'faq' && s.enabled);
-      setSystem(faqSystem);
+      const faqs = listPublishedFAQs(workspaceId);
+      setPublishedFAQs(faqs);
     } catch (error) {
       console.error('Failed to load FAQ system:', error);
     } finally {
@@ -50,17 +57,17 @@ function FAQPortalPage() {
   };
 
   // Get all FAQs
-  const allFaqs = system?.content?.faqs || [];
+  const allFaqs = publishedFAQs;
 
   // Get unique categories
-  const categories = ['all', ...new Set(allFaqs.map(faq => faq.category).filter(Boolean))];
+  const categories = ['all', ...new Set(allFaqs.map(faq => faq.meta.category).filter(Boolean))];
 
   // Filter FAQs based on search and category
   const filteredFaqs = allFaqs.filter(faq => {
     const matchesSearch = !searchTerm ||
-      faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
+      faq.meta.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      faq.published.answer.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || faq.meta.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -145,9 +152,9 @@ function FAQPortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent mb-2">
-                {system.title}
+                FAQs
               </h1>
-              <p className="text-emerald-100/80 text-xl leading-relaxed">{system.description}</p>
+              <p className="text-emerald-100/80 text-xl leading-relaxed">Frequently asked questions and quick answers for common inquiries.</p>
             </div>
           </motion.div>
 
@@ -277,11 +284,11 @@ function FAQPortalPage() {
           ) : (
             filteredFaqs.map((faq, index) => (
               <FaqItem
-                key={faq.id}
+                key={faq.meta.id}
                 faq={faq}
                 index={index}
-                isExpanded={expandedFaq === faq.id}
-                onToggle={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
+                isExpanded={expandedFaq === faq.meta.id}
+                onToggle={() => setExpandedFaq(expandedFaq === faq.meta.id ? null : faq.meta.id)}
               />
             ))
           )}
@@ -323,11 +330,11 @@ function FaqItem({ faq, index, isExpanded, onToggle }) {
             <h3 className={`font-semibold text-lg mb-2 transition-colors ${
               isExpanded ? 'text-emerald-100' : 'text-emerald-50 group-hover:text-emerald-100'
             }`}>
-              {faq.question}
+              {faq.meta.question}
             </h3>
-            {faq.category && (
+            {faq.meta.category && (
               <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
-                {faq.category}
+                {faq.meta.category}
               </Badge>
             )}
           </div>
@@ -359,8 +366,8 @@ function FaqItem({ faq, index, isExpanded, onToggle }) {
               </div>
               <div className="flex-1 prose prose-sm max-w-none">
                 <div className="text-emerald-50/90 leading-relaxed">
-                  {faq.answer ? (
-                    <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
+                  {faq.published.answer ? (
+                    <div dangerouslySetInnerHTML={{ __html: faq.published.answer }} />
                   ) : (
                     <span className="text-slate-500 italic">No answer provided yet</span>
                   )}

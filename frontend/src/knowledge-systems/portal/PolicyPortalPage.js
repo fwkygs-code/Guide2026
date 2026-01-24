@@ -14,15 +14,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
-import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
+import { listPublishedPolicies } from '../../policy-system/service';
 import axios from 'axios';
+
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 /**
  * Policy Portal Page - Authoritative Display
  */
 function PolicyPortalPage() {
   const { slug } = useParams();
-  const [system, setSystem] = useState(null);
+  const [publishedPolicies, setPublishedPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,12 +41,11 @@ function PolicyPortalPage() {
     setLoading(true);
     try {
       // Get workspace data from portal API
-      const portalResponse = await axios.get(`/api/portal/${slug}`);
+      const portalResponse = await axios.get(`${API}/portal/${slug}`);
       const workspaceId = portalResponse.data.workspace.id;
 
-      const systems = getKnowledgeSystems(workspaceId);
-      const policySystem = systems.find(s => s.type === 'policy' && s.enabled);
-      setSystem(policySystem);
+      const policies = listPublishedPolicies(workspaceId);
+      setPublishedPolicies(policies);
     } catch (error) {
       console.error('Failed to load policy system:', error);
     } finally {
@@ -127,42 +134,12 @@ function PolicyPortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 bg-clip-text text-transparent mb-2">
-                {system.title}
+                Policies
               </h1>
-              <p className="text-amber-100/80 text-xl leading-relaxed">{system.description}</p>
+              <p className="text-amber-100/80 text-xl leading-relaxed">Official policies and procedures with legal authority and compliance standards.</p>
             </div>
           </motion.div>
 
-          {/* Trust Indicators - Glass morphism badges */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="flex flex-wrap items-center gap-4 mb-8"
-          >
-            {system.content?.effectiveDate && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 backdrop-blur-sm border border-amber-500/20 rounded-xl">
-                <Calendar className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-100 text-sm font-medium">
-                  Effective: {new Date(system.content.effectiveDate).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-            {system.content?.jurisdiction && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 backdrop-blur-sm border border-amber-500/20 rounded-xl">
-                <Scale className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-100 text-sm font-medium">
-                  Jurisdiction: {system.content.jurisdiction}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 backdrop-blur-sm border border-amber-500/20 rounded-xl">
-              <Clock className="w-4 h-4 text-amber-400" />
-              <span className="text-amber-100 text-sm font-medium">
-                Updated: {new Date(system.updatedAt).toLocaleDateString()}
-              </span>
-            </div>
-          </motion.div>
 
           {/* Official Authority Notice - Enhanced glass card */}
           <motion.div
@@ -194,7 +171,7 @@ function PolicyPortalPage() {
       {/* Content - Futuristic layout */}
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="space-y-8">
-          {(system.content?.policies || []).length === 0 ? (
+          {publishedPolicies.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -209,8 +186,8 @@ function PolicyPortalPage() {
               </Surface>
             </motion.div>
           ) : (
-            (system.content?.policies || []).map((policy, index) => (
-              <PolicySection key={policy.id} policy={policy} index={index} />
+            publishedPolicies.map((policyData, index) => (
+              <PolicySection key={policyData.meta.id} policy={policyData} index={index} />
             ))
           )}
         </div>
@@ -241,24 +218,24 @@ function PolicySection({ policy, index }) {
                 <span className="text-white font-bold text-lg">{index + 1}</span>
               </motion.div>
               <div>
-                <CardTitle system="policy" className="text-2xl mb-2">{policy.title}</CardTitle>
-                {policy.category && (
+                <CardTitle system="policy" className="text-2xl mb-2">{policy.meta.title}</CardTitle>
+                {policy.meta.category && (
                   <Badge className="bg-amber-500/20 text-amber-200 border-amber-500/30 px-3 py-1">
-                    {policy.category}
+                    {policy.meta.category}
                   </Badge>
                 )}
               </div>
             </div>
 
             <div className="text-sm text-amber-200/60 font-medium">
-              Updated {new Date(policy.lastUpdated).toLocaleDateString()}
+              Updated {new Date(policy.meta.updatedAt).toLocaleDateString()}
             </div>
           </div>
         </CardHeader>
 
         <CardContent system="policy" className="px-8 pb-8">
           <div className="prose prose-lg max-w-none">
-            {policy.content.split('\n\n').map((paragraph, i) => (
+            {policy.published.content.split('\n\n').map((paragraph, i) => (
               <motion.p
                 key={i}
                 className="mb-6 text-amber-50/90 leading-relaxed last:mb-0 text-lg"

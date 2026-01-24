@@ -13,15 +13,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
-import { getKnowledgeSystems } from '../models/KnowledgeSystemService';
+import { listPublishedProcedures } from '../../procedure-system/service';
 import axios from 'axios';
+
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 /**
  * Procedure Portal Page - Systematic Display
  */
 function ProcedurePortalPage() {
   const { slug } = useParams();
-  const [system, setSystem] = useState(null);
+  const [publishedProcedures, setPublishedProcedures] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,12 +40,11 @@ function ProcedurePortalPage() {
     setLoading(true);
     try {
       // Get workspace data from portal API
-      const portalResponse = await axios.get(`/api/portal/${slug}`);
+      const portalResponse = await axios.get(`${API}/portal/${slug}`);
       const workspaceId = portalResponse.data.workspace.id;
 
-      const systems = getKnowledgeSystems(workspaceId);
-      const procedureSystem = systems.find(s => s.type === 'procedure' && s.enabled);
-      setSystem(procedureSystem);
+      const procedures = listPublishedProcedures(workspaceId);
+      setPublishedProcedures(procedures);
     } catch (error) {
       console.error('Failed to load procedure system:', error);
     } finally {
@@ -126,9 +133,9 @@ function ProcedurePortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                {system.title}
+                Procedures
               </h1>
-              <p className="text-cyan-100/80 text-xl leading-relaxed">{system.description}</p>
+              <p className="text-cyan-100/80 text-xl leading-relaxed">Step-by-step operational procedures for consistent execution and compliance.</p>
             </div>
           </motion.div>
 
@@ -142,13 +149,12 @@ function ProcedurePortalPage() {
             <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-xl">
               <Workflow className="w-4 h-4 text-cyan-400" />
               <span className="text-cyan-100 text-sm font-medium">
-                {system.content?.procedures?.length || 0} Procedures Available
+                {publishedProcedures.length} Procedures Available
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-xl">
               <Clock className="w-4 h-4 text-cyan-400" />
               <span className="text-cyan-100 text-sm font-medium">
-                Updated: {new Date(system.updatedAt).toLocaleDateString()}
               </span>
             </div>
           </motion.div>
@@ -183,7 +189,7 @@ function ProcedurePortalPage() {
       {/* Content - Systematic workflow layout */}
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="space-y-8">
-          {(system.content?.procedures || []).length === 0 ? (
+          {publishedProcedures.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -198,8 +204,8 @@ function ProcedurePortalPage() {
               </Surface>
             </motion.div>
           ) : (
-            (system.content?.procedures || []).map((procedure, index) => (
-              <ProcedureWorkflow key={procedure.id} procedure={procedure} index={index} />
+            publishedProcedures.map((procedureData, index) => (
+              <ProcedureWorkflow key={procedureData.meta.id} procedure={procedureData} index={index} />
             ))
           )}
         </div>
@@ -224,7 +230,7 @@ function ProcedureWorkflow({ procedure, index }) {
     setCompletedSteps(newCompleted);
   };
 
-  const progress = procedure.steps ? (completedSteps.size / procedure.steps.length) * 100 : 0;
+  const progress = procedure.published.steps ? (completedSteps.size / procedure.published.steps.length) * 100 : 0;
 
   return (
     <motion.div
@@ -245,19 +251,19 @@ function ProcedureWorkflow({ procedure, index }) {
               </motion.div>
               <div>
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-100 to-white bg-clip-text text-transparent mb-1">
-                  {procedure.title}
+                  {procedure.meta.title}
                 </h3>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-cyan-500/20 text-cyan-200 border-cyan-500/30 px-3 py-1">
-                    {procedure.category || 'Procedure'}
+                    {procedure.meta.category || 'Procedure'}
                   </Badge>
                   <Badge className="bg-blue-500/20 text-blue-200 border-blue-500/30 px-3 py-1">
-                    {procedure.steps?.length || 0} Steps
+                    {procedure.published.steps?.length || 0} Steps
                   </Badge>
                 </div>
-                {procedure.description && (
+                {procedure.meta.description && (
                   <p className="text-cyan-100/80 text-sm leading-relaxed max-w-2xl">
-                    {procedure.description}
+                    {procedure.meta.description}
                   </p>
                 )}
               </div>
@@ -275,32 +281,32 @@ function ProcedureWorkflow({ procedure, index }) {
                 />
               </div>
               <div className="text-xs text-cyan-300/60 mt-1">
-                {completedSteps.size} of {procedure.steps?.length || 0} complete
+                {completedSteps.size} of {procedure.published.steps?.length || 0} complete
               </div>
             </div>
           </div>
 
           {/* Overview */}
-          {procedure.overview && (
+          {procedure.published.overview && (
             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
               <p className="text-cyan-100/90 text-sm italic">
-                "{procedure.overview}"
+                "{procedure.published.overview}"
               </p>
             </div>
           )}
         </CardHeader>
 
         <CardContent system="procedure" className="px-8 pb-8">
-          {procedure.steps && procedure.steps.length > 0 ? (
+          {procedure.published.steps && procedure.published.steps.length > 0 ? (
             <div className="space-y-4">
-              {procedure.steps.map((step, stepIndex) => (
+              {procedure.published.steps.map((step, stepIndex) => (
                 <ProcedureStep
                   key={step.id}
                   step={step}
                   stepIndex={stepIndex}
                   isCompleted={completedSteps.has(stepIndex)}
                   onToggle={() => toggleStep(stepIndex)}
-                  isLast={stepIndex === procedure.steps.length - 1}
+                  isLast={stepIndex === procedure.published.steps.length - 1}
                 />
               ))}
             </div>
