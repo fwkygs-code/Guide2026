@@ -17,12 +17,14 @@ import PlanSelectionModal from '../components/PlanSelectionModal';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
+import { useTranslation } from 'react-i18next';
 
 const SettingsPage = () => {
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { textSize, setTextSize } = useTextSize();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   
   // Resolve workspace slug to ID
@@ -324,12 +326,12 @@ const SettingsPage = () => {
           {/* Basic Settings */}
           <Card interactive={true} className="mb-6">
             <Card.Header>
-              <Card.Title className="text-white">Basic Information</Card.Title>
+              <Card.Title className="text-white">{t('settings.basicInfo')}</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-6">
             <div className="space-y-6">
               <div>
-                <Label htmlFor="workspace-name" className="text-white">Workspace Name</Label>
+                <Label htmlFor="workspace-name" className="text-white">{t('settings.workspaceName')}</Label>
                 <Input
                   id="workspace-name"
                   value={name}
@@ -339,7 +341,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="logo" className="text-white">Workspace Logo</Label>
+                <Label htmlFor="logo" className="text-white">{t('settings.workspaceLogo')}</Label>
                 <div className="mt-1.5 space-y-2">
                   {logoUrl && (
                     <div className="relative inline-block">
@@ -359,22 +361,24 @@ const SettingsPage = () => {
                       onClick={() => setLogoUrl('')}
                       className="text-destructive"
                     >
-                      Remove Logo
+                      {t('settings.removeLogo')}
                     </Button>
                   )}
                 </div>
               </div>
               <div>
-                <Label htmlFor="brand-color" className="text-white">Brand Color</Label>
+                <Label htmlFor="brand-color" className="text-white">{t('settings.brandColor')}</Label>
                 <div className="flex flex-col sm:flex-row gap-3 mt-1.5 items-start">
-                  <Input
-                    id="brand-color"
-                    type="color"
-                    value={brandColor}
-                    onChange={(e) => setBrandColor(e.target.value)}
-                    className="w-full sm:w-20 h-10 text-white"
-                    data-testid="brand-color-input"
-                  />
+                  <div className="w-full sm:w-20 h-10 flex-shrink-0">
+                    <Input
+                      id="brand-color"
+                      type="color"
+                      value={brandColor}
+                      onChange={(e) => setBrandColor(e.target.value)}
+                      className="w-full h-full text-white"
+                      data-testid="brand-color-input"
+                    />
+                  </div>
                   <Input
                     type="text"
                     value={brandColor}
