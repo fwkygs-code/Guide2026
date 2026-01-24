@@ -103,17 +103,45 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
             setLoading(false);
             return;
           } catch (error) {
-            // Fall back to localStorage if not in backend
             console.log('Policy not in backend, checking localStorage...');
           }
 
-          // Try localStorage
+          // Try localStorage and migrate to backend
           const existingDraft = loadPolicyDraft(itemId);
           const existingMeta = loadPolicyMeta(itemId);
           if (existingDraft && existingMeta) {
-            setDraft(existingDraft);
-            setMeta(existingMeta);
+            // Create in backend with localStorage data
+            const migratedSystem = await policyApiClient.create(
+              workspaceId, 
+              existingDraft.title || 'Migrated Policy',
+              existingDraft.description || ''
+            );
+            
+            // Update backend with full content
+            const updatedSystem = await policyApiClient.update(workspaceId, migratedSystem.id, {
+              title: existingDraft.title,
+              description: existingDraft.description,
+              content: {
+                effectiveDate: existingDraft.effectiveDate,
+                jurisdiction: existingDraft.jurisdiction,
+                sections: existingDraft.sections
+              }
+            });
+            
+            setBackendId(updatedSystem.id);
+            setDraft(normalizePolicyDraft(updatedSystem));
+            setMeta({
+              id: updatedSystem.id,
+              workspaceId: updatedSystem.workspace_id,
+              title: updatedSystem.title,
+              createdAt: updatedSystem.created_at,
+              updatedAt: updatedSystem.updated_at,
+              publishedAt: null
+            });
             setLoading(false);
+            
+            // Update URL to use new backend ID
+            window.history.replaceState(null, '', `/workspace/${workspaceId}/knowledge/policy/${updatedSystem.id}`);
             return;
           }
         }
@@ -131,6 +159,11 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
           publishedAt: null
         });
         setLoading(false);
+        
+        // Update URL to use backend ID
+        if (!itemId) {
+          window.history.replaceState(null, '', `/workspace/${workspaceId}/knowledge/policy/${newSystem.id}`);
+        }
       } catch (error) {
         console.error('Failed to load policy from backend:', error);
         setLoading(false);
