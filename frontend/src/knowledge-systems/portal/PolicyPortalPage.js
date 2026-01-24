@@ -32,11 +32,13 @@ function PolicyPortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
+      console.log('[PolicyPortal] Loading policies for slug:', slug);
       const policies = await portalKnowledgeSystemsService.getAllByType(slug, 'policy');
       console.log('[PolicyPortal] Loaded policies:', policies);
+      console.log('[PolicyPortal] Number of policies:', policies.length);
       setPublishedPolicies(policies);
     } catch (error) {
-      console.error('Failed to load policy system:', error);
+      console.error('[PolicyPortal] Failed to load policy system:', error);
     } finally {
       setLoading(false);
     }

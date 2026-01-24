@@ -4578,7 +4578,15 @@ async def get_portal_knowledge_systems(slug: str, system_type: Optional[Knowledg
     if system_type:
         query["system_type"] = system_type
     
+    print(f"[DEBUG] Portal query for slug={slug}, workspace_id={workspace['id']}, system_type={system_type}")
+    print(f"[DEBUG] Query: {query}")
+    
     systems = await db.knowledge_systems.find(query, {"_id": 0}).to_list(1000)
+    
+    print(f"[DEBUG] Found {len(systems)} systems")
+    if systems:
+        print(f"[DEBUG] First system: {systems[0]}")
+    
     return systems
 
 @api_router.get("/portal/{slug}/knowledge-systems/{system_id}")
