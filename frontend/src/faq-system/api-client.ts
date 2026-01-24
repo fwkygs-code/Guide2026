@@ -3,7 +3,15 @@
  * Handles all backend communication for FAQ management
  */
 
-import { api } from '../lib/api';
+import axios from 'axios';
+
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 export interface FAQContent {
   question?: string;
@@ -26,7 +34,7 @@ export interface FAQSystem {
 
 export const faqApiClient = {
   async create(workspaceId: string, title: string, description: string = ''): Promise<FAQSystem> {
-    const response = await api.createKnowledgeSystem(workspaceId, {
+    const response = await axios.post(`${API}/workspaces/${workspaceId}/knowledge-systems`, {
       title,
       description,
       system_type: 'faq',
@@ -37,21 +45,21 @@ export const faqApiClient = {
   },
 
   async getById(workspaceId: string, systemId: string): Promise<FAQSystem> {
-    const response = await api.getKnowledgeSystem(workspaceId, systemId);
+    const response = await axios.get(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
     return response.data;
   },
 
   async update(workspaceId: string, systemId: string, data: { title: string; description: string; content: FAQContent }): Promise<FAQSystem> {
-    const response = await api.updateKnowledgeSystem(workspaceId, systemId, data);
+    const response = await axios.put(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`, data);
     return response.data;
   },
 
   async publish(workspaceId: string, systemId: string): Promise<FAQSystem> {
-    const response = await api.updateKnowledgeSystem(workspaceId, systemId, { status: 'published' });
+    const response = await axios.put(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`, { status: 'published' });
     return response.data;
   },
 
   async delete(workspaceId: string, systemId: string): Promise<void> {
-    await api.deleteKnowledgeSystem(workspaceId, systemId);
+    await axios.delete(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
   }
 };
