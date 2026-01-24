@@ -236,13 +236,31 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
   };
 
   const handlePublish = async () => {
-    if (!meta || !backendId) return;
+    if (!meta || !backendId || !draft) return;
+    
+    setPublishError('');
+    
     try {
-      await policyApiClient.publish(workspaceId!, backendId);
+      // First, ensure latest content is saved
+      await policyApiClient.update(workspaceId!, backendId, {
+        title: draft.title,
+        description: draft.description,
+        content: {
+          effectiveDate: draft.effectiveDate,
+          jurisdiction: draft.jurisdiction,
+          sections: draft.sections
+        }
+      });
+      
+      // Then publish
+      const published = await policyApiClient.publish(workspaceId!, backendId);
+      console.log('[Policy] Published successfully:', published);
+      
       setMeta({ ...meta, publishedAt: new Date().toISOString() });
-      setPublishError('');
+      alert('Policy published successfully! It will now appear on the portal.');
     } catch (error) {
-      setPublishError('Publish failed. Review draft before publishing.');
+      console.error('[Policy] Publish failed:', error);
+      setPublishError('Publish failed. Please try again.');
     }
   };
 
