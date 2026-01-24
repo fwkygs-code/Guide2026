@@ -14,16 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
-import { listPublishedPolicies } from '../../policy-system/service';
+import { portalKnowledgeSystemsService } from '../api-service';
 import axios from 'axios';
-
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
-
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
 /**
  * Policy Portal Page - Authoritative Display
@@ -40,11 +32,7 @@ function PolicyPortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      // Get workspace data from portal API
-      const portalResponse = await axios.get(`${API}/portal/${slug}`);
-      const workspaceId = portalResponse.data.workspace.id;
-
-      const policies = listPublishedPolicies(workspaceId);
+      const policies = await portalKnowledgeSystemsService.getAllByType(slug, 'policy');
       setPublishedPolicies(policies);
     } catch (error) {
       console.error('Failed to load policy system:', error);
@@ -187,7 +175,7 @@ function PolicyPortalPage() {
             </motion.div>
           ) : (
             publishedPolicies.map((policyData, index) => (
-              <PolicySection key={policyData.meta.id} policy={policyData} index={index} />
+              <PolicySection key={policyData.id} policy={policyData} index={index} />
             ))
           )}
         </div>
@@ -218,39 +206,48 @@ function PolicySection({ policy, index }) {
                 <span className="text-white font-bold text-lg">{index + 1}</span>
               </motion.div>
               <div>
-                <CardTitle system="policy" className="text-2xl mb-2">{policy.meta.title}</CardTitle>
-                {policy.meta.category && (
+                <CardTitle system="policy" className="text-2xl mb-2">{policy.title}</CardTitle>
+                {policy.content?.category && (
                   <Badge className="bg-amber-500/20 text-amber-200 border-amber-500/30 px-3 py-1">
-                    {policy.meta.category}
+                    {policy.content.category}
                   </Badge>
                 )}
               </div>
             </div>
 
             <div className="text-sm text-amber-200/60 font-medium">
-              Updated {new Date(policy.meta.updatedAt).toLocaleDateString()}
+              Updated {new Date(policy.updated_at).toLocaleDateString()}
             </div>
           </div>
         </CardHeader>
 
         <CardContent system="policy" className="px-8 pb-8">
           <div className="prose prose-lg max-w-none">
-            {policy.published.content.split('\n\n').map((paragraph, i) => (
-              <motion.p
+            {policy.content?.sections?.map((section, i) => (
+              <motion.div
                 key={i}
-                className="mb-6 text-amber-50/90 leading-relaxed last:mb-0 text-lg"
+                className="mb-8 last:mb-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: (index * 0.1) + (i * 0.1) }}
               >
-                {paragraph.split('\n').map((line, j) => (
-                  <span key={j}>
-                    {line}
-                    {j < paragraph.split('\n').length - 1 && <br />}
-                  </span>
+                <h3 className="text-xl font-bold text-amber-100 mb-3">{section.title}</h3>
+                {section.content && section.content.split('\n\n').map((paragraph, j) => (
+                  <p key={j} className="mb-4 text-amber-50/90 leading-relaxed last:mb-0 text-base">
+                    {paragraph.split('\n').map((line, k) => (
+                      <span key={k}>
+                        {line}
+                        {k < paragraph.split('\n').length - 1 && <br />}
+                      </span>
+                    ))}
+                  </p>
                 ))}
-              </motion.p>
-            ))}
+              </motion.div>
+            )) || (
+              <p className="text-amber-50/90 leading-relaxed text-lg">
+                {policy.description || 'No content available'}
+              </p>
+            )}
           </div>
 
           {/* Authority Notice */}

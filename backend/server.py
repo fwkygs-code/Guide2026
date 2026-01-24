@@ -146,6 +146,17 @@ class WalkthroughStatus(str, Enum):
     DRAFT = "draft"
     PUBLISHED = "published"
 
+class KnowledgeSystemType(str, Enum):
+    POLICY = "policy"
+    PROCEDURE = "procedure"
+    DOCUMENTATION = "documentation"
+    FAQ = "faq"
+    DECISION_TREE = "decision_tree"
+
+class KnowledgeSystemStatus(str, Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+
 class NavigationType(str, Enum):
     NEXT_PREV = "next_prev"
     CHECKOFF = "checkoff"
@@ -372,6 +383,32 @@ class Feedback(BaseModel):
     rating: str
     comment: Optional[str] = None
     hesitation_step: Optional[str] = None
+
+class KnowledgeSystemCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    system_type: KnowledgeSystemType
+    content: Dict[str, Any] = {}
+    status: Optional[KnowledgeSystemStatus] = KnowledgeSystemStatus.DRAFT
+
+class KnowledgeSystemUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    content: Optional[Dict[str, Any]] = None
+    status: Optional[KnowledgeSystemStatus] = None
+
+class KnowledgeSystem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    workspace_id: str
+    title: str
+    description: Optional[str] = None
+    system_type: KnowledgeSystemType
+    content: Dict[str, Any] = {}
+    status: KnowledgeSystemStatus = KnowledgeSystemStatus.DRAFT
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StepsReorder(BaseModel):
@@ -4398,6 +4435,172 @@ async def delete_walkthrough(workspace_id: str, walkthrough_id: str, current_use
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
     return {"message": "Walkthrough archived"}
+
+# ==========================================
+# Knowledge Systems Routes
+# ==========================================
+
+@api_router.post("/workspaces/{workspace_id}/knowledge-systems", response_model=KnowledgeSystem)
+async def create_knowledge_system(
+    workspace_id: str,
+    system_data: KnowledgeSystemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new knowledge system (draft or published)"""
+    # Check workspace access (members can create, viewers cannot)
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot create knowledge systems")
+    
+    knowledge_system = KnowledgeSystem(
+        workspace_id=workspace_id,
+        title=system_data.title,
+        description=system_data.description,
+        system_type=system_data.system_type,
+        content=system_data.content,
+        status=system_data.status or KnowledgeSystemStatus.DRAFT,
+        created_by=current_user.id
+    )
+    
+    await db.knowledge_systems.insert_one(knowledge_system.model_dump(by_alias=True))
+    return knowledge_system
+
+@api_router.get("/workspaces/{workspace_id}/knowledge-systems")
+async def list_knowledge_systems(
+    workspace_id: str,
+    system_type: Optional[KnowledgeSystemType] = None,
+    status: Optional[KnowledgeSystemStatus] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """List all knowledge systems for a workspace (auth required)"""
+    await check_workspace_access(workspace_id, current_user.id)
+    
+    query = {"workspace_id": workspace_id}
+    if system_type:
+        query["system_type"] = system_type
+    if status:
+        query["status"] = status
+    
+    systems = await db.knowledge_systems.find(query, {"_id": 0}).to_list(1000)
+    return systems
+
+@api_router.get("/workspaces/{workspace_id}/knowledge-systems/{system_id}")
+async def get_knowledge_system(
+    workspace_id: str,
+    system_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific knowledge system (auth required)"""
+    await check_workspace_access(workspace_id, current_user.id)
+    
+    system = await db.knowledge_systems.find_one(
+        {"id": system_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    if not system:
+        raise HTTPException(status_code=404, detail="Knowledge system not found")
+    
+    return system
+
+@api_router.put("/workspaces/{workspace_id}/knowledge-systems/{system_id}")
+async def update_knowledge_system(
+    workspace_id: str,
+    system_id: str,
+    update_data: KnowledgeSystemUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a knowledge system"""
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot edit knowledge systems")
+    
+    # Build update dict
+    update_dict = {"updated_at": datetime.now(timezone.utc)}
+    if update_data.title is not None:
+        update_dict["title"] = update_data.title
+    if update_data.description is not None:
+        update_dict["description"] = update_data.description
+    if update_data.content is not None:
+        update_dict["content"] = update_data.content
+    if update_data.status is not None:
+        update_dict["status"] = update_data.status
+    
+    result = await db.knowledge_systems.update_one(
+        {"id": system_id, "workspace_id": workspace_id},
+        {"$set": update_dict}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Knowledge system not found")
+    
+    # Return updated system
+    system = await db.knowledge_systems.find_one(
+        {"id": system_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    return system
+
+@api_router.delete("/workspaces/{workspace_id}/knowledge-systems/{system_id}")
+async def delete_knowledge_system(
+    workspace_id: str,
+    system_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a knowledge system"""
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403, detail="Viewers cannot delete knowledge systems")
+    
+    result = await db.knowledge_systems.delete_one(
+        {"id": system_id, "workspace_id": workspace_id}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Knowledge system not found")
+    
+    return {"message": "Knowledge system deleted"}
+
+# ==========================================
+# Public Portal Knowledge Systems Routes
+# ==========================================
+
+@api_router.get("/portal/{slug}/knowledge-systems")
+async def get_portal_knowledge_systems(slug: str, system_type: Optional[KnowledgeSystemType] = None):
+    """Get published knowledge systems for a portal (public, no auth)"""
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0, "id": 1})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Portal not found")
+    
+    query = {
+        "workspace_id": workspace["id"],
+        "status": KnowledgeSystemStatus.PUBLISHED
+    }
+    if system_type:
+        query["system_type"] = system_type
+    
+    systems = await db.knowledge_systems.find(query, {"_id": 0}).to_list(1000)
+    return systems
+
+@api_router.get("/portal/{slug}/knowledge-systems/{system_id}")
+async def get_portal_knowledge_system(slug: str, system_id: str):
+    """Get a specific published knowledge system for portal (public, no auth)"""
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0, "id": 1})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Portal not found")
+    
+    system = await db.knowledge_systems.find_one(
+        {
+            "id": system_id,
+            "workspace_id": workspace["id"],
+            "status": KnowledgeSystemStatus.PUBLISHED
+        },
+        {"_id": 0}
+    )
+    
+    if not system:
+        raise HTTPException(status_code=404, detail="Knowledge system not found or not published")
+    
+    return system
 
 # Step Routes
 @api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps")

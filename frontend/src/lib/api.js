@@ -270,5 +270,25 @@ export const api = {
   adminGetEmailConfig: () => axios.get(`${API}/admin/email/config`),
   adminTestEmail: (email) => axios.post(`${API}/admin/email/test`, email),
   adminGetPayPalAudit: (subscriptionId) => axios.get(`${API}/admin/paypal/audit/${subscriptionId}`),
-  adminGetPayPalState: (subscriptionId) => axios.get(`${API}/admin/paypal/state/${subscriptionId}`)
+  adminGetPayPalState: (subscriptionId) => axios.get(`${API}/admin/paypal/state/${subscriptionId}`),
+
+  // Knowledge Systems
+  createKnowledgeSystem: (workspaceId, data) => axios.post(`${API}/workspaces/${workspaceId}/knowledge-systems`, data),
+  getKnowledgeSystems: (workspaceId, systemType = null, status = null) => {
+    const params = {};
+    if (systemType) params.system_type = systemType;
+    if (status) params.status = status;
+    return axios.get(`${API}/workspaces/${workspaceId}/knowledge-systems`, { params });
+  },
+  getKnowledgeSystem: (workspaceId, systemId) => axios.get(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`),
+  updateKnowledgeSystem: (workspaceId, systemId, data) => axios.put(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`, data),
+  deleteKnowledgeSystem: (workspaceId, systemId) => axios.delete(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`),
+
+  // Public Portal Knowledge Systems (no auth)
+  getPortalKnowledgeSystems: (slug, systemType = null) => {
+    const params = {};
+    if (systemType) params.system_type = systemType;
+    return axios.get(`${API}/portal/${slug}/knowledge-systems`, { params });
+  },
+  getPortalKnowledgeSystem: (slug, systemId) => axios.get(`${API}/portal/${slug}/knowledge-systems/${systemId}`)
 };

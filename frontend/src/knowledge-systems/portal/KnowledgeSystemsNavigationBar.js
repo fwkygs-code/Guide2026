@@ -8,59 +8,90 @@ import { PROCEDURE_ROUTES } from '../../procedure-system/routes';
 import { DOCUMENTATION_ROUTES } from '../../documentation-system/routes';
 import { FAQ_ROUTES } from '../../faq-system/routes';
 import { DECISION_TREE_ROUTES } from '../../decision-tree-system/routes';
-import { listPublishedPolicies } from '../../policy-system/service';
-import { listPublishedProcedures } from '../../procedure-system/service';
-import { listPublishedDocumentation } from '../../documentation-system/service';
-import { listPublishedFAQs } from '../../faq-system/service';
-import { listPublishedDecisionTrees } from '../../decision-tree-system/service';
+import { portalKnowledgeSystemsService } from '../api-service';
 
 function KnowledgeSystemsNavigationBar({ workspaceId }) {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [isMinimized, setIsMinimized] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [systemCounts, setSystemCounts] = useState({
+    policy: 0,
+    procedure: 0,
+    documentation: 0,
+    faq: 0,
+    decision_tree: 0
+  });
+
+  useEffect(() => {
+    if (!slug) return;
+    
+    // Fetch counts for each system type
+    const fetchCounts = async () => {
+      try {
+        const [policies, procedures, documentation, faqs, decisionTrees] = await Promise.all([
+          portalKnowledgeSystemsService.getAllByType(slug, 'policy'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'procedure'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'documentation'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'faq'),
+          portalKnowledgeSystemsService.getAllByType(slug, 'decision_tree')
+        ]);
+
+        setSystemCounts({
+          policy: policies.length,
+          procedure: procedures.length,
+          documentation: documentation.length,
+          faq: faqs.length,
+          decision_tree: decisionTrees.length
+        });
+      } catch (error) {
+        console.error('Error fetching knowledge system counts:', error);
+      }
+    };
+
+    fetchCounts();
+  }, [slug]);
 
   const systems = useMemo(() => {
-    if (!workspaceId) return [];
     const entries = [
       {
         id: 'policy',
         title: 'Policies',
         color: '#f59e0b',
         route: POLICY_ROUTES.portal,
-        count: listPublishedPolicies(workspaceId).length
+        count: systemCounts.policy
       },
       {
         id: 'procedure',
         title: 'Procedures',
         color: '#22d3ee',
         route: PROCEDURE_ROUTES.portal,
-        count: listPublishedProcedures(workspaceId).length
+        count: systemCounts.procedure
       },
       {
         id: 'documentation',
         title: 'Documentation',
         color: '#a855f7',
         route: DOCUMENTATION_ROUTES.portal,
-        count: listPublishedDocumentation(workspaceId).length
+        count: systemCounts.documentation
       },
       {
         id: 'faq',
         title: 'FAQs',
         color: '#34d399',
         route: FAQ_ROUTES.portal,
-        count: listPublishedFAQs(workspaceId).length
+        count: systemCounts.faq
       },
       {
         id: 'decision-tree',
         title: 'Decision Trees',
         color: '#6366f1',
         route: DECISION_TREE_ROUTES.portal,
-        count: listPublishedDecisionTrees(workspaceId).length
+        count: systemCounts.decision_tree
       }
     ];
     return entries.filter((entry) => entry.count > 0);
-  }, [workspaceId]);
+  }, [systemCounts]);
 
   if (!systems.length || isDismissed) return null;
 
