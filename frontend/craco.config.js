@@ -77,7 +77,8 @@ const webpackConfig = {
             "date-fns",
             "uuid",
             "debounce",
-            "lodash.debounce"
+            "lodash.debounce",
+            "axios"
           ]
         })
       );
