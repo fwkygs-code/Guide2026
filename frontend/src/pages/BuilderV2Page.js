@@ -657,7 +657,7 @@ const BuilderV2Page = () => {
                 {/* Description */}
                 <div>
                   <Label htmlFor="description" className="text-sm font-medium text-foreground mb-2 block">
-                    {t('labels.description')}
+                    {t('common.description')}
                   </Label>
                   <Textarea
                     id="description"

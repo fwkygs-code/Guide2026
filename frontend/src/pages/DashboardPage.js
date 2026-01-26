@@ -162,11 +162,11 @@ const DashboardPage = () => {
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-slate-900">{t('workspace.create')}</DialogTitle>
+              <DialogTitle className="text-foreground">{t('workspace.create')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateWorkspace} className="space-y-4 mt-4" data-onboarding="workspace-create-form">
                 <div>
-                  <Label htmlFor="workspace-name" className="text-slate-900">{t('workspace.workspaces')} {t('common.name')}</Label>
+                  <Label htmlFor="workspace-name" className="text-sm font-medium text-foreground">{t('workspace.workspaces')} {t('common.name')}</Label>
                   <Input
                     id="workspace-name"
                     value={newWorkspaceName}
@@ -178,7 +178,7 @@ const DashboardPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="brand-color" className="text-slate-900">{t('workspace.brandColor')}</Label>
+                  <Label htmlFor="brand-color" className="text-sm font-medium text-foreground">{t('workspace.brandColor')}</Label>
                   <div className="flex gap-3 mt-1.5">
                     <Input
                       id="brand-color"
@@ -199,7 +199,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="workspace-logo" className="text-slate-900">{t('workspace.workspaceLogo')}</Label>
+                  <Label htmlFor="workspace-logo" className="text-sm font-medium text-foreground">{t('workspace.workspaceLogo')}</Label>
                   <div className="mt-1.5 space-y-2">
                     {newWorkspaceLogo && (
                       <div className="relative">
@@ -244,7 +244,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="workspace-background" className="text-slate-900">{t('workspace.portalBackgroundImage')}</Label>
+                  <Label htmlFor="workspace-background" className="text-sm font-medium text-foreground">{t('workspace.portalBackgroundImage')}</Label>
                   <div className="mt-1.5 space-y-2">
                     {newWorkspaceBackground && (
                       <div className="relative">
