@@ -492,7 +492,7 @@ const CategoriesPage = () => {
                         data-testid={`create-subcategory-${category.id}`}
                       >
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Sub-category
+                        {t('categories.addSubCategory')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -502,7 +502,7 @@ const CategoriesPage = () => {
                         data-testid={`edit-category-${category.id}`}
                       >
                         <Edit className="w-4 h-4 mr-2" />
-                        Edit
+                        {t('common.edit')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -512,7 +512,7 @@ const CategoriesPage = () => {
                         data-testid={`delete-category-${category.id}`}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
+                        {t('common.delete')}
                       </Button>
                     </div>
 
@@ -599,7 +599,7 @@ const CategoriesPage = () => {
             </DialogHeader>
             <form onSubmit={handleUpdateCategory} className="space-y-4 mt-4">
               <div>
-                <Label htmlFor="edit-category-name">Name</Label>
+                <Label htmlFor="edit-category-name">{t('common.name')}</Label>
                 <Input
                   id="edit-category-name"
                   value={editCategoryName}
@@ -611,7 +611,7 @@ const CategoriesPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-category-desc">Description</Label>
+                <Label htmlFor="edit-category-desc">{t('common.description')}</Label>
                 <Textarea
                   id="edit-category-desc"
                   value={editCategoryDesc}

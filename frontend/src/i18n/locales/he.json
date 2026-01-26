@@ -211,6 +211,9 @@
     "creatingSubcategory": "יוצר תת-קטגוריה תחת:",
     "changeToTopLevel": "שנה לקטגוריה ברמה העליונה"
   },
+  "categories": {
+    "addSubCategory": "הוסף תת-קטגוריה"
+  },
   "walkthrough": {
     "new": "מדריך חדש",
     "edit": "ערוך מדריך",
@@ -249,6 +252,12 @@
     "selectAll": "בחר הכל",
     "unselectAll": "בטל בחירת הכל",
     "cannotDeleteAll": "לא ניתן למחוק את כל השלבים",
+    "editSettings": "ערוך הגדרות מדריך",
+    "editSettingsDescription": "עדכן שם מדריך, תיאור, אייקון וקטגוריות",
+    "name": "שם מדריך",
+    "urlName": "שם URL (אופציונלי)",
+    "iconPhoto": "אייקון/תמונה (אופציונלי)",
+    "deleteForever": "מחק לנצח",
     "createNew": "צור מדריך חדש",
     "setupBeforeSteps": "הגדר את המדריך שלך לפני הוספת שלבים",
     "nameRequired": "שם מדריך *",
@@ -353,7 +362,12 @@
     "invitationSent": "הזמנה נשלחה אל {{email}}",
     "invitationCancelled": "הזמנה בוטלה",
     "memberRemoved": "חבר הוסר",
-    "workspaceDeleted": "אזור העבודה נמחק בהצלחה"
+    "workspaceDeleted": "אזור העבודה נמחק בהצלחה",
+    "portalExternalLinks": "קישורים חיצוניים לפורטל",
+    "planManagement": "ניהול תוכנית",
+    "textSize": "גודל טקסט",
+    "workspaceSharing": "שיתוף אזור עבודה",
+    "publicPortal": "פורטל ציבורי"
   },
   "quota": {
     "usage": "שימוש במכסה",

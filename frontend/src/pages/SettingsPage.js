@@ -329,7 +329,6 @@ const SettingsPage = () => {
               <Card.Title className="text-foreground">{t('settings.basicInfo')}</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-6">
-            <div className="space-y-6">
               <div>
                 <Label htmlFor="workspace-name" className="text-foreground">{t('settings.workspaceName')}</Label>
                 <Input
@@ -387,7 +386,6 @@ const SettingsPage = () => {
                   />
                 </div>
               </div>
-            </div>
             </Card.Content>
           </Card>
 
@@ -395,7 +393,7 @@ const SettingsPage = () => {
           <div className="glass rounded-xl p-6">
             <h2 className="text-xl font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
               <Globe className="w-5 h-5" />
-              Portal Branding
+              {t('settings.portalBranding')}
             </h2>
             <div className="space-y-4">
               <div>
@@ -539,7 +537,7 @@ const SettingsPage = () => {
           <div className="glass rounded-xl p-6">
             <h2 className="text-xl font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
               <ExternalLink className="w-5 h-5" />
-              Portal External Links
+              {t('settings.portalExternalLinks')}
             </h2>
             <p className="text-xs text-muted-foreground mb-4">Add buttons with external links that will appear at the top of your portal (e.g., link to your website, support page, etc.)</p>
             <div className="space-y-3">
@@ -600,7 +598,7 @@ const SettingsPage = () => {
 
           {/* Plan Management */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Plan Management</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.planManagement')}</h2>
             <div className="space-y-4">
               <div>
                 <Label>Current Plan</Label>
@@ -620,7 +618,7 @@ const SettingsPage = () => {
 
           {/* Danger Zone - Delete Workspace */}
           <div className="glass rounded-xl p-6 border-2 border-red-500/50">
-            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Danger Zone</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.dangerZone')}</h2>
             <div className="space-y-4">
               <div>
                 <Label className="text-red-900">Delete Workspace</Label>
@@ -672,7 +670,7 @@ const SettingsPage = () => {
 
           {/* Text Size Settings */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Text Size</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.textSize')}</h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="text-size" className="text-foreground">Text Size Preference</Label>
@@ -706,7 +704,7 @@ const SettingsPage = () => {
           {/* Workspace Sharing */}
           {workspace && workspaceId && user && isOwner && (
             <div className="glass rounded-xl p-6">
-              <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Workspace Sharing</h2>
+              <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.workspaceSharing')}</h2>
               <div className="space-y-4">
                 <div>
                   <Label>Invite User by Email</Label>
@@ -782,7 +780,7 @@ const SettingsPage = () => {
 
           {/* Portal Settings */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Public Portal</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.publicPortal')}</h2>
             <Tabs defaultValue="share" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="share">

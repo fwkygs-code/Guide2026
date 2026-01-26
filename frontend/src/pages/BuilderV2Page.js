@@ -847,7 +847,7 @@ const BuilderV2Page = () => {
               disabled={isSaving}
             >
               <Eye className="w-4 h-4 mr-2" />
-              Publish
+              {t('walkthrough.publish')}
             </Button>
           )}
         </div>
@@ -1218,33 +1218,8 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
   // Create a mapping of block types to display names
   const getBlockDisplayName = (type) => {
     const labelKey = getBlockLabelKey(type);
-    const translated = t(labelKey, { defaultValue: null });
-
-    if (translated && translated !== labelKey && translated !== type) {
-      return translated;
-    }
-
-    // Fallback to hardcoded English names (same as translation values)
-    const names = {
-      heading: 'Heading',
-      text: 'Text',
-      image: 'Image/GIF',
-      video: 'Video',
-      carousel: 'Carousel',
-      button: 'Button',
-      divider: 'Divider',
-      spacer: 'Spacer',
-      problem: 'Problem',
-      checklist: 'Checklist',
-      callout: 'Callout',
-      annotated_image: 'Annotated Image',
-      embed: 'Embed',
-      section: 'Section',
-      confirmation: 'Confirmation',
-      external_link: 'External Link',
-      code: 'Code/Command'
-    };
-    return names[type] || type;
+    const translated = t(labelKey);
+    return translated;
   };
 
   const blockTypes = [

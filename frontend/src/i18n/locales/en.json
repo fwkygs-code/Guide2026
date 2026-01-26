@@ -102,6 +102,9 @@
     "creatingSubcategory": "Creating sub-category under:",
     "changeToTopLevel": "Change to top-level category"
   },
+  "categories": {
+    "addSubCategory": "Add Sub-category"
+  },
   "walkthrough": {
     "new": "New Walkthrough",
     "edit": "Edit Walkthrough",
@@ -139,7 +142,13 @@
     "selecting": "Selecting",
     "selectAll": "Select all",
     "unselectAll": "Unselect all",
-    "cannotDeleteAll": "Cannot delete all steps"
+    "cannotDeleteAll": "Cannot delete all steps",
+    "editSettings": "Edit Walkthrough Settings",
+    "editSettingsDescription": "Update walkthrough name, description, icon, and categories",
+    "name": "Walkthrough Name",
+    "urlName": "URL Name (Optional)",
+    "iconPhoto": "Icon/Photo (Optional)",
+    "deleteForever": "Delete Forever"
   },
   "archive": {
     "title": "Archive",
@@ -219,7 +228,12 @@
     "invitationSent": "Invitation sent to {{email}}",
     "invitationCancelled": "Invitation cancelled",
     "memberRemoved": "Member removed",
-    "workspaceDeleted": "Workspace deleted successfully"
+    "workspaceDeleted": "Workspace deleted successfully",
+    "portalExternalLinks": "Portal External Links",
+    "planManagement": "Plan Management",
+    "textSize": "Text Size",
+    "workspaceSharing": "Workspace Sharing",
+    "publicPortal": "Public Portal"
   },
   "quota": {
     "usage": "Quota Usage",

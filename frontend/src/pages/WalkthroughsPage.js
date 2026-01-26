@@ -422,7 +422,7 @@ const WalkthroughsPage = () => {
 
                             {/* Stats */}
                             <div className="flex justify-between text-sm mb-4">
-                              <span className="text-slate-400">Steps:</span>
+                              <span className="text-slate-400">{t('walkthrough.steps')}:</span>
                               <span className="text-white font-medium">{walkthrough.steps?.length || 0}</span>
                             </div>
 
@@ -436,7 +436,7 @@ const WalkthroughsPage = () => {
                                 className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
                               >
                                 <Settings className="w-4 h-4 mr-2" />
-                                Settings
+                                {t('common.settings')}
                               </Button>
                               <Button
                                 onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs/${walkthrough.id}/edit`)}
@@ -445,7 +445,7 @@ const WalkthroughsPage = () => {
                                 data-testid={`edit-walkthrough-${walkthrough.id}`}
                               >
                                 <Edit className="w-4 h-4 mr-2" />
-                                Edit
+                                {t('common.edit')}
                               </Button>
                               <WalkthroughShareButton walkthrough={walkthrough} workspaceSlug={workspaceSlug} />
                             </div>
@@ -476,9 +476,9 @@ const WalkthroughsPage = () => {
         <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto glass z-[9999]">
             <DialogHeader>
-              <DialogTitle className="text-white">Edit Walkthrough Settings</DialogTitle>
+              <DialogTitle className="text-white">{t('walkthrough.editSettings')}</DialogTitle>
               <DialogDescription className="text-slate-400">
-                Update walkthrough name, description, icon, and categories
+                {t('walkthrough.editSettingsDescription')}
               </DialogDescription>
             </DialogHeader>
 
@@ -487,7 +487,7 @@ const WalkthroughsPage = () => {
                 {/* Walkthrough Name */}
                 <div>
                   <Label htmlFor="edit-title" className="text-sm font-medium text-white mb-2 block">
-                    Walkthrough Name <span className="text-red-400">*</span>
+                    {t('walkthrough.name')} <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="edit-title"
@@ -501,7 +501,7 @@ const WalkthroughsPage = () => {
                 {/* URL Slug */}
                 <div>
                   <Label htmlFor="edit-slug" className="text-sm font-medium text-white mb-2 block">
-                    URL Name (Optional)
+                    {t('walkthrough.urlName')}
                   </Label>
                   <div className="space-y-2">
                     <Input
@@ -534,7 +534,7 @@ const WalkthroughsPage = () => {
                 {/* Description */}
                 <div>
                   <Label htmlFor="edit-description" className="text-sm font-medium text-white mb-2 block">
-                    Description
+                    {t('common.description')}
                   </Label>
                   <Textarea
                     id="edit-description"
@@ -549,7 +549,7 @@ const WalkthroughsPage = () => {
                 {/* Icon/Photo */}
                 <div>
                   <Label className="text-sm font-medium text-white mb-2 block">
-                    Icon/Photo <span className="text-slate-400 font-normal">(Optional)</span>
+                    {t('walkthrough.iconPhoto')}
                   </Label>
                   {editSettings.icon_url ? (
                     <div className="space-y-2">
