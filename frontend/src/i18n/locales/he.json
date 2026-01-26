@@ -1076,6 +1076,40 @@
     "title": "מערכות ידע",
     "description": "נהל מאגרי ידע מבודדים עם עורכים ייחודיים ופורטלים",
     "backToSettings": "חזרה להגדרות",
+    "types": {
+      "policies": {
+        "name": "מדיניות",
+        "description": "מדיניות והליכים רשמיים עם סמכות משפטית וסטנדרטים של ציות."
+      },
+      "procedures": {
+        "name": "נהלים", 
+        "description": "נהלים תפעוליים שלב אחר שלב לביצוע עקבי וציות."
+      },
+      "documentation": {
+        "name": "תיעוד",
+        "description": "תיעוד טכני וחומרי עזר."
+      },
+      "faqs": {
+        "name": "שאלות נפוצות",
+        "description": "שאלות נפוצות ותשובות."
+      },
+      "decisionTrees": {
+        "name": "עצי החלטה",
+        "description": "מדריכי קבלת החלטות אינטראקטיביים ותרשימי זרימה."
+      }
+    },
+    "status": {
+      "published": "פורסם",
+      "draft": "טיוטה"
+    },
+    "counts": {
+      "drafts": "{{count}} טיוטות",
+      "published": "{{count}} פורסמו"
+    },
+    "actions": {
+      "openEditor": "פתח עורך",
+      "createFirst": "צור ראשון"
+    },
     "policy": {
       "title": "מדיניות",
       "description": "עיין ונהל מדיניות והליכים ארגונציוניים",

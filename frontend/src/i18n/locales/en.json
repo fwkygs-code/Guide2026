@@ -956,6 +956,40 @@
     "title": "Knowledge Systems",
     "description": "Manage isolated knowledge systems with dedicated editors and portals.",
     "backToSettings": "Back to Settings",
+    "types": {
+      "policies": {
+        "name": "Policies",
+        "description": "Official policies and procedures with legal authority and compliance standards."
+      },
+      "procedures": {
+        "name": "Procedures", 
+        "description": "Step-by-step operational procedures for consistent execution and compliance."
+      },
+      "documentation": {
+        "name": "Documentation",
+        "description": "Technical documentation and reference materials."
+      },
+      "faqs": {
+        "name": "FAQs",
+        "description": "Frequently asked questions and answers."
+      },
+      "decisionTrees": {
+        "name": "Decision Trees",
+        "description": "Interactive decision-making guides and flowcharts."
+      }
+    },
+    "status": {
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "counts": {
+      "drafts": "{{count}} drafts",
+      "published": "{{count}} published"
+    },
+    "actions": {
+      "openEditor": "Open Editor",
+      "createFirst": "Create First"
+    },
     "policy": {
       "title": "Policies",
       "description": "Official policies and procedures with legal authority and compliance standards.",
