@@ -9,11 +9,11 @@ const BillingPolicyPage = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-slate-900 hover:text-primary transition-colors">
+          <Link to="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
             <img 
               src="/logo-main.png" 
               alt="InterGuide" 
@@ -25,7 +25,7 @@ const BillingPolicyPage = () => {
             <Link to="/">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                {t('workspace.backToHome')}
               </Button>
             </Link>
           </div>
@@ -34,14 +34,14 @@ const BillingPolicyPage = () => {
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-12">
-        <div className="bg-white rounded-xl shadow-lg p-8 md:p-12">
-          <h1 className="text-4xl font-heading font-bold text-foreground mb-6">Billing Policy</h1>
-          <p className="text-sm text-muted-foreground mb-8">Last updated: January 2026</p>
+        <div className="bg-card rounded-xl shadow-lg p-8 md:p-12">
+          <h1 className="text-4xl font-heading font-bold text-foreground mb-6">{t('portal.billing.title')}</h1>
+          <p className="text-sm text-muted-foreground mb-8">{t('portal.billing.lastUpdated')}</p>
 
           <div className="prose prose-slate max-w-none space-y-8">
             <section>
               <p className="text-foreground leading-relaxed mb-4">
-                This Billing Policy governs subscriptions, payments, trials, renewals, cancellations, and refunds for InterGuide.app ("InterGuide", "we", "us"). This policy forms part of the InterGuide Terms of Service.
+                {t('portal.billing.intro')}
               </p>
             </section>
 

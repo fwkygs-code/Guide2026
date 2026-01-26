@@ -9,11 +9,11 @@ const TermsPage = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-slate-900 hover:text-primary transition-colors">
+          <Link to="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
             <img 
               src="/logo-main.png" 
               alt="InterGuide" 
@@ -25,7 +25,7 @@ const TermsPage = () => {
             <Link to="/">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                {t('workspace.backToHome')}
               </Button>
             </Link>
           </div>
@@ -34,17 +34,17 @@ const TermsPage = () => {
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-12">
-        <div className="bg-white rounded-xl shadow-lg p-8 md:p-12">
-          <h1 className="text-4xl font-heading font-bold text-foreground mb-6">Terms of Service</h1>
-          <p className="text-sm text-muted-foreground mb-8">Last updated: January 2026</p>
+        <div className="bg-card rounded-xl shadow-lg p-8 md:p-12">
+          <h1 className="text-4xl font-heading font-bold text-foreground mb-6">{t('portal.terms.title')}</h1>
+          <p className="text-sm text-muted-foreground mb-8">{t('portal.terms.lastUpdated')}</p>
 
           <div className="prose prose-slate max-w-none space-y-8">
             <section>
               <p className="text-foreground leading-relaxed mb-4">
-                These Terms of Service ("Terms") govern your access to and use of InterGuide.app ("InterGuide", "we", "us", or "our"). By accessing or using the service at https://www.interguide.app, you agree to be bound by these Terms.
+                {t('portal.terms.intro')}
               </p>
               <p className="text-foreground leading-relaxed">
-                InterGuide is operated under the name InterGuide.app. Contact email: support@interguide.app
+                {t('portal.terms.operatedBy')}
               </p>
             </section>
 

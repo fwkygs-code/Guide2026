@@ -91,6 +91,7 @@
     "walkthroughs": "מדריכים",
     "create": "צור אזור עבודה",
     "workspaces": "אזור עבודה",
+    "backToHome": "חזרה לדף הבית",
     "createWorkspace": "צור אזור עבודה",
     "portalBackgroundImage": "תמונת רקע פורטל",
     "customBackground": "רקע מותאם אישית לפורטל שלך",
@@ -202,6 +203,10 @@
     "howCanWeHelp": "איך נוכל לעזור לך?",
     "searchKnowledgeBase": "חפש במאגר הידע שלנו או עיין בקטגוריות",
     "searchPlaceholder": "חפש מדריכים...",
+    "footer": {
+      "copyright": "InterGuide 2025. כל הזכויות שמורות.",
+      "beta": "בטא — לתמיכה, צור קשר: support@interguide.app"
+    },
     "whatsapp": "וואטסאפ",
     "poweredBy": "מופעל על ידי InterGuide",
     "wantKnowledgeBase": "רוצה מרכז מאגר ידע משלך?",
@@ -453,7 +458,7 @@
     "usage": "שימוש במכסה",
     "upgrade": "שדרג תוכנית",
     "storage": "אחסון",
-    "workspaces": "אזורי עבודה",
+    "workspaces": "מרחבי עבודה",
     "categories": "קטגוריות",
     "walkthroughs": "מדריכים",
     "used": "בשימוש",

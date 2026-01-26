@@ -89,7 +89,8 @@
     "archive": "Archive",
     "walkthroughs": "Walkthroughs",
     "create": "Create Workspace",
-    "workspaces": "Workspace"
+    "workspaces": "Workspace",
+    "backToHome": "Back to Home"
   },
   "portal": {
     "needHelp": "Need Help?",
@@ -99,6 +100,268 @@
     "howCanWeHelp": "How can we help you?",
     "searchKnowledgeBase": "Search our knowledge base or browse categories",
     "searchPlaceholder": "Search for guides...",
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last updated: January 2026",
+      "intro": "This Privacy Policy explains how InterGuide.app (\"InterGuide\", \"we\", \"us\", or \"our\") collects, uses, stores, and protects personal information when you use our services.",
+      "operatedBy": "InterGuide is operated under the name InterGuide.app. Contact email: support@interguide.app",
+      "scope": {
+        "title": "1. Scope",
+        "content": "This Privacy Policy applies to all users of the InterGuide platform, including free and paid users, and to all services provided through https://www.interguide.app."
+      },
+      "informationWeCollect": {
+        "title": "2. Information We Collect",
+        "youProvide": {
+          "title": "2.1 Information You Provide",
+          "intro": "We collect information you voluntarily provide, including:",
+          "items": ["Name", "Email address", "Account credentials (encrypted passwords)", "Content you create or upload, including:"],
+          "contentItems": ["Walkthroughs", "Knowledge base entries", "Images, videos, and files"]
+        },
+        "automaticallyCollected": {
+          "title": "2.2 Automatically Collected Information",
+          "intro": "We may automatically collect limited technical data necessary to operate the service, including:",
+          "items": ["IP address", "Device and browser information", "Session and authentication data", "Usage activity within the platform"],
+          "usage": "This data is used strictly for platform functionality, security, and internal analytics."
+        }
+      },
+      "cookies": {
+        "title": "3. Cookies",
+        "intro": "InterGuide uses cookies strictly for operational purposes:",
+        "items": ["Authentication and login sessions", "Autosave and workspace functionality", "User interface preferences", "Internal analytics"],
+        "noTracking": "We do not use advertising, tracking, or third-party marketing cookies."
+      },
+      "analytics": {
+        "title": "4. Analytics",
+        "content": "We use internal analytics only to understand platform usage and improve reliability and performance. No advertising or behavioral tracking is performed."
+      },
+      "payments": {
+        "title": "5. Payments",
+        "intro": "InterGuide offers both free and paid plans.",
+        "paypalOnly": "Payments are processed exclusively through PayPal. We do not collect, process, or store payment card or billing information. Payment data is handled entirely by PayPal under their own privacy policy."
+      },
+      "thirdPartyProviders": {
+        "title": "6. Third-Party Service Providers",
+        "intro": "We use trusted third-party infrastructure providers to operate the service, including:",
+        "items": ["Cloudflare (security and content delivery)", "Render (application hosting)", "MongoDB (database storage)", "Cloudinary (media storage)", "SAV (infrastructure services)", "Resend (transactional email delivery)"],
+        "dataProcessing": "These providers process data only as necessary to deliver their services to InterGuide."
+      },
+      "dataUse": {
+        "title": "7. Data Use",
+        "intro": "We use collected data to:",
+        "items": ["Create and manage user accounts", "Provide and operate the platform", "Enable collaboration and workspace sharing", "Maintain security and prevent abuse", "Send essential service emails (authentication, password reset)"],
+        "noMarketing": "We do not send marketing or promotional emails."
+      },
+      "dataRetention": {
+        "title": "8. Data Retention",
+        "items": ["<strong>Active accounts:</strong> Data is retained while the account is active.", "<strong>Paid subscriptions ended:</strong> Workspace data is retained for up to 90 days after subscription termination.", "<strong>After 90 days,</strong> data may be permanently deleted unless required for legal or operational purposes.", "<strong>Users may request earlier deletion</strong> by contacting support@interguide.app."]
+      },
+      "accountDeletion": {
+        "title": "9. Account Deletion",
+        "intro": "Users cannot self-delete accounts through the platform.",
+        "usersMay": "Users may:",
+        "items": ["Delete their own content at any time", "Request full account and data deletion by emailing support@interguide.app"],
+        "processingTime": "Deletion requests are processed within a reasonable timeframe."
+      },
+      "internationalDataTransfers": {
+        "title": "10. International Data Transfers",
+        "content": "Your data may be stored and processed on servers located outside your country of residence. We take reasonable measures to protect data regardless of location."
+      },
+      "security": {
+        "title": "11. Security",
+        "intro": "We implement reasonable administrative, technical, and organizational safeguards, including:",
+        "items": ["Encrypted credentials", "Access controls", "Secure infrastructure providers"],
+        "noGuarantee": "No system is completely secure, and we cannot guarantee absolute security."
+      },
+      "childrensPrivacy": {
+        "title": "12. Children's Privacy",
+        "content": "InterGuide is not intended for users under 16 years of age. We do not knowingly collect personal data from minors. If such data is discovered, it will be deleted."
+      },
+      "yourRights": {
+        "title": "13. Your Rights",
+        "intro": "Depending on your jurisdiction, you may have rights to:",
+        "items": ["Access your data", "Correct inaccurate data", "Request deletion", "Object to certain processing"],
+        "contact": "Requests should be sent to support@interguide.app."
+      },
+      "changesToPolicy": {
+        "title": "14. Changes to This Policy",
+        "content": "We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated revision date."
+      },
+      "contact": {
+        "title": "15. Contact",
+        "intro": "For privacy-related questions or requests:",
+        "email": "Email: support@interguide.app"
+      }
+    },
+    "billing": {
+      "title": "Billing Policy",
+      "lastUpdated": "Last updated: January 2026",
+      "intro": "This Billing Policy governs subscriptions, payments, trials, renewals, cancellations, and refunds for InterGuide.app (\"InterGuide\", \"we\", \"us\"). This policy forms part of the InterGuide Terms of Service.",
+      "plansAndPricing": {
+        "title": "1. Plans and Pricing",
+        "intro": "InterGuide offers both free and paid subscription plans.",
+        "items": ["<strong>Free Plan:</strong> Limited access to the platform at no cost.", "<strong>Paid Plan:</strong> $5 USD per month, following a 14-day free trial."],
+        "changes": "Pricing may change in the future. Any changes will apply only to future billing periods and will be communicated in advance."
+      },
+      "freeTrial": {
+        "title": "2. Free Trial",
+        "items": ["New users may be eligible for a 14-day free trial of paid features.", "No charges are applied during the trial period.", "If a payment method is provided, billing begins automatically at the end of the trial unless canceled before the trial expires."]
+      },
+      "paymentProcessing": {
+        "title": "3. Payment Processing",
+        "items": ["Payments are processed exclusively through PayPal.", "InterGuide does not collect, store, or process payment card or banking information.", "All payment information is handled directly by PayPal under their own terms and privacy policy."]
+      },
+      "billingCycle": {
+        "title": "4. Billing Cycle and Renewal",
+        "items": ["Subscriptions are billed on a monthly recurring basis.", "Billing occurs automatically at the beginning of each billing period.", "By subscribing, you authorize PayPal to charge the applicable subscription fee on a recurring basis."]
+      },
+      "cancellations": {
+        "title": "5. Cancellations",
+        "items": ["You may cancel your subscription at any time through PayPal or by contacting support@interguide.app.", "Cancellation prevents future charges but does not refund the current billing period.", "Access to paid features remains available until the end of the active billing cycle."]
+      },
+      "failedPayments": {
+        "title": "6. Failed Payments",
+        "items": ["If a payment fails, access to paid features may be temporarily suspended.", "InterGuide reserves the right to restrict or terminate access after repeated payment failures."]
+      },
+      "refundPolicy": {
+        "title": "7. Refund Policy",
+        "items": ["Subscription fees are non-refundable, except where required by applicable law.", "No partial refunds are provided for unused time."]
+      },
+      "downgrades": {
+        "title": "8. Downgrades and Plan Changes",
+        "items": ["Plan changes take effect at the next billing cycle unless otherwise stated.", "No credits are issued for downgrades during an active billing period."]
+      },
+      "dataRetention": {
+        "title": "9. Data Retention After Subscription Ends",
+        "items": ["When a paid subscription ends, access to the workspace and published portals is suspended.", "Workspace data is retained for up to 90 days.", "After 90 days, data may be permanently deleted unless the user reactivates the subscription or requests deletion earlier."]
+      },
+      "taxes": {
+        "title": "10. Taxes",
+        "items": ["Prices listed do not include applicable taxes unless stated otherwise.", "You are responsible for any taxes imposed by your jurisdiction."]
+      },
+      "changesToPolicy": {
+        "title": "11. Changes to This Billing Policy",
+        "content": "We may update this Billing Policy from time to time. Changes will be posted on this page with an updated revision date."
+      },
+      "contact": {
+        "title": "12. Contact",
+        "intro": "For billing questions or cancellations:",
+        "email": "Email: support@interguide.app"
+      }
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "lastUpdated": "Last updated: January 2026",
+      "intro": "These Terms of Service (\"Terms\") govern your access to and use of InterGuide.app (\"InterGuide\", \"we\", \"us\", or \"our\"). By accessing or using the service at https://www.interguide.app, you agree to be bound by these Terms.",
+      "operatedBy": "InterGuide is operated under the name InterGuide.app. Contact email: support@interguide.app",
+      "theService": {
+        "title": "1. The Service",
+        "intro": "InterGuide provides a platform for building knowledge bases and walkthroughs and publishing them as shareable or embeddable portals. Features may evolve over time.",
+        "rights": "We reserve the right to modify, suspend, or discontinue any part of the service at any time."
+      },
+      "eligibility": {
+        "title": "2. Eligibility",
+        "age": "You must be at least 16 years old to use InterGuide.",
+        "consent": "If you are under the age of 18, you represent that you have permission from a parent or legal guardian. We do not knowingly allow use by individuals under 16."
+      },
+      "accounts": {
+        "title": "3. Accounts",
+        "intro": "You must create an account to access most features.",
+        "agreeTo": "You agree to:",
+        "items": ["Provide accurate information", "Maintain the security of your credentials", "Be responsible for all activity under your account"],
+        "termination": "InterGuide may suspend or terminate accounts that violate these Terms."
+      },
+      "subscriptions": {
+        "title": "4. Subscriptions, Trials, and Billing",
+        "intro": "Paid features are offered on a subscription basis as described in the Billing Policy, which is incorporated into these Terms.",
+        "keyPoints": "Key points:",
+        "items": ["14-day free trial (if offered)", "$5 USD monthly subscription", "Payments processed exclusively via PayPal", "No refunds except where required by law"]
+      },
+      "userContent": {
+        "title": "5. User Content",
+        "ownership": {
+          "title": "5.1 Ownership",
+          "intro": "You retain ownership of all content you create or upload, including text, walkthroughs, images, videos, and files (\"User Content\").",
+          "noClaim": "InterGuide does not claim ownership over your User Content."
+        },
+        "license": {
+          "title": "5.2 License to Operate",
+          "content": "By using the service, you grant InterGuide a limited, non-exclusive, worldwide license to host, store, process, display, and transmit User Content solely for the purpose of operating and improving the service."
+        },
+        "platform": {
+          "title": "5.3 Platform Structure",
+          "content": "InterGuide retains all rights to the platform architecture, workflows, layouts, schemas, and system-generated structures used to organize User Content."
+        }
+      },
+      "acceptableUse": {
+        "title": "6. Acceptable Use",
+        "agreeNotTo": "You agree not to:",
+        "items": ["Upload illegal or infringing content", "Harass, abuse, or harm others", "Interfere with platform security or performance", "Use the service for unlawful purposes"],
+        "rights": "We reserve the right to remove content or restrict access at our discretion."
+      },
+      "collaboration": {
+        "title": "7. Collaboration and Sharing",
+        "content": "InterGuide allows workspace sharing and collaboration between users. You are responsible for managing access permissions and the consequences of sharing content."
+      },
+      "suspension": {
+        "title": "8. Suspension and Termination",
+        "intro": "We may suspend or terminate your access if you:",
+        "items": ["Violate these Terms", "Fail to pay applicable fees", "Create risk or legal exposure"],
+        "uponTermination": "Upon termination:",
+        "terminationItems": ["Access to paid features and portals is disabled", "Data retention is handled per the Privacy Policy and Billing Policy"]
+      },
+      "dataRetention": {
+        "title": "9. Data Retention",
+        "intro": "After subscription termination:",
+        "items": ["Workspace data is retained for up to 90 days", "Data may be deleted after this period", "Earlier deletion may be requested via support@interguide.app"]
+      },
+      "intellectualProperty": {
+        "title": "10. Intellectual Property",
+        "content": "All InterGuide software, branding, design, and platform technology are owned by InterGuide.app and protected by intellectual property laws."
+      },
+      "thirdPartyServices": {
+        "title": "11. Third-Party Services",
+        "content": "InterGuide relies on third-party infrastructure and services. We are not responsible for outages or issues caused by third-party providers."
+      },
+      "noWarranty": {
+        "title": "12. No Warranty",
+        "content": "THE SERVICE IS PROVIDED \"AS IS\" AND \"AS AVAILABLE\" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT."
+      },
+      "limitationOfLiability": {
+        "title": "13. Limitation of Liability",
+        "content1": "TO THE MAXIMUM EXTENT PERMITTED BY LAW, INTERGUIDE SHALL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.",
+        "content2": "INTERGUIDE'S TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT PAID BY YOU TO INTERGUIDE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM."
+      },
+      "indemnification": {
+        "title": "14. Indemnification",
+        "content": "You agree to indemnify and hold harmless InterGuide from claims arising out of your use of the service or violation of these Terms."
+      },
+      "arbitration": {
+        "title": "15. Arbitration and Class Action Waiver",
+        "readCarefully": "PLEASE READ CAREFULLY.",
+        "intro": "Any dispute arising out of or relating to these Terms or the service shall be resolved by binding arbitration, rather than in court, except where prohibited by law.",
+        "waiver": "You waive the right to participate in class actions, class arbitrations, or representative actions.",
+        "individual": "Arbitration shall be conducted on an individual basis."
+      },
+      "governingLaw": {
+        "title": "16. Governing Law",
+        "intro": "These Terms are governed by the laws of:",
+        "items": ["The State of California, USA, and", "The State of Israel,"],
+        "conflict": "without regard to conflict-of-law principles."
+      },
+      "changesToTerms": {
+        "title": "17. Changes to Terms",
+        "content": "We may update these Terms from time to time. Continued use of the service after changes constitutes acceptance."
+      },
+      "contact": {
+        "title": "18. Contact",
+        "intro": "For legal or support inquiries:",
+        "email": "Email: support@interguide.app"
+      }
+    },
+    "footer": {
+      "copyright": "InterGuide 2025. All rights reserved.",
+      "beta": "Beta — for support, contact: support@interguide.app"
+    },
     "whatsapp": "WhatsApp",
     "poweredBy": "Powered by InterGuide",
     "wantKnowledgeBase": "Want a knowledge base center for yourself?",
