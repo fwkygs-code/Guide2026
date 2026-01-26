@@ -326,33 +326,33 @@ const SettingsPage = () => {
           {/* Basic Settings */}
           <Card interactive={true} className="mb-6">
             <Card.Header>
-              <Card.Title className="text-white">{t('settings.basicInfo')}</Card.Title>
+              <Card.Title className="text-foreground">{t('settings.basicInfo')}</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-6">
             <div className="space-y-6">
               <div>
-                <Label htmlFor="workspace-name" className="text-white">{t('settings.workspaceName')}</Label>
+                <Label htmlFor="workspace-name" className="text-foreground">{t('settings.workspaceName')}</Label>
                 <Input
                   id="workspace-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   data-testid="workspace-name-input"
-                  className="mt-1.5 text-white"
+                  className="mt-1.5 text-foreground"
                 />
               </div>
               <div>
-                <Label htmlFor="logo" className="text-white">{t('settings.workspaceLogo')}</Label>
+                <Label htmlFor="logo" className="text-foreground">{t('settings.workspaceLogo')}</Label>
                 <div className="mt-1.5 space-y-2">
                   {logoUrl && (
                     <div className="relative inline-block">
-                      <img src={logoUrl} alt="Logo" className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
+                      <img src={logoUrl} alt="Logo" className="w-20 h-20 rounded-lg object-cover border border-border" />
                     </div>
                   )}
                   <Input
                     type="file"
                     accept="image/*"
                     onChange={(e) => e.target.files[0] && handleLogoUpload(e.target.files[0])}
-                    className="text-sm text-white"
+                    className="text-sm text-foreground"
                   />
                   {logoUrl && (
                     <Button
@@ -367,7 +367,7 @@ const SettingsPage = () => {
                 </div>
               </div>
               <div>
-                <Label htmlFor="brand-color" className="text-white">{t('settings.brandColor')}</Label>
+                <Label htmlFor="brand-color" className="text-foreground">{t('settings.brandColor')}</Label>
                 <div className="flex flex-col sm:flex-row gap-3 mt-1.5 items-start">
                   <div className="w-full sm:w-20 h-10 flex-shrink-0">
                     <Input
@@ -375,7 +375,7 @@ const SettingsPage = () => {
                       type="color"
                       value={brandColor}
                       onChange={(e) => setBrandColor(e.target.value)}
-                      className="w-full h-full text-white"
+                      className="w-full h-full text-foreground"
                       data-testid="brand-color-input"
                     />
                   </div>
@@ -383,7 +383,7 @@ const SettingsPage = () => {
                     type="text"
                     value={brandColor}
                     onChange={(e) => setBrandColor(e.target.value)}
-                    className="flex-1 text-white"
+                    className="flex-1 text-foreground"
                   />
                 </div>
               </div>
@@ -393,23 +393,23 @@ const SettingsPage = () => {
 
           {/* Portal Branding */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
               <Globe className="w-5 h-5" />
               Portal Branding
             </h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="portal-background" className="text-white">Portal Background Image</Label>
-                <p className="text-xs text-slate-400 mb-1.5">Custom background for your public portal</p>
+                <Label htmlFor="portal-background" className="text-foreground">Portal Background Image</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">Custom background for your public portal</p>
                 <div className="mt-1.5 space-y-2">
                   {portalBackgroundUrl && (
                     <div className="relative">
-                      <img src={portalBackgroundUrl} alt="Background" className="w-full h-32 rounded-lg object-cover border border-slate-200" />
+                      <img src={portalBackgroundUrl} alt="Background" className="w-full h-32 rounded-lg object-cover border border-border" />
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setPortalBackgroundUrl('')}
-                        className="absolute top-2 right-2 text-destructive bg-white/90 hover:bg-white"
+                        className="absolute top-2 right-2 text-destructive bg-card/90 hover:bg-card"
                       >
                         Remove
                       </Button>
@@ -424,11 +424,11 @@ const SettingsPage = () => {
                 </div>
               </div>
               <div>
-                <Label className="text-white">Portal Color Palette</Label>
-                <p className="text-xs text-slate-500 mb-1.5">Customize colors for your portal</p>
+                <Label className="text-foreground">Portal Color Palette</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">Customize colors for your portal</p>
                 <div className="grid grid-cols-3 gap-3 mt-1.5">
                   <div>
-                    <Label className="text-xs text-slate-400 mb-1">Primary</Label>
+                    <Label className="text-xs text-muted-foreground mb-1">Primary</Label>
                     <div className="flex gap-2">
                       <Input
                         type="color"
@@ -440,12 +440,12 @@ const SettingsPage = () => {
                         type="text"
                         value={portalPalette.primary || '#4f46e5'}
                         onChange={(e) => setPortalPalette({ ...portalPalette, primary: e.target.value })}
-                        className="flex-1 text-sm text-white"
+                        className="flex-1 text-sm text-foreground"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-400 mb-1">Secondary</Label>
+                    <Label className="text-xs text-muted-foreground mb-1">Secondary</Label>
                     <div className="flex gap-2">
                       <Input
                         type="color"
@@ -457,12 +457,12 @@ const SettingsPage = () => {
                         type="text"
                         value={portalPalette.secondary || '#8b5cf6'}
                         onChange={(e) => setPortalPalette({ ...portalPalette, secondary: e.target.value })}
-                        className="flex-1 text-sm text-white"
+                        className="flex-1 text-sm text-foreground"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-400 mb-1">Accent</Label>
+                    <Label className="text-xs text-muted-foreground mb-1">Accent</Label>
                     <div className="flex gap-2">
                       <Input
                         type="color"
@@ -474,7 +474,7 @@ const SettingsPage = () => {
                         type="text"
                         value={portalPalette.accent || '#10b981'}
                         onChange={(e) => setPortalPalette({ ...portalPalette, accent: e.target.value })}
-                        className="flex-1 text-sm text-white"
+                        className="flex-1 text-sm text-foreground"
                       />
                     </div>
                   </div>
@@ -485,14 +485,14 @@ const SettingsPage = () => {
 
           {/* Portal Contact Information */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
               <Phone className="w-5 h-5" />
               Portal Contact Information
             </h2>
-            <p className="text-xs text-slate-500 mb-4">Add contact information that will appear at the top of your portal</p>
+            <p className="text-xs text-muted-foreground mb-4">Add contact information that will appear at the top of your portal</p>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="portal-phone" className="flex items-center gap-2 text-white">
+                <Label htmlFor="portal-phone" className="flex items-center gap-2 text-foreground">
                   <Phone className="w-4 h-4" />
                   Phone Number
                 </Label>
@@ -501,11 +501,11 @@ const SettingsPage = () => {
                   value={portalPhone}
                   onChange={(e) => setPortalPhone(e.target.value)}
                   placeholder="e.g., +1 (555) 123-4567"
-                  className="mt-1.5 text-white"
+                  className="mt-1.5 text-foreground"
                 />
               </div>
               <div>
-                <Label htmlFor="portal-working-hours" className="flex items-center gap-2 text-white">
+                <Label htmlFor="portal-working-hours" className="flex items-center gap-2 text-foreground">
                   <Clock className="w-4 h-4" />
                   Working Hours
                 </Label>
@@ -514,11 +514,11 @@ const SettingsPage = () => {
                   value={portalWorkingHours}
                   onChange={(e) => setPortalWorkingHours(e.target.value)}
                   placeholder="e.g., Mon-Fri: 9AM-5PM EST"
-                  className="mt-1.5 text-white"
+                  className="mt-1.5 text-foreground"
                 />
               </div>
               <div>
-                <Label htmlFor="portal-whatsapp" className="flex items-center gap-2 text-white">
+                <Label htmlFor="portal-whatsapp" className="flex items-center gap-2 text-foreground">
                   <MessageCircle className="w-4 h-4" />
                   WhatsApp Link
                 </Label>
@@ -528,23 +528,23 @@ const SettingsPage = () => {
                   onChange={(e) => setPortalWhatsapp(e.target.value)}
                   placeholder="e.g., https://wa.me/1234567890"
                   type="url"
-                  className="mt-1.5 text-white"
+                  className="mt-1.5 text-foreground"
                 />
-                <p className="text-xs text-slate-400 mt-1">Format: https://wa.me/[country code][phone number]</p>
+                <p className="text-xs text-muted-foreground mt-1">Format: https://wa.me/[country code][phone number]</p>
               </div>
             </div>
           </div>
 
           {/* Portal Links */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
               <ExternalLink className="w-5 h-5" />
               Portal External Links
             </h2>
-            <p className="text-xs text-slate-500 mb-4">Add buttons with external links that will appear at the top of your portal (e.g., link to your website, support page, etc.)</p>
+            <p className="text-xs text-muted-foreground mb-4">Add buttons with external links that will appear at the top of your portal (e.g., link to your website, support page, etc.)</p>
             <div className="space-y-3">
               {portalLinks.map((link, index) => (
-                <div key={index} className="flex gap-2 items-start p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
+                <div key={index} className="flex gap-2 items-start p-3 bg-secondary/50 dark:bg-background/50 rounded-lg border border-border/50 dark:border-slate-800/50">
                   <div className="flex-1 space-y-2">
                     <Input
                       placeholder="Button Label (e.g., Visit Website)"
@@ -554,7 +554,7 @@ const SettingsPage = () => {
                         newLinks[index] = { ...newLinks[index], label: e.target.value };
                         setPortalLinks(newLinks);
                       }}
-                      className="text-sm text-white"
+                      className="text-sm text-foreground"
                     />
                     <Input
                       placeholder="URL (e.g., https://example.com)"
@@ -565,7 +565,7 @@ const SettingsPage = () => {
                         setPortalLinks(newLinks);
                       }}
                       type="url"
-                      className="text-sm text-white"
+                      className="text-sm text-foreground"
                     />
                   </div>
                   <Button
@@ -593,18 +593,18 @@ const SettingsPage = () => {
                 </Button>
               )}
               {portalLinks.length === 0 && (
-                <p className="text-xs text-slate-400 text-center py-4">No links added yet. Click "Add Link" to get started.</p>
+                <p className="text-xs text-muted-foreground text-center py-4">No links added yet. Click "Add Link" to get started.</p>
               )}
             </div>
           </div>
 
           {/* Plan Management */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4">Plan Management</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Plan Management</h2>
             <div className="space-y-4">
               <div>
                 <Label>Current Plan</Label>
-                <p className="text-sm text-slate-600 mt-1.5">
+                <p className="text-sm text-muted-foreground mt-1.5">
                   Manage your subscription and plan settings
                 </p>
               </div>
@@ -620,7 +620,7 @@ const SettingsPage = () => {
 
           {/* Danger Zone - Delete Workspace */}
           <div className="glass rounded-xl p-6 border-2 border-red-500/50">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4">Danger Zone</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Danger Zone</h2>
             <div className="space-y-4">
               <div>
                 <Label className="text-red-900">Delete Workspace</Label>
@@ -672,11 +672,11 @@ const SettingsPage = () => {
 
           {/* Text Size Settings */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4">Text Size</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Text Size</h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="text-size" className="text-white">Text Size Preference</Label>
-                <p className="text-xs text-slate-400 mb-1.5">Adjust text size throughout the application</p>
+                <Label htmlFor="text-size" className="text-foreground">Text Size Preference</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">Adjust text size throughout the application</p>
                 <Select value={textSize} onValueChange={setTextSize} className="mt-1.5">
                   <SelectTrigger id="text-size" className="w-full">
                     <SelectValue />
@@ -689,7 +689,7 @@ const SettingsPage = () => {
                   </SelectContent>
                 </Select>
                 <div className="mt-3 p-3 glass rounded-xl">
-                  <p className="text-xs text-slate-400 mb-2">Preview:</p>
+                  <p className="text-xs text-muted-foreground mb-2">Preview:</p>
                   <div className="space-y-1">
                     <p className={`${textSize === 'small' ? 'text-sm' : textSize === 'medium' ? 'text-base' : textSize === 'large' ? 'text-lg' : 'text-xl'}`}>
                       This is how body text will look
@@ -706,20 +706,19 @@ const SettingsPage = () => {
           {/* Workspace Sharing */}
           {workspace && workspaceId && user && isOwner && (
             <div className="glass rounded-xl p-6">
-              <h2 className="text-xl font-heading font-semibold text-white mb-4">Workspace Sharing</h2>
+              <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Workspace Sharing</h2>
               <div className="space-y-4">
                 <div>
                   <Label>Invite User by Email</Label>
-                  <p className="text-xs text-slate-500 mb-1.5">Invite users to collaborate on this workspace</p>
+                  <p className="text-xs text-muted-foreground mb-1.5">Invite users to collaborate on this workspace</p>
                   <div className="flex gap-2 mt-1.5">
                     <Input
                       type="email"
                       placeholder="user@example.com"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="text-white"
                       onKeyPress={(e) => e.key === 'Enter' && handleInvite()}
-                      className="flex-1"
+                      className="flex-1 text-foreground"
                     />
                     <Button
                       onClick={handleInvite}
@@ -733,11 +732,11 @@ const SettingsPage = () => {
 
                 <div>
                   <Label>Workspace Members</Label>
-                  <p className="text-xs text-slate-500 mb-1.5">People who have access to this workspace</p>
+                  <p className="text-xs text-muted-foreground mb-1.5">People who have access to this workspace</p>
                   {loadingMembers ? (
-                    <div className="p-4 text-center text-sm text-slate-500">Loading members...</div>
+                    <div className="p-4 text-center text-sm text-muted-foreground">Loading members...</div>
                   ) : members.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-slate-500 border border-slate-200 dark:border-slate-800 rounded-lg">
+                    <div className="p-4 text-center text-sm text-muted-foreground border border-border dark:border-slate-800 rounded-lg">
                       No members yet. Invite users to collaborate.
                     </div>
                   ) : (
@@ -745,17 +744,17 @@ const SettingsPage = () => {
                       {members.map((member) => (
                         <div
                           key={member.id}
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800"
+                          className="flex items-center justify-between p-3 bg-secondary dark:bg-background/50 rounded-lg border border-border dark:border-slate-800"
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <Mail className="w-4 h-4 text-primary" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-white">
+                              <p className="text-sm font-medium text-foreground">
                                 {member.user_email || 'Member'}
                               </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                              <p className="text-xs text-muted-foreground dark:text-muted-foreground">
                                 {member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer'}
                                 {member.status === 'pending' && ' • Pending invitation'}
                               </p>
@@ -783,7 +782,7 @@ const SettingsPage = () => {
 
           {/* Portal Settings */}
           <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-white mb-4">Public Portal</h2>
+            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">Public Portal</h2>
             <Tabs defaultValue="share" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="share">
@@ -802,13 +801,13 @@ const SettingsPage = () => {
 
               <TabsContent value="share" className="space-y-4 mt-4">
                 <div>
-                  <Label className="text-white">Portal Link</Label>
-                  <p className="text-xs text-slate-400 mb-1.5">Share this link to give others access to your portal</p>
+                  <Label className="text-foreground">Portal Link</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">Share this link to give others access to your portal</p>
                   <div className="flex gap-2 mt-1.5">
                     <Input
                       value={portalUrl}
                       readOnly
-                      className="flex-1 text-white"
+                      className="flex-1 text-foreground"
                       data-testid="portal-url-input"
                     />
                     <Button 
@@ -831,13 +830,13 @@ const SettingsPage = () => {
 
               <TabsContent value="embed" className="space-y-4 mt-4">
                 <div>
-                  <Label className="text-white">iFrame Embed Code</Label>
-                  <p className="text-xs text-slate-400 mb-1.5">Copy and paste this code into your website HTML</p>
+                  <Label className="text-foreground">iFrame Embed Code</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">Copy and paste this code into your website HTML</p>
                   <div className="flex gap-2 mt-1.5">
                     <Input
                       value={portalIframeCode}
                       readOnly
-                      className="flex-1 font-mono text-xs text-white"
+                      className="flex-1 font-mono text-xs text-foreground"
                       data-testid="portal-iframe-input"
                     />
                     <Button 
@@ -849,10 +848,10 @@ const SettingsPage = () => {
                     </Button>
                   </div>
                   <div className="mt-3 p-3 glass rounded-xl">
-                    <p className="text-xs text-slate-400 mb-2">Preview:</p>
+                    <p className="text-xs text-muted-foreground mb-2">Preview:</p>
                     <iframe 
                       src={portalEmbedUrl}
-                      className="w-full h-96 border border-gray-200 rounded-lg"
+                      className="w-full h-96 border border-border rounded-lg"
                       title="Portal Preview"
                     />
                   </div>
@@ -861,16 +860,16 @@ const SettingsPage = () => {
 
               <TabsContent value="integration" className="space-y-4 mt-4">
                 <div>
-                  <Label className="text-white">CRM Integration</Label>
-                  <p className="text-xs text-slate-400 mb-1.5">Use these URLs to integrate with your CRM or other platforms</p>
+                  <Label className="text-foreground">CRM Integration</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">Use these URLs to integrate with your CRM or other platforms</p>
                   <div className="space-y-3 mt-3">
                     <div>
-                      <Label className="text-xs text-white mb-1">Portal API Endpoint</Label>
+                      <Label className="text-xs text-foreground mb-1">Portal API Endpoint</Label>
                       <div className="flex gap-2">
                         <Input
                           value={`${window.location.origin}/api/portal/${workspace?.slug}`}
                           readOnly
-                          className="flex-1 font-mono text-xs text-white"
+                          className="flex-1 font-mono text-xs text-foreground"
                         />
                         <Button 
                           variant="outline" 
@@ -882,12 +881,12 @@ const SettingsPage = () => {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-white mb-1">Embeddable Portal URL</Label>
+                      <Label className="text-xs text-foreground mb-1">Embeddable Portal URL</Label>
                       <div className="flex gap-2">
                         <Input
                           value={portalEmbedUrl}
                           readOnly
-                          className="flex-1 font-mono text-xs text-white"
+                          className="flex-1 font-mono text-xs text-foreground"
                         />
                         <Button 
                           variant="outline" 
@@ -900,8 +899,8 @@ const SettingsPage = () => {
                     </div>
                   </div>
                   <div className="mt-4 p-4 glass rounded-xl">
-                    <p className="text-sm font-medium text-slate-200 mb-2">Integration Tips:</p>
-                    <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
+                    <p className="text-sm font-medium text-foreground mb-2">Integration Tips:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
                       <li>Use the embed URL in iframes for seamless integration</li>
                       <li>API endpoint returns JSON data for custom integrations</li>
                       <li>All portal routes support CORS for cross-origin embedding</li>

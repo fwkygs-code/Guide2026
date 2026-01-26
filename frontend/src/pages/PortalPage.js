@@ -251,9 +251,9 @@ const PortalPage = ({ isEmbedded = false }) => {
       <AppShell>
         <div className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
-            <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h1 className="text-2xl font-heading font-bold text-white mb-2">Portal Not Found</h1>
-            <p className="text-slate-400">The portal you're looking for doesn't exist.</p>
+            <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h1 className="text-2xl font-heading font-bold text-foreground mb-2">Portal Not Found</h1>
+            <p className="text-muted-foreground">The portal you're looking for doesn't exist.</p>
           </div>
         </div>
       </AppShell>
@@ -273,7 +273,7 @@ const PortalPage = ({ isEmbedded = false }) => {
     : {};
 
   return (
-      <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 ${inIframe ? 'iframe-mode' : ''}`} style={backgroundStyle}>
+      <div className={`min-h-screen bg-background ${inIframe ? 'iframe-mode' : ''}`} style={backgroundStyle}>
       {/* Overlay for background image readability */}
       {workspace.portal_background_url && (
         <div className="fixed inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 -z-10" />
@@ -281,7 +281,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       
       {/* Header - Hide in iframe mode */}
       {!inIframe && (
-      <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
+      <header className="glass border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           {/* Top Row: Logo, Name, and Action Buttons */}
           <div className="flex items-center justify-between gap-3 sm:gap-6 mb-3">
@@ -311,8 +311,8 @@ const PortalPage = ({ isEmbedded = false }) => {
                 </div>
               )}
               <div className="min-w-0 flex-shrink">
-                <h1 className="text-base sm:text-xl font-heading font-bold text-white truncate">{workspace.name}</h1>
-                <p className="text-xs sm:text-sm text-slate-300">Knowledge Base</p>
+                <h1 className="text-base sm:text-xl font-heading font-bold text-foreground truncate">{workspace.name}</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">Knowledge Base</p>
               </div>
             </div>
 
@@ -330,10 +330,9 @@ const PortalPage = ({ isEmbedded = false }) => {
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all hover:scale-105"
+                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all hover:scale-105 text-white"
                         style={{
                           backgroundColor: primaryColor,
-                          color: 'white',
                           textDecoration: 'none'
                         }}
                       >
@@ -361,11 +360,11 @@ const PortalPage = ({ isEmbedded = false }) => {
 
           {/* Bottom Row: Contact Information - Responsive */}
           {(workspace.portal_phone || workspace.portal_working_hours || workspace.portal_whatsapp) && (
-            <div className="flex items-center gap-4 sm:gap-6 flex-wrap text-xs sm:text-sm text-slate-300 border-t border-slate-200/50 pt-3">
+            <div className="flex items-center gap-4 sm:gap-6 flex-wrap text-xs sm:text-sm text-muted-foreground border-t border-border pt-3">
               {workspace.portal_phone && (
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
-                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-white transition-colors truncate">
+                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-foreground transition-colors truncate">
                     {workspace.portal_phone}
                   </a>
                 </div>
@@ -383,7 +382,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                     href={workspace.portal_whatsapp} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="hover:text-white transition-colors truncate"
+                    className="hover:text-foreground transition-colors truncate"
                   >
                     {t('portal.whatsapp')}
                   </a>
@@ -405,12 +404,12 @@ const PortalPage = ({ isEmbedded = false }) => {
           >
             {/* 3D Glass Bubble Container */}
             <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
-              <h1 className="text-4xl lg:text-5xl font-heading font-bold text-white mb-4 drop-shadow-sm">
+              <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4 drop-shadow-sm">
                 {t('portal.howCanWeHelp')}
               </h1>
-              <p className="text-lg text-slate-300 mb-8 font-medium">{t('portal.searchKnowledgeBase')}</p>
+              <p className="text-lg text-muted-foreground mb-8 font-medium">{t('portal.searchKnowledgeBase')}</p>
               <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-300 w-5 h-5 z-10" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -433,10 +432,10 @@ const PortalPage = ({ isEmbedded = false }) => {
               <div className="flex gap-3 flex-wrap justify-center">
               <Badge
                 variant={selectedCategory === null ? 'default' : 'outline'}
-                className="cursor-pointer px-4 py-2 text-sm font-medium text-white transition-all hover:scale-105"
+                className="cursor-pointer px-4 py-2 text-sm font-medium text-foreground transition-all hover:scale-105"
                 onClick={() => setSelectedCategory(null)}
                 data-testid="category-all"
-                style={selectedCategory === null ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+                style={selectedCategory === null ? { backgroundColor: primaryColor, borderColor: primaryColor, color: 'white' } : { color: primaryColor }}
               >
                 {t('common.all')}
               </Badge>
@@ -444,10 +443,10 @@ const PortalPage = ({ isEmbedded = false }) => {
                 <Badge
                   key={category.id}
                   variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  className="cursor-pointer px-4 py-2 text-sm font-medium text-white transition-all hover:scale-105"
+                  className="cursor-pointer px-4 py-2 text-sm font-medium text-foreground transition-all hover:scale-105"
                   onClick={() => setSelectedCategory(category.id)}
                   data-testid={`category-${category.id}`}
-                  style={selectedCategory === category.id ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+                  style={selectedCategory === category.id ? { backgroundColor: primaryColor, borderColor: primaryColor, color: 'white' } : { color: primaryColor }}
                 >
                   {category.name}
                   {category.children.length > 0 && (
@@ -481,9 +480,9 @@ const PortalPage = ({ isEmbedded = false }) => {
                           <div className="flex items-center gap-3">
                             <FolderOpen className="w-6 h-6" style={{ color: primaryColor }} />
                             <div>
-                              <h2 className="text-2xl font-heading font-bold text-white">{category.name}</h2>
+                              <h2 className="text-2xl font-heading font-bold text-foreground">{category.name}</h2>
                               {category.description && (
-                                <p className="text-sm text-slate-300 font-medium mt-1">{category.description}</p>
+                                <p className="text-sm text-muted-foreground font-medium mt-1">{category.description}</p>
                               )}
                             </div>
                           </div>
@@ -508,13 +507,13 @@ const PortalPage = ({ isEmbedded = false }) => {
                           transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
                         >
                           <Link to={`/portal/${slug}/${walkthrough.slug || walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
-                            <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-slate-200/50 hover:border-primary/30 group">
+                            <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-border hover:border-primary/30 group">
                               <div className="flex items-start gap-4 mb-4">
                                 {walkthrough.icon_url ? (
                                   <img
                                     src={normalizeImageUrl(walkthrough.icon_url)}
                                     alt={walkthrough.title}
-                                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-slate-200 group-hover:scale-105 transition-transform"
+                                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-border group-hover:scale-105 transition-transform"
                                     onError={(e) => {
                                       console.error('Failed to load icon:', walkthrough.icon_url);
                                       e.target.style.display = 'none';
@@ -533,21 +532,21 @@ const PortalPage = ({ isEmbedded = false }) => {
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <h3 
-                                    className="text-lg font-heading font-semibold text-white mb-2 transition-colors"
+                                    className="text-lg font-heading font-semibold text-foreground mb-2 transition-colors"
                                     style={{ '--hover-color': primaryColor }}
                                     onMouseEnter={(e) => e.target.style.color = primaryColor}
                                     onMouseLeave={(e) => e.target.style.color = ''}
                                   >
                                     {walkthrough.title}
                                   </h3>
-                                  <p className="text-sm text-slate-300 line-clamp-2">
+                                  <p className="text-sm text-muted-foreground line-clamp-2">
                                     {walkthrough.description || 'No description'}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                              <div className="flex items-center justify-between pt-4 border-t border-border">
                                 <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs text-white border-white/50">
+                                  <Badge variant="outline" className="text-xs text-foreground border-border">
                                     {walkthrough.steps?.length || 0} steps
                                   </Badge>
                                   {walkthrough.privacy === 'password' && (
@@ -557,7 +556,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                                     </Badge>
                                   )}
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                               </div>
                             </div>
                           </Link>
@@ -588,13 +587,13 @@ const PortalPage = ({ isEmbedded = false }) => {
                     transition={{ delay: index * 0.05 }}
                   >
                     <Link to={`/portal/${slug}/${walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
-                      <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-slate-200/50 hover:border-primary/30 group">
+                      <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-border hover:border-primary/30 group">
                         <div className="flex items-start gap-4 mb-4">
                           {walkthrough.icon_url ? (
                             <img
                               src={walkthrough.icon_url}
                               alt={walkthrough.title}
-                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-slate-200 group-hover:scale-105 transition-transform"
+                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-border group-hover:scale-105 transition-transform"
                             />
                           ) : (
                             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
@@ -602,17 +601,17 @@ const PortalPage = ({ isEmbedded = false }) => {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-heading font-semibold text-white mb-2 group-hover:text-primary transition-colors">
+                            <h3 className="text-lg font-heading font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
                               {walkthrough.title}
                             </h3>
-                            <p className="text-sm text-slate-300 line-clamp-2">
+                            <p className="text-sm text-muted-foreground line-clamp-2">
                               {walkthrough.description || 'No description'}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <div className="flex items-center justify-between pt-4 border-t border-border">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs text-white border-white/50">
+                            <Badge variant="outline" className="text-xs text-foreground border-border">
                               {walkthrough.steps?.length || 0} steps
                             </Badge>
                             {walkthrough.privacy === 'password' && (
@@ -622,7 +621,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                               </Badge>
                             )}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                       </div>
                     </Link>
@@ -631,11 +630,11 @@ const PortalPage = ({ isEmbedded = false }) => {
               </div>
             ) : (
               <div className="text-center py-16">
-                <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl font-heading font-semibold text-white mb-2">
+                <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-heading font-semibold text-foreground mb-2">
                   No walkthroughs found
                 </h3>
-                <p className="text-slate-300">Try adjusting your search or filters</p>
+                <p className="text-muted-foreground">Try adjusting your search or filters</p>
               </div>
             )
           )}
@@ -646,23 +645,23 @@ const PortalPage = ({ isEmbedded = false }) => {
       {!inIframe && (
         <section className="py-8 px-6 mt-20">
           <div className="max-w-7xl mx-auto">
-            <div className="glass rounded-2xl border border-slate-200/50 px-6 py-6">
+            <div className="glass rounded-2xl border border-border px-6 py-6">
               <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-heading font-semibold text-white">{t('portal.knowledgeSystems.title', { defaultValue: 'Knowledge Systems' })}</h3>
-                  <p className="text-sm text-slate-300">{t('portal.knowledgeSystems.description', { defaultValue: 'Browse published policies, procedures, docs, FAQs, and decisions.' })}</p>
+                  <h3 className="text-lg font-heading font-semibold text-foreground">{t('portal.knowledgeSystems.title', { defaultValue: 'Knowledge Systems' })}</h3>
+                  <p className="text-sm text-muted-foreground">{t('portal.knowledgeSystems.description', { defaultValue: 'Browse published policies, procedures, docs, FAQs, and decisions.' })}</p>
                 </div>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-muted-foreground">
                   {t('portal.knowledgeSystems.available', { defaultValue: '{{count}} available', count: knowledgeSystemsMenu.length })}
                 </div>
               </div>
               {knowledgeSystemsMenu.length === 0 ? (
-                <div className="text-sm text-slate-400">{t('portal.knowledgeSystems.none', { defaultValue: 'No knowledge systems published yet.' })}</div>
+                <div className="text-sm text-muted-foreground">{t('portal.knowledgeSystems.none', { defaultValue: 'No knowledge systems published yet.' })}</div>
               ) : (
                 <div className="flex flex-wrap gap-3">
                   {knowledgeSystemsMenu.map(system => (
                     <Link key={system.key} to={system.path}>
-                      <Button variant="outline" size="sm" className="text-white">
+                      <Button variant="outline" size="sm">
                         {system.label}
                       </Button>
                     </Link>
@@ -714,7 +713,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                 setCategorySelectOpen(true);
               }
             }}
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full text-white font-medium shadow-2xl hover:shadow-3xl transition-all"
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full font-medium shadow-2xl hover:shadow-3xl transition-all text-white"
             style={{ backgroundColor: primaryColor }}
           >
             <HelpCircle className="w-5 h-5" />
@@ -759,9 +758,9 @@ const PortalPage = ({ isEmbedded = false }) => {
               >
                 <FolderOpen className="w-4 h-4 mr-3" style={{ color: primaryColor }} />
                 <div className="text-left flex-1">
-                  <div className="font-medium text-white">{category.name}</div>
+                  <div className="font-medium text-foreground">{category.name}</div>
                   {category.description && (
-                    <div className="text-xs text-slate-500 mt-0.5">{category.description}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{category.description}</div>
                   )}
                 </div>
               </Button>
@@ -794,7 +793,7 @@ const PortalPage = ({ isEmbedded = false }) => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
+              className="h-8 w-8 p-0 hover:bg-white/20 text-white"
               onClick={() => {
                 setHelpChatOpen(false);
                 setSelectedCategoryForChat(null);
@@ -807,8 +806,8 @@ const PortalPage = ({ isEmbedded = false }) => {
               <X className="w-4 h-4" />
             </Button>
           </div>
-          <div className="glass p-4 border-t border-slate-200">
-            <p className="text-sm text-slate-300 mb-3">
+          <div className="glass p-4 border-t border-border">
+            <p className="text-sm text-muted-foreground mb-3">
               The chat window should have opened in a new tab. If it didn't, please check your popup blocker settings.
             </p>
             <Button
@@ -832,12 +831,12 @@ const PortalPage = ({ isEmbedded = false }) => {
 
       {/* Footer - Powered by InterGuide */}
       {!inIframe && (
-        <footer className="glass border-t border-slate-200/50 py-6 px-6">
+        <footer className="glass border-t border-border py-6 px-6">
           <div className="max-w-7xl mx-auto text-center">
-            <p className="text-sm text-slate-300 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               {t('portal.poweredBy')}
             </p>
-            <p className="text-sm text-slate-500 mb-3">
+            <p className="text-sm text-muted-foreground mb-3">
               {t('portal.wantKnowledgeBase')}
             </p>
             <Link to="/signup">

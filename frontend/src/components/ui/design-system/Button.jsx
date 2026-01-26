@@ -27,17 +27,17 @@ function Button({
 
     switch (variant) {
       case 'primary':
-        return 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'; // Exact from KnowledgeSystemsPage
+        return 'bg-primary hover:bg-primary/90 text-primary-foreground';
       case 'outline':
-        return 'border-slate-600 text-slate-300 hover:bg-slate-800'; // Exact from KnowledgeSystemsPage
+        return 'border-border text-foreground hover:bg-secondary';
       case 'ghost':
-        return 'text-slate-600 hover:text-slate-900'; // Exact from PolicyPortalPage
+        return 'text-muted-foreground hover:text-foreground hover:bg-secondary/50';
       case 'amber':
-        return 'bg-amber-600 hover:bg-amber-700'; // Exact from PolicyPortalPage
+        return 'bg-amber-600 hover:bg-amber-700 text-white';
       case 'card':
-        return UTILITIES.button.enabled; // Exact from KnowledgeSystemCard
+        return UTILITIES.button.enabled;
       default:
-        return 'bg-slate-600 hover:bg-slate-700 text-white';
+        return 'bg-secondary hover:bg-secondary/90 text-secondary-foreground';
     }
   };
 

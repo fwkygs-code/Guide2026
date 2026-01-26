@@ -68,14 +68,14 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
       )}
       {/* Top Navigation */}
       <nav className="sticky top-0 z-[9998]">
-        <Surface variant="glass" className="border-b border-slate-200/50">
+        <Surface variant="glass" className="border-b border-border">
           <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate(-1)}
-              className="shrink-0 text-slate-200 hover:text-white"
+              className="shrink-0"
               data-testid="nav-back-button"
               title={t('common.back')}
             >
@@ -116,7 +116,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               variant="ghost"
               size="sm"
               onClick={() => navigate('/dashboard')}
-              className="text-slate-200 hover:text-white"
+              className=""
               data-testid="nav-home-button"
             >
               <Home className="w-4 h-4 mr-2" />
@@ -127,7 +127,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 variant="ghost"
                 size="sm"
                 onClick={() => window.open(`/portal/${workspaceSlug}`, '_blank')}
-                className="text-slate-200 hover:text-white"
+                className=""
                 data-testid="nav-portal-button"
                 title="Open Portal in new tab"
               >
@@ -142,7 +142,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                     variant="ghost"
                     size="sm"
                     title="View workspace limits"
-                    className="text-slate-200 hover:text-white"
+                    className=""
                   >
                     <Database className="w-4 h-4 mr-2" />
                     Limits
@@ -161,7 +161,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/admin')}
-                className="text-slate-200 hover:text-white"
+                className=""
                 title="Admin Dashboard"
               >
                 <Shield className="w-4 h-4 mr-2" />
@@ -175,7 +175,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="text-slate-200 hover:text-white"
+              className=""
               data-testid="nav-logout-button"
             >
               <LogOut className="w-4 h-4 mr-2" />

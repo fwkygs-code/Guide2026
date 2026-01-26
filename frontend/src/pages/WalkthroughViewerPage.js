@@ -444,7 +444,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -452,10 +452,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 
   if (!walkthrough) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="text-center">
-          <h1 className="text-2xl font-heading font-bold text-slate-900 mb-2">Walkthrough Not Found</h1>
-          <p className="text-slate-600">The walkthrough you're looking for doesn't exist.</p>
+          <h1 className="text-2xl font-heading font-bold text-foreground mb-2">Walkthrough Not Found</h1>
+          <p className="text-muted-foreground">The walkthrough you're looking for doesn't exist.</p>
         </div>
       </div>
     );
@@ -465,22 +465,22 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const step = walkthrough.steps[currentStep];
 
   return (
-    <div className={`min-h-screen bg-white ${inIframe ? 'iframe-mode' : ''}`}>
+    <div className={`min-h-screen bg-card ${inIframe ? 'iframe-mode' : ''}`}>
       {/* Header - Hide in iframe mode */}
       {!inIframe && (
-      <header className="glass border-b border-slate-200/50 sticky top-0 z-50">
+      <header className="glass border-b border-border/50 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3 min-w-0">
               <Link
                 to={`/portal/${slug}`}
-                className="text-sm font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap"
                 data-testid="back-to-portal-link"
               >
                 ← Back to portal
               </Link>
-              <div className="h-4 w-px bg-slate-200" />
-              <h1 className="text-xl font-heading font-bold text-slate-900 truncate">{walkthrough.title}</h1>
+              <div className="h-4 w-px bg-background" />
+              <h1 className="text-xl font-heading font-bold text-foreground truncate">{walkthrough.title}</h1>
             </div>
             <div className="flex items-center gap-2">
               {isLoggedIn && (
@@ -509,7 +509,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
           </div>
           <div className="flex items-center gap-4">
             <Progress value={progress} className="flex-1" data-testid="walkthrough-progress" />
-            <span className="text-sm text-slate-600 whitespace-nowrap">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
               Step {currentStep + 1} of {walkthrough.steps.length}
             </span>
           </div>
@@ -528,7 +528,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               exit={{ opacity: 0, x: -20 }}
               className="glass rounded-2xl p-8"
             >
-              <h2 className="text-3xl font-heading font-bold text-slate-900 mb-6 text-center" data-testid="step-title">
+              <h2 className="text-3xl font-heading font-bold text-foreground mb-6 text-center" data-testid="step-title">
                 {step?.title}
               </h2>
               
@@ -599,7 +599,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           loop
                           muted
                           playsInline
-                          className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
+                          className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-secondary cursor-zoom-in"
                           onClick={() => setImagePreviewUrl(step.media_url)}
                           onLoadStart={() => console.log('[GIF Debug] Video load started:', optimizedVideoUrl)}
                           onLoadedData={() => console.log('[GIF Debug] Video loaded successfully:', optimizedVideoUrl)}
@@ -631,7 +631,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         data-gif-src={isGifFile ? step.media_url : undefined}
                         src={optimizedImageUrl} 
                         alt={step.title} 
-                        className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-slate-50 cursor-zoom-in"
+                        className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-secondary cursor-zoom-in"
                         onClick={() => setImagePreviewUrl(step.media_url)}
                         loading="eager"
                         decoding="async"
@@ -672,7 +672,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     <div key={block.id || idx}>
                       {block.type === 'heading' && (
                         <h3 
-                          className={`font-heading font-bold text-slate-900 ${
+                          className={`font-heading font-bold text-foreground ${
                             block.data?.level === 1 ? 'text-3xl' :
                             block.data?.level === 2 ? 'text-2xl' : 'text-xl'
                           }`}
@@ -681,7 +681,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       )}
                       {block.type === 'text' && (
                         <div
-                          className="prose max-w-none text-slate-700"
+                          className="prose max-w-none text-foreground"
                           style={{ direction: detectRTL(block.data?.content) ? 'rtl' : 'ltr' }}
                           dangerouslySetInnerHTML={{ __html: block.data?.content }}
                         />
@@ -691,8 +691,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         if (!block.data?.url) {
                           console.warn('[GIF Debug] Block image missing URL:', { blockId: block.id, block });
                           return (
-                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50">
-                              <p className="text-sm text-slate-500">Image URL missing</p>
+                            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center bg-secondary">
+                              <p className="text-sm text-muted-foreground">Image URL missing</p>
                             </div>
                           );
                         }
@@ -763,7 +763,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 loop
                                 muted
                                 playsInline
-                                className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
+                                className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
                                 onClick={() => setImagePreviewUrl(imageUrl)}
                                 onLoadStart={() => console.log('[GIF Debug] Block video load started:', optimizedVideoUrl)}
                                 onLoadedData={() => console.log('[GIF Debug] Block video loaded successfully:', optimizedVideoUrl)}
@@ -783,7 +783,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 }}
                               />
                               {block.data?.caption && (
-                                <figcaption className="text-sm text-slate-500 mt-2 text-center">
+                                <figcaption className="text-sm text-muted-foreground mt-2 text-center">
                                   {block.data.caption}
                                 </figcaption>
                               )}
@@ -802,7 +802,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               data-gif-src={isGifFile ? imageUrl : undefined}
                               src={optimizedImageUrl} 
                               alt={block.data?.alt || ''} 
-                              className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-gray-50/50 cursor-zoom-in"
+                              className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
                               onClick={() => setImagePreviewUrl(imageUrl)}
                               loading="eager"
                               decoding="async"
@@ -816,7 +816,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               } : {}}
                             />
                             {block.data?.caption && (
-                              <figcaption className="text-sm text-slate-500 mt-2 text-center">
+                              <figcaption className="text-sm text-muted-foreground mt-2 text-center">
                                 {block.data.caption}
                               </figcaption>
                             )}
@@ -843,10 +843,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         </div>
                       )}
                       {block.type === 'file' && block.data?.url && (
-                        <div className="border border-slate-200 rounded-lg p-4 flex items-center justify-between bg-slate-50">
+                        <div className="border border-border rounded-lg p-4 flex items-center justify-between bg-secondary">
                           <div>
-                            <div className="font-medium text-slate-900">{block.data.name}</div>
-                            <div className="text-sm text-slate-500">
+                            <div className="font-medium text-foreground">{block.data.name}</div>
+                            <div className="text-sm text-muted-foreground">
                               {block.data.size ? `${(block.data.size / 1024).toFixed(2)} KB` : 'File'}
                             </div>
                           </div>
@@ -976,7 +976,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         );
                       })()}
                       {block.type === 'divider' && (
-                        <hr className="border-slate-200" />
+                        <hr className="border-border" />
                       )}
                       {block.type === 'spacer' && (
                         <div style={{ height: block.data?.height || 32 }} />
@@ -984,11 +984,11 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       {block.type === 'problem' && (
                         <div className="border-l-4 border-warning/40 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none">
                           <h4 
-                            className="font-semibold text-gray-900 mb-1 relative z-10"
+                            className="font-semibold text-foreground mb-1 relative z-10"
                             dangerouslySetInnerHTML={{ __html: block.data?.title || '' }}
                           />
                           <div 
-                            className="text-gray-700 relative z-10 prose prose-sm max-w-none"
+                            className="text-foreground relative z-10 prose prose-sm max-w-none"
                             dangerouslySetInnerHTML={{ __html: block.data?.explanation || '' }}
                           />
                         </div>
@@ -997,15 +997,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         <CarouselViewer slides={block.data.slides} />
                       )}
                       {block.type === 'checklist' && block.data?.items && block.data.items.length > 0 && (
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                        <div className="bg-secondary border border-border rounded-xl p-4 space-y-2">
                           {block.data.items.map((item, itemIdx) => (
                             <label key={itemIdx} className="flex items-start gap-3 cursor-pointer group">
                               <input
                                 type="checkbox"
-                                className="mt-1 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary"
                                 defaultChecked={false}
                               />
-                              <span className="text-slate-700 flex-1">{item.text}</span>
+                              <span className="text-foreground flex-1">{item.text}</span>
                             </label>
                           ))}
                         </div>
@@ -1022,7 +1022,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                block.data?.variant === 'important' ? '❗' : '💡'}
                             </span>
                             <div
-                              className="prose prose-sm max-w-none text-slate-700"
+                              className="prose prose-sm max-w-none text-foreground"
                               dangerouslySetInnerHTML={{ __html: block.data?.content || block.data?.text || '' }}
                             />
                           </div>
@@ -1100,7 +1100,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         const embedUrl = getEmbedUrl(block.data.url, block.data?.provider || 'youtube');
                         
                         return (
-                          <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden">
+                          <div className="aspect-video bg-secondary rounded-xl overflow-hidden">
                             <iframe
                               src={embedUrl}
                               className="w-full h-full"
@@ -1112,15 +1112,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         );
                       })()}
                       {block.type === 'section' && (
-                        <div className="border border-slate-200 rounded-xl p-6 bg-slate-50/50">
+                        <div className="border border-border rounded-xl p-6 bg-secondary/50">
                           {block.data?.title && (
-                            <h4 className="font-semibold text-lg text-slate-900 mb-3">
+                            <h4 className="font-semibold text-lg text-foreground mb-3">
                               {block.data.title}
                             </h4>
                           )}
                           {block.data?.content && (
                             <div
-                              className="prose prose-sm max-w-none text-slate-700"
+                              className="prose prose-sm max-w-none text-foreground"
                               dangerouslySetInnerHTML={{ __html: block.data.content }}
                             />
                           )}
@@ -1133,7 +1133,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             className="mt-1 w-5 h-5 rounded border-primary/30 text-primary focus:ring-primary"
                           />
                           <div
-                            className="prose prose-sm max-w-none text-slate-700 flex-1"
+                            className="prose prose-sm max-w-none text-foreground flex-1"
                             dangerouslySetInnerHTML={{ __html: block.data?.message || '' }}
                           />
                         </div>
@@ -1150,7 +1150,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             href={normalizedUrl}
                             target={block.data?.newTab !== false ? '_blank' : '_self'}
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                           >
                             {block.data?.text || 'Visit Link'}
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1160,9 +1160,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         );
                       })()}
                       {block.type === 'code' && (
-                        <div className="bg-slate-900 text-slate-100 rounded-xl overflow-hidden">
-                          <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
-                            <span className="text-xs font-medium text-slate-400">
+                        <div className="bg-background text-foreground rounded-xl overflow-hidden">
+                          <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
+                            <span className="text-xs font-medium text-muted-foreground">
                               {block.data?.language || 'code'}
                             </span>
                             <button
@@ -1170,7 +1170,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 navigator.clipboard.writeText(block.data?.code || '');
                                 toast.success('Copied to clipboard!');
                               }}
-                              className="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-200 transition-colors"
+                              className="text-xs px-2 py-1 bg-secondary hover:bg-slate-600 rounded text-foreground transition-colors"
                             >
                               Copy
                             </button>
@@ -1188,14 +1188,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {/* Legacy Content Display */}
               {step?.content && !step?.blocks?.length && (
                 <div 
-                  className="prose max-w-none mb-8 text-slate-700"
+                  className="prose max-w-none mb-8 text-foreground"
                   dangerouslySetInnerHTML={{ __html: step?.content }}
                   data-testid="step-content"
                 />
               )}
 
               {/* Navigation */}
-              <div className="flex items-center justify-between pt-6 border-t border-slate-200">
+              <div className="flex items-center justify-between pt-6 border-t border-border">
                 {isStepCheckoffRequired() && (
                   <button
                     type="button"
@@ -1209,7 +1209,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     className={`text-sm font-medium px-3 py-2 rounded-lg border ${
                       canProceedNext()
                         ? 'border-success text-success bg-success/5'
-                        : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                        : 'border-border text-foreground hover:border-border'
                     }`}
                     data-testid="checkoff-button"
                   >
@@ -1272,10 +1272,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Check className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-3xl font-heading font-bold text-slate-900 mb-4">
+              <h2 className="text-3xl font-heading font-bold text-foreground mb-4">
                 Walkthrough Complete!
               </h2>
-              <p className="text-lg text-slate-600 mb-8">
+              <p className="text-lg text-muted-foreground mb-8">
                 How was your experience?
               </p>
 
@@ -1285,7 +1285,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   className={`p-4 rounded-xl border-2 transition-all ${
                     feedbackRating === 'happy' 
                       ? 'border-primary bg-primary/5' 
-                      : 'border-slate-200 hover:border-slate-300'
+                      : 'border-border hover:border-border'
                   }`}
                   data-testid="feedback-happy"
                 >
@@ -1296,18 +1296,18 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   className={`p-4 rounded-xl border-2 transition-all ${
                     feedbackRating === 'neutral' 
                       ? 'border-primary bg-primary/5' 
-                      : 'border-slate-200 hover:border-slate-300'
+                      : 'border-border hover:border-border'
                   }`}
                   data-testid="feedback-neutral"
                 >
-                  <Meh className="w-8 h-8 text-slate-600" />
+                  <Meh className="w-8 h-8 text-muted-foreground" />
                 </button>
                 <button
                   onClick={() => setFeedbackRating('unhappy')}
                   className={`p-4 rounded-xl border-2 transition-all ${
                     feedbackRating === 'unhappy' 
                       ? 'border-primary bg-primary/5' 
-                      : 'border-slate-200 hover:border-slate-300'
+                      : 'border-border hover:border-border'
                   }`}
                   data-testid="feedback-unhappy"
                 >
@@ -1496,11 +1496,11 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
             )}
             
             {supportContactInfo?.hours && (
-              <div className="flex items-start gap-3 px-4 py-3 bg-slate-50 rounded-lg">
-                <Clock className="w-5 h-5 text-slate-600 mt-0.5" />
+              <div className="flex items-start gap-3 px-4 py-3 bg-secondary rounded-lg">
+                <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <div className="font-medium text-sm text-slate-900">Working Hours</div>
-                  <div className="text-sm text-slate-600">{supportContactInfo.hours}</div>
+                  <div className="font-medium text-sm text-foreground">Working Hours</div>
+                  <div className="text-sm text-muted-foreground">{supportContactInfo.hours}</div>
                 </div>
               </div>
             )}
@@ -1519,7 +1519,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               <img
                 src={imagePreviewUrl}
                 alt="Preview"
-                className="w-full max-h-[80vh] object-contain rounded-lg bg-slate-50"
+                className="w-full max-h-[80vh] object-contain rounded-lg bg-secondary"
                 loading="eager"
                 decoding="async"
                 key={imagePreviewUrl}
@@ -1541,7 +1541,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
             <DialogTitle>Admin Dashboard</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               You are currently viewing the walkthrough. Would you like to go to the Admin Dashboard to manage your workspace?
             </p>
             <div className="flex gap-3 justify-end">
@@ -1611,7 +1611,7 @@ const AnnotatedImageViewer = ({ block }) => {
 
   return (
     <div
-      className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 select-none mx-auto"
+      className="relative border border-border rounded-lg overflow-hidden bg-secondary select-none mx-auto"
       style={{
         userSelect: 'none',
         WebkitUserSelect: 'none',
@@ -1668,7 +1668,7 @@ const AnnotatedImageViewer = ({ block }) => {
               >
                 {/* Number badge positioned outside top-right corner like an exponent */}
                 <span
-                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  className="absolute text-foreground rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
                     width: '18px',
                     height: '18px',
@@ -1683,7 +1683,7 @@ const AnnotatedImageViewer = ({ block }) => {
               </div>
               {isActive && (marker.title || marker.description) && (
                 <div
-                  className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                  className="absolute z-50 bg-card border border-border rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                   style={{
                     left: '50%',
                     top: '0',
@@ -1692,10 +1692,10 @@ const AnnotatedImageViewer = ({ block }) => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   {marker.title && (
-                    <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                    <div className="font-semibold text-foreground mb-2">{marker.title}</div>
                   )}
                   {marker.description && (
-                    <div className="text-sm text-slate-600">{marker.description}</div>
+                    <div className="text-sm text-muted-foreground">{marker.description}</div>
                   )}
                 </div>
               )}
@@ -1752,7 +1752,7 @@ const AnnotatedImageViewer = ({ block }) => {
 
                 {/* Number badge positioned above the tip (matching builder) */}
                 <span
-                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  className="absolute text-foreground rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
                     width: '18px',
                     height: '18px',
@@ -1769,7 +1769,7 @@ const AnnotatedImageViewer = ({ block }) => {
               </div>
               {isActive && (marker.title || marker.description) && (
                 <div
-                  className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                  className="absolute z-50 bg-card border border-border rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                   style={{
                     left: '0',
                     top: '50%',
@@ -1778,10 +1778,10 @@ const AnnotatedImageViewer = ({ block }) => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   {marker.title && (
-                    <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                    <div className="font-semibold text-foreground mb-2">{marker.title}</div>
                   )}
                   {marker.description && (
-                    <div className="text-sm text-slate-600">{marker.description}</div>
+                    <div className="text-sm text-muted-foreground">{marker.description}</div>
                   )}
                 </div>
               )}
@@ -1843,7 +1843,7 @@ const AnnotatedImageViewer = ({ block }) => {
               </svg>
               {isActive && (marker.title || marker.description) && (
                 <div
-                  className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                  className="absolute z-50 bg-card border border-border rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                   style={{
                     left: (startX + endX) / 2 + '%',
                     top: (startY + endY) / 2 + '%',
@@ -1852,10 +1852,10 @@ const AnnotatedImageViewer = ({ block }) => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   {marker.title && (
-                    <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                    <div className="font-semibold text-foreground mb-2">{marker.title}</div>
                   )}
                   {marker.description && (
-                    <div className="text-sm text-slate-600">{marker.description}</div>
+                    <div className="text-sm text-muted-foreground">{marker.description}</div>
                   )}
                 </div>
               )}
@@ -1887,7 +1887,7 @@ const AnnotatedImageViewer = ({ block }) => {
             >
               {/* Number badge positioned outside top-right corner like exponent */}
               <span
-                className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                className="absolute text-foreground rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                 style={{
                   width: '18px',
                   height: '18px',
@@ -1903,7 +1903,7 @@ const AnnotatedImageViewer = ({ block }) => {
             </div>
             {isActive && (marker.title || marker.description) && (
               <div
-                className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
+                className="absolute z-50 bg-card border border-border rounded-lg shadow-xl p-4 min-w-[200px] max-w-[300px]"
                 style={{
                   left: '50%',
                   top: '0',
@@ -1912,10 +1912,10 @@ const AnnotatedImageViewer = ({ block }) => {
                 onClick={(e) => e.stopPropagation()}
               >
                 {marker.title && (
-                  <div className="font-semibold text-slate-900 mb-2">{marker.title}</div>
+                  <div className="font-semibold text-foreground mb-2">{marker.title}</div>
                 )}
                 {marker.description && (
-                  <div className="text-sm text-slate-600">{marker.description}</div>
+                  <div className="text-sm text-muted-foreground">{marker.description}</div>
                 )}
               </div>
             )}
@@ -2035,7 +2035,7 @@ const CarouselViewer = ({ slides }) => {
   return (
     <div className="space-y-3">
       <div
-        className="relative aspect-video bg-slate-100 rounded-lg overflow-hidden"
+        className="relative aspect-video bg-secondary rounded-lg overflow-hidden"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -2045,17 +2045,17 @@ const CarouselViewer = ({ slides }) => {
           <>
             <button
               onClick={goToPrevious}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-card/90 hover:bg-card border border-border rounded-full p-2 shadow-lg transition-all"
               aria-label="Previous slide"
             >
-              <ChevronLeft className="w-5 h-5 text-slate-700" />
+              <ChevronLeft className="w-5 h-5 text-foreground" />
             </button>
             <button
               onClick={goToNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-card/90 hover:bg-card border border-border rounded-full p-2 shadow-lg transition-all"
               aria-label="Next slide"
             >
-              <ChevronRight className="w-5 h-5 text-slate-700" />
+              <ChevronRight className="w-5 h-5 text-foreground" />
             </button>
           </>
         )}
@@ -2091,7 +2091,7 @@ const CarouselViewer = ({ slides }) => {
                 )}
               </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400">
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                 <p className="text-sm">No media for this slide</p>
               </div>
             )}
@@ -2106,7 +2106,7 @@ const CarouselViewer = ({ slides }) => {
                 key={idx}
                 onClick={() => goToSlide(idx)}
                 className={`w-2 h-2 rounded-full transition-all ${
-                  idx === currentIndex ? 'bg-white w-6' : 'bg-white/60 hover:bg-white/80'
+                  idx === currentIndex ? 'bg-card w-6' : 'bg-card/60 hover:bg-card/80'
                 }`}
                 aria-label={`Go to slide ${idx + 1}`}
               />
@@ -2119,7 +2119,7 @@ const CarouselViewer = ({ slides }) => {
       {currentSlide.caption && (
         <div className="px-2">
           <div 
-            className="prose prose-sm max-w-none bg-transparent text-slate-700 rounded-lg px-4 py-3"
+            className="prose prose-sm max-w-none bg-transparent text-foreground rounded-lg px-4 py-3"
             dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
           />
         </div>

@@ -287,16 +287,16 @@ export const MOTION = {
 // =============================================================================
 
 export const TYPOGRAPHY = {
-  // Text colors - enhanced for glass and content types
+  // Text colors - semantic tokens for dark theme
   colors: {
-    primary: 'text-slate-900',
-    secondary: 'text-slate-600',
-    accent: 'text-white',
-    muted: 'text-slate-300',
-    inactive: 'text-slate-400',
+    primary: 'text-foreground',
+    secondary: 'text-muted-foreground',
+    accent: 'text-primary',
+    muted: 'text-muted-foreground',
+    inactive: 'text-muted-foreground/60',
     status: 'text-green-400',
-    glass: 'text-white/90',
-    glassMuted: 'text-white/70'
+    glass: 'text-foreground/90',
+    glassMuted: 'text-muted-foreground'
   },
 
   // Font weights - enhanced hierarchy
@@ -446,18 +446,18 @@ export const UTILITIES = {
   // Card styling - exact from KnowledgeSystemCard
   card: 'relative overflow-hidden backdrop-blur-sm transition-all duration-300 group',
 
-  // Button styling - exact from KnowledgeSystemCard
+  // Button styling - using semantic tokens
   button: {
-    enabled: 'bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200',
-    disabled: 'bg-slate-700 text-slate-400 cursor-not-allowed'
+    enabled: 'bg-secondary/50 hover:bg-secondary text-foreground border-border transition-all duration-200',
+    disabled: 'bg-muted text-muted-foreground cursor-not-allowed'
   },
 
   // Animation effects - exact from KnowledgeSystemCard
-  animation: 'bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full',
+  animation: 'bg-gradient-to-r from-transparent via-foreground/5 to-transparent -translate-x-full',
 
   // Status colors - exact from KnowledgeSystemCard
   status: {
     active: 'text-green-400',
-    inactive: 'text-slate-500'
+    inactive: 'text-muted-foreground'
   }
 };

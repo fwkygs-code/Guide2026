@@ -594,7 +594,7 @@ const AdminDashboardPage = () => {
 
   const getEffectiveState = (user) => {
     if (user.disabled) return { label: 'Disabled', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
-    if (user.deleted_at) return { label: 'Deleted', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-900/20' };
+    if (user.deleted_at) return { label: 'Deleted', color: 'text-muted-foreground', bg: 'bg-secondary' };
     
     const planName = user.plan?.name || 'free';
     const subscriptionStatus = user.subscription?.status;
@@ -621,18 +621,18 @@ const AdminDashboardPage = () => {
       return { label: 'Expired', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
     }
     if (planName === 'free') {
-      return { label: 'Free', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900/20' };
+      return { label: 'Free', color: 'text-muted-foreground', bg: 'bg-secondary' };
     }
     
-    return { label: 'Unknown', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900/20' };
+    return { label: 'Unknown', color: 'text-muted-foreground', bg: 'bg-secondary' };
   };
 
   return (
     <DashboardLayout>
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
-          <p className="text-slate-600 dark:text-slate-400">Manage users, subscriptions, and system settings</p>
+          <h1 className="text-3xl font-bold mb-2 text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage users, subscriptions, and system settings</p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
@@ -648,10 +648,10 @@ const AdminDashboardPage = () => {
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
-            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-slate-900 dark:text-slate-100">User Management</CardTitle>
-                <CardDescription className="text-slate-600 dark:text-slate-400">View and manage all users</CardDescription>
+                <CardTitle className="text-foreground">User Management</CardTitle>
+                <CardDescription className="text-muted-foreground">View and manage all users</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4 mb-6">
@@ -669,33 +669,33 @@ const AdminDashboardPage = () => {
                 </div>
 
                 {usersLoading ? (
-                  <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading users...</div>
+                  <div className="text-center py-8 text-muted-foreground">Loading users...</div>
                 ) : (
                   <>
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b border-slate-200 dark:border-slate-800">
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Email</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Name</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">State</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Role</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Plan</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Subscription</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Grace Period</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Storage</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Custom Quotas</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Created</th>
-                            <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Actions</th>
+                          <tr className="border-b border-border">
+                            <th className="text-left p-2 text-foreground font-semibold">Email</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Name</th>
+                            <th className="text-left p-2 text-foreground font-semibold">State</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Role</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Plan</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Subscription</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Grace Period</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Storage</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Custom Quotas</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Created</th>
+                            <th className="text-left p-2 text-foreground font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {users.map((u) => {
                             const effectiveState = getEffectiveState(u);
                             return (
-                            <tr key={u.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                              <td className="p-2 text-slate-900 dark:text-slate-100">{u.email}</td>
-                              <td className="p-2 text-slate-900 dark:text-slate-100">{u.name}</td>
+                            <tr key={u.id} className="border-b border-border hover:bg-secondary/50">
+                              <td className="p-2 text-foreground">{u.email}</td>
+                              <td className="p-2 text-foreground">{u.name}</td>
                               <td className="p-2">
                                 <Badge variant="outline" className={`${effectiveState.color} ${effectiveState.bg} border-current`}>
                                   {effectiveState.label}
@@ -717,7 +717,7 @@ const AdminDashboardPage = () => {
                               <td className="p-2">
                                 <Badge 
                                   variant={u.plan?.name === 'pro' ? 'outline' : 'outline'}
-                                  className={u.plan?.name === 'pro' ? 'border-purple-500 text-purple-700 dark:text-purple-400' : 'border-slate-300 text-slate-600 dark:text-slate-400'}
+                                  className={u.plan?.name === 'pro' ? 'border-purple-500 text-purple-700 dark:text-purple-400' : 'border-slate-300 text-muted-foreground'}
                                 >
                                   {u.plan?.display_name || 'Free'}
                                 </Badge>
@@ -731,10 +731,10 @@ const AdminDashboardPage = () => {
                                     {u.subscription.status}
                                   </Badge>
                                 ) : (
-                                  <span className="text-slate-400">None</span>
+                                  <span className="text-muted-foreground">None</span>
                                 )}
                               </td>
-                              <td className="p-2 text-slate-700 dark:text-slate-300 text-sm">
+                              <td className="p-2 text-foreground text-sm">
                                 {u.grace_period_ends_at ? (
                                   <div>
                                     <div>Until: {formatDate(u.grace_period_ends_at)}</div>
@@ -743,10 +743,10 @@ const AdminDashboardPage = () => {
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400">None</span>
+                                  <span className="text-muted-foreground">None</span>
                                 )}
                               </td>
-                              <td className="p-2 text-slate-700 dark:text-slate-300">
+                              <td className="p-2 text-foreground">
                                 <div>{formatBytes(u.storage_used || 0)}</div>
                                 {u.custom_storage_bytes !== null && u.custom_storage_bytes !== undefined && (
                                   <div className="text-xs text-purple-600 dark:text-purple-400">
@@ -754,7 +754,7 @@ const AdminDashboardPage = () => {
                                   </div>
                                 )}
                               </td>
-                              <td className="p-2 text-slate-700 dark:text-slate-300 text-xs">
+                              <td className="p-2 text-foreground text-xs">
                                 {(u.custom_max_workspaces !== null && u.custom_max_workspaces !== undefined) ||
                                  (u.custom_max_walkthroughs !== null && u.custom_max_walkthroughs !== undefined) ? (
                                   <div className="space-y-1">
@@ -766,10 +766,10 @@ const AdminDashboardPage = () => {
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400">None</span>
+                                  <span className="text-muted-foreground">None</span>
                                 )}
                               </td>
-                              <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(u.created_at)}</td>
+                              <td className="p-2 text-muted-foreground">{formatDate(u.created_at)}</td>
                               <td className="p-2">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -1015,37 +1015,37 @@ const AdminDashboardPage = () => {
 
           <TabsContent value="stats" className="space-y-4">
             {statsLoading ? (
-              <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading statistics...</div>
+              <div className="text-center py-8 text-muted-foreground">Loading statistics...</div>
             ) : stats ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <Card className="border-border bg-card">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                    <CardTitle className="flex items-center gap-2 text-foreground">
                       <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                       Users
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Total:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.users.total}</strong>
+                        <strong className="text-foreground">{stats.users.total}</strong>
                       </div>
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Verified:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.users.verified}</strong>
+                        <strong className="text-foreground">{stats.users.verified}</strong>
                       </div>
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Admins:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.users.admins}</strong>
+                        <strong className="text-foreground">{stats.users.admins}</strong>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <Card className="border-border bg-card">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                    <CardTitle className="flex items-center gap-2 text-foreground">
                       <Crown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                       Plans
                     </CardTitle>
@@ -1053,93 +1053,93 @@ const AdminDashboardPage = () => {
                   <CardContent>
                     <div className="space-y-2">
                       {Object.entries(stats.plans || {}).map(([name, data]) => (
-                        <div key={name} className="flex justify-between text-slate-700 dark:text-slate-300">
+                        <div key={name} className="flex justify-between text-foreground">
                           <span>{data.display_name}:</span>
-                          <strong className="text-slate-900 dark:text-slate-100">{data.count}</strong>
+                          <strong className="text-foreground">{data.count}</strong>
                         </div>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <Card className="border-border bg-card">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                    <CardTitle className="flex items-center gap-2 text-foreground">
                       <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       Subscriptions
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Active:</span>
                         <strong className="text-green-600 dark:text-green-400">{stats.subscriptions.active}</strong>
                       </div>
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Cancelled:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.subscriptions.cancelled}</strong>
+                        <strong className="text-foreground">{stats.subscriptions.cancelled}</strong>
                       </div>
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Pending:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.subscriptions.pending}</strong>
+                        <strong className="text-foreground">{stats.subscriptions.pending}</strong>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <Card className="border-border bg-card">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                    <CardTitle className="flex items-center gap-2 text-foreground">
                       <FolderOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                       Workspaces
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.workspaces.total}</div>
+                    <div className="text-2xl font-bold text-foreground">{stats.workspaces.total}</div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <Card className="border-border bg-card">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                    <CardTitle className="flex items-center gap-2 text-foreground">
                       <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                       Walkthroughs
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Total:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.walkthroughs.total}</strong>
+                        <strong className="text-foreground">{stats.walkthroughs.total}</strong>
                       </div>
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Published:</span>
                         <strong className="text-green-600 dark:text-green-400">{stats.walkthroughs.published}</strong>
                       </div>
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Draft:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.walkthroughs.draft}</strong>
+                        <strong className="text-foreground">{stats.walkthroughs.draft}</strong>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <Card className="border-border bg-card">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                      <HardDrive className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <CardTitle className="flex items-center gap-2 text-foreground">
+                      <HardDrive className="w-5 h-5 text-muted-foreground" />
                       Storage
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Total:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{formatBytes(stats.storage.total_bytes)}</strong>
+                        <strong className="text-foreground">{formatBytes(stats.storage.total_bytes)}</strong>
                       </div>
-                      <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between text-foreground">
                         <span>Files:</span>
-                        <strong className="text-slate-900 dark:text-slate-100">{stats.files.active}</strong>
+                        <strong className="text-foreground">{stats.files.active}</strong>
                       </div>
                     </div>
                   </CardContent>
@@ -1161,58 +1161,58 @@ const AdminDashboardPage = () => {
             
             {/* Current State Display */}
             {selectedUser && (
-              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Current State</h3>
+              <div className="mb-6 p-4 bg-secondary rounded-lg border border-border">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Current State</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Effective State:</span>
+                    <span className="text-muted-foreground">Effective State:</span>
                     <Badge variant="outline" className={`ml-2 ${getEffectiveState(selectedUser).color} ${getEffectiveState(selectedUser).bg} border-current`}>
                       {getEffectiveState(selectedUser).label}
                     </Badge>
                   </div>
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Role:</span>
-                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.role || 'owner'}</span>
+                    <span className="text-muted-foreground">Role:</span>
+                    <span className="ml-2 text-foreground">{selectedUser.role || 'owner'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Plan:</span>
-                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.plan?.display_name || 'Free'}</span>
+                    <span className="text-muted-foreground">Plan:</span>
+                    <span className="ml-2 text-foreground">{selectedUser.plan?.display_name || 'Free'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Subscription:</span>
-                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.subscription?.status || 'None'}</span>
+                    <span className="text-muted-foreground">Subscription:</span>
+                    <span className="ml-2 text-foreground">{selectedUser.subscription?.status || 'None'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Disabled:</span>
-                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.disabled ? 'Yes' : 'No'}</span>
+                    <span className="text-muted-foreground">Disabled:</span>
+                    <span className="ml-2 text-foreground">{selectedUser.disabled ? 'Yes' : 'No'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Deleted:</span>
-                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.deleted_at ? formatDateTime(selectedUser.deleted_at) : 'No'}</span>
+                    <span className="text-muted-foreground">Deleted:</span>
+                    <span className="ml-2 text-foreground">{selectedUser.deleted_at ? formatDateTime(selectedUser.deleted_at) : 'No'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Grace Period Ends:</span>
-                    <span className="ml-2 text-slate-900 dark:text-slate-100">{selectedUser.grace_period_ends_at ? formatDateTime(selectedUser.grace_period_ends_at) : 'None'}</span>
+                    <span className="text-muted-foreground">Grace Period Ends:</span>
+                    <span className="ml-2 text-foreground">{selectedUser.grace_period_ends_at ? formatDateTime(selectedUser.grace_period_ends_at) : 'None'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 dark:text-slate-400">Storage Used:</span>
-                    <span className="ml-2 text-slate-900 dark:text-slate-100">{formatBytes(selectedUser.storage_used || 0)}</span>
+                    <span className="text-muted-foreground">Storage Used:</span>
+                    <span className="ml-2 text-foreground">{formatBytes(selectedUser.storage_used || 0)}</span>
                   </div>
                   {selectedUser.custom_storage_bytes !== null && selectedUser.custom_storage_bytes !== undefined && (
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Custom Storage Limit:</span>
+                      <span className="text-muted-foreground">Custom Storage Limit:</span>
                       <span className="ml-2 text-purple-600 dark:text-purple-400">{formatBytes(selectedUser.custom_storage_bytes)}</span>
                     </div>
                   )}
                   {selectedUser.custom_max_workspaces !== null && selectedUser.custom_max_workspaces !== undefined && (
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Custom Workspaces Limit:</span>
+                      <span className="text-muted-foreground">Custom Workspaces Limit:</span>
                       <span className="ml-2 text-purple-600 dark:text-purple-400">{selectedUser.custom_max_workspaces}</span>
                     </div>
                   )}
                   {selectedUser.custom_max_walkthroughs !== null && selectedUser.custom_max_walkthroughs !== undefined && (
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Custom Walkthroughs Limit:</span>
+                      <span className="text-muted-foreground">Custom Walkthroughs Limit:</span>
                       <span className="ml-2 text-purple-600 dark:text-purple-400">{selectedUser.custom_max_walkthroughs}</span>
                     </div>
                   )}
@@ -1311,13 +1311,13 @@ const AdminDashboardPage = () => {
             </DialogHeader>
             
             {loadingSubscriptionDetails ? (
-              <div className="flex justify-center py-8 text-slate-600">
+              <div className="flex justify-center py-8 text-muted-foreground">
                 Loading subscription details...
               </div>
             ) : (
               <div className="space-y-6 py-4">
                 {/* Subscription Type Badge */}
-                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg border border-border">
                   <Badge 
                     variant={subscriptionDetails?.is_paypal_managed ? "default" : "secondary"}
                     className="text-sm"
@@ -1408,8 +1408,8 @@ const AdminDashboardPage = () => {
                 
                 {/* No Subscription */}
                 {!subscriptionDetails?.has_subscription && (
-                  <div className="text-center py-8 text-slate-500">
-                    <Crown className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Crown className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
                     <p className="font-medium">No subscription found</p>
                     <p className="text-sm mt-1">Create a manual subscription to manage this user's plan</p>
                   </div>
@@ -1417,7 +1417,7 @@ const AdminDashboardPage = () => {
                 
                 {/* Editable Fields (Manual Subscriptions Only) */}
                 {subscriptionDetails?.can_edit && subscriptionDetails?.has_subscription && (
-                  <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <div className="space-y-4 border-t border-border pt-4">
                     <h4 className="font-semibold text-sm">Edit Subscription Dates & Status</h4>
                     
                     <div className="space-y-2">
@@ -1475,7 +1475,7 @@ const AdminDashboardPage = () => {
                           <SelectItem value="pending">Pending</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Setting status to "expired" or "cancelled" will downgrade user to Free plan
                       </p>
                     </div>
@@ -1484,7 +1484,7 @@ const AdminDashboardPage = () => {
                 
                 {/* Create New Subscription (when none exists) */}
                 {!subscriptionDetails?.has_subscription && (
-                  <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <div className="space-y-4 border-t border-border pt-4">
                     <h4 className="font-semibold text-sm">Create Manual Subscription</h4>
                     
                     <div className="space-y-2">
@@ -1582,33 +1582,33 @@ const AdminDashboardPage = () => {
             </DialogHeader>
             <div className="py-4">
               {membershipsLoading ? (
-                <div className="text-center py-8 text-slate-600 dark:text-slate-400">Loading memberships...</div>
+                <div className="text-center py-8 text-muted-foreground">Loading memberships...</div>
               ) : (
                 <>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-slate-200 dark:border-slate-800">
-                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Workspace</th>
-                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Status</th>
-                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Frozen</th>
-                          <th className="text-left p-2 text-slate-700 dark:text-slate-300 font-semibold">Created</th>
+                        <tr className="border-b border-border">
+                          <th className="text-left p-2 text-foreground font-semibold">Workspace</th>
+                          <th className="text-left p-2 text-foreground font-semibold">Status</th>
+                          <th className="text-left p-2 text-foreground font-semibold">Frozen</th>
+                          <th className="text-left p-2 text-foreground font-semibold">Created</th>
                         </tr>
                       </thead>
                       <tbody>
                         {userMemberships.length === 0 ? (
                           <tr>
-                            <td colSpan="4" className="text-center py-8 text-slate-600 dark:text-slate-400">
+                            <td colSpan="4" className="text-center py-8 text-muted-foreground">
                               No memberships found
                             </td>
                           </tr>
                         ) : (
                           userMemberships.map((m) => (
-                            <tr key={m.id} className="border-b border-slate-100 dark:border-slate-800">
-                              <td className="p-2 text-slate-900 dark:text-slate-100">
+                            <tr key={m.id} className="border-b border-border">
+                              <td className="p-2 text-foreground">
                                 {m.workspace?.name || 'Unknown'}
                                 {m.workspace?.slug && (
-                                  <div className="text-xs text-slate-500">/{m.workspace.slug}</div>
+                                  <div className="text-xs text-muted-foreground">/{m.workspace.slug}</div>
                                 )}
                               </td>
                               <td className="p-2">
@@ -1619,22 +1619,22 @@ const AdminDashboardPage = () => {
                                   {m.status || 'pending'}
                                 </Badge>
                               </td>
-                              <td className="p-2 text-slate-700 dark:text-slate-300 text-sm">
+                              <td className="p-2 text-foreground text-sm">
                                 {m.frozen_reason ? (
                                   <div>
                                     <Badge variant="outline" className="border-orange-500 text-orange-700 dark:text-orange-400">
                                       Frozen
                                     </Badge>
-                                    <div className="text-xs text-slate-500 mt-1">Reason: {m.frozen_reason}</div>
+                                    <div className="text-xs text-muted-foreground mt-1">Reason: {m.frozen_reason}</div>
                                     {m.frozen_at && (
-                                      <div className="text-xs text-slate-500">At: {formatDateTime(m.frozen_at)}</div>
+                                      <div className="text-xs text-muted-foreground">At: {formatDateTime(m.frozen_at)}</div>
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400">No</span>
+                                  <span className="text-muted-foreground">No</span>
                                 )}
                               </td>
-                              <td className="p-2 text-slate-600 dark:text-slate-400 text-sm">
+                              <td className="p-2 text-muted-foreground text-sm">
                                 {formatDate(m.created_at)}
                               </td>
                             </tr>
@@ -1696,9 +1696,9 @@ const AdminDashboardPage = () => {
             </DialogHeader>
             
             {selectedUser && (
-              <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Current Grace Period</h4>
-                <div className="text-sm text-slate-600 dark:text-slate-400">
+              <div className="mb-4 p-3 bg-secondary rounded-lg border border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Current Grace Period</h4>
+                <div className="text-sm text-muted-foreground">
                   {selectedUser.grace_period_ends_at 
                     ? `Ends: ${formatDateTime(selectedUser.grace_period_ends_at)}`
                     : 'None'}
@@ -1743,9 +1743,9 @@ const AdminDashboardPage = () => {
             </DialogHeader>
             
             {selectedUser && (
-              <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Current Custom Quotas</h4>
-                <div className="text-sm space-y-1 text-slate-600 dark:text-slate-400">
+              <div className="mb-4 p-3 bg-secondary rounded-lg border border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Current Custom Quotas</h4>
+                <div className="text-sm space-y-1 text-muted-foreground">
                   <div>
                     Storage: {selectedUser.custom_storage_bytes 
                       ? formatBytes(selectedUser.custom_storage_bytes) 

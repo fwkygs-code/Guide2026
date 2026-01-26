@@ -620,7 +620,7 @@ const BuilderV2Page = () => {
 
   if (loading || workspaceLoading || !workspaceId) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-slate-50 dark:bg-black">
+      <div className="w-screen h-screen flex items-center justify-center bg-secondary dark:bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -631,17 +631,17 @@ const BuilderV2Page = () => {
     const parentCategories = categories.filter(c => !c.parent_id);
     
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-slate-50 p-8">
-        <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-slate-200 p-8 max-h-[90vh] overflow-y-auto" data-onboarding="walkthrough-setup-form">
+      <div className="w-screen h-screen flex items-center justify-center bg-secondary p-8">
+        <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border border-border p-8 max-h-[90vh] overflow-y-auto" data-onboarding="walkthrough-setup-form">
           <div className="space-y-2 mb-6">
-            <h2 className="text-2xl font-semibold text-slate-900">Create New Walkthrough</h2>
-            <p className="text-sm text-slate-500">Set up your walkthrough before adding steps</p>
+            <h2 className="text-2xl font-semibold text-foreground">Create New Walkthrough</h2>
+            <p className="text-sm text-muted-foreground">Set up your walkthrough before adding steps</p>
           </div>
 
           <div className="space-y-6">
                 {/* Walkthrough Name */}
                 <div>
-                  <Label htmlFor="title" className="text-sm font-medium text-slate-900 mb-2 block">
+                  <Label htmlFor="title" className="text-sm font-medium text-foreground mb-2 block">
                     Walkthrough Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -656,7 +656,7 @@ const BuilderV2Page = () => {
 
                 {/* Description */}
                 <div>
-                  <Label htmlFor="description" className="text-sm font-medium text-slate-900 mb-2 block">
+                  <Label htmlFor="description" className="text-sm font-medium text-foreground mb-2 block">
                     {t('labels.description')}
                   </Label>
                   <Textarea
@@ -672,15 +672,15 @@ const BuilderV2Page = () => {
 
                 {/* Icon/Photo */}
                 <div>
-                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
-                    Icon/Photo <span className="text-slate-500 font-normal">(Optional)</span>
+                  <Label className="text-sm font-medium text-foreground mb-2 block">
+                    Icon/Photo <span className="text-muted-foreground font-normal">(Optional)</span>
                   </Label>
                   {setupData.icon_url ? (
                     <div className="space-y-2">
                       <img
                         src={normalizeImageUrl(setupData.icon_url)}
                         alt={t('walkthrough.labels.iconPreview')}
-                        className="w-24 h-24 rounded-lg object-cover border border-slate-200"
+                        className="w-24 h-24 rounded-lg object-cover border border-border"
                       />
                       <Button
                         variant="outline"
@@ -703,7 +703,7 @@ const BuilderV2Page = () => {
                         disabled={uploadingIcon}
                         className="w-full"
                       />
-                      <p className="text-sm text-slate-500">or</p>
+                      <p className="text-sm text-muted-foreground">or</p>
                       <Input
                         placeholder="Enter image URL"
                         value={setupData.icon_url}
@@ -716,13 +716,13 @@ const BuilderV2Page = () => {
 
                 {/* Categories */}
                 <div>
-                  <Label className="text-sm font-medium text-slate-900 mb-2 block">
+                  <Label className="text-sm font-medium text-foreground mb-2 block">
                     Categories
                   </Label>
                   {parentCategories.length === 0 ? (
-                    <p className="text-sm text-slate-500">No categories available. Create categories in the Categories page.</p>
+                    <p className="text-sm text-muted-foreground">No categories available. Create categories in the Categories page.</p>
                   ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
                       {parentCategories.map((category) => (
                         <div key={category.id} className="flex items-center space-x-2">
                           <Checkbox
@@ -737,7 +737,7 @@ const BuilderV2Page = () => {
                               }));
                             }}
                           />
-                          <Label htmlFor={`cat-${category.id}`} className="text-sm cursor-pointer text-slate-900">
+                          <Label htmlFor={`cat-${category.id}`} className="text-sm cursor-pointer text-foreground">
                             {category.name}
                           </Label>
                         </div>
@@ -781,9 +781,9 @@ const BuilderV2Page = () => {
   }
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-slate-50 dark:bg-black overflow-hidden" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh' }}>
+    <div className="w-screen h-screen flex flex-col bg-secondary dark:bg-black overflow-hidden" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh' }}>
       {/* Zone 1: Top Command Bar (Fixed Height) */}
-      <div className="h-14 flex-shrink-0 border-b border-slate-200 bg-white flex items-center justify-between px-6">
+      <div className="h-14 flex-shrink-0 border-b border-border bg-card flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -797,9 +797,9 @@ const BuilderV2Page = () => {
           <div className="h-6 w-px bg-slate-200" />
           
           <div className="flex items-center gap-2">
-            {isSaving && <Clock className="w-4 h-4 text-slate-400 animate-spin" />}
+            {isSaving && <Clock className="w-4 h-4 text-muted-foreground animate-spin" />}
             {lastSaved && !isSaving && (
-              <div className="flex items-center gap-2 text-sm text-slate-500">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Check className="w-4 h-4 text-green-600" />
                 Saved {Math.round((new Date() - lastSaved) / 1000)}s ago
               </div>
@@ -931,7 +931,7 @@ const BuilderV2Page = () => {
         />
 
         {/* Zone 3: Canvas Stage (Center - ONLY Scrollable Area) */}
-        <div className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 min-w-0">
+        <div className="flex-1 overflow-y-auto bg-secondary dark:bg-background min-w-0">
           <CanvasStage
             currentStep={currentStep}
             blocks={blocks}
@@ -982,16 +982,16 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
   
   const [hoveredIndex, setHoveredIndex] = useState(null);
   return (
-    <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col">
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">{t('walkthrough.steps')}</h2>
+    <div className="w-64 flex-shrink-0 border-r border-border bg-card overflow-hidden flex flex-col">
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">{t('walkthrough.steps')}</h2>
         <Button variant="ghost" size="sm" onClick={onAddStep} className="h-7 w-7 p-0" data-onboarding="add-step-button">
           <Plus className="w-4 h-4" />
         </Button>
       </div>
       <div className="flex-1 overflow-hidden">
         {steps.length === 0 ? (
-          <div className="p-4 text-sm text-slate-800 text-center">
+          <div className="p-4 text-sm text-foreground text-center">
             No steps yet
           </div>
         ) : (
@@ -999,19 +999,19 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
             {steps.map((step, index) => (
               <div
                 key={step.id || index}
-                className={`p-3 cursor-pointer hover:bg-slate-50 transition-colors group relative ${
-                  currentStepIndex === index ? 'bg-slate-100 border-l-2 border-primary' : ''
+                className={`p-3 cursor-pointer hover:bg-secondary transition-colors group relative ${
+                  currentStepIndex === index ? 'bg-secondary border-l-2 border-primary' : ''
                 }`}
                 onClick={() => onStepClick(index)}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <div className="flex items-start gap-2">
-                  <span className="text-xs font-medium text-slate-800 w-6 flex-shrink-0">
+                  <span className="text-xs font-medium text-foreground w-6 flex-shrink-0">
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-900 truncate">
+                    <div className="text-sm font-medium text-foreground truncate">
                       {step.title || `Step ${index + 1}`}
                     </div>
                   </div>
@@ -1067,7 +1067,7 @@ const CanvasStage = ({
   if (!currentStep) {
     return (
       <div className="min-h-full flex items-center justify-center">
-        <div className="text-center text-slate-400">
+        <div className="text-center text-muted-foreground">
           <p className="text-sm">Select a step or create a new one</p>
         </div>
       </div>
@@ -1080,7 +1080,7 @@ const CanvasStage = ({
 
   return (
     <div className="min-h-full flex items-start justify-center py-16 px-8">
-      <div className="w-full max-w-[920px] bg-white rounded-lg shadow-sm border border-slate-200 min-h-[600px] p-12">
+      <div className="w-full max-w-[920px] bg-card rounded-lg shadow-sm border border-border min-h-[600px] p-12">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -1138,7 +1138,7 @@ const CanvasStage = ({
           </SortableContext>
           <DragOverlay>
             {activeBlockId ? (
-              <div className="bg-white border-2 border-primary rounded-lg p-4 shadow-lg opacity-90">
+              <div className="bg-card border-2 border-primary rounded-lg p-4 shadow-lg opacity-90">
                 {blocks.find(b => b.id === activeBlockId)?.type || 'Block'}
               </div>
             ) : null}
@@ -1205,7 +1205,7 @@ const StepTitleEditor = ({ title, onChange, isStepLoaded }) => {
         textSize="text-3xl"
         isBold={true}
         align="center"
-        className="text-slate-900 font-heading"
+        className="text-foreground font-heading"
       />
     </div>
   );
@@ -1292,7 +1292,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
     <Popover open={isOpen} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
-          className="w-full h-8 flex items-center justify-center opacity-40 hover:opacity-100 focus:opacity-100 transition-opacity border-2 border-dashed border-slate-300 rounded-lg hover:border-primary hover:bg-primary/5 focus:border-primary focus:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="w-full h-8 flex items-center justify-center opacity-40 hover:opacity-100 focus:opacity-100 transition-opacity border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 focus:border-primary focus:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/20"
           onClick={(e) => {
             e.stopPropagation();
             if (onOpenChange) {
@@ -1303,11 +1303,11 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
           type="button"
           data-onboarding="add-block-button"
         >
-          <Plus className="w-4 h-4 text-slate-400" />
+          <Plus className="w-4 h-4 text-muted-foreground" />
         </button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-64 p-2 bg-white border-slate-200 shadow-lg z-[100]" 
+        className="w-64 p-2 bg-card border-border shadow-lg z-[100]" 
         align="center" 
         side="bottom"
         sideOffset={4}
@@ -1320,7 +1320,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
             {blockTypes.map((type) => (
               <button
                 key={type}
-                className="p-2.5 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="p-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary/5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                 onClick={() => handleAdd(type)}
                 type="button"
               >
@@ -1384,7 +1384,7 @@ const BlockRenderer = ({
         <button
           {...attributes}
           {...listeners}
-          className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600"
+          className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-muted-foreground hover:text-muted-foreground"
         >
           <GripVertical className="w-4 h-4" />
         </button>
@@ -1448,7 +1448,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             placeholder={t('builder.placeholders.headingText')}
             textSize={headingSize}
             isBold={true}
-            className="text-slate-900"
+            className="text-foreground"
           />
         </div>
       );
@@ -1487,14 +1487,14 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               />
             </div>
           ) : (
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
               <Input
                 type="file"
                 accept="image/*"
                 onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
                 className="mb-2"
               />
-              <p className="text-sm text-slate-500 mt-2">or</p>
+              <p className="text-sm text-muted-foreground mt-2">or</p>
               <Input
                 placeholder={t('builder.blockSettings.url')}
                 onBlur={(e) => {
@@ -1527,14 +1527,14 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               )}
             </div>
           ) : (
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
               <Input
                 type="file"
                 accept="video/*"
                 onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
                 className="mb-2"
               />
-              <p className="text-sm text-slate-500 mt-2">{t('builder.messages.orYouTubeUrl')}</p>
+              <p className="text-sm text-muted-foreground mt-2">{t('builder.messages.orYouTubeUrl')}</p>
               <Input
                 placeholder={t('builder.blockSettings.url')}
                 onBlur={(e) => {
@@ -1574,7 +1574,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       return (
         <div className="space-y-3">
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">{t('builder.blockSettings.buttonText')}</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.buttonText')}</Label>
             <Input
               value={block.data.text || ''}
               onChange={(e) => onUpdate({ data: { ...block.data, text: e.target.value } })}
@@ -1583,7 +1583,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           </div>
 
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">{t('builder.blockSettings.action')}</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.action')}</Label>
             <Select
               value={block.data.action || 'next'}
               onValueChange={(value) => {
@@ -1623,7 +1623,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           {/* Go to Step: Show step selector */}
           {block.data.action === 'go_to_step' && (
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">Target Step</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Target Step</Label>
               <Select
                 value={block.data.targetStepId || ''}
                 onValueChange={(value) => onUpdate({ data: { ...block.data, targetStepId: value } })}
@@ -1640,7 +1640,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 </SelectContent>
               </Select>
               {(!walkthrough?.steps || walkthrough.steps.length === 0) && (
-                <p className="text-xs text-slate-500 mt-1">Add more steps to enable this action</p>
+                <p className="text-xs text-muted-foreground mt-1">Add more steps to enable this action</p>
               )}
             </div>
           )}
@@ -1648,7 +1648,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           {/* External Link: Show URL field */}
           {block.data.action === 'link' && (
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">URL</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">URL</Label>
               <Input
                 value={block.data.url || ''}
                 onChange={(e) => onUpdate({ data: { ...block.data, url: e.target.value } })}
@@ -1693,7 +1693,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               {(!hasPortalContactInfo || block.data.usePortalContactInfo === false) && (
                 <>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">WhatsApp Number</Label>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">WhatsApp Number</Label>
                     <Input
                       value={block.data.supportWhatsapp || ''}
                       onChange={(e) => onUpdate({ data: { ...block.data, supportWhatsapp: e.target.value } })}
@@ -1701,7 +1701,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">Phone Number</Label>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Phone Number</Label>
                     <Input
                       value={block.data.supportPhone || ''}
                       onChange={(e) => onUpdate({ data: { ...block.data, supportPhone: e.target.value } })}
@@ -1709,7 +1709,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">Working Hours</Label>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Working Hours</Label>
                     <Input
                       value={block.data.supportHours || ''}
                       onChange={(e) => onUpdate({ data: { ...block.data, supportHours: e.target.value } })}
@@ -1723,7 +1723,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           })()}
           
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">Button Style</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Button Style</Label>
             <Select
               value={block.data.style || 'primary'}
               onValueChange={(value) => onUpdate({ data: { ...block.data, style: value } })}
@@ -1751,7 +1751,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       return (
         <div className="border border-warning-300 rounded-lg p-4 bg-warning-50 space-y-3">
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block font-medium">Problem Title</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block font-medium">Problem Title</Label>
             <InlineRichEditor
               content={block.data.title || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, title: html } })}
@@ -1764,7 +1764,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block font-medium">Explanation</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block font-medium">Explanation</Label>
             <InlineRichEditor
               content={block.data.explanation || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, explanation: html } })}
@@ -1974,7 +1974,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             placeholder={`Paste ${block.data?.provider || 'YouTube'} URL`}
           />
           {block.data?.url && (
-            <div className="aspect-video border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+            <div className="aspect-video border border-border rounded-lg overflow-hidden bg-secondary">
               <iframe
                 src={embedUrl}
                 className="w-full h-full"
@@ -1989,14 +1989,14 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
     case BLOCK_TYPES.SECTION:
       const sectionBlocks = block.data?.blocks || [];
       return (
-        <div className="border border-slate-200 rounded-lg p-4 space-y-3">
+        <div className="border border-border rounded-lg p-4 space-y-3">
           <Input
             value={block.data?.title || ''}
             onChange={(e) => onUpdate({ data: { ...block.data, title: e.target.value } })}
             placeholder="Section title"
             className="font-semibold"
           />
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-muted-foreground">
             Section block (nested blocks not yet supported in this view)
           </div>
         </div>
@@ -2080,7 +2080,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       );
 
     default:
-      return <div className="text-slate-400 text-sm">Unknown block type: {block.type}</div>;
+      return <div className="text-muted-foreground text-sm">Unknown block type: {block.type}</div>;
   }
 };
 
@@ -2634,17 +2634,17 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
   
   if (!imageUrl) {
     return (
-      <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center bg-slate-50">
+      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center bg-secondary">
         <div className="space-y-4">
-          <div className="text-slate-600 font-medium">📌 Annotated Image Block</div>
-          <p className="text-sm text-slate-500">{t('builder.messages.uploadImageToStart')}</p>
+          <div className="text-muted-foreground font-medium">📌 Annotated Image Block</div>
+          <p className="text-sm text-muted-foreground">{t('builder.messages.uploadImageToStart')}</p>
           <Input
             type="file"
             accept="image/*"
             onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
             className="mb-2"
           />
-          <p className="text-sm text-slate-500">or</p>
+          <p className="text-sm text-muted-foreground">or</p>
           <Input
             placeholder={t('builder.placeholders.pasteImageUrl')}
             onBlur={(e) => {
@@ -2662,7 +2662,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
     <div className="space-y-4">
       {/* Image with markers */}
       <div 
-        className="relative border border-slate-200 rounded-lg overflow-hidden bg-slate-50 select-none"
+        className="relative border border-border rounded-lg overflow-hidden bg-secondary select-none"
         onPointerMove={handleImagePointerMove}
         onPointerUp={handleImagePointerUp}
         onPointerLeave={handleImagePointerUp}
@@ -2733,7 +2733,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 >
                   {/* Number badge positioned outside top-right corner like an exponent */}
                   <span
-                    className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                    className="absolute text-foreground rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                     style={{
                       width: '18px',
                       height: '18px',
@@ -2753,7 +2753,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                         <div
                           key={corner}
                           data-resize-handle="true"
-                          className="absolute w-4 h-4 bg-white rounded-full hover:scale-125 transition-transform"
+                          className="absolute w-4 h-4 bg-card rounded-full hover:scale-125 transition-transform"
                           style={{
                             [corner.includes('n') ? 'top' : 'bottom']: '-8px',
                             [corner.includes('w') ? 'left' : 'right']: '-8px',
@@ -2819,7 +2819,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
               >
                 {/* Number badge positioned outside top-right corner like an exponent */}
                 <span
-                  className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                  className="absolute text-foreground rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                   style={{
                     width: '18px',
                     height: '18px',
@@ -2836,7 +2836,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 {isActive && (
                   <div
                     data-resize-handle="true"
-                    className="absolute w-4 h-4 bg-white rounded-full hover:scale-125 transition-transform"
+                    className="absolute w-4 h-4 bg-card rounded-full hover:scale-125 transition-transform"
                     style={{
                       right: '-8px',
                       top: '50%',
@@ -2921,7 +2921,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
 
                   {/* Number badge - positioned above tip */}
                   <span
-                    className="absolute text-white rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
+                    className="absolute text-foreground rounded-full flex items-center justify-center text-[10px] font-bold pointer-events-none shadow-md"
                     style={{
                       width: '18px',
                       height: '18px',
@@ -3129,17 +3129,17 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         {/* Empty state overlay */}
         {markers.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[1px]">
-            <div className="bg-white rounded-lg shadow-lg p-6 text-center space-y-2">
+            <div className="bg-card rounded-lg shadow-lg p-6 text-center space-y-2">
               <div className="text-2xl">📌</div>
               <div className="font-medium">{t('builder.messages.clickAnywhereToAdd')}</div>
-              <div className="text-sm text-slate-500">{t('builder.messages.interactiveMarkersAppear')}</div>
+              <div className="text-sm text-muted-foreground">{t('builder.messages.interactiveMarkersAppear')}</div>
             </div>
           </div>
         )}
       </div>
       
       {/* Annotations list and editing panel */}
-      <div className="border border-slate-200 rounded-lg bg-white p-4">
+      <div className="border border-border rounded-lg bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="font-medium text-sm">
             📌 Annotations ({markers.length})
@@ -3164,7 +3164,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         </div>
         
         {markers.length === 0 ? (
-          <div className="text-center text-slate-400 text-sm py-4">
+          <div className="text-center text-muted-foreground text-sm py-4">
             Click on the image to add markers
           </div>
         ) : (
@@ -3174,18 +3174,18 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 key={marker.id || idx}
                 onClick={() => setEditingMarker(editingMarker === idx ? null : idx)}
                 className={`w-full p-2 rounded-lg border text-left transition-all hover:border-primary hover:bg-primary/5 ${
-                  editingMarker === idx ? 'border-primary bg-primary/5' : 'border-slate-200'
+                  editingMarker === idx ? 'border-primary bg-primary/5' : 'border-border'
                 }`}
               >
                 <div className="flex items-start gap-2">
-                  <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-primary text-foreground flex items-center justify-center text-xs font-bold flex-shrink-0">
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">
                       {marker.title || t('builder.labels.untitled')}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-muted-foreground">
                       {marker.shape === 'rectangle' ? `◻ ${t('builder.labels.rectangle')}` : marker.shape === 'arrow' ? `→ ${t('builder.labels.arrow')}` : marker.shape === 'line' ? `━ ${t('builder.labels.line')}` : `● ${t('builder.labels.dot')}`} • {t('builder.labels.clickToEdit')}
                     </div>
                   </div>
@@ -3215,7 +3215,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
           
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.title')}</Label>
+              <Label className="text-xs text-foreground mb-1 block">{t('builder.labels.title')}</Label>
               <Input
                 value={markers[editingMarker].title || ''}
                 onChange={(e) => updateMarker(editingMarker, { title: e.target.value })}
@@ -3225,7 +3225,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             </div>
             
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.description')}</Label>
+              <Label className="text-xs text-foreground mb-1 block">{t('builder.labels.description')}</Label>
               <Textarea
                 value={markers[editingMarker].description || ''}
                 onChange={(e) => updateMarker(editingMarker, { description: e.target.value })}
@@ -3236,17 +3236,17 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             </div>
 
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.color')}</Label>
+              <Label className="text-xs text-foreground mb-1 block">{t('builder.labels.color')}</Label>
               <input
                 type="color"
                 value={markers[editingMarker].color || '#3b82f6'}
                 onChange={(e) => updateMarker(editingMarker, { color: e.target.value })}
-                className="w-full h-9 rounded-md border border-slate-300 cursor-pointer"
+                className="w-full h-9 rounded-md border border-border cursor-pointer"
               />
             </div>
 
             <div>
-              <Label className="text-xs text-slate-700 mb-1 block">{t('builder.labels.shape')}</Label>
+              <Label className="text-xs text-foreground mb-1 block">{t('builder.labels.shape')}</Label>
               <Select
                 value={markers[editingMarker].shape || 'dot'}
                 onValueChange={(shape) => updateMarker(editingMarker, { shape })}
@@ -3266,7 +3266,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             {markers[editingMarker].shape === 'arrow' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-slate-700 mb-1 block">Length (pixels)</Label>
+                  <Label className="text-xs text-foreground mb-1 block">Length (pixels)</Label>
                   <Input
                     type="number"
                     value={markers[editingMarker].length || 80}
@@ -3278,7 +3278,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-700 mb-1 block">Rotation (degrees)</Label>
+                  <Label className="text-xs text-foreground mb-1 block">Rotation (degrees)</Label>
                   <Input
                     type="number"
                     value={Math.round(((markers[editingMarker].rotation || 0) * 180) / Math.PI)}
@@ -3316,7 +3316,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       )}
       
       {/* Instructions */}
-      <div className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 space-y-1">
+      <div className="text-xs text-muted-foreground bg-secondary rounded-lg p-3 space-y-1">
         <div><strong>💡 Click image</strong> to add markers</div>
         <div><strong>🎯 Click annotation</strong> to edit below</div>
         <div><strong>🖱️ Drag markers</strong> to reposition</div>
@@ -3439,8 +3439,8 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
 
   if (slides.length === 0) {
     return (
-      <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
-        <p className="text-sm text-slate-500 mb-4">No slides yet. Add your first slide to start.</p>
+      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+        <p className="text-sm text-muted-foreground mb-4">No slides yet. Add your first slide to start.</p>
         <Button onClick={addSlide} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Add Slide
@@ -3454,7 +3454,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
   return (
     <div className="space-y-4">
       {/* Carousel Display */}
-      <div className="relative border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900 space-y-0">
+      <div className="relative border border-border dark:border-slate-800 rounded-lg overflow-hidden bg-secondary dark:bg-background space-y-0">
         {/* Navigation Arrows */}
         {slides.length > 1 && (
           <>
@@ -3463,26 +3463,26 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                 e.stopPropagation();
                 setActiveIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
               }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-card/90 hover:bg-card border border-border rounded-full p-2 shadow-lg transition-all"
               aria-label="Previous slide"
             >
-              <ChevronLeft className="w-5 h-5 text-slate-700" />
+              <ChevronLeft className="w-5 h-5 text-foreground" />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setActiveIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 rounded-full p-2 shadow-lg transition-all"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-card/90 hover:bg-card border border-border rounded-full p-2 shadow-lg transition-all"
               aria-label="Next slide"
             >
-              <ChevronRight className="w-5 h-5 text-slate-700" />
+              <ChevronRight className="w-5 h-5 text-foreground" />
             </button>
           </>
         )}
 
         {/* Slide Content */}
-        <div className="aspect-video relative bg-slate-100 dark:bg-slate-800">
+        <div className="aspect-video relative bg-secondary dark:bg-card">
           {currentSlide?.url ? (
             <>
               {currentSlide.media_type === 'video' ? (
@@ -3503,7 +3503,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
               )}
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-400">
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No media for this slide</p>
@@ -3516,7 +3516,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
         {currentSlide?.caption && (
           <div className="px-2 mt-2">
             <div 
-              className="prose prose-sm max-w-none bg-transparent text-slate-700 rounded-lg px-4 py-3"
+              className="prose prose-sm max-w-none bg-transparent text-foreground rounded-lg px-4 py-3"
               dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
             />
           </div>
@@ -3533,7 +3533,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                   setActiveIndex(idx);
                 }}
                 className={`w-2 h-2 rounded-full transition-all ${
-                  idx === activeIndex ? 'bg-primary w-6' : 'bg-white/60 hover:bg-white/80'
+                  idx === activeIndex ? 'bg-primary w-6' : 'bg-card/60 hover:bg-card/80'
                 }`}
                 aria-label={`Go to slide ${idx + 1}`}
               />
@@ -3545,7 +3545,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
       {/* Slide Controls */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-muted-foreground">
             Slide {activeIndex + 1} of {slides.length}
           </div>
           <div className="flex gap-2">
@@ -3580,12 +3580,12 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
 
         {/* Current Slide Editor */}
         {currentSlide && (
-          <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-white">
+          <div className="border border-border rounded-lg p-4 space-y-3 bg-card">
             <div>
-              <Label className="text-xs text-slate-500 mb-1.5 block">Media</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Media</Label>
               {currentSlide.url ? (
                 <div className="space-y-2">
-                  <div className="text-xs text-slate-600">Current: {currentSlide.media_type}</div>
+                  <div className="text-xs text-muted-foreground">Current: {currentSlide.media_type}</div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -3611,9 +3611,9 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                         className="text-sm"
                       />
                       {uploadingSlide === activeIndex && (
-                        <div className="text-xs text-slate-500">Uploading...</div>
+                        <div className="text-xs text-muted-foreground">Uploading...</div>
                       )}
-                  <p className="text-xs text-slate-500">or</p>
+                  <p className="text-xs text-muted-foreground">or</p>
                   <Input
                     placeholder="Paste media URL"
                     onBlur={(e) => {
@@ -3633,7 +3633,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
             </div>
 
             <div>
-              <Label className="text-xs text-slate-500 mb-1.5 block">Caption (Optional)</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Caption (Optional)</Label>
               <InlineRichEditor
                 content={currentSlide.caption || ''}
                 onChange={(html) => updateSlide(activeIndex, { caption: html })}
@@ -3673,12 +3673,12 @@ const InspectorPanel = ({
   }
 
   return (
-    <div className="w-80 flex-shrink-0 border-l border-slate-200 bg-white overflow-hidden flex flex-col">
-      <div className="p-4 border-b border-slate-200">
+    <div className="w-80 flex-shrink-0 border-l border-border bg-card overflow-hidden flex flex-col">
+      <div className="p-4 border-b border-border">
         <h2 className="text-sm font-semibold">Inspector</h2>
       </div>
       <div className="flex-1 p-4">
-        <div className="text-sm text-slate-400 text-center py-8">
+        <div className="text-sm text-muted-foreground text-center py-8">
           Select a step or block to edit
         </div>
       </div>
