@@ -483,20 +483,7 @@
     "poweredBy": "מופעל על ידי InterGuide",
     "wantKnowledgeBase": "רוצה מרכז מאגר ידע משלך?",
     "getStarted": "התחל",
-    "backToPortal": "חזרה לפורטל",
-    "knowledgeSystems": {
-      "title": "מערכות ידע",
-      "description": "עיין במדיניות, נהלים, תיעוד, שאלות נפוצות והחלטות שפורסמו.",
-      "available": "{{count}} זמינים",
-      "none": "עדיין לא פורסמו מערכות ידע.",
-      "labels": {
-        "policies": "מדיניות",
-        "procedures": "נהלים",
-        "documentation": "תיעוד",
-        "faqs": "שאלות נפוצות",
-        "decisions": "עצי החלטה"
-      }
-    }
+    "backToPortal": "חזרה לפורטל"
   },
   "category": {
     "create": "צור קטגוריה",
@@ -664,7 +651,6 @@
     "inviteSent": "ההזמנה נשלחה!",
     "failedToInvite": "נכשל בשליחת הזמנה",
     "failedToLoadMembers": "נכשל בטעינת חברים",
-    "knowledgeSystems": "מערכות ידע",
     "knowledgeSystemsDesc": "נהל תיעוד, מדיניות ונהלים",
     "manageKnowledgeSystems": "נהל מערכות ידע",
     "dangerZone": "אזור מסוכן",
@@ -1389,16 +1375,6 @@
     "cancellationPendingConfirmation": "ביטול ממתין לאישור",
     "cancellationProcessingDesc": "PayPal מעבד את הביטול. הגישה שלך נשארת פעילה עד סוף התקופה. סטטוס החיוב הסופי נקבע על ידי PayPal."
   },
-  "knowledgeSystems": {
-    "title": "מערכות ידע",
-    "description": "ניהול ידע מרכזי עבור הארגון שלך",
-    "backToSettings": "חזרה להגדרות",
-    "backToSystems": "חזרה למערכות ידע",
-    "types": {
-      "policies": {
-        "name": "מדיניות",
-        "description": "מדיניות משאבי אנוש, אבטחה, משפטית ותאימות"
-      },
       "procedures": {
         "name": "נהלים",
         "description": "נהלי תפעול סטנדרטיים ונהלים שלב אחר שלב"
@@ -1625,22 +1601,6 @@
       }
     }
   },
-    "status": {
-      "draft": "טיוטה",
-      "published": "פורסם"
-    },
-    "counts": {
-      "drafts": "{{count}} טיוטה",
-      "drafts_plural": "{{count}} טיוטות",
-      "published": "{{count}} פורסמו"
-    },
-    "actions": {
-      "openEditor": "פתח עורך",
-      "createFirst": "צור ראשון"
-    },
-    "empty": {
-      "title": "אין {{type}} עדיין"
-    },
   "notifications": {
     "title": "התראות",
     "loading": "טוען...",

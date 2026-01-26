@@ -732,7 +732,7 @@ const PortalPage = ({ isEmbedded = false }) => {
             {portal?.categories?.filter(c => c.notebooklm_url).map((category) => (
               <Button
                 key={category.id}
-                variant="outline"
+                variant="secondary"
                 className="w-full justify-start h-auto py-3 px-4 text-foreground"
                 onClick={() => {
                   setSelectedCategoryForChat(category);
@@ -840,7 +840,7 @@ const PortalPage = ({ isEmbedded = false }) => {
               {t('portal.wantKnowledgeBase')}
             </p>
             <Link to="/signup">
-              <Button variant="outline" size="sm">
+              <Button variant="secondary" size="sm">
                 {t('portal.getStarted')}
               </Button>
             </Link>
