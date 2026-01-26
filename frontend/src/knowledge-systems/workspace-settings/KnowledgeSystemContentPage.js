@@ -82,7 +82,7 @@ function KnowledgeSystemContentPage() {
               The knowledge system "{systemType}" is not recognized.
             </p>
             <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}>
-              Back to Knowledge Systems
+              {t('knowledgeSystems.backToSystems')}
             </Button>
           </CardContent>
         </Card>
@@ -104,7 +104,7 @@ function KnowledgeSystemContentPage() {
                 className="text-slate-200 hover:text-white"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Systems
+                {t('knowledgeSystems.backToSystems')}
               </Button>
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xl ${config.iconBg || 'bg-slate-600'}`}>

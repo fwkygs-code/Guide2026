@@ -240,7 +240,7 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                   data-testid="nav-workspace-knowledge-systems"
                 >
                   <Database className="w-4 h-4 mr-2" />
-                  Knowledge Systems
+                  {t('knowledgeSystems.title')}
                 </Button>
               )}
               {isOwner && (

@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Clock, Settings, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
  * Knowledge System Placeholder Page
  */
 function KnowledgeSystemPlaceholderPage() {
+  const { t } = useTranslation();
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
 
@@ -204,7 +206,7 @@ function KnowledgeSystemPlaceholderPage() {
               onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}
               className="border-slate-600 text-slate-300"
             >
-              Back to Knowledge Systems
+              {t('knowledgeSystems.backToSystems')}
             </Button>
             <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
               <Plus className="w-4 h-4 mr-2" />

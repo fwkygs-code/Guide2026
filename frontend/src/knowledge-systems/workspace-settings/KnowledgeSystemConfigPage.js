@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, Settings, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
  * Knowledge System Configuration Page
  */
 function KnowledgeSystemConfigPage() {
+  const { t } = useTranslation();
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -139,7 +141,7 @@ function KnowledgeSystemConfigPage() {
               The knowledge system "{systemType}" is not recognized.
             </p>
             <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}>
-              Back to Knowledge Systems
+              {t('knowledgeSystems.backToSystems')}
             </Button>
           </CardContent>
         </Card>

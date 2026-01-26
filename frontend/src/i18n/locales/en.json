@@ -825,6 +825,7 @@
     "title": "Knowledge Systems",
     "description": "Centralized knowledge management for your organization",
     "backToSettings": "Back to Settings",
+    "backToSystems": "Back to Knowledge Systems",
     "types": {
       "policies": {
         "name": "Policies",
