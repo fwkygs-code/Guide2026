@@ -724,16 +724,16 @@ const PortalPage = ({ isEmbedded = false }) => {
 
       {/* Category Selection Dialog */}
       <Dialog open={categorySelectOpen} onOpenChange={setCategorySelectOpen}>
-        <DialogContent className="max-w-md text-foreground">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground">{t('portal.selectCategory')}</DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-2 max-h-96 overflow-y-auto text-foreground">
+          <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
             {portal?.categories?.filter(c => c.notebooklm_url).map((category) => (
               <Button
                 key={category.id}
                 variant="secondary"
-                className="w-full justify-start h-auto py-3 px-4"
+                className="w-full justify-start h-auto py-3 px-4 text-gray-900"
                 onClick={() => {
                   setSelectedCategoryForChat(category);
                   setCategorySelectOpen(false);
