@@ -164,6 +164,26 @@
     "howCanWeHelp": "איך נוכל לעזור לך?",
     "searchKnowledgeBase": "חפש במאגר הידע שלנו או עיין בקטגוריות",
     "searchPlaceholder": "חפש מדריכים...",
+      "adminDialog": {
+    "title": "לוח בקרה של מנהל",
+    "message": "אתה צופה כעת בפורטל. האם תרצה לעבור ללוח הבקרה של המנהל כדי לנהל את אזור העבודה שלך?",
+    "stayInPortal": "הישאר בפורטל",
+    "goToDashboard": "עבור ללוח הבקרה"
+  },
+
+  "knowledgeSystems": {
+    "title": "מערכות ידע",
+    "description": "עיין במדיניות, נהלים, מסמכים, שאלות נפוצות והחלטות שפורסמו.",
+    "available": "{{count}} זמינים",
+    "none": "לא פורסמו מערכות ידע עדיין.",
+    "labels": {
+      "policies": "מדיניות",
+      "procedures": "נהלים",
+      "documentation": "מסמכים",
+      "faqs": "שאלות נפוצות",
+      "decisions": "עצי החלטות"
+    }
+  },
     "footer": {
       "copyright": "InterGuide 2025. כל הזכויות שמורות.",
       "beta": "בטא — לתמיכה, צור קשר: support@interguide.app"

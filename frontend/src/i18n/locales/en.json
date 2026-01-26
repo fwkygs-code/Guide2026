@@ -109,6 +109,26 @@
     "howCanWeHelp": "How can we help you?",
     "searchKnowledgeBase": "Search our knowledge base or browse categories",
     "searchPlaceholder": "Search for guides...",
+      "adminDialog": {
+    "title": "Admin Dashboard",
+    "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
+    "stayInPortal": "Stay in Portal",
+    "goToDashboard": "Go to Dashboard"
+  },
+
+  "knowledgeSystems": {
+    "title": "Knowledge Systems",
+    "description": "Browse published policies, procedures, docs, FAQs, and decisions.",
+    "available": "{{count}} available",
+    "none": "No knowledge systems published yet.",
+    "labels": {
+      "policies": "Policies",
+      "procedures": "Procedures",
+      "documentation": "Documentation",
+      "faqs": "FAQs",
+      "decisions": "Decision Trees"
+    }
+  },
     "privacy": {
       "title": "Privacy Policy",
       "lastUpdated": "Last updated: January 2026",

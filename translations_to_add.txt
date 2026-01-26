@@ -1,0 +1,66 @@
+// ============================================================================
+// TRANSLATIONS TO ADD TO he.json
+// Add these translations to your Hebrew translation file
+// These were implemented since deployment 8ff9d13
+// ============================================================================
+
+// 1. ADMIN DIALOG TRANSLATIONS
+// Add this to the "portal" section (around line 555 after "backToPortal")
+"adminDialog": {
+  "title": "לוח בקרה של מנהל",
+  "message": "אתה צופה כעת בפורטל. האם תרצה לעבור ללוח הבקרה של המנהל כדי לנהל את אזור העבודה שלך?",
+  "stayInPortal": "הישאר בפורטל",
+  "goToDashboard": "עבור ללוח הבקרה"
+},
+
+// 2. KNOWLEDGE SYSTEMS TRANSLATIONS
+// Add this to the "portal" section (after adminDialog)
+"knowledgeSystems": {
+  "title": "מערכות ידע",
+  "description": "עיין במדיניות, נהלים, מסמכים, שאלות נפוצות והחלטות שפורסמו.",
+  "available": "{{count}} זמינים",
+  "none": "לא פורסמו מערכות ידע עדיין.",
+  "labels": {
+    "policies": "מדיניות",
+    "procedures": "נהלים",
+    "documentation": "מסמכים",
+    "faqs": "שאלות נפוצות",
+    "decisions": "עצי החלטות"
+  }
+},
+
+// 3. ENGLISH TRANSLATIONS (for en.json)
+// Add these to the English file in the "portal" section
+"adminDialog": {
+  "title": "Admin Dashboard",
+  "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
+  "stayInPortal": "Stay in Portal",
+  "goToDashboard": "Go to Dashboard"
+},
+"knowledgeSystems": {
+  "title": "Knowledge Systems",
+  "description": "Browse published policies, procedures, docs, FAQs, and decisions.",
+  "available": "{{count}} available",
+  "none": "No knowledge systems published yet.",
+  "labels": {
+    "policies": "Policies",
+    "procedures": "Procedures",
+    "documentation": "Documentation",
+    "faqs": "FAQs",
+    "decisions": "Decision Trees"
+  }
+}
+
+// ============================================================================
+// INSTRUCTIONS FOR MANUAL ADDITION:
+// 
+// 1. Open he.json file
+// 2. Find the "portal" section (around line 158)
+// 3. Add the adminDialog and knowledgeSystems translations after "backToPortal": "חזור לפורטל"
+// 4. Make sure to add commas correctly to maintain valid JSON
+// 5. Also add the English translations to en.json in the portal section
+// 
+// The PortalPage.js component was also updated to use these translation keys
+// instead of hardcoded text, so these translations are needed for the
+// admin dialog and knowledge systems section to work properly in Hebrew.
+// ============================================================================
