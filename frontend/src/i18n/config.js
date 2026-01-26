@@ -18,9 +18,11 @@ i18n
     resources: {
       en: {
         translation: enTranslations,
+        knowledgeSystems: enTranslations.knowledgeSystems,
       },
       he: {
         translation: heTranslations,
+        knowledgeSystems: heTranslations.knowledgeSystems,
       },
     },
     lng: getSavedLanguage(),
