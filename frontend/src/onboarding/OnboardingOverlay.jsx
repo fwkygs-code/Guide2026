@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Languages } from 'lucide-react';
 
 const OVERLAY_COLOR = 'rgba(2, 6, 23, 0.72)';
 const TARGET_PADDING = 12;
@@ -30,9 +31,18 @@ const OnboardingOverlay = ({
   onDismiss,
   onPrimaryAction
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const tooltipRef = useRef(null);
   const [tooltipStyle, setTooltipStyle] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+
+  const handleLanguageChange = (lang) => {
+    i18n.changeLanguage(lang);
+  };
+
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'he', name: 'עברית' }
+  ];
 
   const paddedRect = useMemo(() => getPaddedRect(rect), [rect]);
 
@@ -119,9 +129,21 @@ const OnboardingOverlay = ({
       <div className="fixed bottom-0 left-0 right-0 pointer-events-auto">
         <div className="max-w-4xl mx-auto px-6 pb-6">
           <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-700/60 bg-slate-950/80 backdrop-blur-xl px-5 py-3 shadow-xl">
-            <Button variant="ghost" className="text-slate-200 hover:text-white" onClick={onDismiss}>
-              {t('onboardingTour.skip')}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" className="text-slate-200 hover:text-white" onClick={onDismiss}>
+                {t('onboardingTour.skip')}
+              </Button>
+              <div className="h-4 w-px bg-slate-600" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2 text-slate-200 hover:text-white"
+                onClick={() => handleLanguageChange(i18n.language === 'en' ? 'he' : 'en')}
+              >
+                <Languages className="w-4 h-4" />
+                {i18n.language === 'en' ? 'עברית' : 'English'}
+              </Button>
+            </div>
             <div className="text-sm text-slate-300">
               {t('onboardingTour.progress', { current: stepIndex + 1, total: totalSteps })}
             </div>
