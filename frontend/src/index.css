@@ -252,22 +252,19 @@ code {
   outline: none;
 }
 
-/* Fix cursor behavior - only explicitly editable elements should show text cursor */
-[contenteditable="true"], input, textarea, .ProseMirror, .inline-rich-editor [contenteditable] {
+/* Fix cursor behavior - ONLY explicitly editable elements should show text cursor */
+input, textarea, [contenteditable="true"] {
   cursor: text;
 }
 
-/* Prevent text cursor on common non-editable text elements */
-p:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-h1:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-h2:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-h3:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-h4:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-h5:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-h6:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-span:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
-div:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor):not([role="button"]):not(button) {
-  cursor: default;
+/* Prevent text cursor on all non-editable elements by default */
+* {
+  caret-color: transparent;
+}
+
+/* ONLY allow caret in actual editable elements */
+input, textarea, [contenteditable="true"] {
+  caret-color: auto;
 }
 
 /* Override for interactive elements */
