@@ -413,7 +413,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for guides..."
+                  placeholder={t('portal.searchPlaceholder')}
                   className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
                   data-testid="portal-search-input"
                 />
