@@ -17,8 +17,7 @@ import OverQuotaBanner from '../components/OverQuotaBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
 import WorkspaceLockModal from '../components/WorkspaceLockModal';
-import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
-import { CardContent } from '@/components/ui/card';
+import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge, CardContent } from '../components/ui/design-system';
 
 const DashboardPage = () => {
   const { t } = useTranslation();

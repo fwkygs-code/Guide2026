@@ -349,7 +349,11 @@
     "logoUploaded": "הלוגו הועלה!",
     "backgroundUploaded": "הרקע הועלה!",
     "failedToUploadLogo": "נכשל בהעלאת לוגו",
-    "failedToUploadBackground": "נכשל בהעלאת רקע"
+    "failedToUploadBackground": "נכשל בהעלאת רקע",
+    "invitationSent": "הזמנה נשלחה אל {{email}}",
+    "invitationCancelled": "הזמנה בוטלה",
+    "memberRemoved": "חבר הוסר",
+    "workspaceDeleted": "אזור העבודה נמחק בהצלחה"
   },
   "quota": {
     "usage": "שימוש במכסה",
@@ -907,5 +911,50 @@
     "declined": "נדחה",
     "markAsRead": "סמן כנקרא",
     "deleteNotification": "מחק התראה"
+  },
+  "dialogs": {
+    "confirm": {
+      "endWalkthrough": "האם אתה בטוח שברצונך לסיים את המדריך הזה?",
+      "restartWalkthrough": "להתחיל את המדריך מחדש מההתחלה?",
+      "archiveWalkthrough": "האם אתה בטוח שברצונך להעביר את \"{{title}}\" לארכיון? תוכל לשחזר אותו מאוחר יותר מדף הארכיון.",
+      "deleteCategory": "למחוק את \"{{name}}\"? מדריכים יהפכו ללא קטגוריה.",
+      "deleteCategoryWithChildren": "למחוק את \"{{name}}\" ואת כל תת-הקטגוריות שלה? מדריכים יהפכו ללא קטגוריה.",
+      "deleteStep": "למחוק שלב {{number}}?",
+      "deleteBlock": "למחוק את הבלוק הזה?",
+      "removeSlide": "להסיר שקופית {{number}}?",
+      "cancelInvitation": "האם אתה בטוח שברצונך לבטל את ההזמנה הזו?",
+      "removeMember": "האם אתה בטוח שברצונך להסיר את החבר הזה?",
+      "deletePolicy": "האם אתה בטוח שברצונך למחוק את המדיניות הזו?",
+      "cancelSubscription": "לבטל מנוי עבור {{email}}?",
+      "downgradeUser": "להוריד בכוח את {{email}} לתוכנית חינם?",
+      "disableUser": "להשבית את {{email}}? הם לא יוכלו להתחבר.",
+      "softDeleteUser": "למחוק באופן רך את {{email}}? זה יסמן את המשתמש כמחוק אך ישמור את הנתונים שלו.",
+      "permanentDeleteUser": "מחיקה קבועה: {{email}}\n\nזה ימחק לצמיתות:\n- חשבון משתמש\n- כל אזורי העבודה בבעלות המשתמש\n- כל המדריכים והקטגוריות\n- כל הקבצים שהועלו\n- כל המנויים והנתונים\n\nפעולה זו לא ניתנת לביטול!\n\nהקלד את האימייל של המשתמש כדי לאשר מחיקה.",
+      "confirmEmail": "הקלד \"{{email}}\" כדי לאשר מחיקה קבועה:"
+    },
+    "alert": {
+      "noSupportContact": "מידע ליצירת קשר לתמיכה לא הוגדר. אנא צור קשר עם יוצר המדריך.",
+      "emailMismatch": "האימייל לא תואם. המחיקה בוטלה.",
+      "failedToDeletePolicy": "נכשל במחיקת מדיניות"
+    }
+  },
+  "categories": {
+    "nameRequired": "שם קטגוריה נדרש",
+    "updated": "קטגוריה עודכנה!",
+    "deleted": "קטגוריה נמחקה. מדריכים כעת ללא קטגוריה."
+  },
+  "admin": {
+    "actions": {
+      "cancelSubscription": "בטל מנוי",
+      "downgradeToFree": "הורד לחינם",
+      "upgradeToPro": "שדרג לפרו",
+      "disableUser": "השבת משתמש",
+      "enableUser": "אפשר משתמש",
+      "setGracePeriod": "הגדר תקופת חסד",
+      "setCustomQuotas": "הגדר מכסות מותאמות אישית",
+      "softDeleteUser": "מחק משתמש באופן רך",
+      "restoreUser": "שחזר משתמש",
+      "permanentDelete": "מחיקה קבועה"
+    }
   }
 }

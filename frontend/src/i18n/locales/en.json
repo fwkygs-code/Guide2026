@@ -215,7 +215,11 @@
     "logoUploaded": "Logo uploaded!",
     "backgroundUploaded": "Background uploaded!",
     "failedToUploadLogo": "Failed to upload logo",
-    "failedToUploadBackground": "Failed to upload background"
+    "failedToUploadBackground": "Failed to upload background",
+    "invitationSent": "Invitation sent to {{email}}",
+    "invitationCancelled": "Invitation cancelled",
+    "memberRemoved": "Member removed",
+    "workspaceDeleted": "Workspace deleted successfully"
   },
   "quota": {
     "usage": "Quota Usage",
@@ -756,5 +760,50 @@
     "declined": "Declined",
     "markAsRead": "Mark as read",
     "deleteNotification": "Delete notification"
+  },
+  "dialogs": {
+    "confirm": {
+      "endWalkthrough": "Are you sure you want to end this walkthrough?",
+      "restartWalkthrough": "Restart walkthrough from the beginning?",
+      "archiveWalkthrough": "Are you sure you want to move \"{{title}}\" to archive? You can restore it later from the Archive page.",
+      "deleteCategory": "Delete \"{{name}}\"? Walkthroughs will become uncategorized.",
+      "deleteCategoryWithChildren": "Delete \"{{name}}\" and all its sub-categories? Walkthroughs will become uncategorized.",
+      "deleteStep": "Delete step {{number}}?",
+      "deleteBlock": "Delete this block?",
+      "removeSlide": "Remove slide {{number}}?",
+      "cancelInvitation": "Are you sure you want to cancel this invitation?",
+      "removeMember": "Are you sure you want to remove this member?",
+      "deletePolicy": "Are you sure you want to delete this policy?",
+      "cancelSubscription": "Cancel subscription for {{email}}?",
+      "downgradeUser": "Force downgrade {{email}} to Free plan?",
+      "disableUser": "Disable {{email}}? They will not be able to log in.",
+      "softDeleteUser": "Soft delete {{email}}? This will mark the user as deleted but preserve their data.",
+      "permanentDeleteUser": "PERMANENT DELETE: {{email}}\n\nThis will PERMANENTLY delete:\n- User account\n- All workspaces owned by user\n- All walkthroughs and categories\n- All uploaded files\n- All subscriptions and data\n\nThis action CANNOT be undone!\n\nType the user's email to confirm deletion.",
+      "confirmEmail": "Type \"{{email}}\" to confirm permanent deletion:"
+    },
+    "alert": {
+      "noSupportContact": "Support contact information not configured. Please contact the walkthrough creator.",
+      "emailMismatch": "Email did not match. Deletion cancelled.",
+      "failedToDeletePolicy": "Failed to delete policy"
+    }
+  },
+  "categories": {
+    "nameRequired": "Category name is required",
+    "updated": "Category updated!",
+    "deleted": "Category deleted. Walkthroughs are now uncategorized."
+  },
+  "admin": {
+    "actions": {
+      "cancelSubscription": "Cancel Subscription",
+      "downgradeToFree": "Downgrade to Free",
+      "upgradeToPro": "Upgrade to Pro",
+      "disableUser": "Disable User",
+      "enableUser": "Enable User",
+      "setGracePeriod": "Set Grace Period",
+      "setCustomQuotas": "Set Custom Quotas",
+      "softDeleteUser": "Soft Delete User",
+      "restoreUser": "Restore User",
+      "permanentDelete": "PERMANENT DELETE"
+    }
   }
 }

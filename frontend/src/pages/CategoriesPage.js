@@ -14,8 +14,7 @@ import { api } from '../lib/api';
 import { normalizeImageUrlsInObject } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
-import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
-import { CardContent } from '@/components/ui/card';
+import { PageHeader, PageSurface, Card, CardContent } from '../components/ui/design-system';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -180,7 +179,7 @@ const CategoriesPage = () => {
     e.preventDefault();
     if (!editingCategory) return;
     if (!editCategoryName.trim()) {
-      toast.error('Category name is required');
+      toast.error(t('categories.nameRequired'));
       return;
     }
     try {
@@ -198,7 +197,7 @@ const CategoriesPage = () => {
       setEditCategoryDesc('');
       setEditCategoryIcon('');
       setEditCategoryNotebooklmUrl('');
-      toast.success('Category updated!');
+      toast.success(t('categories.updated'));
     } catch (error) {
       console.error('Update category error:', error);
       toast.error(error.response?.data?.detail || 'Failed to update category');
@@ -208,15 +207,15 @@ const CategoriesPage = () => {
   const handleDeleteCategory = async (categoryId, categoryName) => {
     const hasChildren = categories.some(c => c.parent_id === categoryId);
     const message = hasChildren
-      ? `Delete "${categoryName}" and all its sub-categories? Walkthroughs will become uncategorized.`
-      : `Delete "${categoryName}"? Walkthroughs will become uncategorized.`;
+      ? t('dialogs.confirm.deleteCategoryWithChildren', { name: categoryName })
+      : t('dialogs.confirm.deleteCategory', { name: categoryName });
     
     if (window.confirm(message)) {
       try {
         await api.deleteCategory(workspaceId, categoryId);
         // Refresh categories to ensure consistency
         await fetchCategories();
-        toast.success('Category deleted. Walkthroughs are now uncategorized.');
+        toast.success(t('categories.deleted'));
       } catch (error) {
         console.error('Delete category error:', error);
         toast.error(error.response?.data?.detail || 'Failed to delete category');

@@ -31,6 +31,16 @@ i18n
     react: {
       useSuspense: false, // Avoid suspense for better compatibility
     },
+    // Development-mode enforcement: Detect missing translations
+    saveMissing: process.env.NODE_ENV === 'development',
+    missingKeyHandler: (lngs, ns, key, fallbackValue) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[i18n] Missing translation key: "${key}" for languages: ${lngs.join(', ')}`);
+      }
+    },
+    // Prevent fallback to key name in development
+    returnNull: process.env.NODE_ENV === 'development',
+    returnEmptyString: false,
   });
 
 // Update document direction when language changes

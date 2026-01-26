@@ -7,6 +7,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
 import './i18n/config'; // Initialize i18n
+import { useTranslationEnforcement } from './hooks/useTranslationEnforcement';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -206,6 +207,9 @@ const DecisionTreePortalRoute = () => {
 // Component to handle direction changes
 const AppContent = () => {
   const { i18n } = useTranslation();
+  
+  // Enable translation enforcement in development
+  useTranslationEnforcement();
 
   useEffect(() => {
     // Ensure direction is set on mount and language changes

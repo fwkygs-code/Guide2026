@@ -14,8 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge } from '../components/ui/design-system';
-import { CardContent } from '@/components/ui/card';
+import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge, CardContent } from '../components/ui/design-system';
 
 const WalkthroughsPage = () => {
   const { t } = useTranslation();
@@ -628,7 +627,7 @@ const WalkthroughsPage = () => {
                   <Button
                     variant="destructive"
                     onClick={() => {
-                      if (window.confirm(`Are you sure you want to move "${editingWalkthrough?.title}" to archive? You can restore it later from the Archive page.`)) {
+                      if (window.confirm(t('dialogs.confirm.archiveWalkthrough', { title: editingWalkthrough?.title }))) {
                         handleDelete(editingWalkthrough.id);
                         setSettingsDialogOpen(false);
                         setEditingWalkthrough(null);

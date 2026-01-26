@@ -1012,14 +1012,14 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">
-                      {step.title || `Step ${index + 1}`}
+                      {step.title || t('builder.stepDefault', { number: index + 1 })}
                     </div>
                   </div>
                   {onDeleteStep && steps.length > 1 && hoveredIndex === index && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`Delete step ${index + 1}?`)) {
+                        if (window.confirm(t('dialogs.confirm.deleteStep', { number: index + 1 }))) {
                           onDeleteStep(index);
                         }
                       }}
@@ -1325,7 +1325,7 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
                 type="button"
               >
                 <div className="text-lg mb-1">{getBlockIcon(type)}</div>
-                <div className="text-xs font-medium leading-tight">{getBlockDisplayName(type)}</div>
+                <div className="text-xs font-medium leading-tight text-foreground">{getBlockDisplayName(type)}</div>
               </button>
             ))}
           </div>
@@ -1368,7 +1368,7 @@ const BlockRenderer = ({
 
   const handleDelete = (e) => {
     e.stopPropagation();
-    if (window.confirm('Delete this block?')) {
+    if (window.confirm(t('dialogs.confirm.deleteBlock'))) {
       onDelete();
     }
   };
@@ -3554,7 +3554,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm(`Remove slide ${activeIndex + 1}?`)) {
+                if (window.confirm(t('dialogs.confirm.removeSlide', { number: activeIndex + 1 }))) {
                   removeSlide(activeIndex);
                 }
               }}

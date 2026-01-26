@@ -210,7 +210,7 @@ const SettingsPage = () => {
     setInviting(true);
     try {
       await api.inviteUserToWorkspace(workspaceId, inviteEmail);
-      toast.success(`Invitation sent to ${inviteEmail}`);
+      toast.success(t('settings.invitationSent', { email: inviteEmail }));
       setInviteEmail('');
       fetchMembers(); // Refresh members list
     } catch (error) {
@@ -224,12 +224,12 @@ const SettingsPage = () => {
   const handleRemoveMember = async (userId, isPending = false) => {
     if (!workspaceId) return;
     const confirmMessage = isPending 
-      ? 'Are you sure you want to cancel this invitation?'
-      : 'Are you sure you want to remove this member?';
+      ? t('dialogs.confirm.cancelInvitation')
+      : t('dialogs.confirm.removeMember');
     if (!confirm(confirmMessage)) return;
     try {
       await api.removeWorkspaceMember(workspaceId, userId);
-      toast.success(isPending ? 'Invitation cancelled' : 'Member removed');
+      toast.success(isPending ? t('settings.invitationCancelled') : t('settings.memberRemoved'));
       fetchMembers();
     } catch (error) {
       const errorMsg = error.response?.data?.detail || (isPending ? 'Failed to cancel invitation' : 'Failed to remove member');
@@ -241,7 +241,7 @@ const SettingsPage = () => {
     setDeleting(true);
     try {
       await api.deleteWorkspace(workspaceId);
-      toast.success('Workspace deleted successfully');
+      toast.success(t('settings.workspaceDeleted'));
       navigate('/dashboard');
     } catch (error) {
       console.error('Failed to delete workspace:', error);

@@ -894,7 +894,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               
                             case 'end':
                               console.log('[End Walkthrough]');
-                              if (window.confirm('Are you sure you want to end this walkthrough?')) {
+                              if (window.confirm(t('dialogs.confirm.endWalkthrough'))) {
                                 // Try to go back, or navigate to portal if no history
                                 if (window.history.length > 1) {
                                   window.history.back();
@@ -906,7 +906,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               
                             case 'restart':
                               console.log('[Restart Walkthrough]');
-                              if (window.confirm('Restart walkthrough from the beginning?')) {
+                              if (window.confirm(t('dialogs.confirm.restartWalkthrough'))) {
                                 setCurrentStep(0);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }
@@ -935,7 +935,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               
                               if (!contactInfo.whatsapp && !contactInfo.phone) {
                                 console.warn('[Get Support] No contact info configured');
-                                alert('Support contact information not configured. Please contact the walkthrough creator.');
+                                alert(t('dialogs.alert.noSupportContact'));
                               } else {
                                 setSupportContactInfo(contactInfo);
                                 setShowSupportDialog(true);

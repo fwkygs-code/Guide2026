@@ -9,8 +9,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
-import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
-import { CardContent } from '@/components/ui/card';
+import { PageHeader, PageSurface, Card, CardContent } from '../components/ui/design-system';
 
 const ArchivePage = () => {
   const { t } = useTranslation();

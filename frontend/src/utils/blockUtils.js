@@ -176,31 +176,12 @@ export const getBlockIcon = (type) => {
   return icons[type] || '📦';
 };
 
-export const getBlockLabelKey = (type) => {
-  const labelKeys = {
-    heading: 'builder.blocks.heading',
-    text: 'builder.blocks.text',
-    image: 'builder.blocks.image',
-    video: 'builder.blocks.video',
-    file: 'builder.blocks.file',
-    button: 'builder.blocks.button',
-    divider: 'builder.blocks.divider',
-    spacer: 'builder.blocks.spacer',
-    problem: 'builder.blocks.problem',
-    columns: 'builder.blocks.columns',
-    html: 'builder.blocks.html',
-    carousel: 'builder.blocks.carousel',
-    checklist: 'builder.blocks.checklist',
-    callout: 'builder.blocks.callout',
-    annotated_image: 'builder.blocks.annotatedImage',
-    embed: 'builder.blocks.embed',
-    section: 'builder.blocks.section',
-    confirmation: 'builder.blocks.confirmation',
-    external_link: 'builder.blocks.externalLink',
-    code: 'builder.blocks.code'
-  };
-  return labelKeys[type] || type;
-};
+// Import centralized block registry
+import { getBlockLabelKey as getBlockLabelKeyFromRegistry } from '../config/blockRegistry';
+
+// Re-export from centralized registry
+// Architectural enforcement: All block labels come from registry, not hardcoded here
+export const getBlockLabelKey = getBlockLabelKeyFromRegistry;
 
 // Legacy function - kept for backward compatibility but now returns translation keys
 export const getBlockLabel = (type) => {

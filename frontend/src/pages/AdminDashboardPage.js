@@ -648,7 +648,7 @@ const AdminDashboardPage = () => {
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
-            <Card className="border-border bg-card">
+            <Card variant="glass" className="border-0">
               <CardHeader>
                 <CardTitle className="text-foreground">User Management</CardTitle>
                 <CardDescription className="text-muted-foreground">View and manage all users</CardDescription>
@@ -822,14 +822,14 @@ const AdminDashboardPage = () => {
                                       <DropdownMenuItem
                                         onClick={() => {
                                           setSelectedUser(u);
-                                          if (window.confirm(`Cancel subscription for ${u.email}?`)) {
+                                          if (window.confirm(t('dialogs.confirm.cancelSubscription', { email: u.email }))) {
                                             handleCancelSubscription();
                                           }
                                         }}
                                         className="text-red-600"
                                       >
                                         <Trash2 className="w-4 h-4 mr-2" />
-                                        Cancel Subscription
+                                        {t('admin.actions.cancelSubscription')}
                                       </DropdownMenuItem>
                                     )}
                                     
@@ -839,12 +839,12 @@ const AdminDashboardPage = () => {
                                     {u.plan?.name === 'pro' && (
                                       <DropdownMenuItem onClick={() => {
                                         setSelectedUser(u);
-                                        if (window.confirm(`Force downgrade ${u.email} to Free plan?`)) {
+                                        if (window.confirm(t('dialogs.confirm.downgradeUser', { email: u.email }))) {
                                           handleDowngradeUser();
                                         }
                                       }}>
                                         <ArrowDown className="w-4 h-4 mr-2" />
-                                        Downgrade to Free
+                                        {t('admin.actions.downgradeToFree')}
                                       </DropdownMenuItem>
                                     )}
                                     
@@ -854,7 +854,7 @@ const AdminDashboardPage = () => {
                                         handleUpgradeUser();
                                       }}>
                                         <ArrowUp className="w-4 h-4 mr-2" />
-                                        Upgrade to Pro
+                                        {t('admin.actions.upgradeToPro')}
                                       </DropdownMenuItem>
                                     )}
                                     
@@ -865,14 +865,14 @@ const AdminDashboardPage = () => {
                                       <DropdownMenuItem
                                         onClick={() => {
                                           setSelectedUser(u);
-                                          if (window.confirm(`Disable ${u.email}? They will not be able to log in.`)) {
+                                          if (window.confirm(t('dialogs.confirm.disableUser', { email: u.email }))) {
                                             handleDisableUser();
                                           }
                                         }}
                                         className="text-red-600"
                                       >
                                         <Ban className="w-4 h-4 mr-2" />
-                                        Disable User
+                                        {t('admin.actions.disableUser')}
                                       </DropdownMenuItem>
                                     )}
                                     
@@ -882,7 +882,7 @@ const AdminDashboardPage = () => {
                                         handleEnableUser();
                                       }}>
                                         <CheckCircle className="w-4 h-4 mr-2" />
-                                        Enable User
+                                        {t('admin.actions.enableUser')}
                                       </DropdownMenuItem>
                                     )}
                                     
@@ -899,7 +899,7 @@ const AdminDashboardPage = () => {
                                       setGracePeriodDialogOpen(true);
                                     }}>
                                       <Clock className="w-4 h-4 mr-2" />
-                                      Set Grace Period
+                                      {t('admin.actions.setGracePeriod')}
                                     </DropdownMenuItem>
                                     
                                     <DropdownMenuItem onClick={() => {
@@ -912,7 +912,7 @@ const AdminDashboardPage = () => {
                                       setQuotaDialogOpen(true);
                                     }}>
                                       <Settings className="w-4 h-4 mr-2" />
-                                      Set Custom Quotas
+                                      {t('admin.actions.setCustomQuotas')}
                                     </DropdownMenuItem>
                                     
                                     <DropdownMenuSeparator />
@@ -921,14 +921,14 @@ const AdminDashboardPage = () => {
                                     {!u.deleted_at && (
                                       <DropdownMenuItem
                                         onClick={() => {
-                                          if (window.confirm(`Soft delete ${u.email}? This will mark the user as deleted but preserve their data.`)) {
+                                          if (window.confirm(t('dialogs.confirm.softDeleteUser', { email: u.email }))) {
                                             handleSoftDeleteUser(u.id);
                                           }
                                         }}
                                         className="text-red-600"
                                       >
                                         <Trash2 className="w-4 h-4 mr-2" />
-                                        Soft Delete User
+                                        {t('admin.actions.softDeleteUser')}
                                       </DropdownMenuItem>
                                     )}
                                     
@@ -938,39 +938,27 @@ const AdminDashboardPage = () => {
                                           handleRestoreUser(u.id);
                                         }}>
                                           <RotateCcw className="w-4 h-4 mr-2" />
-                                          Restore User
+                                          {t('admin.actions.restoreUser')}
                                         </DropdownMenuItem>
                                         
                                         <DropdownMenuSeparator />
                                         
                                         <DropdownMenuItem
                                           onClick={() => {
-                                            const confirmed = window.confirm(
-                                              `PERMANENT DELETE: ${u.email}\n\n` +
-                                              `This will PERMANENTLY delete:\n` +
-                                              `- User account\n` +
-                                              `- All workspaces owned by user\n` +
-                                              `- All walkthroughs and categories\n` +
-                                              `- All uploaded files\n` +
-                                              `- All subscriptions and data\n\n` +
-                                              `This action CANNOT be undone!\n\n` +
-                                              `Type the user's email to confirm deletion.`
-                                            );
+                                            const confirmed = window.confirm(t('dialogs.confirm.permanentDeleteUser', { email: u.email }));
                                             if (confirmed) {
-                                              const emailConfirm = window.prompt(
-                                                `Type "${u.email}" to confirm permanent deletion:`
-                                              );
+                                              const emailConfirm = window.prompt(t('dialogs.confirm.confirmEmail', { email: u.email }));
                                               if (emailConfirm === u.email) {
                                                 handleHardDeleteUser(u.id);
                                               } else if (emailConfirm !== null) {
-                                                toast.error('Email did not match. Deletion cancelled.');
+                                                toast.error(t('dialogs.alert.emailMismatch'));
                                               }
                                             }
                                           }}
                                           className="text-red-600 font-bold"
                                         >
                                           <Trash2 className="w-4 h-4 mr-2" />
-                                          PERMANENT DELETE
+                                          {t('admin.actions.permanentDelete')}
                                         </DropdownMenuItem>
                                       </>
                                     )}
@@ -1018,7 +1006,7 @@ const AdminDashboardPage = () => {
               <div className="text-center py-8 text-muted-foreground">Loading statistics...</div>
             ) : stats ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="border-border bg-card">
+                <Card variant="glass" className="border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -1043,7 +1031,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border bg-card">
+                <Card variant="glass" className="border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <Crown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -1062,7 +1050,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border bg-card">
+                <Card variant="glass" className="border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -1087,7 +1075,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border bg-card">
+                <Card variant="glass" className="border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <FolderOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -1099,7 +1087,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border bg-card">
+                <Card variant="glass" className="border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
@@ -1124,7 +1112,7 @@ const AdminDashboardPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border bg-card">
+                <Card variant="glass" className="border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <HardDrive className="w-5 h-5 text-muted-foreground" />

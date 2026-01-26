@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Eye, FileText } from 'lucide-react';
 import { api } from '../lib/api';
@@ -11,6 +12,7 @@ type PolicyListPageProps = {
 
 export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPageProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,14 +41,14 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
   };
 
   const handleDelete = async (policyId: string) => {
-    if (!confirm('Are you sure you want to delete this policy?')) return;
+    if (!confirm(t('dialogs.confirm.deletePolicy'))) return;
     
     try {
       await api.deleteKnowledgeSystem(workspaceId, policyId);
       await loadPolicies();
     } catch (error) {
       console.error('Failed to delete policy:', error);
-      alert('Failed to delete policy');
+      alert(t('dialogs.alert.failedToDeletePolicy'));
     }
   };
 
