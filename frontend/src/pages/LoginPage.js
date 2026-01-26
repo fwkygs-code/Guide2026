@@ -184,6 +184,11 @@ const LoginPage = () => {
       // Show user-friendly error messages
       let errorMessage = error.response?.data?.detail || error.message || t('toast.loginFailed');
       
+      // Map specific error messages to translations
+      if (errorMessage === 'Invalid credentials') {
+        errorMessage = t('toast.invalidCredentials');
+      }
+      
       // Provide helpful context for timeout errors
       if (errorMessage.includes('not responding') || errorMessage.includes('timeout')) {
         errorMessage += ' ' + t('toast.systemInitializing');

@@ -176,13 +176,13 @@ const LandingPage = () => {
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
             <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
-              Terms of Service
+              {t('auth.termsOfService')}
             </Link>
             <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-              Privacy Policy
+              {t('auth.privacyPolicy')}
             </Link>
             <Link to="/billing-policy" className="text-muted-foreground hover:text-foreground transition-colors">
-              Subscription & Billing Policy
+              {t('auth.subscriptionBillingPolicy')}
             </Link>
           </div>
           <p className="text-center">{t('landing.copyright')}</p>

@@ -168,7 +168,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 {planOption.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                    <span>{feature}</span>
+                    <span className="text-foreground">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -439,9 +439,9 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
             <div className="text-xs text-muted-foreground mt-4 space-y-2 text-center">
               <p>
                 {t('billing.paymentsProcessedByPayPal')}{' '}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a>
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{t('auth.termsOfService')}</a>
                 {' '}{t('common.and')}{' '}
-                <a href="/billing-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Billing Policy</a>.
+                <a href="/billing-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{t('auth.billingPolicy')}</a>.
               </p>
               <p>
                 {t('billing.autoRenewNotice')}

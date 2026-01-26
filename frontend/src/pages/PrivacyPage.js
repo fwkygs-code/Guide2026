@@ -63,14 +63,13 @@ const PrivacyPage = () => {
                   {t('portal.privacy.informationWeCollect.youProvide.intro')}
                 </p>
                 <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[0]')}</li>
-                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[1]')}</li>
-                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[2]')}</li>
-                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[3]')}</li>
+                  {t('portal.privacy.informationWeCollect.youProvide.items', { returnObjects: true }).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
                   <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-6">
-                    <li>{t('portal.privacy.informationWeCollect.youProvide.contentItems[0]')}</li>
-                    <li>{t('portal.privacy.informationWeCollect.youProvide.contentItems[1]')}</li>
-                    <li>{t('portal.privacy.informationWeCollect.youProvide.contentItems[2]')}</li>
+                    {t('portal.privacy.informationWeCollect.youProvide.contentItems', { returnObjects: true }).map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
                   </ul>
                 </ul>
               </div>
@@ -80,10 +79,9 @@ const PrivacyPage = () => {
                   {t('portal.privacy.informationWeCollect.automaticallyCollected.intro')}
                 </p>
                 <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[0]')}</li>
-                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[1]')}</li>
-                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[2]')}</li>
-                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[3]')}</li>
+                  {t('portal.privacy.informationWeCollect.automaticallyCollected.items', { returnObjects: true }).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
                 </ul>
                 <p className="text-foreground leading-relaxed">
                   {t('portal.privacy.informationWeCollect.automaticallyCollected.usage')}
@@ -97,10 +95,9 @@ const PrivacyPage = () => {
                 {t('portal.privacy.cookies.intro')}
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li>{t('portal.privacy.cookies.items[0]')}</li>
-                <li>{t('portal.privacy.cookies.items[1]')}</li>
-                <li>{t('portal.privacy.cookies.items[2]')}</li>
-                <li>{t('portal.privacy.cookies.items[3]')}</li>
+                {t('portal.privacy.cookies.items', { returnObjects: true }).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
               <p className="text-foreground leading-relaxed">
                 {t('portal.privacy.cookies.noTracking')}
@@ -125,127 +122,119 @@ const PrivacyPage = () => {
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">6. Third-Party Service Providers</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.thirdPartyProviders.title')}</h2>
               <p className="text-foreground leading-relaxed mb-4">
-                We use trusted third-party infrastructure providers to operate the service, including:
+                {t('portal.privacy.thirdPartyProviders.intro')}
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li>Cloudflare (security and content delivery)</li>
-                <li>Render (application hosting)</li>
-                <li>MongoDB (database storage)</li>
-                <li>Cloudinary (media storage)</li>
-                <li>SAV (infrastructure services)</li>
-                <li>Resend (transactional email delivery)</li>
+                {t('portal.privacy.thirdPartyProviders.items', { returnObjects: true }).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
               <p className="text-foreground leading-relaxed">
-                These providers process data only as necessary to deliver their services to InterGuide.
+                {t('portal.privacy.thirdPartyProviders.dataProcessing')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">7. Data Use</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.dataUse.title')}</h2>
               <p className="text-foreground leading-relaxed mb-4">
-                We use collected data to:
+                {t('portal.privacy.dataUse.intro')}
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li>Create and manage user accounts</li>
-                <li>Provide and operate the platform</li>
-                <li>Enable collaboration and workspace sharing</li>
-                <li>Maintain security and prevent abuse</li>
-                <li>Send essential service emails (authentication, password reset)</li>
+                {t('portal.privacy.dataUse.items', { returnObjects: true }).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
               <p className="text-foreground leading-relaxed">
-                We do not send marketing or promotional emails.
+                {t('portal.privacy.dataUse.noMarketing')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">8. Data Retention</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.dataRetention.title')}</h2>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li><strong>Active accounts:</strong> Data is retained while the account is active.</li>
-                <li><strong>Paid subscriptions ended:</strong> Workspace data is retained for up to 90 days after subscription termination.</li>
-                <li><strong>After 90 days,</strong> data may be permanently deleted unless required for legal or operational purposes.</li>
-                <li><strong>Users may request earlier deletion</strong> by contacting support@interguide.app.</li>
+                {t('portal.privacy.dataRetention.items', { returnObjects: true }).map((item, index) => (
+                  <li key={index} dangerouslySetInnerHTML={{ __html: item }} />
+                ))}
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">9. Account Deletion</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.accountDeletion.title')}</h2>
               <p className="text-foreground leading-relaxed mb-4">
-                Users cannot self-delete accounts through the platform.
+                {t('portal.privacy.accountDeletion.intro')}
               </p>
               <p className="text-foreground leading-relaxed mb-4">
-                Users may:
+                {t('portal.privacy.accountDeletion.usersMay')}
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li>Delete their own content at any time</li>
-                <li>Request full account and data deletion by emailing support@interguide.app</li>
+                {t('portal.privacy.accountDeletion.items', { returnObjects: true }).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
               <p className="text-foreground leading-relaxed">
-                Deletion requests are processed within a reasonable timeframe.
+                {t('portal.privacy.accountDeletion.processingTime')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">10. International Data Transfers</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.internationalDataTransfers.title')}</h2>
               <p className="text-foreground leading-relaxed">
-                Your data may be stored and processed on servers located outside your country of residence. We take reasonable measures to protect data regardless of location.
+                {t('portal.privacy.internationalDataTransfers.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">11. Security</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.security.title')}</h2>
               <p className="text-foreground leading-relaxed mb-4">
-                We implement reasonable administrative, technical, and organizational safeguards, including:
+                {t('portal.privacy.security.intro')}
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li>Encrypted credentials</li>
-                <li>Access controls</li>
-                <li>Secure infrastructure providers</li>
+                {t('portal.privacy.security.items', { returnObjects: true }).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
               <p className="text-foreground leading-relaxed">
-                No system is completely secure, and we cannot guarantee absolute security.
+                {t('portal.privacy.security.noGuarantee')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">12. Children's Privacy</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.childrensPrivacy.title')}</h2>
               <p className="text-foreground leading-relaxed">
-                InterGuide is not intended for users under 16 years of age. We do not knowingly collect personal data from minors. If such data is discovered, it will be deleted.
+                {t('portal.privacy.childrensPrivacy.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">13. Your Rights</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.yourRights.title')}</h2>
               <p className="text-foreground leading-relaxed mb-4">
-                Depending on your jurisdiction, you may have rights to:
+                {t('portal.privacy.yourRights.intro')}
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li>Access your data</li>
-                <li>Correct inaccurate data</li>
-                <li>Request deletion</li>
-                <li>Object to certain processing</li>
+                {t('portal.privacy.yourRights.items', { returnObjects: true }).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
               <p className="text-foreground leading-relaxed">
-                Requests should be sent to support@interguide.app.
+                {t('portal.privacy.yourRights.contact')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">14. Changes to This Policy</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.changesToPolicy.title')}</h2>
               <p className="text-foreground leading-relaxed">
-                We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated revision date.
+                {t('portal.privacy.changesToPolicy.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">15. Contact</h2>
-              <p className="text-foreground leading-relaxed">
-                For privacy-related questions or requests:
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.contact.title')}</h2>
+              <p className="text-foreground leading-relaxed mb-4">
+                {t('portal.privacy.contact.intro')}
               </p>
-              <p className="text-foreground leading-relaxed">
-                Email: support@interguide.app
-              </p>
+              <p className="text-foreground">{t('portal.privacy.contact.email')}</p>
             </section>
           </div>
         </div>
