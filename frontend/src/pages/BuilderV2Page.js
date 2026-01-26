@@ -994,7 +994,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
       <div className="flex-1 overflow-hidden">
         {steps.length === 0 ? (
           <div className="p-4 text-sm text-foreground text-center">
-            No steps yet
+            {t('builder.noStepsYet')}
           </div>
         ) : (
           <div className="divide-y divide-slate-100 overflow-y-auto max-h-full">
@@ -1070,7 +1070,7 @@ const CanvasStage = ({
     return (
       <div className="min-h-full flex items-center justify-center">
         <div className="text-center text-muted-foreground">
-          <p className="text-sm">Select a step or create a new one</p>
+          <p className="text-sm">{t('builder.selectStepOrCreate')}</p>
         </div>
       </div>
     );
@@ -3740,11 +3740,11 @@ const InspectorPanel = ({
   return (
     <div className="w-80 flex-shrink-0 border-l border-border bg-card overflow-hidden flex flex-col">
       <div className="p-4 border-b border-border">
-        <h2 className="text-sm font-semibold">Inspector</h2>
+        <h2 className="text-sm font-semibold">{t('builder.inspector')}</h2>
       </div>
       <div className="flex-1 p-4">
         <div className="text-sm text-muted-foreground text-center py-8">
-          Select a step or block to edit
+          {t('builder.selectStepOrBlock')}
         </div>
       </div>
     </div>
