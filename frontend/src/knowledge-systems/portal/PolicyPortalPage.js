@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, Calendar, FileText, Clock, Scale, Award, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
@@ -22,6 +23,7 @@ import axios from 'axios';
  */
 function PolicyPortalPage() {
   const { slug } = useParams();
+  const { t } = useTranslation();
   const [publishedPolicies, setPublishedPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -92,7 +94,7 @@ function PolicyPortalPage() {
             <Link to={`/portal/${slug}`}>
               <Button variant="ghost" className="text-amber-200/80 hover:text-amber-100 hover:bg-amber-500/10 mb-6">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </motion.div>
@@ -108,9 +110,9 @@ function PolicyPortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 bg-clip-text text-transparent mb-2">
-                Policies
+                {t('knowledgeSystems.policy.title')}
               </h1>
-              <p className="text-amber-100/80 text-xl leading-relaxed">Official policies and procedures with legal authority and compliance standards.</p>
+              <p className="text-amber-100/80 text-xl leading-relaxed">{t('knowledgeSystems.policy.description')}</p>
             </div>
           </motion.div>
 
@@ -127,13 +129,13 @@ function PolicyPortalPage() {
                   <Award className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-amber-100 mb-2 text-lg">Official Policy Documentation</h3>
+                  <h3 className="font-bold text-amber-100 mb-2 text-lg">{t('knowledgeSystems.policy.officialTitle')}</h3>
                   <p className="text-amber-200/80 leading-relaxed">
-                    These policies establish official guidelines and requirements. All personnel are required to comply with these policies as applicable to their roles and responsibilities. This documentation carries full legal authority.
+                    {t('knowledgeSystems.policy.officialDescription')}
                   </p>
                   <div className="flex items-center gap-2 mt-4">
                     <Lock className="w-4 h-4 text-amber-400" />
-                    <span className="text-amber-300/60 text-sm">Protected Official Document</span>
+                    <span className="text-amber-300/60 text-sm">{t('knowledgeSystems.policy.protectedDocument')}</span>
                   </div>
                 </div>
               </div>
@@ -153,9 +155,9 @@ function PolicyPortalPage() {
             >
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-amber-500/30">
                 <FileText className="w-16 h-16 text-amber-400/50 mx-auto mb-6" />
-                <h3 className="text-xl font-semibold text-amber-100 mb-4">No Policies Published</h3>
+                <h3 className="text-xl font-semibold text-amber-100 mb-4">{t('knowledgeSystems.policy.noPolicies')}</h3>
                 <p className="text-amber-200/70">
-                  Policy content has not been published yet. Check back later for official documentation.
+                  {t('knowledgeSystems.policy.noPoliciesDescription')}
                 </p>
                 <p className="text-amber-200/50 text-xs mt-4">
                   Debug: policies={publishedPolicies ? publishedPolicies.length : 'null'}

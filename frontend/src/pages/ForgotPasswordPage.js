@@ -78,7 +78,7 @@ const ForgotPasswordPage = () => {
           <h1 className="text-2xl font-heading font-bold text-white mb-2">
             {submitted ? t('auth.checkYourEmail') : t('auth.forgotPasswordTitle')}
           </h1>
-          <p className="text-slate-200">
+          <p className="text-muted-foreground">
             {submitted
               ? t('auth.resetLinkSent')
               : t('auth.forgotPasswordDescription')
@@ -90,8 +90,8 @@ const ForgotPasswordPage = () => {
           {submitted ? (
             <div className="text-center">
               <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">{t('auth.emailSent')}</h3>
-              <p className="text-sm text-slate-900 mb-6">
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t('auth.emailSent')}</h3>
+              <p className="text-sm text-foreground mb-6">
                 {t('auth.emailSentDescription')}
               </p>
               <div className="space-y-3">
@@ -111,7 +111,7 @@ const ForgotPasswordPage = () => {
             <>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <Label htmlFor="email" className="text-slate-900">{t('auth.emailAddress')}</Label>
+                  <Label htmlFor="email" className="text-foreground">{t('auth.emailAddress')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -119,7 +119,7 @@ const ForgotPasswordPage = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('auth.emailPlaceholder')}
                     required
-                    className="mt-1.5 text-slate-900"
+                    className="mt-1.5 text-foreground"
                     data-testid="forgot-password-email-input"
                   />
                 </div>
@@ -147,7 +147,7 @@ const ForgotPasswordPage = () => {
               <div className="mt-6 text-center">
                 <Link
                   to="/login"
-                  className="text-sm text-slate-900 hover:text-slate-700 hover:underline transition-colors"
+                  className="text-sm text-foreground hover:text-muted-foreground hover:underline transition-colors"
                   data-testid="forgot-password-back-to-login"
                 >
                   {t('auth.backToLogin')}

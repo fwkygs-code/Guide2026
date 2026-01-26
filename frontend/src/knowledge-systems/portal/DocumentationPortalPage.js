@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft, BookOpen, ChevronRight, Hash, Clock, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
@@ -13,6 +14,7 @@ import { portalKnowledgeSystemsService } from '../api-service';
  */
 function DocumentationPortalPage() {
   const { slug } = useParams();
+  const { t } = useTranslation();
   const [publishedDocumentation, setPublishedDocumentation] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState(null);
@@ -28,12 +30,6 @@ function DocumentationPortalPage() {
     try {
       const documentation = await portalKnowledgeSystemsService.getAllByType(slug, 'documentation');
       setPublishedDocumentation(documentation);
-    } catch (error) {
-      console.error('Failed to load documentation system:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
     } catch (error) {
       console.error('Failed to load documentation system:', error);
     } finally {
@@ -100,15 +96,15 @@ function DocumentationPortalPage() {
               <BookOpen className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
-              Documentation Not Available
+              {t('knowledgeSystems.documentation.noDocs')}
             </h1>
             <p className="text-purple-100/80 leading-relaxed mb-6">
-              Product documentation is not currently published for this workspace.
+              {t('knowledgeSystems.documentation.noDocsDescription')}
             </p>
             <Link to={`/portal/${slug}`}>
               <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </Surface>
@@ -139,7 +135,7 @@ function DocumentationPortalPage() {
             <Link to={`/portal/${slug}`}>
               <Button variant="ghost" className="text-purple-200/80 hover:text-purple-100 hover:bg-purple-500/10 mb-6">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </motion.div>
@@ -155,9 +151,9 @@ function DocumentationPortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                Documentation
+                {t('knowledgeSystems.documentation.title')}
               </h1>
-              <p className="text-purple-100/80 text-xl leading-relaxed">Comprehensive technical documentation and knowledge base resources.</p>
+              <p className="text-purple-100/80 text-xl leading-relaxed">{t('knowledgeSystems.documentation.description')}</p>
             </div>
           </motion.div>
 
@@ -238,9 +234,9 @@ function DocumentationPortalPage() {
             {publishedDocumentation.length === 0 ? (
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-purple-500/30">
                 <BookOpen className="w-16 h-16 text-purple-400/50 mx-auto mb-6" />
-                <h3 className="text-xl font-semibold text-purple-100 mb-4">No Documentation Published</h3>
+                <h3 className="text-xl font-semibold text-purple-100 mb-4">{t('knowledgeSystems.documentation.noDocs')}</h3>
                 <p className="text-purple-200/70">
-                  Documentation content has not been published yet. Check back later for comprehensive knowledge materials.
+                  {t('knowledgeSystems.documentation.noDocsDescription')}
                 </p>
               </Surface>
             ) : (

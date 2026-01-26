@@ -244,7 +244,7 @@ const LoginPage = () => {
             />
           </Link>
           <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('common.welcome')}</h1>
-          <p className={`${getSizeClass('base')} text-slate-200`}>{t('auth.loginTitle')}</p>
+          <p className={`${getSizeClass('base')} text-muted-foreground`}>{t('auth.loginTitle')}</p>
         </div>
 
         <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
@@ -254,8 +254,8 @@ const LoginPage = () => {
               <div className="flex items-center gap-2">
                 {backendStatus === 'checking' && (
                   <>
-                    <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
-                    <span className="text-xs text-slate-500">Checking server...</span>
+                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                    <span className="text-xs text-muted-foreground">Checking server...</span>
                   </>
                 )}
                 {backendStatus === 'ready' && (
@@ -284,7 +284,7 @@ const LoginPage = () => {
               )}
             </div>
             {backendStatus === 'sleeping' && (
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 The system is preparing your environment. This may take a moment.
               </p>
             )}
@@ -322,7 +322,7 @@ const LoginPage = () => {
             <div className="text-right">
               <Link
                 to="/forgot-password"
-                className="text-sm text-slate-400 hover:text-slate-200 hover:underline transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
                 data-testid="login-forgot-password-link"
               >
                 Forgot password?
@@ -346,7 +346,7 @@ const LoginPage = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-300">
+          <div className="mt-6 text-center text-sm text-foreground">
             {t('auth.noAccount')}{' '}
             <Link to="/signup" className="text-primary font-medium hover:text-primary/80 hover:underline transition-colors" data-testid="login-signup-link">
               {t('auth.signUpHere')}

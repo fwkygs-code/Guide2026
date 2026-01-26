@@ -102,6 +102,7 @@
     "poweredBy": "Powered by InterGuide",
     "wantKnowledgeBase": "Want a knowledge base center for yourself?",
     "getStarted": "Get Started",
+    "backToPortal": "Back to Portal",
     "knowledgeSystems": {
       "title": "Knowledge Systems",
       "description": "Browse published policies, procedures, docs, FAQs, and decisions.",
@@ -683,7 +684,44 @@
   "knowledgeSystems": {
     "title": "Knowledge Systems",
     "description": "Manage isolated knowledge systems with dedicated editors and portals.",
-    "backToSettings": "Back to Settings"
+    "backToSettings": "Back to Settings",
+    "policy": {
+      "title": "Policies",
+      "description": "Official policies and procedures with legal authority and compliance standards.",
+      "officialTitle": "Official Policy Documentation",
+      "officialDescription": "These policies establish official guidelines and requirements. All personnel are required to comply with these policies as applicable to their roles and responsibilities. This documentation carries full legal authority.",
+      "protectedDocument": "Protected Document",
+      "noPolicies": "No Policies Published",
+      "noPoliciesDescription": "Policy content has not been published yet. Check back later for official documentation."
+    },
+    "procedure": {
+      "title": "Procedures",
+      "description": "Step-by-step operational procedures for consistent execution and compliance.",
+      "standardTitle": "Standard Operating Procedures",
+      "standardDescription": "These procedures establish standardized workflows and best practices. Follow each step systematically to ensure consistent, high-quality results across all operations.",
+      "noProcedures": "No Procedures Published",
+      "noProceduresDescription": "Standard procedures have not been published yet. Check back later for operational guidelines."
+    },
+    "documentation": {
+      "title": "Documentation",
+      "description": "Technical documentation and reference materials.",
+      "noDocs": "No Documentation Published",
+      "noDocsDescription": "Documentation has not been published yet. Check back later for reference materials."
+    },
+    "faq": {
+      "title": "FAQs",
+      "description": "Frequently asked questions and answers.",
+      "noFAQs": "No FAQs Published",
+      "noFAQsDescription": "FAQ content has not been published yet. Check back later for answers to common questions.",
+      "noMatching": "No matching questions found",
+      "tryAdjusting": "Try adjusting your search terms or browse all categories."
+    },
+    "decisionTree": {
+      "title": "Decision Trees",
+      "description": "Interactive decision-making guides and flowcharts.",
+      "noDecisions": "No Decision Trees Published",
+      "noDecisionsDescription": "Decision trees have not been published yet. Check back later for decision-making guides."
+    }
   },
   "blocked": {
     "title": "Account Disabled",

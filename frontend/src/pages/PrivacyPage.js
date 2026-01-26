@@ -36,108 +36,215 @@ const PrivacyPage = () => {
       <main className="max-w-4xl mx-auto px-6 py-12">
         <div className="bg-white rounded-xl shadow-lg p-8 md:p-12">
           <h1 className="text-4xl font-heading font-bold text-slate-900 mb-6">Privacy Policy</h1>
-          <p className="text-sm text-slate-500 mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+          <p className="text-sm text-slate-500 mb-8">Last updated: January 2026</p>
 
           <div className="prose prose-slate max-w-none space-y-8">
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">1. Information We Collect</h2>
               <p className="text-slate-700 leading-relaxed mb-4">
-                We collect information that you provide directly to us, including:
+                This Privacy Policy explains how InterGuide.app ("InterGuide", "we", "us", or "our") collects, uses, stores, and protects personal information when you use our services.
+              </p>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                InterGuide is operated under the name InterGuide.app. Contact email: support@interguide.app
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">1. Scope</h2>
+              <p className="text-slate-700 leading-relaxed">
+                This Privacy Policy applies to all users of the InterGuide platform, including free and paid users, and to all services provided through https://www.interguide.app.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">2. Information We Collect</h2>
+              <div className="mb-4">
+                <h3 className="text-xl font-heading font-semibold text-slate-800 mb-3">2.1 Information You Provide</h3>
+                <p className="text-slate-700 leading-relaxed mb-4">
+                  We collect information you voluntarily provide, including:
+                </p>
+                <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                  <li>Name</li>
+                  <li>Email address</li>
+                  <li>Account credentials (encrypted passwords)</li>
+                  <li>Content you create or upload, including:</li>
+                  <ul className="list-disc list-inside text-slate-600 space-y-1 ml-6">
+                    <li>Walkthroughs</li>
+                    <li>Knowledge base entries</li>
+                    <li>Images, videos, and files</li>
+                  </ul>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xl font-heading font-semibold text-slate-800 mb-3">2.2 Automatically Collected Information</h3>
+                <p className="text-slate-700 leading-relaxed mb-4">
+                  We may automatically collect limited technical data necessary to operate the service, including:
+                </p>
+                <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                  <li>IP address</li>
+                  <li>Device and browser information</li>
+                  <li>Session and authentication data</li>
+                  <li>Usage activity within the platform</li>
+                </ul>
+                <p className="text-slate-700 leading-relaxed">
+                  This data is used strictly for platform functionality, security, and internal analytics.
+                </p>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">3. Cookies</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                InterGuide uses cookies strictly for operational purposes:
               </p>
               <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
-                <li>Account information (name, email address, password)</li>
-                <li>Content you create using our Service (walkthroughs, categories, media files)</li>
-                <li>Billing information (processed by PayPal - we do not store payment card details)</li>
-                <li>Usage data and analytics</li>
+                <li>Authentication and login sessions</li>
+                <li>Autosave and workspace functionality</li>
+                <li>User interface preferences</li>
+                <li>Internal analytics</li>
               </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">2. How We Use Your Information</h2>
               <p className="text-slate-700 leading-relaxed">
-                We use the information we collect to provide, maintain, and improve our Service, process transactions, send you technical notices and updates, 
-                and respond to your comments and questions.
+                We do not use advertising, tracking, or third-party marketing cookies.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">3. Payment Processing</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">4. Analytics</h2>
+              <p className="text-slate-700 leading-relaxed">
+                We use internal analytics only to understand platform usage and improve reliability and performance. No advertising or behavioral tracking is performed.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">5. Payments</h2>
               <p className="text-slate-700 leading-relaxed mb-4">
-                All payments are processed by PayPal. We do not store or have access to your payment card details. 
-                PayPal handles all payment data in accordance with their privacy policy and PCI DSS requirements.
+                InterGuide offers both free and paid plans.
               </p>
-              <p className="text-slate-700 leading-relaxed">
-                We only receive and store your PayPal subscription ID for account management purposes. No payment credentials are stored on our servers.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">4. Data Storage and Security</h2>
-              <p className="text-slate-700 leading-relaxed">
-                We use industry-standard security measures to protect your data. Your content is stored securely using cloud infrastructure. 
-                However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">5. Cookies</h2>
               <p className="text-slate-700 leading-relaxed mb-4">
-                We use cookies and similar tracking technologies to track activity on our Service and hold certain information. 
-                Cookies are files with a small amount of data which may include an anonymous unique identifier.
-              </p>
-              <p className="text-slate-700 leading-relaxed">
-                You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. 
-                However, if you do not accept cookies, you may not be able to use some portions of our Service.
+                Payments are processed exclusively through PayPal. We do not collect, process, or store payment card or billing information. Payment data is handled entirely by PayPal under their own privacy policy.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">6. Data Sharing</h2>
-              <p className="text-slate-700 leading-relaxed">
-                We do not sell, trade, or rent your personal information to third parties. We may share your information with service providers who assist us in operating our Service, 
-                conducting our business, or serving our users, so long as those parties agree to keep this information confidential.
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">6. Third-Party Service Providers</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                We use trusted third-party infrastructure providers to operate the service, including:
               </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">7. Your Rights</h2>
-              <p className="text-slate-700 leading-relaxed mb-4">You have the right to:</p>
               <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
-                <li>Access your personal data</li>
-                <li>Correct inaccurate data</li>
-                <li>Request deletion of your data</li>
-                <li>Export your data</li>
-                <li>Object to processing of your data</li>
+                <li>Cloudflare (security and content delivery)</li>
+                <li>Render (application hosting)</li>
+                <li>MongoDB (database storage)</li>
+                <li>Cloudinary (media storage)</li>
+                <li>SAV (infrastructure services)</li>
+                <li>Resend (transactional email delivery)</li>
               </ul>
+              <p className="text-slate-700 leading-relaxed">
+                These providers process data only as necessary to deliver their services to InterGuide.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">7. Data Use</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                We use collected data to:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Create and manage user accounts</li>
+                <li>Provide and operate the platform</li>
+                <li>Enable collaboration and workspace sharing</li>
+                <li>Maintain security and prevent abuse</li>
+                <li>Send essential service emails (authentication, password reset)</li>
+              </ul>
+              <p className="text-slate-700 leading-relaxed">
+                We do not send marketing or promotional emails.
+              </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">8. Data Retention</h2>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li><strong>Active accounts:</strong> Data is retained while the account is active.</li>
+                <li><strong>Paid subscriptions ended:</strong> Workspace data is retained for up to 90 days after subscription termination.</li>
+                <li><strong>After 90 days,</strong> data may be permanently deleted unless required for legal or operational purposes.</li>
+                <li><strong>Users may request earlier deletion</strong> by contacting support@interguide.app.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">9. Account Deletion</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                Users cannot self-delete accounts through the platform.
+              </p>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                Users may:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Delete their own content at any time</li>
+                <li>Request full account and data deletion by emailing support@interguide.app</li>
+              </ul>
               <p className="text-slate-700 leading-relaxed">
-                We retain your personal information for as long as your account is active or as needed to provide you services. 
-                If you delete your account, we will delete your personal information within 30 days, unless we are required to retain it for legal purposes.
+                Deletion requests are processed within a reasonable timeframe.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">9. Children's Privacy</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">10. International Data Transfers</h2>
               <p className="text-slate-700 leading-relaxed">
-                Our Service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.
+                Your data may be stored and processed on servers located outside your country of residence. We take reasonable measures to protect data regardless of location.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">10. Changes to This Privacy Policy</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">11. Security</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                We implement reasonable administrative, technical, and organizational safeguards, including:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Encrypted credentials</li>
+                <li>Access controls</li>
+                <li>Secure infrastructure providers</li>
+              </ul>
               <p className="text-slate-700 leading-relaxed">
-                We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page 
-                and updating the "Last updated" date.
+                No system is completely secure, and we cannot guarantee absolute security.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">11. Contact Us</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">12. Children's Privacy</h2>
               <p className="text-slate-700 leading-relaxed">
-                If you have any questions about this Privacy Policy, please contact us at support@example.com.
+                InterGuide is not intended for users under 16 years of age. We do not knowingly collect personal data from minors. If such data is discovered, it will be deleted.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">13. Your Rights</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                Depending on your jurisdiction, you may have rights to:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Access your data</li>
+                <li>Correct inaccurate data</li>
+                <li>Request deletion</li>
+                <li>Object to certain processing</li>
+              </ul>
+              <p className="text-slate-700 leading-relaxed">
+                Requests should be sent to support@interguide.app.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">14. Changes to This Policy</h2>
+              <p className="text-slate-700 leading-relaxed">
+                We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated revision date.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">15. Contact</h2>
+              <p className="text-slate-700 leading-relaxed">
+                For privacy-related questions or requests:
+              </p>
+              <p className="text-slate-700 leading-relaxed">
+                Email: support@interguide.app
               </p>
             </section>
           </div>

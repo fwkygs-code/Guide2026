@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Workflow, CheckCircle, Clock, ArrowRight, Play } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
@@ -13,6 +14,7 @@ import { portalKnowledgeSystemsService } from '../api-service';
  */
 function ProcedurePortalPage() {
   const { slug } = useParams();
+  const { t } = useTranslation();
   const [publishedProcedures, setPublishedProcedures] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +68,7 @@ function ProcedurePortalPage() {
             <Link to={`/portal/${slug}`}>
               <Button variant="ghost" className="text-cyan-200/80 hover:text-cyan-100 hover:bg-cyan-500/10 mb-6">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </motion.div>
@@ -82,9 +84,9 @@ function ProcedurePortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                Procedures
+                {t('knowledgeSystems.procedure.title')}
               </h1>
-              <p className="text-cyan-100/80 text-xl leading-relaxed">Step-by-step operational procedures for consistent execution and compliance.</p>
+              <p className="text-cyan-100/80 text-xl leading-relaxed">{t('knowledgeSystems.procedure.description')}</p>
             </div>
           </motion.div>
 
@@ -120,9 +122,9 @@ function ProcedurePortalPage() {
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-cyan-100 mb-2 text-lg">Standard Operating Procedures</h3>
+                  <h3 className="font-bold text-cyan-100 mb-2 text-lg">{t('knowledgeSystems.procedure.standardTitle')}</h3>
                   <p className="text-cyan-200/80 leading-relaxed">
-                    These procedures establish standardized workflows and best practices. Follow each step systematically to ensure consistent, high-quality results across all operations.
+                    {t('knowledgeSystems.procedure.standardDescription')}
                   </p>
                   <div className="flex items-center gap-2 mt-4">
                     <Play className="w-4 h-4 text-cyan-400" />
@@ -146,9 +148,9 @@ function ProcedurePortalPage() {
             >
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-cyan-500/30">
                 <Workflow className="w-16 h-16 text-cyan-400/50 mx-auto mb-6" />
-                <h3 className="text-xl font-semibold text-cyan-100 mb-4">No Procedures Published</h3>
+                <h3 className="text-xl font-semibold text-cyan-100 mb-4">{t('knowledgeSystems.procedure.noProcedures')}</h3>
                 <p className="text-cyan-200/70">
-                  Standard procedures have not been published yet. Check back later for operational guidelines.
+                  {t('knowledgeSystems.procedure.noProceduresDescription')}
                 </p>
               </Surface>
             </motion.div>

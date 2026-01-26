@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft, MessageCircle, HelpCircle, Search, Tag, Clock, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
@@ -14,6 +15,7 @@ import { portalKnowledgeSystemsService } from '../api-service';
  */
 function FAQPortalPage() {
   const { slug } = useParams();
+  const { t } = useTranslation();
   const [publishedFAQs, setPublishedFAQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,12 +31,6 @@ function FAQPortalPage() {
     try {
       const faqs = await portalKnowledgeSystemsService.getAllByType(slug, 'faq');
       setPublishedFAQs(faqs);
-    } catch (error) {
-      console.error('Failed to load FAQ system:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
     } catch (error) {
       console.error('Failed to load FAQ system:', error);
     } finally {
@@ -83,15 +79,15 @@ function FAQPortalPage() {
               <MessageCircle className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-4">
-              FAQs Not Available
+              {t('knowledgeSystems.faq.noFAQs')}
             </h1>
             <p className="text-emerald-100/80 leading-relaxed mb-6">
-              Frequently asked questions are not currently published for this workspace.
+              {t('knowledgeSystems.faq.noFAQsDescription')}
             </p>
             <Link to={`/portal/${slug}`}>
               <Button className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </Surface>
@@ -122,7 +118,7 @@ function FAQPortalPage() {
             <Link to={`/portal/${slug}`}>
               <Button variant="ghost" className="text-emerald-200/80 hover:text-emerald-100 hover:bg-emerald-500/10 mb-6">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </motion.div>
@@ -138,9 +134,9 @@ function FAQPortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent mb-2">
-                FAQs
+                {t('knowledgeSystems.faq.title')}
               </h1>
-              <p className="text-emerald-100/80 text-xl leading-relaxed">Frequently asked questions and quick answers for common inquiries.</p>
+              <p className="text-emerald-100/80 text-xl leading-relaxed">{t('knowledgeSystems.faq.description')}</p>
             </div>
           </motion.div>
 
@@ -257,13 +253,12 @@ function FAQPortalPage() {
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-emerald-500/30">
                 <HelpCircle className="w-16 h-16 text-emerald-400/50 mx-auto mb-6" />
                 <h3 className="text-xl font-semibold text-emerald-100 mb-4">
-                  {searchTerm ? 'No matching questions found' : 'No FAQs published yet'}
+                  {searchTerm ? t('knowledgeSystems.faq.noMatching') : t('knowledgeSystems.faq.noFAQs')}
                 </h3>
                 <p className="text-emerald-200/70">
                   {searchTerm
-                    ? 'Try adjusting your search terms or browse all questions.'
-                    : 'FAQ content has not been published yet. Check back later for helpful answers.'
-                  }
+                    ? t('knowledgeSystems.faq.tryAdjusting')
+                    : t('knowledgeSystems.faq.noFAQsDescription')}
                 </p>
               </Surface>
             </motion.div>

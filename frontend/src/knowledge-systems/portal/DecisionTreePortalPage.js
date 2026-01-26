@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, GitBranch, ArrowRight, RotateCcw, CheckCircle, Brain, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
@@ -13,6 +14,7 @@ import { portalKnowledgeSystemsService } from '../api-service';
  */
 function DecisionTreePortalPage() {
   const { slug } = useParams();
+  const { t } = useTranslation();
   const [publishedTrees, setPublishedTrees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTree, setCurrentTree] = useState(null);
@@ -29,13 +31,6 @@ function DecisionTreePortalPage() {
     try {
       const trees = await portalKnowledgeSystemsService.getAllByType(slug, 'decision_tree');
       setPublishedTrees(trees);
-    } catch (error) {
-      console.error('Failed to load decision tree system:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
       // Auto-select first tree if available
       if (trees.length > 0) {
         selectTree(trees[0]);
@@ -122,15 +117,15 @@ function DecisionTreePortalPage() {
               <GitBranch className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent mb-4">
-              Decision Trees Not Available
+              {t('knowledgeSystems.decisionTree.noDecisions')}
             </h1>
             <p className="text-indigo-100/80 leading-relaxed mb-6">
-              Interactive decision guidance is not currently published for this workspace.
+              {t('knowledgeSystems.decisionTree.noDecisionsDescription')}
             </p>
             <Link to={`/portal/${slug}`}>
               <Button className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </Surface>
@@ -161,7 +156,7 @@ function DecisionTreePortalPage() {
             <Link to={`/portal/${slug}`}>
               <Button variant="ghost" className="text-indigo-200/80 hover:text-indigo-100 hover:bg-indigo-500/10 mb-6">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portal
+                {t('portal.backToPortal')}
               </Button>
             </Link>
           </motion.div>
@@ -177,9 +172,9 @@ function DecisionTreePortalPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                Decision Trees
+                {t('knowledgeSystems.decisionTree.title')}
               </h1>
-              <p className="text-indigo-100/80 text-xl leading-relaxed">Navigate complex decisions with structured guidance and logical branching.</p>
+              <p className="text-indigo-100/80 text-xl leading-relaxed">{t('knowledgeSystems.decisionTree.description')}</p>
             </div>
           </motion.div>
 

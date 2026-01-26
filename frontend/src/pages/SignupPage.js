@@ -250,7 +250,7 @@ const SignupPage = () => {
             />
           </Link>
           <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('auth.getStarted')}</h1>
-          <p className={`${getSizeClass('base')} text-slate-200`}>{t('auth.createYourAccount')}</p>
+          <p className={`${getSizeClass('base')} text-muted-foreground`}>{t('auth.createYourAccount')}</p>
         </div>
 
         <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
@@ -259,8 +259,8 @@ const SignupPage = () => {
               <div className="flex items-center gap-2">
                 {backendStatus === 'checking' && (
                   <>
-                    <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
-                    <span className="text-xs text-slate-500">{t('auth.checkingServer')}</span>
+                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                    <span className="text-xs text-muted-foreground">{t('auth.checkingServer')}</span>
                   </>
                 )}
                 {backendStatus === 'ready' && (
@@ -289,7 +289,7 @@ const SignupPage = () => {
               )}
             </div>
             {backendStatus === 'sleeping' && (
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 {t('auth.systemPreparing')}
               </p>
             )}
@@ -356,7 +356,7 @@ const SignupPage = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-slate-400 space-y-2">
+          <div className="mt-6 text-center text-xs text-muted-foreground space-y-2">
             <p>
               {t('auth.termsAgreement')}{' '}
               <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
@@ -370,7 +370,7 @@ const SignupPage = () => {
             </p>
           </div>
 
-          <div className="mt-6 text-center text-sm text-slate-300">
+          <div className="mt-6 text-center text-sm text-foreground">
             {t('auth.hasAccount')}{' '}
             <Link to="/login" className="text-primary font-medium hover:text-primary/80 hover:underline transition-colors" data-testid="signup-login-link">
               {t('auth.signIn')}

@@ -36,85 +36,233 @@ const TermsPage = () => {
       <main className="max-w-4xl mx-auto px-6 py-12">
         <div className="bg-white rounded-xl shadow-lg p-8 md:p-12">
           <h1 className="text-4xl font-heading font-bold text-slate-900 mb-6">Terms of Service</h1>
-          <p className="text-sm text-slate-500 mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+          <p className="text-sm text-slate-500 mb-8">Last updated: January 2026</p>
 
           <div className="prose prose-slate max-w-none space-y-8">
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">1. Acceptance of Terms</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                These Terms of Service ("Terms") govern your access to and use of InterGuide.app ("InterGuide", "we", "us", or "our"). By accessing or using the service at https://www.interguide.app, you agree to be bound by these Terms.
+              </p>
               <p className="text-slate-700 leading-relaxed">
-                By accessing and using InterGuide ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. 
-                If you do not agree to abide by the above, please do not use this service.
+                InterGuide is operated under the name InterGuide.app. Contact email: support@interguide.app
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">2. Use License</h2>
-              <p className="text-slate-700 leading-relaxed">
-                Permission is granted to temporarily use InterGuide for personal and commercial purposes. This is the grant of a license, not a transfer of title, and under this license you may not:
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">1. The Service</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                InterGuide provides a platform for building knowledge bases and walkthroughs and publishing them as shareable or embeddable portals. Features may evolve over time.
               </p>
-              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4 mt-4">
-                <li>Modify or copy the materials</li>
-                <li>Use the materials for any commercial purpose or for any public display (commercial or non-commercial) without written permission</li>
-                <li>Attempt to decompile or reverse engineer any software contained on InterGuide</li>
-                <li>Remove any copyright or other proprietary notations from the materials</li>
+              <p className="text-slate-700 leading-relaxed">
+                We reserve the right to modify, suspend, or discontinue any part of the service at any time.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">2. Eligibility</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                You must be at least 16 years old to use InterGuide.
+              </p>
+              <p className="text-slate-700 leading-relaxed">
+                If you are under the age of 18, you represent that you have permission from a parent or legal guardian. We do not knowingly allow use by individuals under 16.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">3. Accounts</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                You must create an account to access most features.
+              </p>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                You agree to:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Provide accurate information</li>
+                <li>Maintain the security of your credentials</li>
+                <li>Be responsible for all activity under your account</li>
+              </ul>
+              <p className="text-slate-700 leading-relaxed">
+                InterGuide may suspend or terminate accounts that violate these Terms.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">4. Subscriptions, Trials, and Billing</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                Paid features are offered on a subscription basis as described in the Billing Policy, which is incorporated into these Terms.
+              </p>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                Key points:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>14-day free trial (if offered)</li>
+                <li>$5 USD monthly subscription</li>
+                <li>Payments processed exclusively via PayPal</li>
+                <li>No refunds except where required by law</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">3. Subscription and Billing</h2>
-              <p className="text-slate-700 leading-relaxed">
-                All subscription payments are processed by PayPal. By subscribing to a paid plan, you agree that:
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">5. User Content</h2>
+              <div className="mb-4">
+                <h3 className="text-xl font-heading font-semibold text-slate-800 mb-3">5.1 Ownership</h3>
+                <p className="text-slate-700 leading-relaxed mb-4">
+                  You retain ownership of all content you create or upload, including text, walkthroughs, images, videos, and files ("User Content").
+                </p>
+                <p className="text-slate-700 leading-relaxed">
+                  InterGuide does not claim ownership over your User Content.
+                </p>
+              </div>
+              <div className="mb-4">
+                <h3 className="text-xl font-heading font-semibold text-slate-800 mb-3">5.2 License to Operate</h3>
+                <p className="text-slate-700 leading-relaxed">
+                  By using the service, you grant InterGuide a limited, non-exclusive, worldwide license to host, store, process, display, and transmit User Content solely for the purpose of operating and improving the service.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-xl font-heading font-semibold text-slate-800 mb-3">5.3 Platform Structure</h3>
+                <p className="text-slate-700 leading-relaxed">
+                  InterGuide retains all rights to the platform architecture, workflows, layouts, schemas, and system-generated structures used to organize User Content.
+                </p>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">6. Acceptable Use</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                You agree not to:
               </p>
-              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4 mt-4">
-                <li>Payments are processed by PayPal in accordance with PayPal's terms of service</li>
-                <li>Subscriptions automatically renew unless cancelled through your PayPal account</li>
-                <li>You are responsible for maintaining valid payment information with PayPal</li>
-                <li>Invoices and receipts are sent by PayPal, not by InterGuide</li>
-                <li>Failed payments may result in service suspension after PayPal notifies us of subscription expiration</li>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Upload illegal or infringing content</li>
+                <li>Harass, abuse, or harm others</li>
+                <li>Interfere with platform security or performance</li>
+                <li>Use the service for unlawful purposes</li>
+              </ul>
+              <p className="text-slate-700 leading-relaxed">
+                We reserve the right to remove content or restrict access at our discretion.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">7. Collaboration and Sharing</h2>
+              <p className="text-slate-700 leading-relaxed">
+                InterGuide allows workspace sharing and collaboration between users. You are responsible for managing access permissions and the consequences of sharing content.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">8. Suspension and Termination</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                We may suspend or terminate your access if you:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Violate these Terms</li>
+                <li>Fail to pay applicable fees</li>
+                <li>Create risk or legal exposure</li>
+              </ul>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                Upon termination:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Access to paid features and portals is disabled</li>
+                <li>Data retention is handled per the Privacy Policy and Billing Policy</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">4. Account Responsibilities</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">9. Data Retention</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                After subscription termination:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>Workspace data is retained for up to 90 days</li>
+                <li>Data may be deleted after this period</li>
+                <li>Earlier deletion may be requested via support@interguide.app</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">10. Intellectual Property</h2>
               <p className="text-slate-700 leading-relaxed">
-                You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. 
-                You agree to immediately notify us of any unauthorized use of your account.
+                All InterGuide software, branding, design, and platform technology are owned by InterGuide.app and protected by intellectual property laws.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">5. Content and Intellectual Property</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">11. Third-Party Services</h2>
               <p className="text-slate-700 leading-relaxed">
-                You retain ownership of all content you create using InterGuide. You grant us a license to store, display, and process your content solely for the purpose of providing the Service.
+                InterGuide relies on third-party infrastructure and services. We are not responsible for outages or issues caused by third-party providers.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">6. Service Availability</h2>
-              <p className="text-slate-700 leading-relaxed">
-                We strive to maintain high availability but do not guarantee uninterrupted service. We reserve the right to modify, suspend, or discontinue the Service at any time with reasonable notice.
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">12. No Warranty</h2>
+              <p className="text-slate-700 leading-relaxed font-semibold">
+                THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">7. Limitation of Liability</h2>
-              <p className="text-slate-700 leading-relaxed">
-                In no event shall InterGuide or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) 
-                arising out of the use or inability to use the materials on InterGuide's website, even if InterGuide or an authorized representative has been notified orally or in writing of the possibility of such damage.
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">13. Limitation of Liability</h2>
+              <p className="text-slate-700 leading-relaxed font-semibold mb-4">
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, INTERGUIDE SHALL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.
+              </p>
+              <p className="text-slate-700 leading-relaxed font-semibold">
+                INTERGUIDE'S TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT PAID BY YOU TO INTERGUIDE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">8. Revisions</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">14. Indemnification</h2>
               <p className="text-slate-700 leading-relaxed">
-                InterGuide may revise these terms of service at any time without notice. By using this Service, you are agreeing to be bound by the then current version of these terms of service.
+                You agree to indemnify and hold harmless InterGuide from claims arising out of your use of the service or violation of these Terms.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">9. Contact Information</h2>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">15. Arbitration and Class Action Waiver</h2>
+              <p className="text-slate-700 leading-relaxed font-semibold mb-4">
+                PLEASE READ CAREFULLY.
+              </p>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                Any dispute arising out of or relating to these Terms or the service shall be resolved by binding arbitration, rather than in court, except where prohibited by law.
+              </p>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                You waive the right to participate in class actions, class arbitrations, or representative actions.
+              </p>
               <p className="text-slate-700 leading-relaxed">
-                If you have any questions about these Terms of Service, please contact us at support@example.com.
+                Arbitration shall be conducted on an individual basis.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">16. Governing Law</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                These Terms are governed by the laws of:
+              </p>
+              <ul className="list-disc list-inside text-slate-700 space-y-2 ml-4">
+                <li>The State of California, USA, and</li>
+                <li>The State of Israel,</li>
+              </ul>
+              <p className="text-slate-700 leading-relaxed">
+                without regard to conflict-of-law principles.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">17. Changes to Terms</h2>
+              <p className="text-slate-700 leading-relaxed">
+                We may update these Terms from time to time. Continued use of the service after changes constitutes acceptance.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-heading font-semibold text-slate-900 mb-4">18. Contact</h2>
+              <p className="text-slate-700 leading-relaxed mb-4">
+                For legal or support inquiries:
+              </p>
+              <p className="text-slate-700 leading-relaxed">
+                Email: support@interguide.app
               </p>
             </section>
           </div>

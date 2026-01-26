@@ -82,11 +82,11 @@ const LandingPage = () => {
                 className="h-64 md:h-80 lg:h-96 w-auto object-contain"
               />
             </div>
-            <h1 className="text-5xl lg:text-6xl font-heading font-bold text-slate-900 mb-6 tracking-tight">
+            <h1 className="text-5xl lg:text-6xl font-heading font-bold text-foreground mb-6 tracking-tight">
               {t('landing.heroTitle')}
               <span className="text-primary block mt-2">{t('landing.heroSubtitle')}</span>
             </h1>
-            <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               {t('landing.heroDescription')}
             </p>
             <div className="flex gap-4 justify-center">
@@ -107,10 +107,10 @@ const LandingPage = () => {
       <section className="py-20 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-heading font-bold text-slate-900 mb-4">
+            <h2 className="text-4xl font-heading font-bold text-foreground mb-4">
               {t('landing.featuresTitle')}
             </h2>
-            <p className="text-lg text-slate-600">
+            <p className="text-lg text-muted-foreground">
               {t('landing.featuresSubtitle')}
             </p>
           </div>
@@ -128,10 +128,10 @@ const LandingPage = () => {
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-heading font-semibold text-slate-900 mb-2">
+                <h3 className="text-xl font-heading font-semibold text-foreground mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-slate-600">
+                <p className="text-muted-foreground">
                   {feature.description}
                 </p>
               </motion.div>
@@ -149,10 +149,10 @@ const LandingPage = () => {
             viewport={{ once: true }}
             className="glass rounded-2xl p-12 text-center"
           >
-            <h2 className="text-4xl font-heading font-bold text-slate-900 mb-4">
+            <h2 className="text-4xl font-heading font-bold text-foreground mb-4">
               {t('landing.ctaTitle')}
             </h2>
-            <p className="text-lg text-slate-600 mb-8">
+            <p className="text-lg text-muted-foreground mb-8">
               {t('landing.ctaDescription')}
             </p>
             <Link to="/signup">
@@ -165,7 +165,7 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-12 px-6">
+      <footer className="bg-slate-900 text-muted-foreground py-12 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center gap-2 mb-6">
             <img 
@@ -175,13 +175,13 @@ const LandingPage = () => {
             />
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
-            <Link to="/terms" className="text-slate-300 hover:text-white transition-colors">
+            <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
               Terms of Service
             </Link>
-            <Link to="/privacy" className="text-slate-300 hover:text-white transition-colors">
+            <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
-            <Link to="/billing-policy" className="text-slate-300 hover:text-white transition-colors">
+            <Link to="/billing-policy" className="text-muted-foreground hover:text-foreground transition-colors">
               Subscription & Billing Policy
             </Link>
           </div>
