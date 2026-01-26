@@ -193,7 +193,8 @@ const WalkthroughsPage = () => {
         title: editSettings.title.trim(),
         description: editSettings.description || '',
         category_ids: editSettings.category_ids || [],
-        icon_url: editSettings.icon_url || null
+        icon_url: editSettings.icon_url || null,
+        status: editingWalkthrough.status  // Preserve the current status
       };
       
       // Only include slug if it has a value (not empty or just whitespace)

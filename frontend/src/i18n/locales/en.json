@@ -1563,7 +1563,8 @@
   "categories": {
     "nameRequired": "Category name is required",
     "updated": "Category updated!",
-    "deleted": "Category deleted. Walkthroughs are now uncategorized."
+    "deleted": "Category deleted. Walkthroughs are now uncategorized.",
+    "subCategories": "Sub-categories"
   },
   "admin": {
     "actions": {

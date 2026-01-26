@@ -488,7 +488,7 @@ const CategoriesPage = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-1 bg-white/10 hover:bg-white/20 text-foreground border-white/30 transition-all duration-200"
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-gray-900 border-white/30 transition-all duration-200"
                         onClick={() => openCreateSubCategory(category.id, category.name)}
                         data-testid={`create-subcategory-${category.id}`}
                       >
@@ -499,7 +499,7 @@ const CategoriesPage = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditDialog(category)}
-                        className="bg-white/10 hover:bg-white/20 text-foreground border-white/30 transition-all duration-200"
+                        className="bg-white/10 hover:bg-white/20 text-gray-900 border-white/30 transition-all duration-200"
                         data-testid={`edit-category-${category.id}`}
                       >
                         <Edit className="w-4 h-4 mr-2" />

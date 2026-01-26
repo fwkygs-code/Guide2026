@@ -248,7 +248,7 @@ code {
 }
 
 /* Rich Text Editor Styles */
-[contenteditable] {
+[contenteditable="true"] {
   outline: none;
 }
 
@@ -257,9 +257,17 @@ code {
   cursor: text;
 }
 
-/* Prevent text cursor on all other elements */
-*:not([contenteditable="true"]):not(input):not(textarea):not(.ProseMirror):not(.inline-rich-editor [contenteditable]) {
-  cursor: default !important;
+/* Prevent text cursor on common non-editable text elements */
+p:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+h1:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+h2:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+h3:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+h4:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+h5:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+h6:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+span:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor),
+div:not([contenteditable]):not(.ProseMirror):not(.inline-rich-editor):not([role="button"]):not(button) {
+  cursor: default;
 }
 
 /* Override for interactive elements */
@@ -267,7 +275,7 @@ button, [role="button"], a, [role="link"], select, option, label, .cursor-pointe
   cursor: pointer !important;
 }
 
-[contenteditable]:empty:before {
+[contenteditable="true"]:empty:before {
   content: attr(placeholder);
   color: hsl(var(--muted-foreground));
   pointer-events: none;
@@ -314,7 +322,7 @@ button, [role="button"], a, [role="link"], select, option, label, .cursor-pointe
   outline: none;
 }
 
-[contenteditable] h2 {
+[contenteditable="true"] h2 {
   font-size: 1.5rem;
   font-weight: 600;
   margin-top: 1rem;
@@ -322,31 +330,31 @@ button, [role="button"], a, [role="link"], select, option, label, .cursor-pointe
   color: hsl(var(--foreground));
 }
 
-[contenteditable] p {
+[contenteditable="true"] p {
   margin-bottom: 0.75rem;
 }
 
-[contenteditable] ul {
+[contenteditable="true"] ul {
   list-style-type: disc;
   padding-left: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
-[contenteditable] ol {
+[contenteditable="true"] ol {
   list-style-type: decimal;
   padding-left: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
-[contenteditable] li {
+[contenteditable="true"] li {
   margin-bottom: 0.25rem;
 }
 
-[contenteditable] strong {
+[contenteditable="true"] strong {
   font-weight: 600;
 }
 
-[contenteditable] em {
+[contenteditable="true"] em {
   font-style: italic;
 }
 
