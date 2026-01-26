@@ -20,47 +20,47 @@ const SYSTEM_DEFINITIONS = [
   {
     id: 'policy',
     systemType: 'policy',
-    titleKey: 'knowledgeSystems.types.policies.name',
-    descriptionKey: 'knowledgeSystems.types.policies.description',
+    titleKey: 'types.policies.name',
+    descriptionKey: 'types.policies.description',
     accent: '#f59e0b',
     routes: POLICY_ROUTES
   },
   {
     id: 'procedure',
     systemType: 'procedure',
-    titleKey: 'knowledgeSystems.types.procedures.name',
-    descriptionKey: 'knowledgeSystems.types.procedures.description',
+    titleKey: 'types.procedures.name',
+    descriptionKey: 'types.procedures.description',
     accent: '#22d3ee',
     routes: PROCEDURE_ROUTES
   },
   {
     id: 'documentation',
     systemType: 'documentation',
-    titleKey: 'knowledgeSystems.types.documentation.name',
-    descriptionKey: 'knowledgeSystems.types.documentation.description',
+    titleKey: 'types.documentation.name',
+    descriptionKey: 'types.documentation.description',
     accent: '#a855f7',
     routes: DOCUMENTATION_ROUTES
   },
   {
     id: 'faq',
     systemType: 'faq',
-    titleKey: 'knowledgeSystems.types.faqs.name',
-    descriptionKey: 'knowledgeSystems.types.faqs.description',
+    titleKey: 'types.faqs.name',
+    descriptionKey: 'types.faqs.description',
     accent: '#34d399',
     routes: FAQ_ROUTES
   },
   {
     id: 'decision-tree',
     systemType: 'decision_tree',
-    titleKey: 'knowledgeSystems.types.decisionTrees.name',
-    descriptionKey: 'knowledgeSystems.types.decisionTrees.description',
+    titleKey: 'types.decisionTrees.name',
+    descriptionKey: 'types.decisionTrees.description',
     accent: '#6366f1',
     routes: DECISION_TREE_ROUTES
   }
 ];
 
 function KnowledgeSystemsPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -141,8 +141,8 @@ function KnowledgeSystemsPage() {
   return (
     <DashboardLayout>
       <PageHeader
-        title={t('knowledgeSystems.title')}
-        description={t('knowledgeSystems.description')}
+        title={t('title')}
+        description={t('description')}
       />
 
       <PageSurface>
@@ -172,17 +172,17 @@ function KnowledgeSystemsPage() {
                         background: `${system.accent}22`
                       }}
                     >
-                      {system.publishedCount > 0 ? t('knowledgeSystems.status.published') : t('knowledgeSystems.status.draft')}
+                      {system.publishedCount > 0 ? t('status.published') : t('status.draft')}
                     </span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="border-slate-600 text-slate-300">
-                      {t('knowledgeSystems.counts.drafts', { count: system.totalCount })}
+                      {t('counts.drafts', { count: system.totalCount })}
                     </Badge>
                     <Badge variant="outline" className="border-slate-600 text-slate-300">
-                      {t('knowledgeSystems.counts.published', { count: system.publishedCount })}
+                      {t('counts.published', { count: system.publishedCount })}
                     </Badge>
                   </div>
                   <Button
@@ -198,7 +198,7 @@ function KnowledgeSystemsPage() {
                     }}
                     variant="outline"
                   >
-                    {system.latestId ? t('knowledgeSystems.actions.openEditor') : t('knowledgeSystems.actions.createFirst')}
+                    {system.latestId ? t('actions.openEditor') : t('actions.createFirst')}
                   </Button>
                 </CardContent>
               </Card>

@@ -14,7 +14,7 @@ import { portalKnowledgeSystemsService } from '../api-service';
  */
 function ProcedurePortalPage() {
   const { slug } = useParams();
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const [publishedProcedures, setPublishedProcedures] = useState([]);
   const [loading, setLoading] = useState(true);
 

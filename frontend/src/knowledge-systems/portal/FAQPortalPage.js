@@ -15,7 +15,7 @@ import { portalKnowledgeSystemsService } from '../api-service';
  */
 function FAQPortalPage() {
   const { slug } = useParams();
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const [publishedFAQs, setPublishedFAQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

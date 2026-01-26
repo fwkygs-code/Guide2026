@@ -22,7 +22,7 @@ import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
  * Knowledge System Content Page
  */
 function KnowledgeSystemContentPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);

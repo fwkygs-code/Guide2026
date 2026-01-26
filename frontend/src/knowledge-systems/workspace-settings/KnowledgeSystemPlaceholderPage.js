@@ -19,7 +19,7 @@ import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
  * Knowledge System Placeholder Page
  */
 function KnowledgeSystemPlaceholderPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
 

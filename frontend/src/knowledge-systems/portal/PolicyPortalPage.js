@@ -23,7 +23,7 @@ import axios from 'axios';
  */
 function PolicyPortalPage() {
   const { slug } = useParams();
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const [publishedPolicies, setPublishedPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
 

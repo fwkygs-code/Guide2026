@@ -14,7 +14,7 @@ import { portalKnowledgeSystemsService } from '../api-service';
  */
 function DecisionTreePortalPage() {
   const { slug } = useParams();
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const [publishedTrees, setPublishedTrees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTree, setCurrentTree] = useState(null);
