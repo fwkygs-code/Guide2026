@@ -93,7 +93,9 @@ function KnowledgeSystemsNavigationBar({ workspaceId }) {
     return entries.filter((entry) => entry.count > 0);
   }, [systemCounts]);
 
-  if (!systems.length || isDismissed) return null;
+  // Always return null to disable the Knowledge Base navigation bar
+  // since knowledge systems are already embedded in the portal page
+  return null;
 
   const handleSystemClick = (system) => {
     if (!slug) return;

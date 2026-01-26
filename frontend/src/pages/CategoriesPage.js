@@ -473,13 +473,13 @@ const CategoriesPage = () => {
                       </div>
 
                       <div className="text-sm font-medium text-green-400">
-                        Active
+                        {t('workspace.active')}
                       </div>
                     </div>
 
                     {/* Stats */}
                     <div className="flex justify-between text-sm mb-4">
-                      <span className="text-slate-400">Sub-categories:</span>
+                      <span className="text-slate-400">{t('workspace.subCategories')}:</span>
                       <span className="text-white font-medium">{category.children.length}</span>
                     </div>
 

@@ -255,37 +255,37 @@ const LoginPage = () => {
                 {backendStatus === 'checking' && (
                   <>
                     <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                    <span className="text-xs text-muted-foreground">Checking server...</span>
+                    <span className="text-xs text-muted-foreground">{t('auth.checkingServer')}</span>
                   </>
                 )}
                 {backendStatus === 'ready' && (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <span className="text-xs text-green-600">Server ready</span>
+                    <span className="text-xs text-green-600">{t('auth.serverReady')}</span>
                   </>
                 )}
                 {backendStatus === 'sleeping' && (
                   <>
                     <WifiOff className="w-4 h-4 text-amber-500 animate-pulse" />
-                    <span className="text-xs text-amber-600">Initializing system...</span>
+                    <span className="text-xs text-amber-600">{t('auth.initializingSystem')}</span>
                   </>
                 )}
                 {backendStatus === 'error' && (
                   <>
                     <AlertCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-xs text-red-600">Connection unavailable</span>
+                    <span className="text-xs text-red-600">{t('auth.connectionUnavailable')}</span>
                   </>
                 )}
               </div>
               {backendStatus === 'sleeping' && (
                 <Badge variant="outline" className="text-xs">
-                  Please wait
+                  {t('auth.pleaseWait')}
                 </Badge>
               )}
             </div>
             {backendStatus === 'sleeping' && (
               <p className="text-xs text-muted-foreground mt-2">
-                The system is preparing your environment. This may take a moment.
+                {t('auth.systemPreparing')}
               </p>
             )}
           </div>
@@ -325,7 +325,7 @@ const LoginPage = () => {
                 className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
                 data-testid="login-forgot-password-link"
               >
-                Forgot password?
+                {t('auth.forgotPassword')}
               </Link>
             </div>
 
@@ -338,7 +338,7 @@ const LoginPage = () => {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {backendStatus === 'sleeping' ? 'Waking server...' : 'Signing in...'}
+                  {backendStatus === 'sleeping' ? t('auth.wakingServer') : t('common.signingIn')}
                 </span>
               ) : (
                 t('common.login')

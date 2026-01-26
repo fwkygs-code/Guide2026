@@ -33,6 +33,7 @@ import AdminRoute from './components/AdminRoute';
 
 // Knowledge Systems (isolated modules)
 import KnowledgeSystemsPage from './knowledge-systems/workspace-settings/KnowledgeSystemsPage';
+import KnowledgeSystemPortalPage from './knowledge-systems/portal/KnowledgeSystemPortalPage';
 import { useWorkspaceSlug } from './hooks/useWorkspaceSlug';
 import { POLICY_ROUTES } from './policy-system/routes';
 import { PROCEDURE_ROUTES } from './procedure-system/routes';
@@ -259,6 +260,13 @@ const AppContent = () => {
           <Route path={POLICY_ROUTES.list} element={<PrivateRoute><PolicyListRoute /></PrivateRoute>} />
           <Route path={POLICY_ROUTES.create} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
           <Route path={POLICY_ROUTES.edit} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
+          
+          {/* Knowledge System Portal Routes */}
+          <Route path="/workspace/:workspaceSlug/knowledge/policy" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="policy" /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/procedure" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="procedure" /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/documentation" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="documentation" /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/faq" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="faq" /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/decision_tree" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="decision_tree" /></PrivateRoute>} />
           <Route path={PROCEDURE_ROUTES.create} element={<PrivateRoute><ProcedureEditorRoute /></PrivateRoute>} />
           <Route path={PROCEDURE_ROUTES.edit} element={<PrivateRoute><ProcedureEditorRoute /></PrivateRoute>} />
           <Route path={DOCUMENTATION_ROUTES.create} element={<PrivateRoute><DocumentationEditorRoute /></PrivateRoute>} />

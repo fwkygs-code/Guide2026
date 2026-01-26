@@ -25,7 +25,7 @@ const PrivacyPage = () => {
             <Link to="/">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('common.backToHome')}
+                {t('workspace.backToHome')}
               </Button>
             </Link>
           </div>
@@ -49,78 +49,78 @@ const PrivacyPage = () => {
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">1. Scope</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.scope.title')}</h2>
               <p className="text-foreground leading-relaxed">
-                This Privacy Policy applies to all users of the InterGuide platform, including free and paid users, and to all services provided through https://www.interguide.app.
+                {t('portal.privacy.scope.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">2. Information We Collect</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.informationWeCollect.title')}</h2>
               <div className="mb-4">
-                <h3 className="text-xl font-heading font-semibold text-foreground mb-3">2.1 Information You Provide</h3>
+                <h3 className="text-xl font-heading font-semibold text-foreground mb-3">{t('portal.privacy.informationWeCollect.youProvide.title')}</h3>
                 <p className="text-foreground leading-relaxed mb-4">
-                  We collect information you voluntarily provide, including:
+                  {t('portal.privacy.informationWeCollect.youProvide.intro')}
                 </p>
                 <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                  <li>Name</li>
-                  <li>Email address</li>
-                  <li>Account credentials (encrypted passwords)</li>
-                  <li>Content you create or upload, including:</li>
+                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[0]')}</li>
+                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[1]')}</li>
+                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[2]')}</li>
+                  <li>{t('portal.privacy.informationWeCollect.youProvide.items[3]')}</li>
                   <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-6">
-                    <li>Walkthroughs</li>
-                    <li>Knowledge base entries</li>
-                    <li>Images, videos, and files</li>
+                    <li>{t('portal.privacy.informationWeCollect.youProvide.contentItems[0]')}</li>
+                    <li>{t('portal.privacy.informationWeCollect.youProvide.contentItems[1]')}</li>
+                    <li>{t('portal.privacy.informationWeCollect.youProvide.contentItems[2]')}</li>
                   </ul>
                 </ul>
               </div>
               <div>
-                <h3 className="text-xl font-heading font-semibold text-foreground mb-3">2.2 Automatically Collected Information</h3>
+                <h3 className="text-xl font-heading font-semibold text-foreground mb-3">{t('portal.privacy.informationWeCollect.automaticallyCollected.title')}</h3>
                 <p className="text-foreground leading-relaxed mb-4">
-                  We may automatically collect limited technical data necessary to operate the service, including:
+                  {t('portal.privacy.informationWeCollect.automaticallyCollected.intro')}
                 </p>
                 <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                  <li>IP address</li>
-                  <li>Device and browser information</li>
-                  <li>Session and authentication data</li>
-                  <li>Usage activity within the platform</li>
+                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[0]')}</li>
+                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[1]')}</li>
+                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[2]')}</li>
+                  <li>{t('portal.privacy.informationWeCollect.automaticallyCollected.items[3]')}</li>
                 </ul>
                 <p className="text-foreground leading-relaxed">
-                  This data is used strictly for platform functionality, security, and internal analytics.
+                  {t('portal.privacy.informationWeCollect.automaticallyCollected.usage')}
                 </p>
               </div>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">3. Cookies</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.cookies.title')}</h2>
               <p className="text-foreground leading-relaxed mb-4">
-                InterGuide uses cookies strictly for operational purposes:
+                {t('portal.privacy.cookies.intro')}
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
-                <li>Authentication and login sessions</li>
-                <li>Autosave and workspace functionality</li>
-                <li>User interface preferences</li>
-                <li>Internal analytics</li>
+                <li>{t('portal.privacy.cookies.items[0]')}</li>
+                <li>{t('portal.privacy.cookies.items[1]')}</li>
+                <li>{t('portal.privacy.cookies.items[2]')}</li>
+                <li>{t('portal.privacy.cookies.items[3]')}</li>
               </ul>
               <p className="text-foreground leading-relaxed">
-                We do not use advertising, tracking, or third-party marketing cookies.
+                {t('portal.privacy.cookies.noTracking')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">4. Analytics</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.analytics.title')}</h2>
               <p className="text-foreground leading-relaxed">
-                We use internal analytics only to understand platform usage and improve reliability and performance. No advertising or behavioral tracking is performed.
+                {t('portal.privacy.analytics.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">5. Payments</h2>
+              <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.payments.title')}</h2>
               <p className="text-foreground leading-relaxed mb-4">
-                InterGuide offers both free and paid plans.
+                {t('portal.privacy.payments.intro')}
               </p>
               <p className="text-foreground leading-relaxed mb-4">
-                Payments are processed exclusively through PayPal. We do not collect, process, or store payment card or billing information. Payment data is handled entirely by PayPal under their own privacy policy.
+                {t('portal.privacy.payments.paypalOnly')}
               </p>
             </section>
 

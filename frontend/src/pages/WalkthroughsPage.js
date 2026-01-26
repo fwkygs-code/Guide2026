@@ -416,13 +416,13 @@ const WalkthroughsPage = () => {
                               </div>
 
                               <div className={`text-sm font-medium ${walkthrough.status === 'published' ? 'text-green-400' : 'text-slate-500'}`}>
-                                {walkthrough.status === 'published' ? 'Published' : 'Draft'}
+                                {walkthrough.status === 'published' ? t('workspace.published') : t('workspace.draft')}
                               </div>
                             </div>
 
                             {/* Stats */}
                             <div className="flex justify-between text-sm mb-4">
-                              <span className="text-slate-400">{t('walkthrough.steps')}:</span>
+                              <span className="text-slate-400">{t('workspace.steps')}:</span>
                               <span className="text-white font-medium">{walkthrough.steps?.length || 0}</span>
                             </div>
 

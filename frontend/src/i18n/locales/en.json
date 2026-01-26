@@ -90,13 +90,20 @@
     "walkthroughs": "Walkthroughs",
     "create": "Create Workspace",
     "workspaces": "Workspace",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "active": "Active",
+    "published": "Published",
+    "draft": "Draft",
+    "archived": "Archived",
+    "steps": "Steps",
+    "subCategories": "Sub-categories"
   },
   "portal": {
     "needHelp": "Need Help?",
     "chatOpened": "Chat Opened",
     "selectCategory": "Select a Category for Help",
     "openChatTab": "Open Chat in New Tab",
+    "chatWindowInstructions": "The chat window should have opened in a new tab. If it didn't, please check your popup blocker settings.",
     "howCanWeHelp": "How can we help you?",
     "searchKnowledgeBase": "Search our knowledge base or browse categories",
     "searchPlaceholder": "Search for guides...",
@@ -1167,6 +1174,248 @@
     "title": "Knowledge Systems",
     "description": "Centralized knowledge management for your organization",
     "backToSettings": "Back to Settings",
+    "policy": {
+      "title": "Policies",
+      "description": "Browse and manage organizational policies and procedures",
+      "officialTitle": "Official Documentation",
+      "officialDescription": "Authoritative policies and compliance documents",
+      "protectedDocument": "Protected official document",
+      "noPolicies": "No Policies Published",
+      "noPoliciesDescription": "No policies have been published yet. Check back later for official documentation."
+    },
+    "procedure": {
+      "title": "Procedures",
+      "description": "Step-by-step processes and operational guidelines",
+      "noProcedures": "No Procedures Published",
+      "noProceduresDescription": "No procedures have been published yet. Check back later for operational guidelines."
+    },
+    "documentation": {
+      "title": "Documentation",
+      "description": "Comprehensive guides and reference materials",
+      "noDocumentation": "No Documentation Published",
+      "noDocumentationDescription": "No documentation has been published yet. Check back later for reference materials."
+    },
+    "faq": {
+      "title": "FAQs",
+      "description": "Frequently asked questions and quick answers",
+      "noFAQs": "No FAQs Published",
+      "noFAQsDescription": "No FAQs have been published yet. Check back later for helpful information."
+    },
+    "decisionTrees": {
+      "title": "Decision Trees",
+      "description": "Interactive decision-making guides and flowcharts",
+      "noDecisionTrees": "No Decision Trees Published",
+      "noDecisionTreesDescription": "No decision trees have been published yet. Check back later for decision-making guides."
+    },
+    "unknown": {
+      "title": "Unknown Content Type",
+      "description": "This content type is not currently supported in the portal."
+    },
+    "policy": {
+      "editor": {
+        "title": "Policy Editor",
+        "subtitle": "Document-style policy authoring",
+        "untitled": "Untitled Policy Set",
+        "publish": "Publish",
+        "close": "Close",
+        "policyTitle": "Policy Title",
+        "policyTitlePlaceholder": "Official Policy Title",
+        "description": "Description",
+        "descriptionPlaceholder": "Purpose, scope, and authority statement",
+        "effectiveDate": "Effective Date",
+        "jurisdiction": "Jurisdiction",
+        "jurisdictionPlaceholder": "Global, Region, or Entity",
+        "sections": "Policy Sections",
+        "sectionsDescription": "Structured legal clauses with clear hierarchy",
+        "addSection": "Add Section",
+        "section": "Section",
+        "category": "Category",
+        "removeSection": "Remove",
+        "bold": "Bold",
+        "italic": "Italic",
+        "heading": "Heading",
+        "numbered": "Numbered",
+        "bullets": "Bullets",
+        "contentPlaceholder": "Enter policy content...",
+        "emptyState": "No policies yet. Create your first policy to get started.",
+        "publishSuccess": "Policy published successfully! It will now appear on the portal.",
+        "publishError": "Publish failed. Please try again.",
+        "versionHistory": "Version History",
+        "created": "Created",
+        "lastUpdated": "Last Updated",
+        "published": "Published",
+        "notPublished": "Not published",
+        "publishCheck": "Publish Check",
+        "publishCheckDescription": "Publishing copies the draft into the official portal and locks the version badge."
+      },
+      "portal": {
+        "title": "Policies",
+        "description": "Browse and manage organizational policies and procedures",
+        "officialTitle": "Official Documentation",
+        "officialDescription": "Authoritative policies and compliance documents",
+        "protectedDocument": "Protected official document",
+        "noPolicies": "No Policies Published",
+        "noPoliciesDescription": "No policies have been published yet. Check back later for official documentation.",
+        "searchPlaceholder": "Search policies...",
+        "filterBy": "Filter by",
+        "allCategories": "All Categories",
+        "sortBy": "Sort by",
+        "latestUpdated": "Latest Updated",
+        "oldestFirst": "Oldest First",
+        "titleAZ": "Title (A-Z)",
+        "titleZA": "Title (Z-A)",
+        "metadata": {
+          "effectiveDate": "Effective Date",
+          "jurisdiction": "Jurisdiction",
+          "lastUpdated": "Last Updated"
+        }
+      }
+    },
+    "procedure": {
+      "editor": {
+        "title": "Procedure Editor",
+        "subtitle": "Step-by-step operational workflows",
+        "untitled": "Untitled Procedure",
+        "publish": "Publish",
+        "close": "Close",
+        "procedureTitle": "Procedure Title",
+        "procedureTitlePlaceholder": "Clear, descriptive procedure name",
+        "description": "Description",
+        "descriptionPlaceholder": "Purpose and scope of this procedure",
+        "steps": "Procedure Steps",
+        "stepsDescription": "Sequential workflow with clear instructions",
+        "addStep": "Add Step",
+        "step": "Step",
+        "bold": "Bold",
+        "italic": "Italic",
+        "steps": "Steps",
+        "checklist": "Checklist",
+        "contentPlaceholder": "Enter step content...",
+        "emptyState": "No procedures yet. Create your first procedure to get started."
+      },
+      "portal": {
+        "title": "Procedures",
+        "description": "Step-by-step processes and operational guidelines",
+        "noProcedures": "No Procedures Published",
+        "noProceduresDescription": "No procedures have been published yet. Check back later for operational guidelines.",
+        "searchPlaceholder": "Search procedures...",
+        "filterBy": "Filter by",
+        "allCategories": "All Categories",
+        "sortBy": "Sort by",
+        "latestUpdated": "Latest Updated",
+        "oldestFirst": "Oldest First",
+        "titleAZ": "Title (A-Z)",
+        "titleZA": "Title (Z-A)",
+        "metadata": {
+          "stepCount": "Step Count",
+          "lastUpdated": "Last Updated"
+        }
+      }
+    },
+    "documentation": {
+      "editor": {
+        "title": "Documentation Editor",
+        "subtitle": "Comprehensive guides and reference materials",
+        "untitled": "Untitled Documentation",
+        "publish": "Publish",
+        "close": "Close",
+        "documentationTitle": "Documentation Title",
+        "documentationTitlePlaceholder": "Clear, descriptive documentation name",
+        "description": "Description",
+        "descriptionPlaceholder": "Overview and purpose of this documentation",
+        "content": "Content",
+        "contentPlaceholder": "Enter documentation content...",
+        "emptyState": "No documentation yet. Create your first documentation to get started."
+      },
+      "portal": {
+        "title": "Documentation",
+        "description": "Comprehensive guides and reference materials",
+        "noDocumentation": "No Documentation Published",
+        "noDocumentationDescription": "No documentation has been published yet. Check back later for reference materials.",
+        "searchPlaceholder": "Search documentation...",
+        "filterBy": "Filter by",
+        "allCategories": "All Categories",
+        "sortBy": "Sort by",
+        "latestUpdated": "Latest Updated",
+        "oldestFirst": "Oldest First",
+        "titleAZ": "Title (A-Z)",
+        "titleZA": "Title (Z-A)",
+        "metadata": {
+          "lastUpdated": "Last Updated"
+        }
+      }
+    },
+    "faq": {
+      "editor": {
+        "title": "FAQ Editor",
+        "subtitle": "Frequently asked questions and quick answers",
+        "untitled": "Untitled FAQ",
+        "publish": "Publish",
+        "close": "Close",
+        "faqTitle": "FAQ Title",
+        "faqTitlePlaceholder": "Clear question title",
+        "description": "Description",
+        "descriptionPlaceholder": "Brief context for this FAQ",
+        "content": "Answer",
+        "contentPlaceholder": "Enter the answer...",
+        "emptyState": "No FAQs yet. Create your first FAQ to get started."
+      },
+      "portal": {
+        "title": "FAQs",
+        "description": "Frequently asked questions and quick answers",
+        "noFAQs": "No FAQs Published",
+        "noFAQsDescription": "No FAQs have been published yet. Check back later for helpful information.",
+        "searchPlaceholder": "Search FAQs...",
+        "filterBy": "Filter by",
+        "allCategories": "All Categories",
+        "sortBy": "Sort by",
+        "latestUpdated": "Latest Updated",
+        "oldestFirst": "Oldest First",
+        "titleAZ": "Title (A-Z)",
+        "titleZA": "Title (Z-A)",
+        "metadata": {
+          "lastUpdated": "Last Updated"
+        }
+      }
+    },
+    "decisionTree": {
+      "editor": {
+        "title": "Decision Tree Editor",
+        "subtitle": "Interactive decision-making guides",
+        "untitled": "Untitled Decision Tree",
+        "publish": "Publish",
+        "close": "Close",
+        "treeTitle": "Decision Tree Title",
+        "treeTitlePlaceholder": "Clear decision tree name",
+        "description": "Description",
+        "descriptionPlaceholder": "Purpose and scope of this decision tree",
+        "nodes": "Decision Nodes",
+        "nodesDescription": "Interactive decision points with clear paths",
+        "addNode": "Add Node",
+        "node": "Node",
+        "contentPlaceholder": "Enter node content...",
+        "emptyState": "No decision trees yet. Create your first decision tree to get started."
+      },
+      "portal": {
+        "title": "Decision Trees",
+        "description": "Interactive decision-making guides and flowcharts",
+        "noDecisionTrees": "No Decision Trees Published",
+        "noDecisionTreesDescription": "No decision trees have been published yet. Check back later for decision-making guides.",
+        "searchPlaceholder": "Search decision trees...",
+        "filterBy": "Filter by",
+        "allCategories": "All Categories",
+        "sortBy": "Sort by",
+        "latestUpdated": "Latest Updated",
+        "oldestFirst": "Oldest First",
+        "titleAZ": "Title (A-Z)",
+        "titleZA": "Title (Z-A)",
+        "metadata": {
+          "nodeCount": "Node Count",
+          "lastUpdated": "Last Updated"
+        }
+      }
+    }
+  },
     "backToSystems": "Back to Knowledge Systems",
     "types": {
       "policies": {

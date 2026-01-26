@@ -43,10 +43,10 @@ function KnowledgeSystemPortalPage({ systemType }) {
               <span className="text-2xl">❓</span>
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-400 to-slate-500 bg-clip-text text-transparent mb-4">
-              Unknown Content Type
+              {t('knowledgeSystems.unknown.title')}
             </h1>
             <p className="text-slate-100/80 leading-relaxed">
-              This content type is not currently supported in the portal.
+              {t('knowledgeSystems.unknown.description')}
             </p>
           </div>
         </div>

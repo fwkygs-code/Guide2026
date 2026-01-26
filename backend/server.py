@@ -1663,6 +1663,86 @@ async def get_user_subscription(user_id: str) -> Optional[Subscription]:
     )
     return Subscription(**subscription) if subscription else None
 
+async def can_access_paid_features(user_id: str) -> bool:
+    """
+    Single source of truth for subscription access control.
+    
+    Three states:
+    1. Free tier user → always allowed
+    2. Paid user with active subscription → allowed
+    3. Paid user with inactive subscription → blocked (after grace)
+    
+    Rules:
+    - Free tier bypasses all blocking
+    - Grace applies only to paid users
+    - No frontend logic, no cached flags, no heuristics
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        return False
+    
+    # Get user's plan
+    plan_id = user.get('plan_id')
+    if not plan_id:
+        # No plan assigned - default to free tier (allowed)
+        return True
+    
+    plan = await db.plans.find_one({"id": plan_id}, {"_id": 0})
+    if not plan:
+        # Plan not found - default to allowed to avoid false blocks
+        return True
+    
+    # Free tier users always have access
+    if plan.get('name') == 'free':
+        return True
+    
+    # Paid plan user - check subscription status
+    subscription = await get_user_subscription(user_id)
+    
+    # Active subscription → allowed
+    if subscription and subscription.status == SubscriptionStatus.ACTIVE:
+        return True
+    
+    # Check grace period for past_due/cancelled/expired subscriptions
+    grace_ends_at = user.get('grace_period_ends_at')
+    if grace_ends_at:
+        try:
+            if isinstance(grace_ends_at, str):
+                grace_end = datetime.fromisoformat(grace_ends_at.replace('Z', '+00:00'))
+            else:
+                grace_end = grace_ends_at
+            
+            now = datetime.now(timezone.utc)
+            
+            # Within grace period → allowed
+            if now < grace_end:
+                return True
+        except Exception as e:
+            logging.error(f"Error checking grace period for user {user_id}: {e}", exc_info=True)
+    
+    # Paid user with no active subscription and no grace → blocked
+    return False
+
+async def require_subscription_access(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to enforce subscription access for workspace, portal, and API routes.
+    
+    Blocks paid users with inactive subscriptions (after grace period).
+    Free tier users are never blocked.
+    
+    Raises HTTPException with 402 status code if access is denied.
+    """
+    has_access = await can_access_paid_features(current_user.id)
+    
+    if not has_access:
+        # User is blocked - paid plan with inactive subscription
+        raise HTTPException(
+            status_code=402,
+            detail="Subscription inactive. Please reactivate your subscription to continue."
+        )
+    
+    return current_user
+
 async def get_user_storage_usage(user_id: str) -> int:
     """Calculate total storage used by user (only active files).
     Includes both File records and files from existing walkthroughs that don't have File records yet.
@@ -3166,7 +3246,7 @@ async def remove_workspace_member(
 
 # Workspace Routes
 @api_router.post("/workspaces", response_model=Workspace)
-async def create_workspace(workspace_data: WorkspaceCreate, current_user: User = Depends(get_current_user)):
+async def create_workspace(workspace_data: WorkspaceCreate, current_user: User = Depends(require_subscription_access)):
     # Check workspace count limit (respects custom quota override)
     plan = await get_user_plan(current_user.id)
     if not plan:
@@ -3227,7 +3307,7 @@ async def create_workspace(workspace_data: WorkspaceCreate, current_user: User =
     return workspace
 
 @api_router.get("/workspaces", response_model=List[Workspace])
-async def get_workspaces(current_user: User = Depends(get_current_user)):
+async def get_workspaces(current_user: User = Depends(require_subscription_access)):
     """
     Get all workspaces user has access to:
     - Workspaces owned by user (owner_id = user_id)
@@ -3254,7 +3334,7 @@ async def get_workspaces(current_user: User = Depends(get_current_user)):
     return [Workspace(**w) for w in workspaces]
 
 @api_router.get("/workspaces/{workspace_id}", response_model=Workspace)
-async def get_workspace(workspace_id: str, current_user: User = Depends(get_current_user)):
+async def get_workspace(workspace_id: str, current_user: User = Depends(require_subscription_access)):
     # Support both UUID and slug - try slug first, then UUID
     workspace = await db.workspaces.find_one({"slug": workspace_id}, {"_id": 0})
     if not workspace:
@@ -3269,7 +3349,7 @@ async def get_workspace(workspace_id: str, current_user: User = Depends(get_curr
     return Workspace(**workspace)
 
 @api_router.put("/workspaces/{workspace_id}", response_model=Workspace)
-async def update_workspace(workspace_id: str, workspace_data: WorkspaceCreate, current_user: User = Depends(get_current_user)):
+async def update_workspace(workspace_id: str, workspace_data: WorkspaceCreate, current_user: User = Depends(require_subscription_access)):
     # Only owner can update workspace settings
     await check_workspace_access(workspace_id, current_user.id, require_owner=True)
     
@@ -3464,7 +3544,7 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
 
 # Category Routes
 @api_router.post("/workspaces/{workspace_id}/categories", response_model=Category)
-async def create_category(workspace_id: str, category_data: CategoryCreate, current_user: User = Depends(get_current_user)):
+async def create_category(workspace_id: str, category_data: CategoryCreate, current_user: User = Depends(require_subscription_access)):
     # Check workspace access (members can create categories, viewers cannot)
     member = await check_workspace_access(workspace_id, current_user.id)
     if member.role == UserRole.VIEWER:
@@ -3511,7 +3591,7 @@ async def create_category(workspace_id: str, category_data: CategoryCreate, curr
     return category
 
 @api_router.get("/workspaces/{workspace_id}/categories", response_model=List[Category])
-async def get_categories(workspace_id: str, current_user: User = Depends(get_current_user)):
+async def get_categories(workspace_id: str, current_user: User = Depends(require_subscription_access)):
     # Check workspace access
     await check_workspace_access(workspace_id, current_user.id)
     
@@ -3519,7 +3599,7 @@ async def get_categories(workspace_id: str, current_user: User = Depends(get_cur
     return [Category(**c) for c in categories]
 
 @api_router.put("/workspaces/{workspace_id}/categories/{category_id}", response_model=Category)
-async def update_category(workspace_id: str, category_id: str, category_data: CategoryUpdate, current_user: User = Depends(get_current_user)):
+async def update_category(workspace_id: str, category_id: str, category_data: CategoryUpdate, current_user: User = Depends(require_subscription_access)):
     # Check workspace access (members can update, viewers cannot)
     member = await check_workspace_access(workspace_id, current_user.id)
     if member.role == UserRole.VIEWER:
@@ -3613,7 +3693,7 @@ async def delete_category(workspace_id: str, category_id: str, current_user: Use
 
 # Walkthrough Routes
 @api_router.post("/workspaces/{workspace_id}/walkthroughs", response_model=Walkthrough)
-async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(get_current_user)):
+async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(require_subscription_access)):
     # Check workspace access (members can create, viewers cannot)
     member = await check_workspace_access(workspace_id, current_user.id)
     if member.role == UserRole.VIEWER:
@@ -3737,7 +3817,7 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
     return walkthrough
 
 @api_router.get("/workspaces/{workspace_id}/walkthroughs", response_model=List[Walkthrough])
-async def get_walkthroughs(workspace_id: str, current_user: User = Depends(get_current_user)):
+async def get_walkthroughs(workspace_id: str, current_user: User = Depends(require_subscription_access)):
     # Check workspace access
     await check_workspace_access(workspace_id, current_user.id)
     
@@ -3773,7 +3853,7 @@ async def get_walkthroughs(workspace_id: str, current_user: User = Depends(get_c
     return [Walkthrough(**w) for w in walkthroughs]
 
 @api_router.get("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
-async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(get_current_user)):
+async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: User = Depends(require_subscription_access)):
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -3811,7 +3891,7 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
     return Walkthrough(**walkthrough)
 
 @api_router.put("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}", response_model=Walkthrough)
-async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(get_current_user)):
+async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough_data: WalkthroughCreate, current_user: User = Depends(require_subscription_access)):
     # Check workspace access (members can update, viewers cannot)
     member = await check_workspace_access(workspace_id, current_user.id)
     if member.role == UserRole.VIEWER:
@@ -4567,9 +4647,19 @@ async def delete_knowledge_system(
 @api_router.get("/portal/{slug}/knowledge-systems")
 async def get_portal_knowledge_systems(slug: str, system_type: Optional[KnowledgeSystemType] = None):
     """Get published knowledge systems for a portal (public, no auth)"""
-    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0, "id": 1})
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0, "id": 1, "owner_id": 1})
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
+    
+    # SUBSCRIPTION ENFORCEMENT: Check workspace owner's subscription status
+    owner_id = workspace.get('owner_id')
+    if owner_id:
+        has_access = await can_access_paid_features(owner_id)
+        if not has_access:
+            raise HTTPException(
+                status_code=402,
+                detail="This content is currently unavailable."
+            )
     
     query = {
         "workspace_id": workspace["id"],
@@ -4611,9 +4701,19 @@ async def get_portal_knowledge_systems(slug: str, system_type: Optional[Knowledg
 @api_router.get("/portal/{slug}/knowledge-systems/{system_id}")
 async def get_portal_knowledge_system(slug: str, system_id: str):
     """Get a specific published knowledge system for portal (public, no auth)"""
-    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0, "id": 1})
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0, "id": 1, "owner_id": 1})
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
+    
+    # SUBSCRIPTION ENFORCEMENT: Check workspace owner's subscription status
+    owner_id = workspace.get('owner_id')
+    if owner_id:
+        has_access = await can_access_paid_features(owner_id)
+        if not has_access:
+            raise HTTPException(
+                status_code=402,
+                detail="This content is currently unavailable."
+            )
     
     system = await db.knowledge_systems.find_one(
         {
@@ -4985,6 +5085,17 @@ async def get_portal(slug: str):
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
     
+    # SUBSCRIPTION ENFORCEMENT: Check workspace owner's subscription status
+    owner_id = workspace.get('owner_id')
+    if owner_id:
+        has_access = await can_access_paid_features(owner_id)
+        if not has_access:
+            # Workspace owner has inactive subscription - block portal access
+            raise HTTPException(
+                status_code=402,
+                detail="This content is currently unavailable."
+            )
+    
     # Ensure workspace has portal branding fields initialized
     if "logo" not in workspace:
         workspace["logo"] = None
@@ -5031,6 +5142,17 @@ async def get_public_walkthrough(slug: str, walkthrough_id: str):
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
+    
+    # SUBSCRIPTION ENFORCEMENT: Check workspace owner's subscription status
+    owner_id = workspace.get('owner_id')
+    if owner_id:
+        has_access = await can_access_paid_features(owner_id)
+        if not has_access:
+            # Workspace owner has inactive subscription - block portal access
+            raise HTTPException(
+                status_code=402,
+                detail="This content is currently unavailable."
+            )
     
     # Try slug first, then UUID
     walkthrough = await db.walkthroughs.find_one(
@@ -5081,6 +5203,17 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     if not workspace:
         raise HTTPException(status_code=404, detail="Portal not found")
+
+    # SUBSCRIPTION ENFORCEMENT: Check workspace owner's subscription status
+    owner_id = workspace.get('owner_id')
+    if owner_id:
+        has_access = await can_access_paid_features(owner_id)
+        if not has_access:
+            # Workspace owner has inactive subscription - block portal access
+            raise HTTPException(
+                status_code=402,
+                detail="This content is currently unavailable."
+            )
 
     # Try slug first, then UUID
     walkthrough = await db.walkthroughs.find_one(

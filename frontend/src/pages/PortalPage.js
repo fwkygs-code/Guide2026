@@ -726,7 +726,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       <Dialog open={categorySelectOpen} onOpenChange={setCategorySelectOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Select a Category for Help</DialogTitle>
+            <DialogTitle className="text-foreground">{t('portal.selectCategory')}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
             {portal?.categories?.filter(c => c.notebooklm_url).map((category) => (
@@ -808,7 +808,7 @@ const PortalPage = ({ isEmbedded = false }) => {
           </div>
           <div className="glass p-4 border-t border-border">
             <p className="text-sm text-muted-foreground mb-3">
-              The chat window should have opened in a new tab. If it didn't, please check your popup blocker settings.
+              {t('portal.chatWindowInstructions')}
             </p>
             <Button
               variant="outline"

@@ -369,7 +369,7 @@ const DashboardPage = () => {
                   </div>
 
                   <div className="text-sm font-medium text-blue-400">
-                    Active
+                    {t('workspace.active')}
                   </div>
                 </div>
 

@@ -142,13 +142,13 @@ const ArchivePage = () => {
                       </div>
 
                       <div className="text-sm font-medium text-amber-400">
-                        Archived
+                        {t('workspace.archived')}
                       </div>
                     </div>
 
                     {/* Stats */}
                     <div className="flex justify-between text-sm mb-4">
-                      <span className="text-slate-400">Steps:</span>
+                      <span className="text-slate-400">{t('workspace.steps')}:</span>
                       <span className="text-white font-medium">{walkthrough.steps?.length || 0}</span>
                     </div>
 

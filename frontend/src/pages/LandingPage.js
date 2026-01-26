@@ -95,7 +95,7 @@ const LandingPage = () => {
                   {t('landing.getStartedFree')}
                 </Button>
               </Link>
-              <Button size="lg" variant="secondary" className="rounded-full px-8" data-testid="hero-view-demo-button">
+              <Button size="lg" variant="secondary" className="rounded-full px-8 text-foreground" data-testid="hero-view-demo-button">
                 {t('landing.viewDemo')}
               </Button>
             </div>
@@ -104,7 +104,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-6 bg-white">
+      <section className="py-20 px-6 bg-card">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-heading font-bold text-foreground mb-4">

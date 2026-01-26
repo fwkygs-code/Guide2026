@@ -118,6 +118,12 @@ function KnowledgeSystemsPage() {
     }
   };
 
+  const handleOpenPortal = (system) => {
+    if (!workspaceSlug) return;
+    const portalPath = `/workspace/${workspaceSlug}/knowledge/${system.systemType}`;
+    navigate(portalPath);
+  };
+
   if (workspaceLoading || loading) {
     return (
       <DashboardLayout>
@@ -148,7 +154,10 @@ function KnowledgeSystemsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card className="h-full border border-slate-700/50 bg-slate-900/60">
+              <Card 
+                className="h-full border border-slate-700/50 bg-slate-900/60 cursor-pointer hover:border-slate-600/50 transition-colors"
+                onClick={() => handleOpenPortal(system)}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -177,7 +186,10 @@ function KnowledgeSystemsPage() {
                     </Badge>
                   </div>
                   <Button
-                    onClick={() => handleOpen(system)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpen(system);
+                    }}
                     className="w-full"
                     style={{
                       background: `${system.accent}33`,
