@@ -415,7 +415,7 @@ const WalkthroughsPage = () => {
                                 </div>
                               </div>
 
-                              <div className={`text-sm font-medium ${walkthrough.status === 'published' ? 'text-green-400' : 'text-slate-500'}`}>
+                              <div className={`text-sm font-medium mt-2 ${walkthrough.status === 'published' ? 'text-green-400' : 'text-slate-500'}`}>
                                 {walkthrough.status === 'published' ? t('workspace.published') : t('workspace.draft')}
                               </div>
                             </div>

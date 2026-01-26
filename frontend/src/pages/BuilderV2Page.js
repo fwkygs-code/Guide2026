@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon, ChevronLeft, ChevronRight, AlignLeft, AlignCenter, AlignRight, Type, Trash2 } from 'lucide-react';
+import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon, ChevronLeft, ChevronRight, AlignLeft, AlignCenter, AlignRight, Type, Trash2, FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1706,9 +1706,9 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
 
     case BLOCK_TYPES.PROBLEM:
       return (
-        <div className="border border-warning-300 rounded-lg p-4 bg-warning-50 space-y-3">
+        <div className="border border-warning-300 rounded-lg p-4 bg-warning-50 space-y-3 text-foreground">
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block font-medium">Problem Title</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block font-medium">{t('builder.problemTitle')}</Label>
             <InlineRichEditor
               content={block.data.title || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, title: html } })}
@@ -1717,11 +1717,11 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               textSize="text-base"
               isBold={true}
               align="left"
-              className=""
+              className="text-foreground"
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block font-medium">Explanation</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block font-medium">{t('builder.problemExplanation')}</Label>
             <InlineRichEditor
               content={block.data.explanation || ''}
               onChange={(html) => onUpdate({ data: { ...block.data, explanation: html } })}
@@ -1730,7 +1730,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               textSize="text-sm"
               isBold={false}
               align="left"
-              className=""
+              className="text-foreground"
             />
           </div>
         </div>
@@ -1792,7 +1792,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             }}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Item
+            {t('builder.addItem')}
           </Button>
         </div>
       );
@@ -1814,10 +1814,10 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="tip">💡 Tip</SelectItem>
-                <SelectItem value="warning">⚠️ Warning</SelectItem>
-                <SelectItem value="important">❗ Important</SelectItem>
-                <SelectItem value="info">ℹ️ Info</SelectItem>
+                <SelectItem value="tip">💡 {t('builder.calloutTip')}</SelectItem>
+                <SelectItem value="warning">⚠️ {t('builder.calloutWarning')}</SelectItem>
+                <SelectItem value="important">❗ {t('builder.calloutImportant')}</SelectItem>
+                <SelectItem value="info">ℹ️ {t('builder.calloutInfo')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1973,7 +1973,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               className="flex-shrink-0"
             />
             <Input
-              value={block.data?.buttonText || 'I understand'}
+              value={block.data?.buttonText || t('builder.iUnderstand')}
               onChange={(e) => onUpdate({ data: { ...block.data, buttonText: e.target.value } })}
               placeholder="Button text"
             />
@@ -2002,7 +2002,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               onChange={(e) => onUpdate({ data: { ...block.data, openInNewTab: e.target.checked } })}
               className="flex-shrink-0"
             />
-            <Label className="text-sm">Open in new tab</Label>
+            <Label className="text-sm">{t('builder.openInNewTab')}</Label>
           </div>
         </div>
       );
@@ -2033,6 +2033,109 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             rows={6}
             className="font-mono text-sm"
           />
+        </div>
+      );
+
+    case BLOCK_TYPES.HTML:
+      return (
+        <div className="space-y-3">
+          <Textarea
+            value={block.data?.html || ''}
+            onChange={(e) => onUpdate({ data: { ...block.data, html: e.target.value } })}
+            placeholder="Enter HTML code..."
+            rows={8}
+            className="font-mono text-sm"
+          />
+          {block.data?.html && (
+            <div className="border border-border rounded-lg p-4">
+              <div 
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: block.data.html }}
+              />
+            </div>
+          )}
+        </div>
+      );
+
+    case BLOCK_TYPES.FILE:
+      return (
+        <div className="space-y-3">
+          {block.data?.url ? (
+            <div className="border border-border rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-foreground">{block.data.name || 'File'}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {block.data.size ? `${(block.data.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown size'}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onUpdate({ data: { ...block.data, url: '', name: '', size: 0, type: '' } })}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <a
+                href={block.data.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors mt-2"
+              >
+                <Download className="w-4 h-4" />
+                Download File
+              </a>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+              <Input
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file && onMediaUpload) {
+                    onMediaUpload(file, block.id);
+                  }
+                }}
+                className="mb-2"
+              />
+              <p className="text-sm text-muted-foreground mt-2">or</p>
+              <Input
+                placeholder="File URL"
+                onBlur={(e) => {
+                  if (e.target.value) {
+                    onUpdate({ data: { ...block.data, url: e.target.value } });
+                  }
+                }}
+                className="mt-2"
+              />
+            </div>
+          )}
+        </div>
+      );
+
+    case BLOCK_TYPES.COLUMNS:
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Column 1</Label>
+              <RichTextEditor
+                content={block.data?.column1 || ''}
+                onChange={(content) => onUpdate({ data: { ...block.data, column1: content } })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Column 2</Label>
+              <RichTextEditor
+                content={block.data?.column2 || ''}
+                onChange={(content) => onUpdate({ data: { ...block.data, column2: content } })}
+              />
+            </div>
+          </div>
         </div>
       );
 

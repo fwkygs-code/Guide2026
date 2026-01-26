@@ -915,6 +915,15 @@
     },
     "annotations": "הערות",
     "addCenter": "הוסף מרכז",
+    "iUnderstand": "אני מבין",
+    "addItem": "הוסף פריט",
+    "openInNewTab": "פתח בטאב חדש",
+    "problemTitle": "כותרת בעיה",
+    "problemExplanation": "הסבר",
+    "calloutTip": "טיפ",
+    "calloutWarning": "אזהרה",
+    "calloutImportant": "חשוב", 
+    "calloutInfo": "מידע",
     "labels": {
       "description": "תיאור",
       "iconPreview": "תצוגה מקדימה של סמל",
@@ -1047,18 +1056,6 @@
     "italic": "נטוי",
     "underline": "קו תחתון",
     "or": "או",
-    "blocks": {
-      "text": "טקסט",
-      "heading": "כותרת",
-      "video": "וידאו",
-      "image": "תמונה",
-      "gif": "GIF",
-      "button": "כפתור",
-      "carousel": "קרוסלה",
-      "spacer": "מרווח",
-      "divider": "מפריד",
-      "problem": "בעיה"
-    },
     "createWorkspace": "צור אזור עבודה"
   },
   "landing": {
