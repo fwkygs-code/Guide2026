@@ -313,8 +313,8 @@ const SettingsPage = () => {
       />
 
       <PageHeader
-        title="Workspace Settings"
-        description="Manage your workspace configuration"
+        title={t('settings.title')}
+        description={t('settings.subtitle')}
       />
 
       <PageSurface>

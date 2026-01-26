@@ -25,7 +25,7 @@ function Card({
 }) {
   // Get content-type specific styling
   const getCardClasses = () => {
-    const baseClasses = 'relative overflow-hidden rounded-xl backdrop-blur-xl';
+    const baseClasses = 'relative rounded-xl backdrop-blur-xl';
 
     let surfaceClasses = '';
     let borderClasses = '';
