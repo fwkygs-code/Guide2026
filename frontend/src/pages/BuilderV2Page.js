@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
-import { BLOCK_TYPES, createBlock, getBlockLabelKey, getBlockLabel, getBlockIcon } from '../utils/blockUtils';
+import { BLOCK_TYPES, createBlock, getBlockLabelKey, getBlockLabel, getBlockIcon, getAllBlockTypes } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
 import BuildingTips from '../components/canvas-builder/BuildingTips';
@@ -1222,26 +1222,8 @@ const AddBlockButton = ({ insertAfterIndex, onAdd, isOpen, onOpenChange }) => {
     return translated;
   };
 
-  const blockTypes = [
-    BLOCK_TYPES.HEADING,
-    BLOCK_TYPES.TEXT,
-    BLOCK_TYPES.IMAGE,
-    BLOCK_TYPES.VIDEO,
-    BLOCK_TYPES.CAROUSEL,
-    BLOCK_TYPES.BUTTON,
-    BLOCK_TYPES.DIVIDER,
-    BLOCK_TYPES.SPACER,
-    BLOCK_TYPES.PROBLEM,
-    // New block types (2026-01-21)
-    BLOCK_TYPES.CHECKLIST,
-    BLOCK_TYPES.CALLOUT,
-    BLOCK_TYPES.ANNOTATED_IMAGE,
-    BLOCK_TYPES.EMBED,
-    BLOCK_TYPES.SECTION,
-    BLOCK_TYPES.CONFIRMATION,
-    BLOCK_TYPES.EXTERNAL_LINK,
-    BLOCK_TYPES.CODE,
-  ];
+  // Get all block types from centralized registry - single source of truth
+  const blockTypes = getAllBlockTypes();
 
   const handleAdd = useCallback((type) => {
     if (onAdd && typeof onAdd === 'function') {
@@ -3140,7 +3122,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
         
         {markers.length === 0 ? (
           <div className="text-center text-muted-foreground text-sm py-4">
-            Click on the image to add markers
+            {t('builder.blocks.annotatedImageInstructions.clickImage')}
           </div>
         ) : (
           <div className="space-y-2">
@@ -3292,10 +3274,10 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       
       {/* Instructions */}
       <div className="text-xs text-muted-foreground bg-secondary rounded-lg p-3 space-y-1">
-        <div><strong>💡 Click image</strong> to add markers</div>
-        <div><strong>🎯 Click annotation</strong> to edit below</div>
-        <div><strong>🖱️ Drag markers</strong> to reposition</div>
-        <div><strong>↔️ Drag corners</strong> to resize rectangles</div>
+        <div>💡 {t('builder.blocks.annotatedImageInstructions.clickImage')}</div>
+        <div>🎯 {t('builder.blocks.annotatedImageInstructions.clickAnnotation')}</div>
+        <div>🖱️ {t('builder.blocks.annotatedImageInstructions.dragMarkers')}</div>
+        <div>↔️ {t('builder.blocks.annotatedImageInstructions.dragCorners')}</div>
       </div>
     </div>
   );

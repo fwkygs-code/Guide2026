@@ -76,12 +76,12 @@ const ForgotPasswordPage = () => {
             />
           </Link>
           <h1 className="text-2xl font-heading font-bold text-white mb-2">
-            {submitted ? 'Check Your Email' : 'Forgot Password'}
+            {submitted ? t('auth.checkYourEmail') : t('auth.forgotPasswordTitle')}
           </h1>
           <p className="text-slate-200">
             {submitted
-              ? 'We\'ve sent you a password reset link'
-              : 'Enter your email address and we\'ll send you a reset link'
+              ? t('auth.resetLinkSent')
+              : t('auth.forgotPasswordDescription')
             }
           </p>
         </div>
@@ -90,10 +90,9 @@ const ForgotPasswordPage = () => {
           {submitted ? (
             <div className="text-center">
               <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Email Sent!</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">{t('auth.emailSent')}</h3>
               <p className="text-sm text-slate-900 mb-6">
-                If the email address is registered with our service, you'll receive a password reset link shortly.
-                Please check your inbox and spam folder.
+                {t('auth.emailSentDescription')}
               </p>
               <div className="space-y-3">
                 <Button
@@ -101,10 +100,10 @@ const ForgotPasswordPage = () => {
                   variant="outline"
                   className="w-full"
                 >
-                  Send Another Email
+                  {t('auth.sendAnotherEmail')}
                 </Button>
                 <Button asChild className="w-full rounded-full">
-                  <Link to="/login">Back to Login</Link>
+                  <Link to="/login">{t('auth.backToLogin')}</Link>
                 </Button>
               </div>
             </div>
@@ -112,13 +111,13 @@ const ForgotPasswordPage = () => {
             <>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <Label htmlFor="email" className="text-slate-900">Email Address</Label>
+                  <Label htmlFor="email" className="text-slate-900">{t('auth.emailAddress')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     required
                     className="mt-1.5 text-slate-900"
                     data-testid="forgot-password-email-input"
@@ -134,12 +133,12 @@ const ForgotPasswordPage = () => {
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending Reset Email...
+                      {t('auth.sendingResetEmail')}
                     </span>
                   ) : (
                     <>
                       <Mail className="w-4 h-4 mr-2" />
-                      Send Reset Email
+                      {t('auth.sendResetEmail')}
                     </>
                   )}
                 </Button>
@@ -151,7 +150,7 @@ const ForgotPasswordPage = () => {
                   className="text-sm text-slate-900 hover:text-slate-700 hover:underline transition-colors"
                   data-testid="forgot-password-back-to-login"
                 >
-                  Back to Login
+                  {t('auth.backToLogin')}
                 </Link>
               </div>
             </>

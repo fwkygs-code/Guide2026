@@ -177,11 +177,14 @@ export const getBlockIcon = (type) => {
 };
 
 // Import centralized block registry
-import { getBlockLabelKey as getBlockLabelKeyFromRegistry } from '../config/blockRegistry';
+import { getBlockLabelKey as getBlockLabelKeyFromRegistry, getAllBlockTypes as getAllBlockTypesFromRegistry } from '../config/blockRegistry';
 
 // Re-export from centralized registry
 // Architectural enforcement: All block labels come from registry, not hardcoded here
 export const getBlockLabelKey = getBlockLabelKeyFromRegistry;
+
+// Re-export getAllBlockTypes to ensure block picker uses single source of truth
+export const getAllBlockTypes = getAllBlockTypesFromRegistry;
 
 // Legacy function - kept for backward compatibility but now returns translation keys
 export const getBlockLabel = (type) => {

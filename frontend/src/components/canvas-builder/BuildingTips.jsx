@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Lightbulb, Video, CheckSquare, AlertCircle, Image, FileText, Link as LinkIcon, Zap, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BLOCK_TYPES, getBlockIcon, getBlockLabel } from '../../utils/blockUtils';
+import { BLOCK_TYPES, getBlockIcon, getBlockLabelKey, getAllBlockTypes } from '../../utils/blockUtils';
 
 const BuildingTips = () => {
   const { t, i18n } = useTranslation();
@@ -127,47 +127,14 @@ const BuildingTips = () => {
 
   const currentLang = i18n.language === 'he' ? 'he' : 'en';
 
-  // Block labels in both languages
-  const blockLabels = {
-    [BLOCK_TYPES.HEADING]: { en: 'Heading', he: 'כותרת' },
-    [BLOCK_TYPES.TEXT]: { en: 'Text', he: 'טקסט' },
-    [BLOCK_TYPES.IMAGE]: { en: 'Image/GIF', he: 'תמונה/GIF' },
-    [BLOCK_TYPES.VIDEO]: { en: 'Video', he: 'וידאו' },
-    [BLOCK_TYPES.CAROUSEL]: { en: 'Carousel', he: 'קרוסלה' },
-    [BLOCK_TYPES.BUTTON]: { en: 'Button', he: 'כפתור' },
-    [BLOCK_TYPES.DIVIDER]: { en: 'Divider', he: 'מפריד' },
-    [BLOCK_TYPES.SPACER]: { en: 'Spacer', he: 'רווח' },
-    [BLOCK_TYPES.PROBLEM]: { en: 'Problem', he: 'בעיה' },
-    [BLOCK_TYPES.CHECKLIST]: { en: 'Checklist', he: 'רשימת משימות' },
-    [BLOCK_TYPES.CALLOUT]: { en: 'Callout', he: 'קריאה' },
-    [BLOCK_TYPES.ANNOTATED_IMAGE]: { en: 'Annotated Image', he: 'תמונה עם הערות' },
-    [BLOCK_TYPES.EMBED]: { en: 'Embed', he: 'הטמעה' },
-    [BLOCK_TYPES.SECTION]: { en: 'Section', he: 'קטע' },
-    [BLOCK_TYPES.CONFIRMATION]: { en: 'Confirmation', he: 'אישור' },
-    [BLOCK_TYPES.EXTERNAL_LINK]: { en: 'External Link', he: 'קישור חיצוני' },
-    [BLOCK_TYPES.CODE]: { en: 'Code/Command', he: 'קוד/פקודה' }
-  };
+  // Get all block types from centralized registry - single source of truth
+  const allBlocks = getAllBlockTypes();
 
-  // Get all block types for reference
-  const allBlocks = [
-    BLOCK_TYPES.HEADING,
-    BLOCK_TYPES.TEXT,
-    BLOCK_TYPES.IMAGE,
-    BLOCK_TYPES.VIDEO,
-    BLOCK_TYPES.CAROUSEL,
-    BLOCK_TYPES.BUTTON,
-    BLOCK_TYPES.DIVIDER,
-    BLOCK_TYPES.SPACER,
-    BLOCK_TYPES.PROBLEM,
-    BLOCK_TYPES.CHECKLIST,
-    BLOCK_TYPES.CALLOUT,
-    BLOCK_TYPES.ANNOTATED_IMAGE,
-    BLOCK_TYPES.EMBED,
-    BLOCK_TYPES.SECTION,
-    BLOCK_TYPES.CONFIRMATION,
-    BLOCK_TYPES.EXTERNAL_LINK,
-    BLOCK_TYPES.CODE,
-  ];
+  // Helper to get translated block label
+  const getBlockDisplayName = (blockType) => {
+    const labelKey = getBlockLabelKey(blockType);
+    return t(labelKey);
+  };
 
   return (
     <div className="w-80 border-l border-border bg-card flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -267,7 +234,7 @@ const BuildingTips = () => {
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-xl flex-shrink-0">{getBlockIcon(blockType)}</span>
                       <span className="font-medium text-sm truncate text-foreground">
-                        {blockLabels[blockType]?.[currentLang] || getBlockLabel(blockType)}
+                        {getBlockDisplayName(blockType)}
                       </span>
                     </div>
                     {selectedBlock === blockType ? (

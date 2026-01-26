@@ -249,62 +249,61 @@ const SignupPage = () => {
               className="h-10 w-auto object-contain"
             />
           </Link>
-          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>Get Started</h1>
-          <p className={`${getSizeClass('base')} text-slate-200`}>Create your account</p>
+          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('auth.getStarted')}</h1>
+          <p className={`${getSizeClass('base')} text-slate-200`}>{t('auth.createYourAccount')}</p>
         </div>
 
         <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
-          {/* Backend Status Indicator */}
           <div className="mb-6 pb-4 border-b border-slate-200/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {backendStatus === 'checking' && (
                   <>
                     <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
-                    <span className="text-xs text-slate-500">Checking server...</span>
+                    <span className="text-xs text-slate-500">{t('auth.checkingServer')}</span>
                   </>
                 )}
                 {backendStatus === 'ready' && (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <span className="text-xs text-green-600">Server ready</span>
+                    <span className="text-xs text-green-600">{t('auth.serverReady')}</span>
                   </>
                 )}
                 {backendStatus === 'sleeping' && (
                   <>
                     <WifiOff className="w-4 h-4 text-amber-500 animate-pulse" />
-                    <span className="text-xs text-amber-600">Initializing system...</span>
+                    <span className="text-xs text-amber-600">{t('auth.initializingSystem')}</span>
                   </>
                 )}
                 {backendStatus === 'error' && (
                   <>
                     <AlertCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-xs text-red-600">Connection unavailable</span>
+                    <span className="text-xs text-red-600">{t('auth.connectionUnavailable')}</span>
                   </>
                 )}
               </div>
               {backendStatus === 'sleeping' && (
                 <Badge variant="outline" className="text-xs">
-                  Please wait
+                  {t('auth.pleaseWait')}
                 </Badge>
               )}
             </div>
             {backendStatus === 'sleeping' && (
               <p className="text-xs text-slate-500 mt-2">
-                The system is preparing your environment. This may take a moment.
+                {t('auth.systemPreparing')}
               </p>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">{t('auth.fullName')}</Label>
               <Input
                 id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
+                placeholder={t('auth.fullNamePlaceholder')}
                 required
                 data-testid="signup-name-input"
                 className="mt-1.5"
@@ -312,13 +311,13 @@ const SignupPage = () => {
             </div>
 
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('common.email')}</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder={t('auth.emailPlaceholder')}
                 required
                 data-testid="signup-email-input"
                 className="mt-1.5"
@@ -326,13 +325,13 @@ const SignupPage = () => {
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('common.password')}</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={t('auth.passwordPlaceholder')}
                 required
                 minLength={6}
                 data-testid="signup-password-input"
@@ -349,32 +348,32 @@ const SignupPage = () => {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {backendStatus === 'sleeping' ? 'Waking server...' : 'Creating account...'}
+                  {backendStatus === 'sleeping' ? t('auth.wakingServer') : t('auth.creatingAccount')}
                 </span>
               ) : (
-                'Create Account'
+                t('auth.createAccount')
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-xs text-slate-400 space-y-2">
             <p>
-              By creating an account, you agree to our{' '}
+              {t('auth.termsAgreement')}{' '}
               <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                Terms of Service
+                {t('auth.termsOfService')}
               </Link>
-              {' '}and{' '}
+              {' '}{t('common.and')}{' '}
               <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                Privacy Policy
+                {t('auth.privacyPolicy')}
               </Link>
               .
             </p>
           </div>
 
           <div className="mt-6 text-center text-sm text-slate-300">
-            Already have an account?{' '}
+            {t('auth.hasAccount')}{' '}
             <Link to="/login" className="text-primary font-medium hover:text-primary/80 hover:underline transition-colors" data-testid="signup-login-link">
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </div>
         </div>
