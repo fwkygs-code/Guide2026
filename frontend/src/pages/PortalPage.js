@@ -395,7 +395,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       )}
 
       {/* Hero Section - Compact in iframe */}
-      <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 relative`} style={{ backgroundColor: workspace.portal_background_url ? 'transparent' : 'white' }}>
+      <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 relative`}>
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -733,7 +733,7 @@ const PortalPage = ({ isEmbedded = false }) => {
               <Button
                 key={category.id}
                 variant="secondary"
-                className="w-full justify-start h-auto py-3 px-4 text-foreground"
+                className="w-full justify-start h-auto py-3 px-4"
                 onClick={() => {
                   setSelectedCategoryForChat(category);
                   setCategorySelectOpen(false);
