@@ -264,6 +264,14 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
       <main className="relative max-w-6xl mx-auto px-6 py-8">
         {children}
       </main>
+
+      {/* Beta Notice */}
+      <div
+        aria-hidden="true"
+        className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40 text-xs text-muted-foreground pointer-events-none select-none"
+      >
+        Beta version — report a problem at support@interguide.app
+      </div>
     </AppShell>
   );
 };
