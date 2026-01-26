@@ -67,8 +67,8 @@ const RichTextEditor = ({
     editorProps: {
       attributes: {
         class: cn(
-          'prose max-w-none focus:outline-none min-h-[120px] p-6 text-white',
-          'prose-headings:text-white prose-p:text-slate-200 prose-strong:text-white',
+          'prose max-w-none focus:outline-none min-h-[120px] p-6 text-foreground',
+          'prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground',
           'prose-a:text-current prose-code:text-current',
           system && getProseClasses(system)
         ),

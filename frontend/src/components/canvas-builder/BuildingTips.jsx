@@ -170,9 +170,9 @@ const BuildingTips = () => {
   ];
 
   return (
-    <div className="w-80 border-l border-slate-200 bg-white flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="w-80 border-l border-border bg-card flex flex-col" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header with toggle */}
-      <div className="p-4 border-b border-slate-200 sticky top-0 bg-white z-10">
+      <div className="p-4 border-b border-border sticky top-0 bg-card z-10">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             {showBlockReference ? (
@@ -180,7 +180,7 @@ const BuildingTips = () => {
             ) : (
               <Lightbulb className="w-5 h-5 text-primary" />
             )}
-            <h3 className="text-sm font-semibold">
+            <h3 className="text-sm font-semibold text-foreground">
               {showBlockReference ? (currentLang === 'he' ? 'מדריך לבלוקים' : 'Block Reference') : t('builder.buildingTips')}
             </h3>
           </div>
@@ -208,7 +208,7 @@ const BuildingTips = () => {
           </Button>
         </div>
         
-        <p className="text-xs text-slate-800 mt-2">
+        <p className="text-xs text-muted-foreground mt-2">
           {showBlockReference 
             ? (currentLang === 'he' ? 'לחץ על בלוק כדי לראות הסבר' : 'Click any block to see details')
             : t('builder.buildingTipsDescription')}
@@ -221,17 +221,17 @@ const BuildingTips = () => {
           // Building Tips
           <div className="p-4 space-y-3">
             {tips.map((tip, index) => (
-              <Card key={index} className="bg-white border-slate-200 hover:border-primary/50 transition-colors">
+              <Card key={index} className="bg-card border-border hover:border-primary/50 transition-colors">
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
                     <div className="text-primary mt-0.5 flex-shrink-0">
                       {tip.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-sm font-semibold text-slate-900 mb-1">
+                      <CardTitle className="text-sm font-semibold text-foreground mb-1">
                         {tip.title}
                       </CardTitle>
-                      <CardDescription className="text-xs text-slate-800 leading-relaxed">
+                      <CardDescription className="text-xs text-muted-foreground leading-relaxed">
                         {tip.description}
                       </CardDescription>
                       {tip.link && (
@@ -260,27 +260,27 @@ const BuildingTips = () => {
                   className={`w-full p-3 rounded-lg border text-left transition-all hover:border-primary hover:shadow-sm ${
                     selectedBlock === blockType 
                       ? 'border-primary bg-primary/5 shadow-sm' 
-                      : 'border-slate-200 bg-white'
+                      : 'border-border bg-card'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-xl flex-shrink-0">{getBlockIcon(blockType)}</span>
-                      <span className="font-medium text-sm truncate">
+                      <span className="font-medium text-sm truncate text-foreground">
                         {blockLabels[blockType]?.[currentLang] || getBlockLabel(blockType)}
                       </span>
                     </div>
                     {selectedBlock === blockType ? (
-                      <ChevronUp className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     )}
                   </div>
                 </button>
                 
                 {selectedBlock === blockType && (
-                  <div className="mt-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
-                    <p className="text-xs text-slate-800 leading-relaxed">
+                  <div className="mt-2 p-3 rounded-lg bg-secondary border border-border">
+                    <p className="text-xs text-foreground leading-relaxed">
                       {blockExplanations[blockType]?.[currentLang] || blockExplanations[blockType]?.en || (
                         currentLang === 'he' 
                           ? 'אין תיאור זמין לבלוק זה.'

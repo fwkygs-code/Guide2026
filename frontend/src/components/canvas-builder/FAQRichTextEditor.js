@@ -80,9 +80,9 @@ export function FAQRichTextEditor({ content, onChange, placeholder, className })
   };
 
   return (
-    <div className={cn('border border-slate-600/50 rounded-lg overflow-hidden', className)}>
+    <div className={cn('border border-border rounded-lg overflow-hidden', className)}>
       {/* Toolbar - Simple and clear */}
-      <div className="bg-slate-800/50 border-b border-slate-600/30 p-2 flex flex-wrap gap-1">
+      <div className="bg-secondary border-b border-border p-2 flex flex-wrap gap-1">
         <Button
           variant="ghost"
           size="sm"
@@ -109,7 +109,7 @@ export function FAQRichTextEditor({ content, onChange, placeholder, className })
           <Italic className="w-4 h-4" />
         </Button>
 
-        <div className="w-px h-6 bg-slate-600/50 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
         <Button
           variant="ghost"
@@ -137,7 +137,7 @@ export function FAQRichTextEditor({ content, onChange, placeholder, className })
           <ListOrdered className="w-4 h-4" />
         </Button>
 
-        <div className="w-px h-6 bg-slate-600/50 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
         <Button
           variant="ghost"
@@ -167,7 +167,7 @@ export function FAQRichTextEditor({ content, onChange, placeholder, className })
       <div
         ref={editorRef}
         contentEditable
-        className="min-h-[120px] p-4 text-slate-200 focus:outline-none prose prose-invert max-w-none"
+        className="min-h-[120px] p-4 text-foreground focus:outline-none prose prose-invert max-w-none"
         onInput={handleInput}
         onFocus={() => setIsActive(true)}
         onBlur={() => setIsActive(false)}
@@ -182,7 +182,7 @@ export function FAQRichTextEditor({ content, onChange, placeholder, className })
       />
 
       {/* Status indicator */}
-      <div className="px-4 py-2 bg-slate-800/30 border-t border-slate-600/30 flex items-center gap-2 text-xs text-slate-400">
+      <div className="px-4 py-2 bg-secondary border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
         <MessageSquare className="w-3 h-3" />
         <span>FAQ Answer Editor</span>
         <HelpCircle className="w-3 h-3 ml-auto" />

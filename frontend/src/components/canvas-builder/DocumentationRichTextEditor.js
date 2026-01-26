@@ -61,7 +61,7 @@ export function DocumentationRichTextEditor({ content, onChange, placeholder, cl
     const range = selection.getRangeAt(0);
 
     const codeBlock = document.createElement('pre');
-    codeBlock.className = 'bg-slate-800 border border-slate-600 rounded p-3 my-3 overflow-x-auto';
+    codeBlock.className = 'bg-secondary border border-border rounded p-3 my-3 overflow-x-auto';
     const code = document.createElement('code');
     code.className = 'text-green-400 font-mono text-sm';
     code.textContent = '// Enter code here...';
@@ -92,9 +92,9 @@ export function DocumentationRichTextEditor({ content, onChange, placeholder, cl
   };
 
   return (
-    <div className={cn('border border-slate-600/50 rounded-lg overflow-hidden', className)}>
+    <div className={cn('border border-border rounded-lg overflow-hidden', className)}>
       {/* Toolbar - Technical documentation focused */}
-      <div className="bg-slate-800/50 border-b border-slate-600/30 p-2 flex flex-wrap gap-1">
+      <div className="bg-secondary border-b border-border p-2 flex flex-wrap gap-1">
         <Button
           variant="ghost"
           size="sm"
@@ -134,7 +134,7 @@ export function DocumentationRichTextEditor({ content, onChange, placeholder, cl
           <Code className="w-4 h-4" />
         </Button>
 
-        <div className="w-px h-6 bg-slate-600/50 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
         <Button
           variant="ghost"
@@ -162,7 +162,7 @@ export function DocumentationRichTextEditor({ content, onChange, placeholder, cl
           <ListOrdered className="w-4 h-4" />
         </Button>
 
-        <div className="w-px h-6 bg-slate-600/50 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
         <Button
           variant="ghost"
@@ -194,7 +194,7 @@ export function DocumentationRichTextEditor({ content, onChange, placeholder, cl
           <Heading3 className="w-4 h-4" />
         </Button>
 
-        <div className="w-px h-6 bg-slate-600/50 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
         <Button
           variant="ghost"
@@ -237,7 +237,7 @@ export function DocumentationRichTextEditor({ content, onChange, placeholder, cl
       <div
         ref={editorRef}
         contentEditable
-        className="min-h-[120px] p-4 text-slate-200 focus:outline-none prose prose-invert max-w-none"
+        className="min-h-[120px] p-4 text-foreground focus:outline-none prose prose-invert max-w-none"
         onInput={handleInput}
         onFocus={() => setIsActive(true)}
         onBlur={() => setIsActive(false)}
@@ -252,7 +252,7 @@ export function DocumentationRichTextEditor({ content, onChange, placeholder, cl
       />
 
       {/* Status indicator */}
-      <div className="px-4 py-2 bg-slate-800/30 border-t border-slate-600/30 flex items-center gap-2 text-xs text-slate-400">
+      <div className="px-4 py-2 bg-secondary border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
         <FileCode className="w-3 h-3" />
         <span>Technical Documentation Editor</span>
         <Terminal className="w-3 h-3 ml-auto" />

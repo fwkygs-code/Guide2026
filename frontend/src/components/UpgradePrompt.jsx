@@ -136,7 +136,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   ? 'border-primary bg-primary/5'
                   : planOption.recommended
                   ? 'border-primary shadow-lg'
-                  : 'border-slate-200'
+                  : 'border-border'
               }`}
             >
               {planOption.current && (
@@ -149,15 +149,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
               )}
 
               <div className="mb-4">
-                <h3 className="text-xl font-semibold text-slate-900">
+                <h3 className="text-xl font-semibold text-foreground">
                   {planOption.displayName}
                 </h3>
                 <div className="mt-2">
-                  <p className="text-2xl font-bold text-slate-900">
+                  <p className="text-2xl font-bold text-foreground">
                     {planOption.price}
                   </p>
                   {planOption.priceAfter && (
-                    <p className="text-sm text-slate-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {planOption.priceAfter}
                     </p>
                   )}
@@ -166,7 +166,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
 
               <ul className="space-y-2 mb-6">
                 {planOption.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
+                  <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                     <span>{feature}</span>
                   </li>
@@ -183,10 +183,10 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   <div className="space-y-2">
                     {hasCancelledSubscription ? (
                       <div className="space-y-2">
-                        <p className="text-xs text-slate-500 text-center">
+                        <p className="text-xs text-muted-foreground text-center">
                           Your subscription will remain active until the end of your billing period, then automatically cancel. No further charges will occur after that date unless you re-subscribe. Final billing status is determined by PayPal.
                         </p>
-                        <p className="text-xs text-slate-400 text-center mt-1 italic">
+                        <p className="text-xs text-muted-foreground/80 text-center mt-1 italic">
                           Payments made without a PayPal account are still managed by PayPal and renew automatically unless cancelled.
                         </p>
                       </div>
@@ -198,24 +198,24 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                           onClick={() => setShowCancelDialog(true)}
                           disabled={isCancelling}
                         >
-                          {isCancelling ? 'Processing...' : 'Cancel Subscription'}
+                          {isCancelling ? t('billing.processing') : t('billing.cancelSubscription')}
                         </Button>
                         
                         {/* Cancellation Confirmation Dialog */}
                         <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Cancel subscription?</DialogTitle>
+                              <DialogTitle>{t('billing.cancelSubscriptionConfirm')}</DialogTitle>
                               <DialogDescription>
                                 <div className="space-y-2">
                                   <p>
-                                    You will keep Pro access until {quotaData?.current_period_end ? new Date(quotaData.current_period_end).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'the end of your billing period'}.
+                                    {t('billing.keepAccessUntil', { date: quotaData?.current_period_end ? new Date(quotaData.current_period_end).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : t('billing.endOfBillingPeriod') })}
                                   </p>
                                   <p className="font-medium">
-                                    No further charges will occur after this date unless you re-subscribe.
+                                    {t('billing.noFurtherCharges')}
                                   </p>
-                                  <p className="text-xs text-slate-500">
-                                    Final billing status is determined by PayPal.
+                                  <p className="text-xs text-muted-foreground">
+                                    {t('billing.finalStatusByPayPal')}
                                   </p>
                                 </div>
                               </DialogDescription>
@@ -225,7 +225,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                                 variant="outline"
                                 onClick={() => setShowCancelDialog(false)}
                               >
-                                Cancel
+                                {t('common.cancel')}
                               </Button>
                               <Button
                                 onClick={async () => {
@@ -241,15 +241,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                                       if (status === 'cancelled_confirmed' && paypalVerified) {
                                         toast.success(
                                           <div>
-                                            <div className="font-medium">Subscription cancelled by PayPal</div>
-                                            <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur. Verified by PayPal.</div>
+                                            <div className="font-medium">{t('billing.cancelledByPayPal')}</div>
+                                            <div className="text-sm">{t('billing.cancelledByPayPalDesc')}</div>
                                           </div>
                                         );
                                       } else {
                                         toast.success(
                                           <div>
-                                            <div className="font-medium">Cancellation requested — pending PayPal confirmation</div>
-                                            <div className="text-sm">Cancellation request sent. PayPal confirmation pending. Your access remains active until the end of the period. Final billing status is determined by PayPal.</div>
+                                            <div className="font-medium">{t('billing.cancellationPending')}</div>
+                                            <div className="text-sm">{t('billing.cancellationPendingDesc')}</div>
                                           </div>
                                         );
                                       }
@@ -268,7 +268,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                                 }}
                                 disabled={isCancelling}
                               >
-                                {isCancelling ? 'Processing...' : 'Confirm cancellation'}
+                                {isCancelling ? t('billing.processing') : t('billing.confirmCancellation')}
                               </Button>
                             </DialogFooter>
                           </DialogContent>
@@ -288,7 +288,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                         window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
                       }}
                     >
-                      Manage via PayPal (optional)
+                      {t('billing.manageViaPayPal')}
                     </Button>
                   </div>
                 ) : (
@@ -299,7 +299,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     }}
                     disabled={isSubscribing}
                   >
-                    {isSubscribing ? 'Processing...' : t('upgrade.select')}
+                    {isSubscribing ? t('billing.processing') : t('upgrade.select')}
                   </Button>
                 )
               ) : (
@@ -340,15 +340,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
               </DialogTitle>
               <DialogDescription>
                 {selectedPlanMedia?.name === 'enterprise'
-                  ? 'Contact us for custom media capacity details'
-                  : 'Detailed media file size and transformation limits'}
+                  ? t('upgrade.contactForMediaCapacity')
+                  : t('upgrade.mediaCapacityDetails')}
               </DialogDescription>
             </DialogHeader>
 
             {selectedPlanMedia?.name === 'enterprise' ? (
               <div className="py-6">
-                <p className="text-slate-600 mb-4">
-                  Enterprise plans include custom media capacity limits tailored to your needs.
+                <p className="text-muted-foreground mb-4">
+                  {t('upgrade.enterpriseMediaCapacityDesc')}
                 </p>
                 <Button
                   onClick={() => {
@@ -362,33 +362,33 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
             ) : selectedPlanMedia?.mediaCapacity ? (
               <div className="py-4">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max image file size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageFileSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageFileSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageFileSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max video file size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoFileSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxVideoFileSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoFileSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max raw file size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxRawFileSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxRawFileSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxRawFileSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max image transformation size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageTransformationSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageTransformSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageTransformationSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max video transformation size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoTransformationSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxVideoTransformSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoTransformationSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max image megapixel</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageMegapixel}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageMegapixel')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageMegapixel}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-slate-700 font-medium">Max megapixel in all frames</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxMegapixelAllFrames}</span>
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxMegapixelAllFrames')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxMegapixelAllFrames}</span>
                   </div>
                 </div>
               </div>
@@ -408,9 +408,9 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
         }}>
           <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader>
-              <DialogTitle>Subscribe to Pro Plan</DialogTitle>
+              <DialogTitle>{t('billing.subscribeToProPlan')}</DialogTitle>
               <DialogDescription>
-                Complete your subscription to unlock Pro features. Your subscription will be activated automatically.
+                {t('billing.subscribeDescription')}
               </DialogDescription>
             </DialogHeader>
             {/* CRITICAL: Keep PayPal component mounted - use visibility instead of conditional rendering */}
@@ -436,25 +436,24 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 setIsSubscribing={setIsSubscribing}
               />
             </div>
-            <div className="text-xs text-slate-500 mt-4 space-y-2 text-center">
+            <div className="text-xs text-muted-foreground mt-4 space-y-2 text-center">
               <p>
-                Payments are processed by PayPal. By subscribing, you agree to our{' '}
+                {t('billing.paymentsProcessedByPayPal')}{' '}
                 <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a>
-                {' '}and{' '}
+                {' '}{t('common.and')}{' '}
                 <a href="/billing-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Billing Policy</a>.
               </p>
               <p>
-                Your subscription will automatically renew unless cancelled through your PayPal account. 
-                Invoices and receipts are sent by PayPal.
+                {t('billing.autoRenewNotice')}
               </p>
             </div>
           </DialogContent>
         </Dialog>
 
         {!showPayPal && (
-          <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-            <p className="text-sm text-slate-600">
-              <strong>Note:</strong> Enterprise plans require custom setup. Please contact us for Enterprise pricing.
+          <div className="mt-6 p-4 bg-secondary rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              <strong>{t('common.note')}:</strong> {t('upgrade.enterpriseRequiresSetup')}
             </p>
           </div>
         )}

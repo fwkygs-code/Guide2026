@@ -103,7 +103,7 @@ const InlineRichEditor = ({
     <div className="relative">
       {/* Floating Toolbar */}
       {showToolbar && (
-        <div className="absolute z-[100] left-1/2 transform -translate-x-1/2 top-[-44px] flex items-center gap-1 bg-slate-900 rounded-lg p-1 shadow-xl">
+        <div className="absolute z-[100] left-1/2 transform -translate-x-1/2 top-[-44px] flex items-center gap-1 bg-popover border border-border rounded-lg p-1 shadow-xl">
           <Button
             type="button"
             variant="ghost"
@@ -112,7 +112,7 @@ const InlineRichEditor = ({
               e.preventDefault();
               editor.chain().focus().toggleBold().run();
             }}
-            className={`h-7 w-7 p-0 ${editor.isActive('bold') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+            className={`h-7 w-7 p-0 ${editor.isActive('bold') ? 'bg-accent' : ''} text-foreground hover:bg-accent`}
           >
             <Bold className="w-3.5 h-3.5" />
           </Button>
@@ -124,7 +124,7 @@ const InlineRichEditor = ({
               e.preventDefault();
               editor.chain().focus().toggleItalic().run();
             }}
-            className={`h-7 w-7 p-0 ${editor.isActive('italic') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+            className={`h-7 w-7 p-0 ${editor.isActive('italic') ? 'bg-accent' : ''} text-foreground hover:bg-accent`}
           >
             <Italic className="w-3.5 h-3.5" />
           </Button>
@@ -136,11 +136,11 @@ const InlineRichEditor = ({
               e.preventDefault();
               editor.chain().focus().toggleUnderline().run();
             }}
-            className={`h-7 w-7 p-0 ${editor.isActive('underline') ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+            className={`h-7 w-7 p-0 ${editor.isActive('underline') ? 'bg-accent' : ''} text-foreground hover:bg-accent`}
           >
             <UnderlineIcon className="w-3.5 h-3.5" />
           </Button>
-          <div className="w-px h-5 bg-slate-700 mx-0.5" />
+          <div className="w-px h-5 bg-border mx-0.5" />
           <Button
             type="button"
             variant="ghost"
@@ -149,7 +149,7 @@ const InlineRichEditor = ({
               e.preventDefault();
               editor.chain().focus().setTextAlign('left').run();
             }}
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-accent' : ''} text-foreground hover:bg-accent`}
           >
             <AlignLeft className="w-3.5 h-3.5" />
           </Button>
@@ -161,7 +161,7 @@ const InlineRichEditor = ({
               e.preventDefault();
               editor.chain().focus().setTextAlign('center').run();
             }}
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-accent' : ''} text-foreground hover:bg-accent`}
           >
             <AlignCenter className="w-3.5 h-3.5" />
           </Button>
@@ -173,14 +173,14 @@ const InlineRichEditor = ({
               e.preventDefault();
               editor.chain().focus().setTextAlign('right').run();
             }}
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-slate-700' : ''} text-white hover:bg-slate-700`}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-accent' : ''} text-foreground hover:bg-accent`}
           >
             <AlignRight className="w-3.5 h-3.5" />
           </Button>
-          <div className="w-px h-5 bg-slate-700 mx-0.5" />
+          <div className="w-px h-5 bg-border mx-0.5" />
           <div className="flex items-center gap-0.5">
             <div className="flex items-center gap-1">
-              <Type className="w-3.5 h-3.5 text-white" />
+              <Type className="w-3.5 h-3.5 text-foreground" />
               <Select
                 value={editor.getAttributes('textStyle').fontSize ? editor.getAttributes('textStyle').fontSize.replace('px', '') : '16'}
                 onValueChange={(value) => {
@@ -188,23 +188,23 @@ const InlineRichEditor = ({
                 }}
               >
                 <SelectTrigger 
-                  className="h-7 w-20 bg-slate-800 border-slate-700 text-white text-xs hover:bg-slate-700 focus:ring-slate-600"
+                  className="h-7 w-20 bg-secondary border-border text-foreground text-xs hover:bg-accent focus:ring-ring"
                   onMouseDown={(e) => e.preventDefault()}
                 >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700 text-white z-[101]" side="top">
-                  <SelectItem value="12" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">12px</SelectItem>
-                  <SelectItem value="14" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">14px</SelectItem>
-                  <SelectItem value="16" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">16px</SelectItem>
-                  <SelectItem value="18" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">18px</SelectItem>
-                  <SelectItem value="20" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">20px</SelectItem>
-                  <SelectItem value="24" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">24px</SelectItem>
-                  <SelectItem value="28" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">28px</SelectItem>
-                  <SelectItem value="32" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">32px</SelectItem>
-                  <SelectItem value="36" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">36px</SelectItem>
-                  <SelectItem value="40" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">40px</SelectItem>
-                  <SelectItem value="48" className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer">48px</SelectItem>
+                <SelectContent className="bg-popover border-border text-foreground z-[101]" side="top">
+                  <SelectItem value="12" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">12px</SelectItem>
+                  <SelectItem value="14" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">14px</SelectItem>
+                  <SelectItem value="16" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">16px</SelectItem>
+                  <SelectItem value="18" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">18px</SelectItem>
+                  <SelectItem value="20" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">20px</SelectItem>
+                  <SelectItem value="24" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">24px</SelectItem>
+                  <SelectItem value="28" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">28px</SelectItem>
+                  <SelectItem value="32" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">32px</SelectItem>
+                  <SelectItem value="36" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">36px</SelectItem>
+                  <SelectItem value="40" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">40px</SelectItem>
+                  <SelectItem value="48" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">48px</SelectItem>
                 </SelectContent>
               </Select>
             </div>

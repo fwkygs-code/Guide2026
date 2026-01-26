@@ -99,8 +99,8 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+            <div className="h-4 bg-secondary rounded w-3/4"></div>
+            <div className="h-4 bg-secondary rounded w-1/2"></div>
           </div>
         </CardContent>
       </Card>
@@ -114,7 +114,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           <CardTitle className="text-white">{t('quota.usage')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-500">{error || t('quota.unableToLoad')}</p>
+          <p className="text-sm text-muted-foreground">{error || t('quota.unableToLoad')}</p>
         </CardContent>
       </Card>
     );
@@ -163,9 +163,9 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
 
   // Determine warning levels
   const getStorageWarning = () => {
-    if (storagePercent >= 100) return { level: 'error', message: 'Storage quota exceeded' };
-    if (storagePercent >= 90) return { level: 'warning', message: 'Storage almost full' };
-    if (storagePercent >= 75) return { level: 'info', message: 'Storage getting full' };
+    if (storagePercent >= 100) return { level: 'error', message: t('quota.warnings.storageExceeded') };
+    if (storagePercent >= 90) return { level: 'warning', message: t('quota.warnings.storageAlmostFull') };
+    if (storagePercent >= 75) return { level: 'info', message: t('quota.warnings.storageGettingFull') };
     return null;
   };
 
@@ -173,21 +173,21 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     // Only show warning when approaching (80-99%), not when at limit (100%)
     // Being at limit is fine - user just can't create more, but can use existing ones
     if (workspacesPercent >= 100) return null; // At limit is OK, no warning
-    if (workspacesPercent >= 80) return { level: 'warning', message: 'Approaching workspace limit' };
+    if (workspacesPercent >= 80) return { level: 'warning', message: t('quota.warnings.approachingWorkspaceLimit') };
     return null;
   };
 
   const getWalkthroughsWarning = () => {
     // Only show warning when approaching (80-99%), not when at limit (100%)
     if (walkthroughsPercent >= 100) return null; // At limit is OK, no warning
-    if (walkthroughsPercent >= 80) return { level: 'warning', message: 'Approaching walkthrough limit' };
+    if (walkthroughsPercent >= 80) return { level: 'warning', message: t('quota.warnings.approachingWalkthroughLimit') };
     return null;
   };
 
   const getCategoriesWarning = () => {
     // Only show warning when approaching (80-99%), not when at limit (100%)
     if (categoriesPercent >= 100) return null; // At limit is OK, no warning
-    if (categoriesPercent >= 80) return { level: 'warning', message: 'Approaching category limit' };
+    if (categoriesPercent >= 80) return { level: 'warning', message: t('quota.warnings.approachingCategoryLimit') };
     return null;
   };
 
@@ -277,12 +277,12 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
               <AlertDescription className="flex items-center justify-between gap-2">
                 <span>
                   {storageWarning.level === 'error' 
-                    ? 'You cannot upload more files. Please delete some files or upgrade your plan.'
-                    : 'Consider deleting unused files or upgrading your plan.'}
+                    ? t('quota.warnings.cannotUploadMore')
+                    : t('quota.warnings.considerDeleting')}
                 </span>
                 {onUpgrade && (
                   <Button size="sm" variant="outline" onClick={onUpgrade} className="shrink-0">
-                    Upgrade
+                    {t('quota.upgrade')}
                   </Button>
                 )}
               </AlertDescription>
@@ -294,11 +294,11 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
               <AlertTitle>{workspacesWarning.message}</AlertTitle>
               <AlertDescription className="flex items-center justify-between gap-2">
                 <span>
-                  You are approaching your workspace limit. You'll need to upgrade to create more.
+                  {t('quota.warnings.approachingWorkspaceLimitDesc')}
                 </span>
                 {onUpgrade && (
                   <Button size="sm" variant="outline" onClick={onUpgrade} className="shrink-0">
-                    Upgrade
+                    {t('quota.upgrade')}
                   </Button>
                 )}
               </AlertDescription>
@@ -310,11 +310,11 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
               <AlertTitle>{walkthroughsWarning.message}</AlertTitle>
               <AlertDescription className="flex items-center justify-between gap-2">
                 <span>
-                  You are approaching your walkthrough limit. You'll need to upgrade to create more.
+                  {t('quota.warnings.approachingWalkthroughLimitDesc')}
                 </span>
                 {onUpgrade && (
                   <Button size="sm" variant="outline" onClick={onUpgrade} className="shrink-0">
-                    Upgrade
+                    {t('quota.upgrade')}
                   </Button>
                 )}
               </AlertDescription>
@@ -326,11 +326,11 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
               <AlertTitle>{categoriesWarning.message}</AlertTitle>
               <AlertDescription className="flex items-center justify-between gap-2">
                 <span>
-                  You are approaching your category limit. You'll need to upgrade to create more.
+                  {t('quota.warnings.approachingCategoryLimitDesc')}
                 </span>
                 {onUpgrade && (
                   <Button size="sm" variant="outline" onClick={onUpgrade} className="shrink-0">
-                    Upgrade
+                    {t('quota.upgrade')}
                   </Button>
                 )}
               </AlertDescription>
@@ -344,17 +344,17 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.storage')}</CardTitle>
+              <Database className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.storage')}</CardTitle>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted-foreground">
               {formatBytes(quota.storage_used, t)} / {formatBytes(quota.storage_allowed, t)}
             </span>
           </div>
         </CardHeader>
         <CardContent>
           <Progress value={storagePercent} className="h-2" />
-          <div className="mt-2 text-xs text-slate-400">
+          <div className="mt-2 text-xs text-muted-foreground">
             {storagePercent.toFixed(1)}{t('quota.percentUsed')}
             {quota.storage_allowed > 0 && (
               <span className="ml-2">
@@ -370,10 +370,10 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FolderOpen className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.workspaces')}</CardTitle>
+              <FolderOpen className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.workspaces')}</CardTitle>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted-foreground">
               {quota.workspaces_used} / {formatNumber(quota.workspaces_limit, t)}
             </span>
           </div>
@@ -382,12 +382,12 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           {quota.workspaces_limit !== null ? (
             <>
               <Progress value={workspacesPercent} className="h-2" />
-              <div className="mt-2 text-xs text-slate-400">
+              <div className="mt-2 text-xs text-muted-foreground">
                 {workspacesPercent.toFixed(1)}{t('quota.percentUsed')}
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <CheckCircle2 className="h-3 w-3 text-success" />
               <span>{t('quota.unlimited')}</span>
             </div>
@@ -400,10 +400,10 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.walkthroughs')}</CardTitle>
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.walkthroughs')}</CardTitle>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted-foreground">
               {quota.walkthroughs_used} / {formatNumber(quota.walkthroughs_limit, t)}
             </span>
           </div>
@@ -412,12 +412,12 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           {quota.walkthroughs_limit !== null ? (
             <>
               <Progress value={walkthroughsPercent} className="h-2" />
-              <div className="mt-2 text-xs text-slate-400">
+              <div className="mt-2 text-xs text-muted-foreground">
                 {walkthroughsPercent.toFixed(1)}{t('quota.percentUsed')}
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <CheckCircle2 className="h-3 w-3 text-success" />
               <span>{t('quota.unlimited')}</span>
             </div>
@@ -430,10 +430,10 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.categories')}</CardTitle>
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.categories')}</CardTitle>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted-foreground">
               {quota.categories_used} / {formatNumber(quota.categories_limit, t)}
             </span>
           </div>
@@ -442,12 +442,12 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
           {quota.categories_limit !== null ? (
             <>
               <Progress value={categoriesPercent} className="h-2" />
-              <div className="mt-2 text-xs text-slate-400">
+              <div className="mt-2 text-xs text-muted-foreground">
                 {categoriesPercent.toFixed(1)}{t('quota.percentUsed')}
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <CheckCircle2 className="h-3 w-3 text-success" />
               <span>{t('quota.unlimited')}</span>
             </div>
@@ -459,21 +459,21 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       {workspaceQuota && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.thisWorkspace')}</CardTitle>
+            <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.thisWorkspace')}</CardTitle>
             <CardDescription className="text-xs">
               {t('quota.workspaceQuota')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">{t('quota.walkthroughs')}:</span>
-              <span className="font-medium text-white">
+              <span className="text-muted-foreground">{t('quota.walkthroughs')}:</span>
+              <span className="font-medium text-foreground">
                 {workspaceQuota.walkthroughs_used} / {formatNumber(workspaceQuota.walkthroughs_limit, t)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">{t('quota.categories')}:</span>
-              <span className="font-medium text-white">
+              <span className="text-muted-foreground">{t('quota.categories')}:</span>
+              <span className="font-medium text-foreground">
                 {workspaceQuota.categories_used} / {formatNumber(workspaceQuota.categories_limit, t)}
               </span>
             </div>
@@ -484,9 +484,9 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       {/* Plan Limits Info */}
       <Card interactive={true}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.planLimits')}</CardTitle>
+          <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.planLimits')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-xs text-slate-400">
+        <CardContent className="space-y-2 text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
             <span>{t('quota.maxFileSize')}:</span>
             <span className="font-medium">{formatBytes(plan.max_file_size_bytes, t)}</span>

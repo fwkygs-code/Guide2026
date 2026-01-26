@@ -251,7 +251,7 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
       {paymentCompleted ? (
         <div className="w-full min-h-[200px] flex items-center justify-center flex-col space-y-2">
           <div className="text-green-600 text-sm font-medium">✓ Subscription submitted successfully!</div>
-          <div className="text-xs text-slate-500 text-center">
+          <div className="text-xs text-muted-foreground text-center">
             {pollingActive ? (
               <>
                 Waiting for activation...<br/>
@@ -279,11 +279,11 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
             style={{ pointerEvents: isSubscribing ? 'none' : 'auto', opacity: isSubscribing ? 0.6 : 1 }}
           >
             {!paypalScriptLoaded.current && (
-              <div className="text-slate-500 text-sm">Loading PayPal...</div>
+              <div className="text-muted-foreground text-sm">Loading PayPal...</div>
             )}
           </div>
           {isSubscribing && (
-            <p className="text-xs text-slate-500 mt-2 text-center">
+            <p className="text-xs text-muted-foreground mt-2 text-center">
               Processing subscription...
             </p>
           )}

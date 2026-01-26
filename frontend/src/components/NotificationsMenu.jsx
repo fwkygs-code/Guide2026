@@ -225,7 +225,7 @@ const NotificationsMenu = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative w-9 h-9 p-0 text-slate-200 hover:text-white">
+        <Button variant="ghost" size="sm" className="relative w-9 h-9 p-0 text-muted-foreground hover:text-foreground">
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
             <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
@@ -236,16 +236,16 @@ const NotificationsMenu = () => {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="p-4 border-b">
-          <h3 className="font-semibold text-sm">Notifications</h3>
+          <h3 className="font-semibold text-sm">{t('notifications.title')}</h3>
         </div>
         <ScrollArea className="h-[400px]">
           {loading ? (
-            <div className="p-4 text-center text-sm text-slate-500">
-              Loading...
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              {t('notifications.loading')}
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-slate-500">
-              No notifications
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              {t('notifications.noNotifications')}
             </div>
           ) : (
             <div className="divide-y">
@@ -253,19 +253,19 @@ const NotificationsMenu = () => {
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 ${notification.type === 'invite' ? '' : 'cursor-pointer'} hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+                  className={`p-4 ${notification.type === 'invite' ? '' : 'cursor-pointer'} hover:bg-accent transition-colors ${
                     !notification.is_read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      <p className="text-sm font-medium text-foreground">
                         {notification.title}
                       </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                      <p className="text-xs text-muted-foreground/80 mt-1">
                         {formatNotificationTime(notification.created_at)}
                       </p>
                       {notification.type === 'invite' && notification.metadata?.workspace_id && (
@@ -277,7 +277,7 @@ const NotificationsMenu = () => {
                             className="h-7 text-xs"
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
-                            Accept
+                            {t('notifications.accept')}
                           </Button>
                           <Button
                             size="sm"
@@ -286,7 +286,7 @@ const NotificationsMenu = () => {
                             className="h-7 text-xs"
                           >
                             <XCircle className="w-3 h-3 mr-1" />
-                            Decline
+                            {t('notifications.decline')}
                           </Button>
                         </div>
                       )}
@@ -294,7 +294,7 @@ const NotificationsMenu = () => {
                         <div className="mt-2">
                           <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
                             <CheckCircle2 className="w-3 h-3" />
-                            Accepted
+                            {t('notifications.accepted')}
                           </span>
                         </div>
                       )}
@@ -302,7 +302,7 @@ const NotificationsMenu = () => {
                         <div className="mt-2">
                           <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded">
                             <XCircle className="w-3 h-3" />
-                            Declined
+                            {t('notifications.declined')}
                           </span>
                         </div>
                       )}
@@ -314,7 +314,7 @@ const NotificationsMenu = () => {
                           size="sm"
                           className="h-6 w-6 p-0"
                           onClick={(e) => handleMarkAsRead(notification.id, e)}
-                          title="Mark as read"
+                          title={t('notifications.markAsRead')}
                         >
                           <Check className="w-3 h-3" />
                         </Button>
@@ -322,9 +322,9 @@ const NotificationsMenu = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 text-slate-400 hover:text-destructive"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                         onClick={(e) => handleDeleteNotification(notification.id, e)}
-                        title="Delete notification"
+                        title={t('notifications.deleteNotification')}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>

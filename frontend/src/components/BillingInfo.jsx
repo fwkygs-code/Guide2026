@@ -59,33 +59,33 @@ const BillingInfo = () => {
   const isInTrial = trial_period_end && new Date(trial_period_end) > new Date();
 
   return (
-    <Card className="bg-white border-slate-200">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Billing & Subscription
+            {t('billing.billingAndSubscription')}
           </span>
           {getStatusBadge()}
         </CardTitle>
         <CardDescription>
-          Your subscription details and billing information
+          {t('billing.subscriptionDetails')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Plan Name */}
         <div>
-          <div className="text-sm font-medium text-slate-700">Plan</div>
-          <div className="text-lg font-semibold text-slate-900 capitalize">{plan.display_name || plan.name}</div>
+          <div className="text-sm font-medium text-foreground">{t('billing.plan')}</div>
+          <div className="text-lg font-semibold text-foreground capitalize">{plan.display_name || plan.name}</div>
         </div>
 
         {/* Subscription Status */}
         {subscription && (
           <div>
-            <div className="text-sm font-medium text-slate-700">Subscription Status</div>
-            <div className="text-base text-slate-900 capitalize">{subscription.status}</div>
+            <div className="text-sm font-medium text-foreground">{t('billing.subscriptionStatus')}</div>
+            <div className="text-base text-foreground capitalize">{subscription.status}</div>
             {subscription.provider && (
-              <div className="text-xs text-slate-500 mt-1">Provider: {subscription.provider.toUpperCase()}</div>
+              <div className="text-xs text-muted-foreground mt-1">{t('billing.provider')}: {subscription.provider.toUpperCase()}</div>
             )}
           </div>
         )}
@@ -96,12 +96,12 @@ const BillingInfo = () => {
             <div className="flex items-start gap-2">
               <Calendar className="w-4 h-4 text-blue-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-blue-900">Free Trial Active</div>
+                <div className="text-sm font-medium text-blue-900">{t('billing.freeTrialActive')}</div>
                 <div className="text-xs text-blue-700 mt-1">
-                  Your trial ends on {formatDate(trial_period_end)}
+                  {t('billing.trialEndsOn', { date: formatDate(trial_period_end) })}
                 </div>
                 <div className="text-xs text-blue-600 mt-1">
-                  After the trial, billing will occur at $5/month as determined by PayPal.
+                  {t('billing.afterTrialBilling')}
                 </div>
               </div>
             </div>
@@ -111,16 +111,16 @@ const BillingInfo = () => {
         {/* Current Billing Period */}
         {current_period_end && !isInTrial && (
           <div>
-            <div className="text-sm font-medium text-slate-700">Current Billing Period Ends</div>
-            <div className="text-base text-slate-900">{formatDate(current_period_end)}</div>
+            <div className="text-sm font-medium text-foreground">{t('billing.currentPeriodEnds')}</div>
+            <div className="text-base text-foreground">{formatDate(current_period_end)}</div>
           </div>
         )}
 
         {/* Next Billing Date */}
         {quotaData.next_billing_date && !isInTrial && (
           <div>
-            <div className="text-sm font-medium text-slate-700">Next Billing Date</div>
-            <div className="text-base text-slate-900">{formatDate(quotaData.next_billing_date)}</div>
+            <div className="text-sm font-medium text-foreground">{t('billing.nextBillingDate')}</div>
+            <div className="text-base text-foreground">{formatDate(quotaData.next_billing_date)}</div>
           </div>
         )}
 
@@ -130,10 +130,9 @@ const BillingInfo = () => {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-orange-900">Subscription Cancelled</div>
+                <div className="text-sm font-medium text-orange-900">{t('billing.subscriptionCancelled')}</div>
                 <div className="text-xs text-orange-700 mt-1">
-                  Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
-                  After that, your account will be downgraded to the Free plan. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.
+                  {t('billing.subscriptionCancelledDesc', { date: current_period_end ? formatDate(current_period_end) : t('billing.endOfBillingPeriod') })}
                 </div>
               </div>
             </div>
@@ -146,9 +145,9 @@ const BillingInfo = () => {
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-green-900">Subscription Active</div>
+                <div className="text-sm font-medium text-green-900">{t('billing.subscriptionActive')}</div>
                 <div className="text-xs text-green-700 mt-1">
-                  Your Pro subscription is active. Renewal is managed by PayPal according to your subscription terms.
+                  {t('billing.subscriptionActiveDesc')}
                 </div>
               </div>
             </div>
@@ -161,9 +160,9 @@ const BillingInfo = () => {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-blue-900">Activating your subscription…</div>
+                <div className="text-sm font-medium text-blue-900">{t('billing.activatingSubscription')}</div>
                 <div className="text-xs text-blue-700 mt-1">
-                  PayPal is processing your subscription. This may take up to 1 minute. You can continue using the app.
+                  {t('billing.activatingSubscriptionDesc')}
                 </div>
               </div>
             </div>
@@ -172,9 +171,9 @@ const BillingInfo = () => {
 
         {/* Card-Only Disclaimer */}
         {hasSubscription && (
-          <div className="p-2 bg-slate-50 rounded border border-slate-200">
-            <p className="text-xs text-slate-600">
-              Payments made without a PayPal account are still managed by PayPal and renew automatically unless cancelled.
+          <div className="p-2 bg-secondary rounded border border-border">
+            <p className="text-xs text-muted-foreground">
+              {t('billing.cardOnlyDisclaimer')}
             </p>
           </div>
         )}
@@ -182,14 +181,14 @@ const BillingInfo = () => {
         {/* PayPal Verified Status */}
         {paypal_verified_status && (
           <div>
-            <div className="text-sm font-medium text-slate-700">PayPal Verified Status</div>
+            <div className="text-sm font-medium text-foreground">{t('billing.paypalVerifiedStatus')}</div>
             <div className="flex items-center gap-2 mt-1">
               <Badge className={paypal_verified_status === 'ACTIVE' ? 'bg-green-500' : paypal_verified_status === 'CANCELLED' ? 'bg-orange-500' : 'bg-slate-500'}>
                 {paypal_verified_status}
               </Badge>
               {last_verified_at && (
-                <span className="text-xs text-slate-500">
-                  Last verified: {formatDate(last_verified_at)}
+                <span className="text-xs text-muted-foreground">
+                  {t('billing.lastVerified')}: {formatDate(last_verified_at)}
                 </span>
               )}
             </div>
@@ -198,16 +197,16 @@ const BillingInfo = () => {
 
         {/* Cancellation Receipt */}
         {cancellation_receipt && (
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="text-sm font-medium text-slate-900 mb-2">Cancellation Receipt</div>
-            <div className="text-xs text-slate-600 space-y-1">
-              <div>Requested: {cancellation_receipt.cancellation_requested_at ? formatDate(cancellation_receipt.cancellation_requested_at) : 'N/A'}</div>
-              <div>Provider: {cancellation_receipt.provider?.toUpperCase() || 'PayPal'}</div>
+          <div className="p-3 bg-secondary rounded-lg border border-border">
+            <div className="text-sm font-medium text-foreground mb-2">{t('billing.cancellationReceipt')}</div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div>{t('billing.requested')}: {cancellation_receipt.cancellation_requested_at ? formatDate(cancellation_receipt.cancellation_requested_at) : 'N/A'}</div>
+              <div>{t('billing.provider')}: {cancellation_receipt.provider?.toUpperCase() || 'PayPal'}</div>
               {cancellation_receipt.effective_end_date && (
-                <div>Effective end date: {formatDate(cancellation_receipt.effective_end_date)}</div>
+                <div>{t('billing.effectiveEndDate')}: {formatDate(cancellation_receipt.effective_end_date)}</div>
               )}
               {cancellation_receipt.provider_subscription_id && (
-                <div className="font-mono text-xs break-all">Subscription ID: {cancellation_receipt.provider_subscription_id}</div>
+                <div className="font-mono text-xs break-all">{t('billing.subscriptionId')}: {cancellation_receipt.provider_subscription_id}</div>
               )}
             </div>
           </div>
@@ -215,25 +214,25 @@ const BillingInfo = () => {
 
         {/* Card-Only Disclaimer */}
         {hasSubscription && (
-          <div className="p-2 bg-slate-50 rounded border border-slate-200">
-            <p className="text-xs text-slate-600">
-              Payments made without a PayPal account are still managed by PayPal and renew automatically unless cancelled.
+          <div className="p-2 bg-secondary rounded border border-border">
+            <p className="text-xs text-muted-foreground">
+              {t('billing.cardOnlyDisclaimer')}
             </p>
           </div>
         )}
 
         {/* Cancellation Receipt */}
         {cancellation_receipt && (
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="text-sm font-medium text-slate-900 mb-2">Cancellation Receipt</div>
-            <div className="text-xs text-slate-600 space-y-1">
-              <div>Requested: {cancellation_receipt.cancellation_requested_at ? formatDate(cancellation_receipt.cancellation_requested_at) : 'N/A'}</div>
-              <div>Provider: {cancellation_receipt.provider?.toUpperCase() || 'PayPal'}</div>
+          <div className="p-3 bg-secondary rounded-lg border border-border">
+            <div className="text-sm font-medium text-foreground mb-2">{t('billing.cancellationReceipt')}</div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div>{t('billing.requested')}: {cancellation_receipt.cancellation_requested_at ? formatDate(cancellation_receipt.cancellation_requested_at) : 'N/A'}</div>
+              <div>{t('billing.provider')}: {cancellation_receipt.provider?.toUpperCase() || 'PayPal'}</div>
               {cancellation_receipt.effective_end_date && (
-                <div>Effective end date: {formatDate(cancellation_receipt.effective_end_date)}</div>
+                <div>{t('billing.effectiveEndDate')}: {formatDate(cancellation_receipt.effective_end_date)}</div>
               )}
               {cancellation_receipt.provider_subscription_id && (
-                <div className="font-mono text-xs">Subscription ID: {cancellation_receipt.provider_subscription_id}</div>
+                <div className="font-mono text-xs">{t('billing.subscriptionId')}: {cancellation_receipt.provider_subscription_id}</div>
               )}
             </div>
           </div>
@@ -241,7 +240,7 @@ const BillingInfo = () => {
 
         {/* Cancel Subscription Button */}
         {subscription && (subscription.status === 'active' || subscription.status === 'pending' || subscription.status === 'cancelled') && (
-          <div className="pt-4 border-t border-slate-200">
+          <div className="pt-4 border-t border-border">
             {cancel_at_period_end ? (
               <div className="space-y-2">
                 {paypal_verified_status === 'CANCELLED' ? (
@@ -249,9 +248,9 @@ const BillingInfo = () => {
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5" />
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-green-900">Subscription cancelled by PayPal</div>
+                        <div className="text-sm font-medium text-green-900">{t('billing.cancelledByPayPal')}</div>
                         <div className="text-xs text-green-700 mt-1">
-                          PayPal has confirmed the cancellation. No further charges will occur. Pro access until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. Verified by PayPal.
+                          {t('billing.cancelledByPayPalFullDesc', { date: current_period_end ? formatDate(current_period_end) : t('billing.endOfBillingPeriod') })}
                         </div>
                       </div>
                     </div>
@@ -261,16 +260,16 @@ const BillingInfo = () => {
                     <div className="flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-blue-900">Cancellation requested — pending PayPal confirmation</div>
+                        <div className="text-sm font-medium text-blue-900">{t('billing.cancellationPending')}</div>
                         <div className="text-xs text-blue-700 mt-1">
-                          Cancellation request sent. PayPal confirmation pending. Your access remains active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. Final billing status is determined by PayPal.
+                          {t('billing.cancellationPendingFullDesc', { date: current_period_end ? formatDate(current_period_end) : t('billing.endOfBillingPeriod') })}
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 text-center">
-                    Your subscription will remain active until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.
+                  <p className="text-xs text-muted-foreground text-center">
+                    {t('billing.subscriptionRemainsActive', { date: current_period_end ? formatDate(current_period_end) : t('billing.endOfBillingPeriod') })}
                   </p>
                 )}
               </div>
@@ -282,24 +281,24 @@ const BillingInfo = () => {
                   onClick={() => setShowCancelDialog(true)}
                   disabled={isCancelling}
                 >
-                  {isCancelling ? 'Processing...' : 'Cancel Subscription'}
+                  {isCancelling ? t('billing.processing') : t('billing.cancelSubscription')}
                 </Button>
                 
                 {/* Cancellation Confirmation Dialog */}
                 <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Cancel subscription?</DialogTitle>
+                      <DialogTitle>{t('billing.cancelSubscriptionConfirm')}</DialogTitle>
                       <DialogDescription>
                         <div className="space-y-2">
                           <p>
-                            You will keep Pro access until {current_period_end ? formatDate(current_period_end) : 'the end of your billing period'}.
+                            {t('billing.keepAccessUntil', { date: current_period_end ? formatDate(current_period_end) : t('billing.endOfBillingPeriod') })}
                           </p>
                           <p className="font-medium">
-                            No further charges will occur after this date unless you re-subscribe.
+                            {t('billing.noFurtherCharges')}
                           </p>
-                          <p className="text-xs text-slate-500">
-                            Final billing status is determined by PayPal.
+                          <p className="text-xs text-muted-foreground">
+                            {t('billing.finalStatusByPayPal')}
                           </p>
                         </div>
                       </DialogDescription>
@@ -309,7 +308,7 @@ const BillingInfo = () => {
                         variant="outline"
                         onClick={() => setShowCancelDialog(false)}
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button
                         onClick={async () => {
@@ -325,15 +324,15 @@ const BillingInfo = () => {
                               if (status === 'cancelled_confirmed' && paypalVerified) {
                                 toast.success(
                                   <div>
-                                    <div className="font-medium">Subscription cancelled</div>
-                                    <div className="text-sm">PayPal has confirmed the cancellation. No further charges will occur. Final billing status is determined by PayPal.</div>
+                                    <div className="font-medium">{t('billing.subscriptionCancelled')}</div>
+                                    <div className="text-sm">{t('billing.cancelledConfirmedDesc')}</div>
                                   </div>
                                 );
                               } else {
                                 toast.success(
                                   <div>
-                                    <div className="font-medium">Cancellation pending confirmation</div>
-                                    <div className="text-sm">PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal.</div>
+                                    <div className="font-medium">{t('billing.cancellationPendingConfirmation')}</div>
+                                    <div className="text-sm">{t('billing.cancellationProcessingDesc')}</div>
                                   </div>
                                 );
                               }
@@ -351,7 +350,7 @@ const BillingInfo = () => {
                         }}
                         disabled={isCancelling}
                       >
-                        {isCancelling ? 'Processing...' : 'Confirm cancellation'}
+                        {isCancelling ? t('billing.processing') : t('billing.confirmCancellation')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>

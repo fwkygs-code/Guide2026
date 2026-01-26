@@ -97,7 +97,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     try {
       // CRITICAL: Pro plan requires PayPal subscription first - no trial without payment approval
       if (planName === 'pro') {
-        toast.error('Pro plan requires PayPal subscription. After creating your account, go to Dashboard and click "Upgrade to Pro" to subscribe via PayPal. The 14-day trial starts after PayPal approves your payment.');
+        toast.error(t('billing.proRequiresPayPal'));
         onOpenChange(false);
         if (onPlanSelected) {
           onPlanSelected('free'); // Default to free plan
@@ -106,7 +106,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       } else {
         // For Free plan, use changePlan endpoint
         await api.changePlan(planName);
-        toast.success(`Successfully selected ${plans.find(p => p.name === planName)?.displayName} plan!`);
+        toast.success(t('toast.planSelected', { plan: plans.find(p => p.name === planName)?.displayName }));
       }
       
       if (onPlanSelected) {
@@ -129,12 +129,12 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">
-            {isSignup ? 'Choose Your Plan' : 'Change Plan'}
+            {isSignup ? t('upgrade.choosePlan') : t('upgrade.changePlan')}
           </DialogTitle>
           <DialogDescription>
             {isSignup 
-              ? 'Select a plan to get started. You can change your plan anytime.'
-              : 'Select a new plan. Your current usage will be preserved.'}
+              ? t('upgrade.selectPlanDescription')
+              : t('upgrade.changePlanDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -145,7 +145,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
               className={`relative rounded-xl border-2 p-6 ${
                 plan.popular
                   ? 'border-primary shadow-lg scale-105'
-                  : 'border-slate-200'
+                  : 'border-border'
               }`}
             >
               {plan.popular && (
@@ -156,15 +156,15 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
               )}
 
               <div className="mb-4">
-                <h3 className="text-xl font-semibold text-slate-900">
+                <h3 className="text-xl font-semibold text-foreground">
                   {plan.displayName}
                 </h3>
                 <div className="mt-2">
-                  <span className="text-3xl font-bold text-slate-900">
+                  <span className="text-3xl font-bold text-foreground">
                     {plan.price}
                   </span>
                   {plan.period && (
-                    <span className="text-sm text-slate-500 ml-2">
+                    <span className="text-sm text-muted-foreground ml-2">
                       / {plan.period}
                     </span>
                   )}
@@ -178,7 +178,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
 
               <ul className="space-y-3 mb-6">
                 {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
+                  <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                     <span>{feature}</span>
                   </li>
@@ -219,15 +219,15 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
               </DialogTitle>
               <DialogDescription>
                 {selectedPlanMedia?.name === 'enterprise'
-                  ? 'Contact us for custom media capacity details'
-                  : 'Detailed media file size and transformation limits'}
+                  ? t('upgrade.contactForMediaCapacity')
+                  : t('upgrade.mediaCapacityDetails')}
               </DialogDescription>
             </DialogHeader>
 
             {selectedPlanMedia?.name === 'enterprise' ? (
               <div className="py-6">
-                <p className="text-slate-600 mb-4">
-                  Enterprise plans include custom media capacity limits tailored to your needs.
+                <p className="text-muted-foreground mb-4">
+                  {t('upgrade.enterpriseMediaCapacityDesc')}
                 </p>
                 <Button
                   onClick={() => {
@@ -241,33 +241,33 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
             ) : selectedPlanMedia?.mediaCapacity ? (
               <div className="py-4">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max image file size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageFileSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageFileSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageFileSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max video file size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoFileSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxVideoFileSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoFileSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max raw file size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxRawFileSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxRawFileSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxRawFileSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max image transformation size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageTransformationSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageTransformSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageTransformationSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max video transformation size</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoTransformationSize}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxVideoTransformSize')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoTransformationSize}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                    <span className="text-slate-700 font-medium">Max image megapixel</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxImageMegapixel}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageMegapixel')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageMegapixel}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-slate-700 font-medium">Max megapixel in all frames</span>
-                    <span className="text-slate-900 font-semibold">{selectedPlanMedia.mediaCapacity.maxMegapixelAllFrames}</span>
+                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxMegapixelAllFrames')}</span>
+                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxMegapixelAllFrames}</span>
                   </div>
                 </div>
               </div>
@@ -276,11 +276,9 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
         </Dialog>
 
         {isSignup && (
-          <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-            <p className="text-sm text-slate-600">
-              <strong>Note:</strong> You can start with the Free plan and upgrade anytime. 
-              Pro plan includes a <strong>14-day free trial</strong> that starts after PayPal approves your subscription payment. 
-              Subscribe via PayPal to begin your trial.
+          <div className="mt-6 p-4 bg-secondary rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              <strong>{t('common.note')}:</strong> {t('billing.planSelectionNote')}
             </p>
           </div>
         )}

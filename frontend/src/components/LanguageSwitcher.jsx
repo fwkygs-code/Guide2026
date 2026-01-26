@@ -29,7 +29,7 @@ const LanguageSwitcher = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="flex items-center gap-2 relative z-[10006] text-slate-200 hover:text-white"
+          className="flex items-center gap-2 relative z-[10006] text-muted-foreground hover:text-foreground"
           data-testid="language-switcher-button"
           data-onboarding-allow="true"
         >
@@ -39,20 +39,20 @@ const LanguageSwitcher = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align={i18n.language === 'he' ? 'start' : 'end'}
-        className="bg-white border-slate-200 text-slate-900 z-[10006]"
+        className="bg-popover border-border text-foreground z-[10006]"
         data-onboarding-allow="true"
       >
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
             onClick={() => changeLanguage(lang.code)}
-            className={i18n.language === lang.code ? 'bg-slate-100 text-slate-900' : 'hover:bg-slate-50 text-slate-900'}
+            className={i18n.language === lang.code ? 'bg-accent text-foreground' : 'hover:bg-accent/50 text-foreground'}
             data-testid={`language-option-${lang.code}`}
           >
             <div className="flex items-center justify-between w-full">
               <span>{lang.nativeName}</span>
               {i18n.language === lang.code && (
-                <span className="text-xs text-slate-600">✓</span>
+                <span className="text-xs text-muted-foreground">✓</span>
               )}
             </div>
           </DropdownMenuItem>
