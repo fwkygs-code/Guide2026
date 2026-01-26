@@ -112,7 +112,7 @@ function Card({
 function CardHeader({ system, className = '', children, ...props }) {
   return (
     <div
-      className={cn('relative pb-6', className)}
+      className={cn('relative p-6', className)}
       {...props}
     >
       {/* Subtle gradient accent line */}
@@ -180,7 +180,7 @@ function CardContent({ system, className = '', children, ...props }) {
   return (
     <div
       className={cn(
-        'relative',
+        'relative p-6 pt-0',
         system && TYPOGRAPHY.contentType[system] && TYPOGRAPHY.contentType[system].body,
         className
       )}
