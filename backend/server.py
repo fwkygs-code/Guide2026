@@ -72,6 +72,8 @@ RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL')
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
 RESEND_API_URL = "https://api.resend.com/emails"
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://interguide.app')
+# Main domain for email verification links (should always be the production domain)
+MAIN_DOMAIN = 'https://www.interguide.app'
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
 # IMPORTANT: Sandbox vs Production behavior differences:
 # - Sandbox may NOT open PayPal UI on cancellation (PayPal sandbox limitation)
@@ -776,7 +778,7 @@ def send_invitation_email(email: str, workspace_name: str, inviter_name: str) ->
 
 Please log in to your InterGuide account to accept or decline the invitation.
 
-If you don't have an account, you can sign up at {FRONTEND_URL}/signup.
+If you don't have an account, you can sign up at {MAIN_DOMAIN}/signup.
 
 Best regards,
 InterGuide
@@ -800,8 +802,8 @@ InterGuide
         <p>Hi,</p>
         <p><strong>{inviter_name}</strong> has invited you to collaborate on the workspace <strong>"{workspace_name}"</strong> in InterGuide.</p>
         <p>Please log in to your InterGuide account to accept or decline the invitation.</p>
-        <a href="{FRONTEND_URL}/login" class="button">Log In to InterGuide</a>
-        <p>If you don't have an account, you can <a href="{FRONTEND_URL}/signup">sign up here</a>.</p>
+        <a href="{MAIN_DOMAIN}/login" class="button">Log In to InterGuide</a>
+        <p>If you don't have an account, you can <a href="{MAIN_DOMAIN}/signup">sign up here</a>.</p>
         <div class="footer">
             <p>Best regards,<br>InterGuide</p>
         </div>
@@ -861,7 +863,7 @@ async def send_verification_email_background(user_id: str, email: str, name: str
             logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=RESEND_FROM_EMAIL not configured")
             return
         
-        verification_url = f"{FRONTEND_URL}/verify-email?token={token}"
+        verification_url = f"{MAIN_DOMAIN}/verify-email?token={token}"
         logging.info(f"[EMAIL][URL] user_id={user_id} verification_url={verification_url}")
         
         # Call the Resend email function (sync, but in background task)
@@ -2448,7 +2450,7 @@ async def forgot_password(
             )
 
             # Send reset email in background
-            reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+            reset_url = f"{MAIN_DOMAIN}/reset-password?token={reset_token}"
             background_tasks.add_task(
                 send_password_reset_email,
                 request.email,

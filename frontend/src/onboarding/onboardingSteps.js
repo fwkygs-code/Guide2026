@@ -61,6 +61,7 @@ export const ONBOARDING_STEPS = [
     id: 'completeWalkthrough',
     titleKey: 'onboardingTour.steps.completeWalkthrough.title',
     bodyKey: 'onboardingTour.steps.completeWalkthrough.body',
+    actionKey: 'onboardingTour.finish',
     target: null
   }
 ];

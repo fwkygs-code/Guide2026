@@ -18,6 +18,7 @@ const OnboardingController = () => {
   const [session, setSession] = useState(() => getOnboardingSession());
   const [active, setActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(session?.stepIndex || 0);
+  const [domCheckTrigger, setDomCheckTrigger] = useState(0);
 
   const step = ONBOARDING_STEPS[stepIndex];
   const targetSelector = useMemo(() => {
@@ -148,6 +149,11 @@ const OnboardingController = () => {
     } else if (stepIndex === 7 && setStepRef.current) {
       setStepRef.current(6);
     }
+    
+    // Trigger DOM check after a short delay to ensure DOM is updated
+    setTimeout(() => {
+      setDomCheckTrigger(prev => prev + 1);
+    }, 100);
   }, [stepIndex]);
 
   useEffect(() => {
@@ -240,6 +246,9 @@ const OnboardingController = () => {
   useEffect(() => {
     if (!active) return;
     if (!step) return;
+    
+    // Don't run DOM checking logic for steps 7, 8, and 9 - they have special handling
+    if (stepIndex >= 7) return;
 
     if (stepIndex === 1) {
       if (document.querySelector('[data-onboarding="workspace-create-form"]')) {
@@ -302,7 +311,7 @@ const OnboardingController = () => {
       }
       return;
     }
-  }, [active, step, stepIndex, location.pathname]);
+  }, [active, step, stepIndex, location.pathname, domCheckTrigger]);
 
   useEffect(() => {
     if (!active) return;

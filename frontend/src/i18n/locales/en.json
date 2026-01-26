@@ -1109,6 +1109,7 @@
     "progress": "Step {{current}} of {{total}}",
     "waiting": "Waiting for element to be ready...",
     "skip": "Skip onboarding",
+    "finish": "Finish Tour",
     "welcome": {
       "title": "Welcome to InterGuide!",
       "body": "Let's get you started with a quick tour to create your first workspace, category, and walkthrough.",
