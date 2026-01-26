@@ -1025,7 +1025,6 @@
       "height": "גובה",
       "collapsible": "ניתן לכיווץ",
       "defaultCollapsed": "כיווץ כברירת מחדל",
-      "blocks": "בלוקים",
       "slides": "שקופיות"
     },
     "buttonDefaults": {
@@ -1060,7 +1059,6 @@
     "problemExplanation": "הסבר",
     "addProblem": "הוסף בעיה",
     "removeProblem": "הסר",
-    "blockSettings": "הגדרות בלוק",
     "commonProblems": "בעיות נפוצות",
     "helpUsersTroubleshoot": "עזור למשתמשים לפתור בעיות",
     "existingProblems": "בעיות קיימות",

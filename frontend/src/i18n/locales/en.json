@@ -879,7 +879,6 @@
       "height": "Height",
       "collapsible": "Collapsible",
       "defaultCollapsed": "Default Collapsed",
-      "blocks": "Blocks",
       "slides": "Slides"
     },
     "buttonDefaults": {
@@ -914,7 +913,6 @@
     "problemExplanation": "Explanation",
     "addProblem": "Add Problem",
     "removeProblem": "Remove",
-    "blockSettings": "Block Settings",
     "commonProblems": "Common Problems",
     "helpUsersTroubleshoot": "Help users troubleshoot",
     "existingProblems": "Existing Problems",
