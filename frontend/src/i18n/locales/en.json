@@ -769,6 +769,10 @@
     "annotations": "Annotations",
     "addCenter": "Add Center",
     "iUnderstand": "I understand",
+    "annotatedImage": {
+      "annotations": "Annotations",
+      "addCenter": "Add Center"
+    },
     "addItem": "Add Item",
     "openInNewTab": "Open in new tab",
     "problemTitle": "Problem Title",
@@ -807,7 +811,16 @@
       "annotationDescription": "Annotation description",
       "problemTitle": "Problem title",
       "explanation": "Explanation",
-      "checklistItem": "Checklist item"
+      "checklistItem": "Checklist item",
+      "startTyping": "Start typing..., select text for formatting options",
+      "or": "or",
+      "fileUrl": "File URL",
+      "pasteMediaUrl": "Paste media URL",
+      "enterCode": "Enter code...",
+      "enterHtml": "Enter HTML code...",
+      "remove": "Remove",
+      "removeMedia": "Remove Media",
+      "addMoreSteps": "Add more steps to enable this action"
     },
     "blocks": {
       "heading": "Heading",
@@ -845,6 +858,7 @@
       "buttonText": "Button Text",
       "action": "Action",
       "caption": "Caption",
+      "buttonStyle": "Button Style",
       "alt": "Alt Text",
       "url": "URL",
       "provider": "Provider",

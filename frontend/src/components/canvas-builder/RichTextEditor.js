@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -16,10 +17,12 @@ import { SURFACES, BORDERS } from '../../utils/designTokens';
 const RichTextEditor = ({
   content,
   onChange,
-  placeholder = 'Start typing...',
+  placeholder,
   system = null,
   className = ''
 }) => {
+  const { t } = useTranslation();
+  const translatedPlaceholder = placeholder || t('builder.placeholders.startTyping');
   const [showToolbar, setShowToolbar] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
 
@@ -44,7 +47,7 @@ const RichTextEditor = ({
         },
       }),
       Placeholder.configure({
-        placeholder,
+        placeholder: translatedPlaceholder,
         showOnlyWhenEditable: true,
         showOnlyCurrent: true,
       }),

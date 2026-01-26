@@ -274,7 +274,7 @@ const BuilderV2Page = () => {
               data: block.data || {},
               settings: block.settings || {}
             };
-          }).filter(b => b !== null); // Remove null blocks
+          }).filter(b => b !== null); // {t('builder.placeholders.remove')} null blocks
           
           const stepData = {
             title: step.title || '',
@@ -687,7 +687,7 @@ const BuilderV2Page = () => {
                         size="sm"
                         onClick={() => setSetupData(prev => ({ ...prev, icon_url: '' }))}
                       >
-                        Remove
+                        {t('builder.placeholders.remove')}
                       </Button>
                     </div>
                   ) : (
@@ -864,7 +864,7 @@ const BuilderV2Page = () => {
             try {
               const newStep = {
                 id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                title: `Step ${walkthrough.steps.length + 1}`,
+                title: `${t('walkthrough.step')} ${walkthrough.steps.length + 1}`,
                 content: '', // Required by backend
                 blocks: [],
                 order: walkthrough.steps.length,
@@ -1451,7 +1451,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 onChange={(e) => e.target.files[0] && onMediaUpload(e.target.files[0], block.id)}
                 className="mb-2"
               />
-              <p className="text-sm text-muted-foreground mt-2">or</p>
+              <p className="text-sm text-muted-foreground mt-2">{t('builder.placeholders.or')}</p>
               <Input
                 placeholder={t('builder.blockSettings.url')}
                 onBlur={(e) => {
@@ -1597,7 +1597,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 </SelectContent>
               </Select>
               {(!walkthrough?.steps || walkthrough.steps.length === 0) && (
-                <p className="text-xs text-muted-foreground mt-1">Add more steps to enable this action</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('builder.placeholders.addMoreSteps')}</p>
               )}
             </div>
           )}
@@ -1680,7 +1680,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           })()}
           
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Button Style</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.buttonStyle')}</Label>
             <Select
               value={block.data.style || 'primary'}
               onValueChange={(value) => onUpdate({ data: { ...block.data, style: value } })}
@@ -2029,7 +2029,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           <Textarea
             value={block.data?.code || ''}
             onChange={(e) => onUpdate({ data: { ...block.data, code: e.target.value } })}
-            placeholder="Enter code..."
+            placeholder={t('builder.placeholders.enterCode')}
             rows={6}
             className="font-mono text-sm"
           />
@@ -2042,7 +2042,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           <Textarea
             value={block.data?.html || ''}
             onChange={(e) => onUpdate({ data: { ...block.data, html: e.target.value } })}
-            placeholder="Enter HTML code..."
+            placeholder={t('builder.placeholders.enterHtml')}
             rows={8}
             className="font-mono text-sm"
           />
@@ -2102,9 +2102,9 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 }}
                 className="mb-2"
               />
-              <p className="text-sm text-muted-foreground mt-2">or</p>
+              <p className="text-sm text-muted-foreground mt-2">{t('builder.placeholders.or')}</p>
               <Input
-                placeholder="File URL"
+                placeholder={t('builder.placeholders.fileUrl')}
                 onBlur={(e) => {
                   if (e.target.value) {
                     onUpdate({ data: { ...block.data, url: e.target.value } });
@@ -3621,7 +3621,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
               disabled={slides.length <= 1}
             >
               <X className="w-4 h-4 mr-1" />
-              Remove
+              {t('builder.placeholders.remove')}
             </Button>
             <Button
               variant="outline"
@@ -3654,7 +3654,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                       updateSlide(activeIndex, { url: '', file_id: null });
                     }}
                   >
-                    Remove Media
+                    {t('builder.placeholders.removeMedia')}
                   </Button>
                 </div>
               ) : (
@@ -3675,7 +3675,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                       )}
                   <p className="text-xs text-muted-foreground">or</p>
                   <Input
-                    placeholder="Paste media URL"
+                    placeholder={t('builder.placeholders.pasteMediaUrl')}
                     onBlur={(e) => {
                       if (e.target.value) {
                         const url = normalizeImageUrl(e.target.value);

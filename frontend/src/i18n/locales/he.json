@@ -916,6 +916,10 @@
     "annotations": "הערות",
     "addCenter": "הוסף מרכז",
     "iUnderstand": "אני מבין",
+    "annotatedImage": {
+      "annotations": "הערות",
+      "addCenter": "הוסף מרכז"
+    },
     "addItem": "הוסף פריט",
     "openInNewTab": "פתח בטאב חדש",
     "problemTitle": "כותרת בעיה",
@@ -954,7 +958,16 @@
       "annotationDescription": "תיאור הערה",
       "problemTitle": "כותרת בעיה",
       "explanation": "הסבר",
-      "checklistItem": "פריט ברשימת משימות"
+      "checklistItem": "פריט ברשימת משימות",
+      "startTyping": "התחל להקליד..., בחר טקסט לאפשרויות עיצוב",
+      "or": "או",
+      "fileUrl": "כתובת קובץ",
+      "pasteMediaUrl": "הדבק כתובת מדיה",
+      "enterCode": "הכנס קוד...",
+      "enterHtml": "הכנס קוד HTML...",
+      "remove": "הסר",
+      "removeMedia": "הסר מדיה",
+      "addMoreSteps": "הוסף שלבים נוספים כדי לאפשר פעולה זו"
     },
     "blocks": {
       "heading": "כותרת",
@@ -992,6 +1005,7 @@
       "buttonText": "טקסט הכפתור",
       "action": "פעולה",
       "caption": "כיתוב",
+      "buttonStyle": "סגנון כפתור",
       "alt": "טקסט חלופי",
       "url": "כתובת URL",
       "provider": "ספק",
