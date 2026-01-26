@@ -22,7 +22,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
       features: [
         t('upgrade.planFeatures.workspace', { count: 1 }),
         t('upgrade.planFeatures.categories', { count: 3 }),
-        t('upgrade.planFeatures.walkthroughs', { count: 10 }),
+        t('upgrade.planFeatures.walkthroughs', { count: 5 }),
         t('upgrade.planFeatures.storage', { size: '500 MB' }),
         t('upgrade.planFeatures.maxFileSize', { size: '10 MB' }),
         t('upgrade.planFeatures.basicSupport')

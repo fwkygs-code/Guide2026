@@ -42,7 +42,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
       features: [
         '1 workspace',
         '3 categories',
-        '10 walkthroughs',
+        '5 walkthroughs',
         '500 MB storage',
         '10 MB max file size'
       ],

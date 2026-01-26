@@ -184,7 +184,7 @@
    - Current: No handling
    - Solution: Mark excess workspaces as read-only, prevent new workspace creation
 
-3. **Walkthrough Count Over Limit**: Workspace has 15 walkthroughs, downgrades to 10
+3. **Walkthrough Count Over Limit**: Workspace has 15 walkthroughs, downgrades to 5
    - Current: No handling
    - Solution: Mark excess walkthroughs as read-only, prevent new walkthrough creation
 
@@ -359,7 +359,7 @@
    - Verify existing workspaces functional
 
 3. **Walkthrough Over Limit**
-   - Workspace has 15 walkthroughs, downgrade to 10
+   - Workspace has 15 walkthroughs, downgrade to 5
    - Verify excess walkthroughs marked read-only
    - Verify new walkthrough creation blocked
 

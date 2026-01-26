@@ -2068,7 +2068,7 @@ async def initialize_default_plans():
             "display_name": "Free",
             "max_workspaces": 1,
             "max_categories": 3,
-            "max_walkthroughs": 10,
+            "max_walkthroughs": 5,
             "storage_bytes": 500 * 1024 * 1024,  # 500 MB
             "max_file_size_bytes": 10 * 1024 * 1024,  # 10 MB
             "extra_storage_increment_bytes": None,

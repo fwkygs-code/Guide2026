@@ -36,7 +36,7 @@ Three default plans are automatically created on server startup:
 1. **Free Plan**
    - 1 workspace
    - 3 categories
-   - 10 walkthroughs
+   - 5 walkthroughs
    - 500 MB storage
    - 10 MB max file size
    - No extra storage available
@@ -117,13 +117,13 @@ Returns workspace quota usage:
   "plan": {...},
   "usage": {
     "walkthrough_count": 5,
-    "walkthrough_limit": 10,
+    "walkthrough_limit": 5,
     "category_count": 2,
     "category_limit": 3,
     "storage_bytes": 123456
   },
   "limits": {
-    "max_walkthroughs": 10,
+    "max_walkthroughs": 5,
     "max_categories": 3,
     "max_file_size_bytes": 10485760
   }
