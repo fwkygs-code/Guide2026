@@ -666,7 +666,6 @@ const BuilderV2Page = () => {
                     placeholder={t('walkthrough.enterDescription')}
                     rows={3}
                     className="w-full"
-                    required
                   />
                 </div>
 

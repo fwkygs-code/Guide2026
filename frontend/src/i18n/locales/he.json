@@ -650,7 +650,6 @@
     "editSettings": "ערוך הגדרות מדריך",
     "editSettingsDescription": "עדכן שם מדריך, תיאור, אייקון וקטגוריות",
     "name": "שם מדריך",
-  "description": "תיאור"
     "urlName": "שם URL (אופציונלי)",
     "iconPhoto": "אייקון/תמונה (אופציונלי)",
     "deleteForever": "מחק לנצח",
@@ -1424,6 +1423,11 @@
     "provider": "ספק",
     "freeTrialActive": "ניסיון חינם פעיל",
     "trialEndsOn": "הניסיון שלך מסתיים ב-{{date}}",
+    "builder": {
+  "labels": {
+    "description": "תיאור"
+  }
+},
     "afterTrialBilling": "לאחר הניסיון, החיוב יתרחש ב-$5/חודש כפי שנקבע על ידי PayPal.",
     "currentPeriodEnds": "תקופת החיוב הנוכחית מסתיימת",
     "nextBillingDate": "תאריך החיוב הבא",
