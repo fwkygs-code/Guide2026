@@ -113,9 +113,6 @@
     "accent": "הדגשה",
     "portalContactInfo": "פרטי יצירת קשר בפורטל",
     "addContactInfo": "הוסף פרטי יצירת קשר שיופיעו בחלק העליון של הפורטל",
-    "brandColor": "צבע מותג",
-"workspaceLogo": "לוגו אזור עבודה", 
-"portalBackgroundImage": "תמונת רקע פורטל",
     "phoneNumber": "מספר טלפון",
     "phoneExample": "לדוגמה: +972-50-123-4567",
     "workingHours": "שעות עבודה",
@@ -650,7 +647,6 @@
     "editSettings": "ערוך הגדרות מדריך",
     "editSettingsDescription": "עדכן שם מדריך, תיאור, אייקון וקטגוריות",
     "name": "שם מדריך",
-  "description": "תיאור"
     "urlName": "שם URL (אופציונלי)",
     "iconPhoto": "אייקון/תמונה (אופציונלי)",
     "deleteForever": "מחק לנצח",

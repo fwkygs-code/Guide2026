@@ -113,21 +113,21 @@ const EmailVerificationRequiredPage = () => {
               Log Out
             </Button>
           </div>
+
+          {/* Support Contact */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              For support / bug report contact:{' '}
+              <a 
+                href="mailto:support@interguide.app" 
+                className="text-primary hover:text-primary/80 font-medium underline"
+              >
+                support@interguide.app
+              </a>
+            </p>
+          </div>
         </CardContent>
       </Card>
-      
-      {/* Support Contact */}
-      <div className="mt-6 text-center">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          For support / bug report contact:{' '}
-          <a 
-            href="mailto:support@interguide.app" 
-            className="text-primary hover:text-primary/80 font-medium underline"
-          >
-            support@interguide.app
-          </a>
-        </p>
-      </div>
     </div>
   );
 };

@@ -178,7 +178,7 @@ const DashboardPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="brand-color" className="text-slate-900">Brand Color</Label>
+                  <Label htmlFor="brand-color" className="text-slate-900">{t('workspace.brandColor')}</Label>
                   <div className="flex gap-3 mt-1.5">
                     <Input
                       id="brand-color"
@@ -199,7 +199,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="workspace-logo" className="text-slate-900">Workspace Logo</Label>
+                  <Label htmlFor="workspace-logo" className="text-slate-900">{t('workspace.workspaceLogo')}</Label>
                   <div className="mt-1.5 space-y-2">
                     {newWorkspaceLogo && (
                       <div className="relative">
@@ -244,7 +244,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="workspace-background" className="text-slate-900">Portal Background Image</Label>
+                  <Label htmlFor="workspace-background" className="text-slate-900">{t('workspace.portalBackgroundImage')}</Label>
                   <div className="mt-1.5 space-y-2">
                     {newWorkspaceBackground && (
                       <div className="relative">

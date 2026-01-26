@@ -581,7 +581,7 @@ Guide2026
     <style>
         body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
         .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .button {{ display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .button {{ display: inline-block; padding: 12px 24px; background-color: #4f46e5 !important; color: #ffffff !important; text-decoration: none !important; border-radius: 5px; margin: 20px 0; font-weight: bold; text-align: center; }}
         .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
     </style>
 </head>
