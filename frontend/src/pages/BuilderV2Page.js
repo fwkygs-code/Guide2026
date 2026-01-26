@@ -788,7 +788,7 @@ const BuilderV2Page = () => {
       <div className="h-14 flex-shrink-0 border-b border-border bg-card flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={() => navigate('/dashboard')}
           >
@@ -812,14 +812,14 @@ const BuilderV2Page = () => {
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <div className="h-6 w-px bg-slate-200" />
-          <Button variant="ghost" size="sm" disabled title={t('builder.buttons.undo')}>
+          <Button variant="secondary" size="sm" disabled title={t('builder.buttons.undo')}>
             <Undo2 className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" disabled title={t('builder.buttons.redo')}>
+          <Button variant="secondary" size="sm" disabled title={t('builder.buttons.redo')}>
             <Redo2 className="w-4 h-4" />
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={() => window.open(`/portal/${workspaceSlug}/${walkthroughId || 'preview'}`, '_blank')}
           >
@@ -987,7 +987,7 @@ const StepNavigator = ({ steps, currentStepIndex, onStepClick, onAddStep, onDele
     <div className="w-64 flex-shrink-0 border-r border-border bg-card overflow-hidden flex flex-col">
       <div className="p-4 border-b border-border flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">{t('walkthrough.steps')}</h2>
-        <Button variant="ghost" size="sm" onClick={onAddStep} className="h-7 w-7 p-0" data-onboarding="add-step-button">
+        <Button variant="secondary" size="sm" onClick={onAddStep} className="h-7 w-7 p-0" data-onboarding="add-step-button">
           <Plus className="w-4 h-4" />
         </Button>
       </div>

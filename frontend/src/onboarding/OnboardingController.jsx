@@ -148,6 +148,9 @@ const OnboardingController = () => {
       setStepRef.current(4);
     } else if (stepIndex === 7 && setStepRef.current) {
       setStepRef.current(6);
+    } else if (stepIndex === 8 && setStepRef.current) {
+      // If user exits walkthrough creation in step 8, go back to step 7
+      setStepRef.current(7);
     }
     
     // Trigger DOM check after a short delay to ensure DOM is updated
@@ -247,8 +250,9 @@ const OnboardingController = () => {
     if (!active) return;
     if (!step) return;
     
-    // Don't run DOM checking logic for steps 7, 8, and 9 - they have special handling
-    if (stepIndex >= 7) return;
+    // Don't run DOM checking logic for steps 8 and 9 - they have special handling
+    // But keep step 7 to handle walkthrough creation state
+    if (stepIndex >= 8) return;
 
     if (stepIndex === 1) {
       if (document.querySelector('[data-onboarding="workspace-create-form"]')) {
@@ -276,8 +280,8 @@ const OnboardingController = () => {
         setStepRef.current?.(4);
         return;
       }
-      // If no workspace cards exist, go back to step 1
-      if (!document.querySelector('[data-onboarding="workspace-card"]')) {
+      // If no workspace cards exist and we're not in creation dialog, go back to step 1
+      if (!document.querySelector('[data-onboarding="workspace-card"]') && !document.querySelector('[data-onboarding="workspace-create-form"]')) {
         setStepRef.current?.(1);
         return;
       }
@@ -305,6 +309,10 @@ const OnboardingController = () => {
       const walkthroughEl = document.querySelector('[data-onboarding="walkthrough-card"]');
       if (walkthroughEl) {
         setStepRef.current?.(8, { walkthroughId: walkthroughEl.getAttribute('data-onboarding-walkthrough-id') });
+      } else if (location.pathname === '/dashboard') {
+        // If user is on dashboard, they should create a walkthrough, so stay in step 7
+        // Don't change step, let them navigate to walkthroughs
+        return;
       } else if (!document.querySelector('[data-onboarding="walkthrough-setup-form"]') && !document.querySelector('[data-onboarding="create-walkthrough-button"]')) {
         // If walkthrough creation form is not visible and no walkthrough cards exist, go back to step 6
         setStepRef.current?.(6);
