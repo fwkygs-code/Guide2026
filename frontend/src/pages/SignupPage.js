@@ -182,14 +182,14 @@ const SignupPage = () => {
       const emailSent = result?.email_verification_sent;
       
       if (emailSent) {
-        toast.success('Account created! Please check your email to verify your account.', {
+        toast.success(t('auth.accountCreatedEmailVerification'), {
           duration: 6000
         });
       } else {
-        toast.success('Account created successfully!', {
+        toast.success(t('toast.accountCreated'), {
           duration: 4000
         });
-        toast.info('Email verification email could not be sent. You can resend it from the dashboard.', {
+        toast.info(t('auth.verificationEmailNotSent'), {
           duration: 6000
         });
       }

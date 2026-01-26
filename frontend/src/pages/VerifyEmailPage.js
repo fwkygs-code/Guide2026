@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react';
@@ -20,34 +20,14 @@ const VerifyEmailPage = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
+  const auth = useAuth();
+  const { user, refreshUser } = auth;
   const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
   const [message, setMessage] = useState('');
   const [resending, setResending] = useState(false);
   const verificationAttempted = React.useRef(false);
 
-  useEffect(() => {
-    if (window.location.hostname.includes('onrender.com')) {
-      window.location.replace(`https://interguide.app${window.location.pathname}${window.location.search}`);
-      return;
-    }
-
-    // Prevent double verification attempts (React StrictMode or re-renders)
-    if (verificationAttempted.current) {
-      return;
-    }
-
-    const token = searchParams.get('token');
-    if (token) {
-      verificationAttempted.current = true;
-      verifyEmail(token);
-    } else {
-      setStatus('error');
-      setMessage('No verification token provided.');
-    }
-  }, [searchParams]);
-
-  const verifyEmail = async (token) => {
+  const verifyEmail = useCallback(async (token) => {
     try {
       const response = await axios.get(`${API}/auth/verify-email`, {
         params: { token }
@@ -97,7 +77,35 @@ const VerifyEmailPage = () => {
         toast.error('Email verification failed. Please try again or request a new link.');
       }
     }
-  };
+  }, [refreshUser, navigate]);
+
+  useEffect(() => {
+    try {
+      if (window.location.hostname.includes('onrender.com')) {
+        window.location.replace(`https://interguide.app${window.location.pathname}${window.location.search}`);
+        return;
+      }
+
+      // Prevent double verification attempts (React StrictMode or re-renders)
+      if (verificationAttempted.current) {
+        return;
+      }
+
+      const token = searchParams.get('token');
+      if (token) {
+        verificationAttempted.current = true;
+        verifyEmail(token);
+      } else {
+        setStatus('error');
+        setMessage('No verification token provided.');
+      }
+    } catch (error) {
+      console.error('Email verification initialization error:', error);
+      setStatus('error');
+      setMessage('An error occurred during email verification. Please try again.');
+      toast.error('Email verification failed. Please try again.');
+    }
+  }, [searchParams, verifyEmail]);
 
   const handleResend = async () => {
     if (!user) {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -46,7 +46,7 @@ const OnboardingController = () => {
     setSession(nextSession);
     setStepIndex(nextIndex);
     setActive(true);
-  }, [user?.id, markCompleted]);
+  }, [user?.id]);
 
   const markDismissed = useCallback(async () => {
     try {
@@ -286,7 +286,7 @@ const OnboardingController = () => {
     if (stepState.hasStep && stepState.hasTitle && stepState.hasBlock) {
       setStep(9); // Move to completion step
     }
-  }, [active, stepIndex, session, setStep]);
+  }, [active, stepIndex, session]);
 
   if (!active || !step) return null;
 

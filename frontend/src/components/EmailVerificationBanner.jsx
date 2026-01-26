@@ -45,12 +45,11 @@ const EmailVerificationBanner = ({ user, onVerify }) => {
     <Alert className="mb-6 border-blue-200 bg-blue-50">
       <AlertCircle className="h-4 w-4 text-blue-600" />
       <AlertTitle className="text-blue-900 font-semibold">
-        Email Verification Required
+        {t('auth.emailVerificationRequired')}
       </AlertTitle>
       <AlertDescription className="text-blue-800 mt-2">
         <p className="mb-3">
-          Please verify your email address to unlock Pro features and upgrade your plan. 
-          Check your inbox for the verification email.
+          {t('auth.emailVerificationBannerDescription')}
         </p>
         <div className="flex gap-2">
           <Button
@@ -63,12 +62,12 @@ const EmailVerificationBanner = ({ user, onVerify }) => {
             {resending ? (
               <>
                 <Mail className="w-4 h-4 mr-2 animate-pulse" />
-                Sending...
+                {t('auth.sending')}...
               </>
             ) : (
               <>
                 <Mail className="w-4 h-4 mr-2" />
-                Resend Email
+                {t('auth.resendEmail')}
               </>
             )}
           </Button>

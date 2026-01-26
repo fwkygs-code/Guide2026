@@ -71,19 +71,18 @@ const EmailVerificationRequiredPage = () => {
       <Card variant="glass" className="w-full max-w-md">
         <CardHeader className="text-center">
           <AlertCircle className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-          <CardTitle>Email Verification Required</CardTitle>
+          <CardTitle>{t('auth.emailVerificationRequired')}</CardTitle>
           <CardDescription>
-            Please verify your email address to access the dashboard.
+            {t('auth.emailVerificationDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900 mb-3">
-              We've sent a verification email to <strong>{user.email}</strong>. 
-              Please check your inbox and click the verification link.
+              {t('auth.verificationEmailSent', { email: user.email })}
             </p>
             <p className="text-xs text-blue-700">
-              Don't see the email? Check your spam folder or click the button below to resend.
+              {t('auth.verificationEmailCheckSpam')}
             </p>
           </div>
 
@@ -96,12 +95,12 @@ const EmailVerificationRequiredPage = () => {
               {resending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
+                  {t('auth.sending')}...
                 </>
               ) : (
                 <>
                   <Mail className="w-4 h-4 mr-2" />
-                  Resend Verification Email
+                  {t('auth.resendVerificationEmail')}
                 </>
               )}
             </Button>
@@ -110,14 +109,14 @@ const EmailVerificationRequiredPage = () => {
               variant="outline"
               className="w-full"
             >
-              Log Out
+              {t('auth.logout')}
             </Button>
           </div>
 
           {/* Support Contact */}
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              For support / bug report contact:{' '}
+              {t('auth.supportContact')}{' '}
               <a 
                 href="mailto:support@interguide.app" 
                 className="text-primary hover:text-primary/80 font-medium underline"
