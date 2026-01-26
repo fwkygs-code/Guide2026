@@ -758,9 +758,9 @@ const PortalPage = ({ isEmbedded = false }) => {
               >
                 <FolderOpen className="w-4 h-4 mr-3" style={{ color: primaryColor }} />
                 <div className="text-left flex-1">
-                  <div className="font-medium text-foreground">{category.name}</div>
+                  <div className="font-medium text-slate-900">{category.name}</div>
                   {category.description && (
-                    <div className="text-xs text-muted-foreground mt-0.5">{category.description}</div>
+                    <div className="text-xs text-slate-600 mt-0.5">{category.description}</div>
                   )}
                 </div>
               </Button>
@@ -852,18 +852,18 @@ const PortalPage = ({ isEmbedded = false }) => {
       <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Admin Dashboard</DialogTitle>
+            <DialogTitle>{t('portal.adminDialog.title')}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <p className="text-sm text-slate-300">
-              You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?
+              {t('portal.adminDialog.message')}
             </p>
             <div className="flex gap-3 justify-end">
               <Button
                 variant="outline"
                 onClick={() => setAdminDialogOpen(false)}
               >
-                Stay in Portal
+                {t('portal.adminDialog.stayInPortal')}
               </Button>
               <Button
                 onClick={() => {
@@ -871,7 +871,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                   navigate('/dashboard');
                 }}
               >
-                Go to Dashboard
+                {t('portal.adminDialog.goToDashboard')}
               </Button>
             </div>
           </div>

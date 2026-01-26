@@ -375,7 +375,26 @@
     "poweredBy": "Powered by InterGuide",
     "wantKnowledgeBase": "Want a knowledge base center for yourself?",
     "getStarted": "Get Started",
-    "backToPortal": "Back to Portal"
+    "backToPortal": "Back to Portal",
+    "adminDialog": {
+      "title": "Admin Dashboard",
+      "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
+      "stayInPortal": "Stay in Portal",
+      "goToDashboard": "Go to Dashboard"
+    },
+    "knowledgeSystems": {
+      "title": "Knowledge Systems",
+      "description": "Browse published policies, procedures, docs, FAQs, and decisions.",
+      "available": "{{count}} available",
+      "none": "No knowledge systems published yet.",
+      "labels": {
+        "policies": "Policies",
+        "procedures": "Procedures",
+        "documentation": "Documentation",
+        "faqs": "FAQs",
+        "decisions": "Decision Trees"
+      }
+    }
   },
   "category": {
     "create": "Create Category",
