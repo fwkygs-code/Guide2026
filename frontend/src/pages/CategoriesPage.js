@@ -265,6 +265,7 @@ const CategoriesPage = () => {
             setNewCategoryDesc('');
             setNewCategoryIcon('');
             setNewCategoryNotebooklmUrl('');
+            window.dispatchEvent(new CustomEvent('onboarding:dialogClosed'));
           }
         }}>
           <DialogContent className="max-h-[90vh] overflow-y-auto z-[9999] text-foreground">

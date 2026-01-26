@@ -1131,6 +1131,10 @@
         "title": "Create Your First Walkthrough",
         "body": "Click \"+ New Walkthrough\" to create an interactive guide."
       },
+      "completeWalkthrough": {
+        "title": "Congratulations! 🎉",
+        "body": "You've successfully created your first walkthrough! You can now add more steps, customize content, and share your guide with others. The onboarding tour is complete."
+      },
       "addFirstStep": {
         "title": "Add Content to Your Walkthrough",
         "body": "Click the \"+\" button to add a step, give it a title, then click \"+\" again to add content blocks."

@@ -159,7 +159,12 @@ const DashboardPage = () => {
       />
 
       <PageSurface>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <Dialog open={createDialogOpen} onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) {
+            window.dispatchEvent(new CustomEvent('onboarding:dialogClosed'));
+          }
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="text-foreground">{t('workspace.create')}</DialogTitle>

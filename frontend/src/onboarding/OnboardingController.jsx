@@ -29,8 +29,12 @@ const OnboardingController = () => {
 
   const setStep = useCallback((nextIndex, updates = {}) => {
     if (nextIndex < 0 || nextIndex >= ONBOARDING_STEPS.length) {
-      clearOnboardingSession();
-      setActive(false);
+      if (nextIndex >= ONBOARDING_STEPS.length) {
+        markCompleted();
+      } else {
+        clearOnboardingSession();
+        setActive(false);
+      }
       return;
     }
     const nextSession = updateOnboardingSession({
@@ -42,7 +46,7 @@ const OnboardingController = () => {
     setSession(nextSession);
     setStepIndex(nextIndex);
     setActive(true);
-  }, []);
+  }, [user?.id, markCompleted]);
 
   const markDismissed = useCallback(async () => {
     try {
@@ -178,6 +182,20 @@ const OnboardingController = () => {
       }
     };
 
+    const handleDialogClosed = () => {
+      // Handle when dialogs are closed/cancelled
+      if (stepIndex === 2) {
+        // Workspace creation dialog closed, go back to step 1
+        setStep(1);
+      } else if (stepIndex === 5) {
+        // Category creation dialog closed, go back to step 4
+        setStep(4);
+      } else if (stepIndex === 7) {
+        // Walkthrough creation dialog closed, go back to step 6
+        setStep(6);
+      }
+    };
+
     window.addEventListener('onboarding:createWorkspace', handleCreateWorkspace);
     window.addEventListener('onboarding:workspaceCreated', handleWorkspaceCreated);
     window.addEventListener('onboarding:workspaceEntered', handleWorkspaceEntered);
@@ -188,6 +206,7 @@ const OnboardingController = () => {
     window.addEventListener('onboarding:stepAdded', handleStepAdded);
     window.addEventListener('onboarding:stepTitleUpdated', handleStepTitleUpdated);
     window.addEventListener('onboarding:blockAdded', handleBlockAdded);
+    window.addEventListener('onboarding:dialogClosed', handleDialogClosed);
 
     return () => {
       window.removeEventListener('onboarding:createWorkspace', handleCreateWorkspace);
@@ -200,6 +219,7 @@ const OnboardingController = () => {
       window.removeEventListener('onboarding:stepAdded', handleStepAdded);
       window.removeEventListener('onboarding:stepTitleUpdated', handleStepTitleUpdated);
       window.removeEventListener('onboarding:blockAdded', handleBlockAdded);
+      window.removeEventListener('onboarding:dialogClosed', handleDialogClosed);
     };
   }, [active, stepIndex]);
 
@@ -264,9 +284,9 @@ const OnboardingController = () => {
     if (!active || stepIndex !== 8) return;
     const stepState = session?.step8 || {};
     if (stepState.hasStep && stepState.hasTitle && stepState.hasBlock) {
-      markCompleted();
+      setStep(9); // Move to completion step
     }
-  }, [active, stepIndex, session, markCompleted]);
+  }, [active, stepIndex, session, setStep]);
 
   if (!active || !step) return null;
 

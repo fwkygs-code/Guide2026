@@ -57,4 +57,10 @@ export const ONBOARDING_STEPS = [
       '[data-onboarding="create-walkthrough-button"]'
     ]
   },
+  {
+    id: 'completeWalkthrough',
+    titleKey: 'onboardingTour.steps.completeWalkthrough.title',
+    bodyKey: 'onboardingTour.steps.completeWalkthrough.body',
+    target: null
+  }
 ];

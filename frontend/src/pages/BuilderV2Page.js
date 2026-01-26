@@ -749,7 +749,10 @@ const BuilderV2Page = () => {
                 <div className="flex gap-3 pt-4">
                   <Button
                     variant="outline"
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('onboarding:dialogClosed'));
+                      navigate('/dashboard');
+                    }}
                   >
                     {t('common.cancel')}
                   </Button>
