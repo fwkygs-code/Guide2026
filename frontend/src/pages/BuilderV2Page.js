@@ -1066,6 +1066,7 @@ const CanvasStage = ({
   canUploadFile,
   walkthrough
 }) => {
+  const { t } = useTranslation();
   if (!currentStep) {
     return (
       <div className="min-h-full flex items-center justify-center">
@@ -3730,6 +3731,7 @@ const InspectorPanel = ({
   onMediaUpload,
   canUploadFile
 }) => {
+  const { t } = useTranslation();
   // Always show Building Tips panel (never show Block Settings)
   // Block settings removed per user request - keep tips panel visible
   
