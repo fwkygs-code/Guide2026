@@ -174,6 +174,7 @@ const WalkthroughsPage = () => {
     setEditingWalkthrough(walkthrough);
     setEditSettings({
       title: walkthrough.title || '',
+      slug: walkthrough.slug || '',
       description: walkthrough.description || '',
       icon_url: walkthrough.icon_url || '',
       category_ids: walkthrough.category_ids || []
@@ -188,13 +189,19 @@ const WalkthroughsPage = () => {
     }
 
     try {
-      await api.updateWalkthrough(workspaceId, editingWalkthrough.id, {
+      const updateData = {
         title: editSettings.title.trim(),
-        slug: editSettings.slug?.trim() || null,
         description: editSettings.description || '',
         category_ids: editSettings.category_ids || [],
         icon_url: editSettings.icon_url || null
-      });
+      };
+      
+      // Only include slug if it has a value (not empty or just whitespace)
+      if (editSettings.slug?.trim()) {
+        updateData.slug = editSettings.slug.trim();
+      }
+      
+      await api.updateWalkthrough(workspaceId, editingWalkthrough.id, updateData);
       
       // Update local state (refresh from server to get updated slug)
       const updatedResponse = await api.getWalkthrough(workspaceId, editingWalkthrough.id);

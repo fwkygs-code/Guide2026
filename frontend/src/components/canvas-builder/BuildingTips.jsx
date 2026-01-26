@@ -159,7 +159,7 @@ const BuildingTips = () => {
             variant={!showBlockReference ? 'default' : 'outline'}
             size="sm"
             onClick={() => { setShowBlockReference(false); setSelectedBlock(null); }}
-            className="h-8 text-xs"
+            className="h-8 text-xs text-foreground"
           >
             <Lightbulb className="w-3 h-3 mr-1" />
             {currentLang === 'he' ? 'טיפים' : 'Tips'}
@@ -168,7 +168,7 @@ const BuildingTips = () => {
             variant={showBlockReference ? 'default' : 'outline'}
             size="sm"
             onClick={() => setShowBlockReference(true)}
-            className="h-8 text-xs"
+            className="h-8 text-xs text-foreground"
           >
             <BookOpen className="w-3 h-3 mr-1" />
             {currentLang === 'he' ? 'בלוקים' : 'Blocks'}

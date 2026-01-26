@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
@@ -7,6 +7,11 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const BillingPolicyPage = () => {
   const { t } = useTranslation();
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">

@@ -31,6 +31,11 @@ function PolicyPortalPage() {
     loadSystem();
   }, [slug]);
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     console.log('[PolicyPortal] publishedPolicies state changed:', publishedPolicies);
     console.log('[PolicyPortal] publishedPolicies length:', publishedPolicies?.length);

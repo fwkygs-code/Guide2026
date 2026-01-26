@@ -252,6 +252,21 @@ code {
   outline: none;
 }
 
+/* Fix cursor behavior - only explicitly editable elements should show text cursor */
+[contenteditable="true"], input, textarea, .ProseMirror, .inline-rich-editor [contenteditable] {
+  cursor: text;
+}
+
+/* Prevent text cursor on all other elements */
+*:not([contenteditable="true"]):not(input):not(textarea):not(.ProseMirror):not(.inline-rich-editor [contenteditable]) {
+  cursor: default !important;
+}
+
+/* Override for interactive elements */
+button, [role="button"], a, [role="link"], select, option, label, .cursor-pointer, .pointer {
+  cursor: pointer !important;
+}
+
 [contenteditable]:empty:before {
   content: attr(placeholder);
   color: hsl(var(--muted-foreground));

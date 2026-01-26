@@ -277,7 +277,7 @@ const CategoriesPage = () => {
               </DialogHeader>
               <form onSubmit={handleCreateCategory} className="space-y-4 mt-4" data-onboarding="category-create-form">
                 <div>
-                  <Label htmlFor="category-name">{t('category.name')}</Label>
+                  <Label htmlFor="category-name" className="text-foreground">{t('category.name')}</Label>
                   <Input
                     id="category-name"
                     value={newCategoryName}
@@ -289,7 +289,7 @@ const CategoriesPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="category-desc">{t('category.description')}</Label>
+                  <Label htmlFor="category-desc" className="text-foreground">{t('category.description')}</Label>
                   <Textarea
                     id="category-desc"
                     value={newCategoryDesc}
@@ -302,7 +302,7 @@ const CategoriesPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="category-icon">{t('category.icon')}</Label>
+                  <Label htmlFor="category-icon" className="text-foreground">{t('category.icon')}</Label>
                   <div className="space-y-2 mt-1.5">
                     {newCategoryIcon ? (
                       <div className="flex items-center gap-2">
@@ -349,7 +349,7 @@ const CategoriesPage = () => {
                 </div>
                 {!creatingForParent && (
                   <div>
-                    <Label htmlFor="category-parent">{t('category.parentCategory')}</Label>
+                    <Label htmlFor="category-parent" className="text-foreground">{t('category.parentCategory')}</Label>
                     <Select 
                       value={newCategoryParent || 'none'} 
                       onValueChange={(value) => setNewCategoryParent(value === 'none' ? undefined : value)}
@@ -392,7 +392,7 @@ const CategoriesPage = () => {
                   </div>
                 )}
                 <div>
-                  <Label htmlFor="category-notebooklm-url">{t('category.notebooklmUrl')}</Label>
+                  <Label htmlFor="category-notebooklm-url" className="text-foreground">{t('category.notebooklmUrl')}</Label>
                   <Input
                     id="category-notebooklm-url"
                     type="url"
@@ -479,15 +479,16 @@ const CategoriesPage = () => {
 
                     {/* Stats */}
                     <div className="flex justify-between text-sm mb-4">
-                      <span className="text-slate-400">{t('workspace.subCategories')}:</span>
+                      <span className="text-slate-400">{t('categories.subCategories')}:</span>
                       <span className="text-white font-medium">{category.children.length}</span>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">
                       <Button
-                        variant="outline"
-                        className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-foreground border-white/30 transition-all duration-200"
                         onClick={() => openCreateSubCategory(category.id, category.name)}
                         data-testid={`create-subcategory-${category.id}`}
                       >
@@ -498,7 +499,7 @@ const CategoriesPage = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditDialog(category)}
-                        className="bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
+                        className="bg-white/10 hover:bg-white/20 text-foreground border-white/30 transition-all duration-200"
                         data-testid={`edit-category-${category.id}`}
                       >
                         <Edit className="w-4 h-4 mr-2" />
@@ -523,7 +524,7 @@ const CategoriesPage = () => {
                         animate={{ opacity: 1, height: 'auto' }}
                         className="space-y-2 mt-4 pt-4 border-t border-white/20"
                       >
-                        <div className="text-sm font-medium text-slate-300 mb-2">Sub-categories:</div>
+                        <div className="text-sm font-medium text-slate-300 mb-2">{t('categories.subCategories')}:</div>
                         <div className="grid grid-cols-1 gap-2">
                           {category.children.map((subCat) => (
                             <div
@@ -553,7 +554,7 @@ const CategoriesPage = () => {
                                   variant="ghost"
                                   onClick={() => openEditDialog(subCat)}
                                   data-testid={`edit-subcategory-${subCat.id}`}
-                                  className="h-6 w-6 p-0 text-white hover:text-slate-300"
+                                  className="h-6 w-6 p-0 text-foreground hover:text-slate-300"
                                 >
                                   <Edit className="w-3 h-3" />
                                 </Button>
@@ -599,7 +600,7 @@ const CategoriesPage = () => {
             </DialogHeader>
             <form onSubmit={handleUpdateCategory} className="space-y-4 mt-4">
               <div>
-                <Label htmlFor="edit-category-name">{t('common.name')}</Label>
+                <Label htmlFor="edit-category-name" className="text-foreground">{t('common.name')}</Label>
                 <Input
                   id="edit-category-name"
                   value={editCategoryName}
@@ -611,7 +612,7 @@ const CategoriesPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-category-desc">{t('common.description')}</Label>
+                <Label htmlFor="edit-category-desc" className="text-foreground">{t('common.description')}</Label>
                 <Textarea
                   id="edit-category-desc"
                   value={editCategoryDesc}
@@ -623,7 +624,7 @@ const CategoriesPage = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-category-icon">{t('category.icon')}</Label>
+                <Label htmlFor="edit-category-icon" className="text-foreground">{t('category.icon')}</Label>
                 <div className="space-y-2 mt-1.5">
                   {editCategoryIcon ? (
                     <div className="flex items-center gap-2">
@@ -669,7 +670,7 @@ const CategoriesPage = () => {
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit-category-notebooklm-url">{t('category.notebooklmUrl')}</Label>
+                <Label htmlFor="edit-category-notebooklm-url" className="text-foreground">{t('category.notebooklmUrl')}</Label>
                 <Input
                   id="edit-category-notebooklm-url"
                   type="url"
