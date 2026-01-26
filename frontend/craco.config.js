@@ -78,7 +78,8 @@ const webpackConfig = {
             "uuid",
             "debounce",
             "lodash.debounce",
-            "axios"
+            "axios",
+            "react-i18next"
           ]
         })
       );

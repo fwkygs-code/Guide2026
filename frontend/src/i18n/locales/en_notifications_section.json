@@ -1,0 +1,11 @@
+"notifications": {
+    "title": "Notifications",
+    "loading": "Loading...",
+    "noNotifications": "No notifications",
+    "accept": "Accept",
+    "decline": "Decline",
+    "accepted": "Accepted",
+    "declined": "Declined",
+    "markAsRead": "Mark as read",
+    "deleteNotification": "Delete notification"
+  },
