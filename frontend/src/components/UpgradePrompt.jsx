@@ -103,17 +103,17 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const getReasonMessage = () => {
     switch (reason) {
       case 'storage':
-        return 'You have exceeded your storage quota. Upgrade to get more storage space.';
+        return t('upgrade.storageExceeded');
       case 'file_size':
-        return 'This file exceeds your plan\'s maximum file size limit. Upgrade to upload larger files.';
+        return t('upgrade.fileSizeExceeded');
       case 'workspaces':
-        return 'You have reached your workspace limit. Upgrade to create more workspaces.';
+        return t('upgrade.workspacesExceeded');
       case 'walkthroughs':
-        return 'You have reached your walkthrough limit. Upgrade for unlimited walkthroughs.';
+        return t('upgrade.walkthroughsExceeded');
       case 'categories':
-        return 'You have reached your category limit. Upgrade for unlimited categories.';
+        return t('upgrade.categoriesExceeded');
       default:
-        return 'Upgrade your plan to unlock more features and higher limits.';
+        return t('upgrade.genericMessage');
     }
   };
 

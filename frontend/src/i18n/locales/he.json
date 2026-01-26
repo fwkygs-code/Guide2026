@@ -30,7 +30,8 @@
     "done": "סיים",
     "markAsDone": "סמן כסיים",
     "backToWorkspace": "חזור לאזור עבודה",
-    "back": "חזור"
+    "and": "ו",
+    "note": "הערה"
   },
   "auth": {
     "loginTitle": "התחבר לחשבון שלך",
@@ -372,7 +373,20 @@
     "plan": "תוכנית",
     "planLimits": "מגבלות תוכנית",
     "maxFileSize": "גודל קובץ מקסימלי",
-    "extraStorageIncrements": "תוספות אחסון"
+    "extraStorageIncrements": "תוספות אחסון",
+    "warnings": {
+      "storageExceeded": "מכסת האחסון חרגה",
+      "storageAlmostFull": "האחסון כמעט מלא",
+      "storageGettingFull": "האחסון מתמלא",
+      "approachingWorkspaceLimit": "מתקרב למגבלת אזורי עבודה",
+      "approachingWalkthroughLimit": "מתקרב למגבלת מדריכים",
+      "approachingCategoryLimit": "מתקרב למגבלת קטגוריות",
+      "cannotUploadMore": "לא ניתן להעלות עוד קבצים. אנא מחק כמה קבצים או שדרג את התוכנית שלך.",
+      "considerDeleting": "שקול למחוק קבצים שאינם בשימוש או לשדרג את התוכנית שלך.",
+      "approachingWorkspaceLimitDesc": "אתה מתקרב למגבלת אזורי העבודה שלך. תצטרך לשדרג כדי ליצור עוד.",
+      "approachingWalkthroughLimitDesc": "אתה מתקרב למגבלת המדריכים שלך. תצטרך לשדרג כדי ליצור עוד.",
+      "approachingCategoryLimitDesc": "אתה מתקרב למגבלת הקטגוריות שלך. תצטרך לשדרג כדי ליצור עוד."
+    }
   },
   "upgrade": {
     "title": "שדרג את התוכנית שלך",
@@ -722,50 +736,6 @@
     "contactSupport": "אנא צור קשר עם התמיכה:",
     "backToLogin": "חזרה להתחברות"
   },
-  "onboardingTour": {
-    "progress": "שלב {{current}} מתוך {{total}}",
-    "skip": "דלג על ההדרכה",
-    "waiting": "ממתין לטעינת המסך הבא...",
-    "welcome": {
-      "title": "ברוכים הבאים ל-InterGuide",
-      "body": "בואו נקים את אזור העבודה, הקטגוריה והמדריך הראשונים שלך.",
-      "start": "בואו נתחיל"
-    },
-    "steps": {
-      "createWorkspace": {
-        "title": "צור אזור עבודה",
-        "body": "לחץ על \"+ אזור עבודה חדש\" כדי להתחיל."
-      },
-      "workspaceForm": {
-        "title": "מלא פרטי אזור עבודה",
-        "body": "הזן שם אזור עבודה וצבע מותג, ואז לחץ על \"צור אזור עבודה\"."
-      },
-      "enterWorkspace": {
-        "title": "היכנס לאזור העבודה",
-        "body": "לחץ על כרטיס אזור העבודה החדש כדי לפתוח אותו."
-      },
-      "goCategories": {
-        "title": "עבור לקטגוריות",
-        "body": "לחץ על לשונית \"קטגוריות\" כדי לארגן את המדריכים."
-      },
-      "createCategory": {
-        "title": "צור קטגוריה",
-        "body": "הוסף שם ותיאור לקטגוריה ואז צור אותה."
-      },
-      "goGuides": {
-        "title": "חזרה למדריכים",
-        "body": "לחץ על לשונית \"מדריכים\" כדי ליצור מדריך."
-      },
-      "createWalkthrough": {
-        "title": "צור מדריך",
-        "body": "מלא את פרטי המדריך ובחר את הקטגוריה שיצרת."
-      },
-      "addFirstStep": {
-        "title": "הוסף את השלב הראשון",
-        "body": "הוסף שלב, תן לו שם ואז הוסף בלוק כדי לסיים."
-      }
-    }
-  },
   "toast": {
     "welcomeBack": "ברוך שובך!",
     "accountCreated": "החשבון נוצר בהצלחה!",
@@ -937,24 +907,5 @@
     "declined": "נדחה",
     "markAsRead": "סמן כנקרא",
     "deleteNotification": "מחק התראה"
-  },
-  "quota": {
-    "warnings": {
-      "storageExceeded": "מכסת האחסון חרגה",
-      "storageAlmostFull": "האחסון כמעט מלא",
-      "storageGettingFull": "האחסון מתמלא",
-      "approachingWorkspaceLimit": "מתקרב למגבלת אזורי עבודה",
-      "approachingWalkthroughLimit": "מתקרב למגבלת מדריכים",
-      "approachingCategoryLimit": "מתקרב למגבלת קטגוריות",
-      "cannotUploadMore": "לא ניתן להעלות עוד קבצים. אנא מחק כמה קבצים או שדרג את התוכנית שלך.",
-      "considerDeleting": "שקול למחוק קבצים שאינם בשימוש או לשדרג את התוכנית שלך.",
-      "approachingWorkspaceLimitDesc": "אתה מתקרב למגבלת אזורי העבודה שלך. תצטרך לשדרג כדי ליצור עוד.",
-      "approachingWalkthroughLimitDesc": "אתה מתקרב למגבלת המדריכים שלך. תצטרך לשדרג כדי ליצור עוד.",
-      "approachingCategoryLimitDesc": "אתה מתקרב למגבלת הקטגוריות שלך. תצטרך לשדרג כדי ליצור עוד."
-    }
-  },
-  "common": {
-    "and": "ו",
-    "note": "הערה"
   }
 }

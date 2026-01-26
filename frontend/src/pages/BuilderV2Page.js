@@ -1560,15 +1560,15 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
       // Default button text based on action
       const getDefaultButtonText = (action) => {
         const defaults = {
-          next: 'walkthrough.buttonDefaults.next',
-          go_to_step: 'walkthrough.buttonDefaults.goToStep',
-          end: 'walkthrough.buttonDefaults.end',
-          restart: 'walkthrough.buttonDefaults.restart',
-          support: 'walkthrough.buttonDefaults.support',
-          link: 'walkthrough.buttonDefaults.link',
-          check: 'walkthrough.buttonDefaults.check'
+          next: 'builder.buttonDefaults.next',
+          go_to_step: 'builder.buttonDefaults.goToStep',
+          end: 'builder.buttonDefaults.end',
+          restart: 'builder.buttonDefaults.restart',
+          support: 'builder.buttonDefaults.support',
+          link: 'builder.buttonDefaults.link',
+          check: 'builder.buttonDefaults.check'
         };
-        return defaults[action] || 'walkthrough.buttonDefaults.button';
+        return defaults[action] || 'builder.buttonDefaults.button';
       };
       
       return (
@@ -1609,13 +1609,13 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="next">{t('walkthrough.buttonActions.next')}</SelectItem>
-                <SelectItem value="go_to_step">{t('walkthrough.buttonActions.goToStep')}</SelectItem>
-                <SelectItem value="end">{t('walkthrough.buttonActions.end')}</SelectItem>
-                <SelectItem value="restart">{t('walkthrough.buttonActions.restart')}</SelectItem>
-                <SelectItem value="support">{t('walkthrough.buttonActions.support')}</SelectItem>
-                <SelectItem value="link">{t('walkthrough.buttonActions.link')}</SelectItem>
-                <SelectItem value="check">{t('walkthrough.buttonActions.check')}</SelectItem>
+                <SelectItem value="next">{t('builder.buttonActions.next')}</SelectItem>
+                <SelectItem value="go_to_step">{t('builder.buttonActions.goToStep')}</SelectItem>
+                <SelectItem value="end">{t('builder.buttonActions.end')}</SelectItem>
+                <SelectItem value="restart">{t('builder.buttonActions.restart')}</SelectItem>
+                <SelectItem value="support">{t('builder.buttonActions.support')}</SelectItem>
+                <SelectItem value="link">{t('builder.buttonActions.link')}</SelectItem>
+                <SelectItem value="check">{t('builder.buttonActions.check')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

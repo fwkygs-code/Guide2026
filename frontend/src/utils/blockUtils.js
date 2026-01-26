@@ -178,26 +178,26 @@ export const getBlockIcon = (type) => {
 
 export const getBlockLabelKey = (type) => {
   const labelKeys = {
-    heading: 'walkthrough.blocks.heading',
-    text: 'walkthrough.blocks.text',
-    image: 'walkthrough.blocks.image',
-    video: 'walkthrough.blocks.video',
-    file: 'walkthrough.blocks.file',
-    button: 'walkthrough.blocks.button',
-    divider: 'walkthrough.blocks.divider',
-    spacer: 'walkthrough.blocks.spacer',
-    problem: 'walkthrough.blocks.problem',
-    columns: 'walkthrough.blocks.columns',
-    html: 'walkthrough.blocks.html',
-    carousel: 'walkthrough.blocks.carousel',
-    checklist: 'walkthrough.blocks.checklist',
-    callout: 'walkthrough.blocks.callout',
-    annotated_image: 'walkthrough.blocks.annotatedImage',
-    embed: 'walkthrough.blocks.embed',
-    section: 'walkthrough.blocks.section',
-    confirmation: 'walkthrough.blocks.confirmation',
-    external_link: 'walkthrough.blocks.externalLink',
-    code: 'walkthrough.blocks.code'
+    heading: 'builder.blocks.heading',
+    text: 'builder.blocks.text',
+    image: 'builder.blocks.image',
+    video: 'builder.blocks.video',
+    file: 'builder.blocks.file',
+    button: 'builder.blocks.button',
+    divider: 'builder.blocks.divider',
+    spacer: 'builder.blocks.spacer',
+    problem: 'builder.blocks.problem',
+    columns: 'builder.blocks.columns',
+    html: 'builder.blocks.html',
+    carousel: 'builder.blocks.carousel',
+    checklist: 'builder.blocks.checklist',
+    callout: 'builder.blocks.callout',
+    annotated_image: 'builder.blocks.annotatedImage',
+    embed: 'builder.blocks.embed',
+    section: 'builder.blocks.section',
+    confirmation: 'builder.blocks.confirmation',
+    external_link: 'builder.blocks.externalLink',
+    code: 'builder.blocks.code'
   };
   return labelKeys[type] || type;
 };

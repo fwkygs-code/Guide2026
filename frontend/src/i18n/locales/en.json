@@ -28,7 +28,9 @@
     "no": "No",
     "complete": "Complete",
     "done": "Done",
-    "markAsDone": "Mark as done"
+    "markAsDone": "Mark as done",
+    "and": "and",
+    "note": "Note"
   },
   "auth": {
     "loginTitle": "Login to your account",
@@ -237,7 +239,20 @@
     "plan": "Plan",
     "planLimits": "Plan Limits",
     "maxFileSize": "Max file size",
-    "extraStorageIncrements": "Extra storage increments"
+    "extraStorageIncrements": "Extra storage increments",
+    "warnings": {
+      "storageExceeded": "Storage quota exceeded",
+      "storageAlmostFull": "Storage almost full",
+      "storageGettingFull": "Storage getting full",
+      "approachingWorkspaceLimit": "Approaching workspace limit",
+      "approachingWalkthroughLimit": "Approaching walkthrough limit",
+      "approachingCategoryLimit": "Approaching category limit",
+      "cannotUploadMore": "You cannot upload more files. Please delete some files or upgrade your plan.",
+      "considerDeleting": "Consider deleting unused files or upgrading your plan.",
+      "approachingWorkspaceLimitDesc": "You are approaching your workspace limit. You'll need to upgrade to create more.",
+      "approachingWalkthroughLimitDesc": "You are approaching your walkthrough limit. You'll need to upgrade to create more.",
+      "approachingCategoryLimitDesc": "You are approaching your category limit. You'll need to upgrade to create more."
+    }
   },
   "upgrade": {
     "title": "Upgrade Your Plan",
@@ -572,50 +587,6 @@
   },
   "onboardingTour": {
     "progress": "Step {{current}} of {{total}}",
-    "skip": "Skip onboarding",
-    "waiting": "Waiting for the next screen to load...",
-    "welcome": {
-      "title": "Welcome to InterGuide",
-      "body": "Let's set up your first workspace, category, and walkthrough.",
-      "start": "Let's start"
-    },
-    "steps": {
-      "createWorkspace": {
-        "title": "Create your workspace",
-        "body": "Click the \"+ New Workspace\" button to begin."
-      },
-      "workspaceForm": {
-        "title": "Fill workspace details",
-        "body": "Enter a workspace name and brand color, then click \"Create Workspace\"."
-      },
-      "enterWorkspace": {
-        "title": "Enter the workspace",
-        "body": "Click your new workspace card to open it."
-      },
-      "goCategories": {
-        "title": "Go to Categories",
-        "body": "Click the \"Categories\" tab to organize your guides."
-      },
-      "createCategory": {
-        "title": "Create a category",
-        "body": "Add a category name and description, then create it."
-      },
-      "goGuides": {
-        "title": "Back to Guides",
-        "body": "Click the \"Guides\" tab to create a walkthrough."
-      },
-      "createWalkthrough": {
-        "title": "Create a walkthrough",
-        "body": "Fill in the walkthrough details and choose the category you just created."
-      },
-      "addFirstStep": {
-        "title": "Add your first step",
-        "body": "Add a step, name it, then add a block to finish."
-      }
-    }
-  },
-  "onboardingTour": {
-    "progress": "Step {{current}} of {{total}}",
     "waiting": "Waiting for element to be ready...",
     "skip": "Skip onboarding",
     "welcome": {
@@ -785,24 +756,5 @@
     "declined": "Declined",
     "markAsRead": "Mark as read",
     "deleteNotification": "Delete notification"
-  },
-  "quota": {
-    "warnings": {
-      "storageExceeded": "Storage quota exceeded",
-      "storageAlmostFull": "Storage almost full",
-      "storageGettingFull": "Storage getting full",
-      "approachingWorkspaceLimit": "Approaching workspace limit",
-      "approachingWalkthroughLimit": "Approaching walkthrough limit",
-      "approachingCategoryLimit": "Approaching category limit",
-      "cannotUploadMore": "You cannot upload more files. Please delete some files or upgrade your plan.",
-      "considerDeleting": "Consider deleting unused files or upgrading your plan.",
-      "approachingWorkspaceLimitDesc": "You are approaching your workspace limit. You'll need to upgrade to create more.",
-      "approachingWalkthroughLimitDesc": "You are approaching your walkthrough limit. You'll need to upgrade to create more.",
-      "approachingCategoryLimitDesc": "You are approaching your category limit. You'll need to upgrade to create more."
-    }
-  },
-  "common": {
-    "and": "and",
-    "note": "Note"
   }
 }
