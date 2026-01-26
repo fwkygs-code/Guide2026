@@ -751,7 +751,7 @@ const BuilderV2Page = () => {
                     variant="outline"
                     onClick={() => navigate('/dashboard')}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     onClick={handleSetupComplete}
@@ -770,7 +770,7 @@ const BuilderV2Page = () => {
                     className="flex-1"
                     data-onboarding="walkthrough-setup-submit"
                   >
-                    {loading ? 'Creating...' : 'Create Walkthrough'}
+                    {loading ? t('common.creating') : t('walkthrough.createWalkthrough')}
                   </Button>
                 </div>
           </div>

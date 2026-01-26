@@ -289,7 +289,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <Button type="submit" className="w-full rounded-full" data-testid="create-workspace-submit" data-onboarding="workspace-create-submit">
-                  Create Workspace
+                  {t('workspace.create')}
                 </Button>
               </form>
             </DialogContent>
