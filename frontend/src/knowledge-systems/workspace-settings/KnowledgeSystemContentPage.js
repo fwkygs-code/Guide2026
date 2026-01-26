@@ -13,6 +13,8 @@ import { ArrowLeft, Plus, Edit, Trash2, Settings, FileText, BookOpen } from 'luc
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import DashboardLayout from '../../components/DashboardLayout';
+import { PageHeader, PageSurface } from '../../components/ui/design-system';
 import { useWorkspaceSlug } from '../../hooks/useWorkspaceSlug';
 import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
 
@@ -61,82 +63,66 @@ function KnowledgeSystemContentPage() {
 
   if (workspaceLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full"
-        />
-      </div>
+      <DashboardLayout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full"
+          />
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (!config) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-8">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h1 className="text-2xl font-bold text-white mb-2">System Not Found</h1>
-            <p className="text-slate-400 mb-4">
-              The knowledge system "{systemType}" is not recognized.
-            </p>
-            <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}>
-              {t('knowledgeSystems.backToSystems')}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-screen flex items-center justify-center p-8">
+          <Card className="max-w-md">
+            <CardContent className="pt-6 text-center">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h1 className="text-2xl font-bold text-white mb-2">System Not Found</h1>
+              <p className="text-slate-400 mb-4">
+                The knowledge system "{systemType}" is not recognized.
+              </p>
+              <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}>
+                {t('knowledgeSystems.backToSystems')}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}
-                className="text-slate-200 hover:text-white"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('knowledgeSystems.backToSystems')}
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xl ${config.iconBg || 'bg-slate-600'}`}>
-                  {config.icon}
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">{t(config.displayNameKey)}</h1>
-                  <p className="text-slate-400 text-sm">Content Management</p>
-                </div>
-              </div>
-            </div>
+    <DashboardLayout>
+      <PageHeader
+        title={t(config.displayNameKey)}
+        description="Content Management"
+      />
 
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge/${systemType}/configure`)}
-                className="border-slate-600 text-slate-300"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Configure System
-              </Button>
-              <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge/${systemType}/new`)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create {getItemTypeLabel(systemType)}
-              </Button>
-            </div>
+      <PageSurface>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge/${systemType}/configure`)}
+              className="border-slate-600 text-slate-300"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Configure System
+            </Button>
+            <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge/${systemType}/new`)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create {getItemTypeLabel(systemType)}
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Content */}
+        <div>
         {contentItems.length === 0 ? (
           // Empty State
           <motion.div
@@ -229,8 +215,9 @@ function KnowledgeSystemContentPage() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+        </div>
+      </PageSurface>
+    </DashboardLayout>
   );
 }
 

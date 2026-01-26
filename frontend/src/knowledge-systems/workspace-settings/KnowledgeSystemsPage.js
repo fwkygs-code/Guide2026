@@ -6,6 +6,8 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import DashboardLayout from '../../components/DashboardLayout';
+import { PageHeader, PageSurface } from '../../components/ui/design-system';
 import { useWorkspaceSlug } from '../../hooks/useWorkspaceSlug';
 import { POLICY_ROUTES } from '../../policy-system/routes';
 import { PROCEDURE_ROUTES } from '../../procedure-system/routes';
@@ -118,101 +120,81 @@ function KnowledgeSystemsPage() {
 
   if (workspaceLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full"
-        />
-      </div>
+      <DashboardLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full"
+          />
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10" />
-        <div className="relative max-w-6xl mx-auto px-6 py-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="flex items-center gap-4 mb-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/workspace/${workspaceSlug}/settings`)}
-                className="text-slate-200 hover:text-white"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('knowledgeSystems.backToSettings')}
-              </Button>
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              {t('knowledgeSystems.title')}
-            </h1>
-            <p className="text-slate-400 mt-2 text-lg">
-              {t('knowledgeSystems.description')}
-            </p>
-          </motion.div>
-        </div>
-      </div>
+    <DashboardLayout>
+      <PageHeader
+        title={t('knowledgeSystems.title')}
+        description={t('knowledgeSystems.description')}
+      />
 
-      <div className="max-w-6xl mx-auto px-6 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {systemCards.map((system, index) => (
-          <motion.div
-            key={system.id}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-          >
-            <Card className="h-full border border-slate-700/50 bg-slate-900/60">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-white text-2xl">{t(system.titleKey)}</CardTitle>
-                    <p className="text-slate-400 text-sm mt-2">{t(system.descriptionKey)}</p>
+      <PageSurface>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {systemCards.map((system, index) => (
+            <motion.div
+              key={system.id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+              <Card className="h-full border border-slate-700/50 bg-slate-900/60">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-white text-2xl">{t(system.titleKey)}</CardTitle>
+                      <p className="text-slate-400 text-sm mt-2">{t(system.descriptionKey)}</p>
+                    </div>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-medium border"
+                      style={{
+                        color: system.accent,
+                        borderColor: `${system.accent}55`,
+                        background: `${system.accent}22`
+                      }}
+                    >
+                      {system.publishedCount > 0 ? t('knowledgeSystems.status.published') : t('knowledgeSystems.status.draft')}
+                    </span>
                   </div>
-                  <span
-                    className="px-3 py-1 rounded-full text-xs font-medium border"
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="border-slate-600 text-slate-300">
+                      {t('knowledgeSystems.counts.drafts', { count: system.totalCount })}
+                    </Badge>
+                    <Badge variant="outline" className="border-slate-600 text-slate-300">
+                      {t('knowledgeSystems.counts.published', { count: system.publishedCount })}
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => handleOpen(system)}
+                    className="w-full"
                     style={{
-                      color: system.accent,
+                      background: `${system.accent}33`,
                       borderColor: `${system.accent}55`,
-                      background: `${system.accent}22`
+                      color: '#ffffff'
                     }}
+                    variant="outline"
                   >
-                    {system.publishedCount > 0 ? t('knowledgeSystems.status.published') : t('knowledgeSystems.status.draft')}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="border-slate-600 text-slate-300">
-                    {t('knowledgeSystems.counts.drafts', { count: system.totalCount })}
-                  </Badge>
-                  <Badge variant="outline" className="border-slate-600 text-slate-300">
-                    {t('knowledgeSystems.counts.published', { count: system.publishedCount })}
-                  </Badge>
-                </div>
-                <Button
-                  onClick={() => handleOpen(system)}
-                  className="w-full"
-                  style={{
-                    background: `${system.accent}33`,
-                    borderColor: `${system.accent}55`,
-                    color: '#ffffff'
-                  }}
-                  variant="outline"
-                >
-                  {system.latestId ? t('knowledgeSystems.actions.openEditor') : t('knowledgeSystems.actions.createFirst')}
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-    </div>
+                    {system.latestId ? t('knowledgeSystems.actions.openEditor') : t('knowledgeSystems.actions.createFirst')}
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </PageSurface>
+    </DashboardLayout>
   );
 }
 
