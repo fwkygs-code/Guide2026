@@ -766,6 +766,8 @@
       "clickAnywhereToAdd": "Click anywhere to add annotations",
       "interactiveMarkersAppear": "Interactive markers will appear on the image"
     },
+    "annotations": "Annotations",
+    "addCenter": "Add Center",
     "labels": {
       "description": "Description",
       "iconPreview": "Icon preview",
@@ -805,6 +807,9 @@
       "video": "Video",
       "carousel": "Carousel",
       "button": "Button",
+      "columns": "Columns",
+      "html": "HTML",
+      "file": "File",
       "divider": "Divider",
       "spacer": "Spacer",
       "problem": "Problem",

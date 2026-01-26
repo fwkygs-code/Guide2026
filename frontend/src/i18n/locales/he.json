@@ -524,7 +524,10 @@
     "changeToTopLevel": "שנה לקטגוריה ברמה העליונה"
   },
   "categories": {
-    "addSubCategory": "הוסף תת-קטגוריה"
+    "addSubCategory": "הוסף תת-קטגוריה",
+    "nameRequired": "שם קטגוריה נדרש",
+    "updated": "קטגוריה עודכנה!",
+    "deleted": "קטגוריה נמחקה. מדריכים כעת ללא קטגוריה."
   },
   "walkthrough": {
     "new": "מדריך חדש",
@@ -910,6 +913,8 @@
       "clickAnywhereToAdd": "לחץ בכל מקום כדי להוסיף הערות",
       "interactiveMarkersAppear": "סמנים אינטראקטיביים יופיעו על התמונה"
     },
+    "annotations": "הערות",
+    "addCenter": "הוסף מרכז",
     "labels": {
       "description": "תיאור",
       "iconPreview": "תצוגה מקדימה של סמל",
@@ -949,6 +954,9 @@
       "video": "וידאו",
       "carousel": "קרוסלה",
       "button": "כפתור",
+      "columns": "עמודות",
+      "html": "HTML",
+      "file": "קובץ",
       "divider": "מפריד",
       "spacer": "רווח",
       "problem": "בעיה",
@@ -1654,11 +1662,6 @@
       "emailMismatch": "האימייל לא תואם. המחיקה בוטלה.",
       "failedToDeletePolicy": "נכשל במחיקת מדיניות"
     }
-  },
-  "categories": {
-    "nameRequired": "שם קטגוריה נדרש",
-    "updated": "קטגוריה עודכנה!",
-    "deleted": "קטגוריה נמחקה. מדריכים כעת ללא קטגוריה."
   },
   "admin": {
     "actions": {

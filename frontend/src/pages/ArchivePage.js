@@ -104,7 +104,7 @@ const ArchivePage = () => {
         title={`${workspace?.name} - ${t('archive.title')}`}
         description={t('archive.subtitle')}
         actions={
-          <Button variant="outline" onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)}>
+          <Button variant="outline" onClick={() => navigate(`/workspace/${workspaceSlug}/walkthroughs`)} className="text-foreground">
             {t('archive.backToGuides')}
           </Button>
         }

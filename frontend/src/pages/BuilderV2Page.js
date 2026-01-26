@@ -3099,7 +3099,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
       <div className="border border-border rounded-lg bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="font-medium text-sm">
-            📌 Annotations ({markers.length})
+            📌 {t('builder.annotatedImage.annotations')} ({markers.length})
           </div>
           <Button
             variant="outline"
@@ -3116,7 +3116,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
             className="h-7 text-xs"
           >
             <Plus className="w-3 h-3 mr-1" />
-            Add Center
+            {t('builder.annotatedImage.addCenter')}
           </Button>
         </div>
         
