@@ -49,7 +49,7 @@ const WalkthroughsPage = () => {
         const lockResult = await api.lockWorkspace(workspaceId, false);
         if (lockResult.locked) {
           // If locked, redirect back to dashboard
-          toast.error(`Another user (${lockResult.locked_by}) is currently in this workspace.`);
+          toast.error(t('toast.workspaceLocked', { user: lockResult.locked_by }));
           navigate('/dashboard');
         }
       } catch (error) {
@@ -92,7 +92,7 @@ const WalkthroughsPage = () => {
       const allCategoryIds = new Set(catResponse.data.map(c => c.id));
       setExpandedCategories(allCategoryIds);
     } catch (error) {
-      toast.error('Failed to load walkthroughs');
+      toast.error(t('toast.failedToLoadWalkthroughs'));
     } finally {
       setLoading(false);
     }
@@ -183,7 +183,7 @@ const WalkthroughsPage = () => {
 
   const handleSaveSettings = async () => {
     if (!editingWalkthrough || !editSettings.title?.trim()) {
-      toast.error('Please enter a walkthrough name');
+      toast.error(t('toast.enterWalkthroughName'));
       return;
     }
 
@@ -206,9 +206,9 @@ const WalkthroughsPage = () => {
       
       setSettingsDialogOpen(false);
       setEditingWalkthrough(null);
-      toast.success('Settings updated!');
+      toast.success(t('toast.settingsUpdated'));
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update settings');
+      toast.error(error.response?.data?.detail || t('toast.failedToUpdateSettings'));
     }
   };
 
@@ -218,7 +218,7 @@ const WalkthroughsPage = () => {
       
       const quotaCheck = canUploadFile(file.size);
       if (!quotaCheck.allowed) {
-        toast.error(quotaCheck.message || 'Cannot upload file. Quota limit reached.');
+        toast.error(quotaCheck.message || t('toast.quotaExceeded'));
         return;
       }
       
@@ -231,12 +231,12 @@ const WalkthroughsPage = () => {
       });
       
       if (response.data.status !== 'active' && response.data.status !== 'existing') {
-        toast.error(`Upload not completed (status: ${response.data.status}). Please try again.`);
+        toast.error(t('toast.uploadNotCompleted', { status: response.data.status }));
         return;
       }
       
       if (!response.data.url) {
-        toast.error('Upload succeeded but no URL returned.');
+        toast.error(t('toast.uploadNoUrl'));
         return;
       }
       
@@ -246,10 +246,10 @@ const WalkthroughsPage = () => {
         : normalizeImageUrl(uploadedUrl);
       
       setEditSettings(prev => ({ ...prev, icon_url: fullUrl }));
-      toast.success('Icon uploaded!');
+      toast.success(t('toast.iconUploaded'));
     } catch (error) {
       console.error('Icon upload error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to upload icon');
+      toast.error(error.response?.data?.detail || t('toast.failedToUploadIcon'));
     } finally {
       setUploadingIcon(false);
     }
@@ -493,7 +493,7 @@ const WalkthroughsPage = () => {
                     id="edit-title"
                     value={editSettings.title}
                     onChange={(e) => setEditSettings(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter walkthrough name"
+                    placeholder={t('walkthrough.enterName')}
                     className="w-full text-white"
                   />
                 </div>
@@ -540,7 +540,7 @@ const WalkthroughsPage = () => {
                     id="edit-description"
                     value={editSettings.description}
                     onChange={(e) => setEditSettings(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter description (optional)"
+                    placeholder={t('walkthrough.enterDescription')}
                     rows={3}
                     className="w-full text-white"
                   />
@@ -579,9 +579,9 @@ const WalkthroughsPage = () => {
                         disabled={uploadingIcon}
                         className="w-full"
                       />
-                      <p className="text-sm text-slate-400">or</p>
+                      <p className="text-sm text-slate-400">{t('walkthrough.or')}</p>
                       <Input
-                        placeholder="Enter image URL"
+                        placeholder={t('walkthrough.enterImageUrl')}
                         value={editSettings.icon_url}
                         onChange={(e) => setEditSettings(prev => ({ ...prev, icon_url: e.target.value }))}
                         className="w-full text-white"
@@ -596,7 +596,7 @@ const WalkthroughsPage = () => {
                     {t('common.categories')}
                   </Label>
                   {parentCategories.length === 0 ? (
-                    <p className="text-sm text-slate-500">No categories available. Create categories in the Categories page.</p>
+                    <p className="text-sm text-slate-500">{t('walkthrough.noCategories')}</p>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
                       {parentCategories.map((category) => (

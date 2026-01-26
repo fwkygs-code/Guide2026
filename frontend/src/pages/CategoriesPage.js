@@ -467,7 +467,7 @@ const CategoriesPage = () => {
                             {category.name}
                           </h3>
                           <p className="text-slate-300 text-sm leading-relaxed">
-                            {category.description || 'No description'}
+                            {category.description || t('walkthrough.noDescription')}
                           </p>
                         </div>
                       </div>

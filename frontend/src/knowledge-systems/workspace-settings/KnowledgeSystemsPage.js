@@ -18,40 +18,40 @@ const SYSTEM_DEFINITIONS = [
   {
     id: 'policy',
     systemType: 'policy',
-    title: 'Policies',
-    description: 'Authority, compliance, and legal governance.',
+    titleKey: 'knowledgeSystems.types.policies.name',
+    descriptionKey: 'knowledgeSystems.types.policies.description',
     accent: '#f59e0b',
     routes: POLICY_ROUTES
   },
   {
     id: 'procedure',
     systemType: 'procedure',
-    title: 'Procedures',
-    description: 'Operational playbooks and step execution.',
+    titleKey: 'knowledgeSystems.types.procedures.name',
+    descriptionKey: 'knowledgeSystems.types.procedures.description',
     accent: '#22d3ee',
     routes: PROCEDURE_ROUTES
   },
   {
     id: 'documentation',
     systemType: 'documentation',
-    title: 'Documentation',
-    description: 'Technical knowledge base with live preview.',
+    titleKey: 'knowledgeSystems.types.documentation.name',
+    descriptionKey: 'knowledgeSystems.types.documentation.description',
     accent: '#a855f7',
     routes: DOCUMENTATION_ROUTES
   },
   {
     id: 'faq',
     systemType: 'faq',
-    title: 'FAQs',
-    description: 'Fast answers with question-first layout.',
+    titleKey: 'knowledgeSystems.types.faqs.name',
+    descriptionKey: 'knowledgeSystems.types.faqs.description',
     accent: '#34d399',
     routes: FAQ_ROUTES
   },
   {
     id: 'decision-tree',
     systemType: 'decision_tree',
-    title: 'Decision Trees',
-    description: 'Guided outcomes with branching logic.',
+    titleKey: 'knowledgeSystems.types.decisionTrees.name',
+    descriptionKey: 'knowledgeSystems.types.decisionTrees.description',
     accent: '#6366f1',
     routes: DECISION_TREE_ROUTES
   }
@@ -171,8 +171,8 @@ function KnowledgeSystemsPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-white text-2xl">{system.title}</CardTitle>
-                    <p className="text-slate-400 text-sm mt-2">{system.description}</p>
+                    <CardTitle className="text-white text-2xl">{t(system.titleKey)}</CardTitle>
+                    <p className="text-slate-400 text-sm mt-2">{t(system.descriptionKey)}</p>
                   </div>
                   <span
                     className="px-3 py-1 rounded-full text-xs font-medium border"
@@ -182,17 +182,17 @@ function KnowledgeSystemsPage() {
                       background: `${system.accent}22`
                     }}
                   >
-                    {system.publishedCount > 0 ? 'Published' : 'Draft'}
+                    {system.publishedCount > 0 ? t('knowledgeSystems.status.published') : t('knowledgeSystems.status.draft')}
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Badge variant="outline" className="border-slate-600 text-slate-300">
-                    {system.totalCount} draft{system.totalCount === 1 ? '' : 's'}
+                    {t('knowledgeSystems.counts.drafts', { count: system.totalCount })}
                   </Badge>
                   <Badge variant="outline" className="border-slate-600 text-slate-300">
-                    {system.publishedCount} published
+                    {t('knowledgeSystems.counts.published', { count: system.publishedCount })}
                   </Badge>
                 </div>
                 <Button
@@ -205,7 +205,7 @@ function KnowledgeSystemsPage() {
                   }}
                   variant="outline"
                 >
-                  {system.latestId ? 'Open Editor' : 'Create First'}
+                  {system.latestId ? t('knowledgeSystems.actions.openEditor') : t('knowledgeSystems.actions.createFirst')}
                 </Button>
               </CardContent>
             </Card>

@@ -14,10 +14,10 @@ import { KNOWLEDGE_SYSTEM_TYPES } from '../models/KnowledgeSystem.js';
 export const KNOWLEDGE_SYSTEM_REGISTRY = {
   [KNOWLEDGE_SYSTEM_TYPES.POLICY]: {
     type: KNOWLEDGE_SYSTEM_TYPES.POLICY,
-    displayName: 'Policies',
-    description: 'HR, security, legal, and compliance policies',
+    displayNameKey: 'knowledgeSystems.types.policies.name',
+    descriptionKey: 'knowledgeSystems.types.policies.description',
     icon: '📋',
-    defaultTitle: 'Policies',
+    defaultTitleKey: 'knowledgeSystems.types.policies.name',
     portalPath: 'policies',
     supportsEditing: true,
     supportsPortal: true,
@@ -36,10 +36,10 @@ export const KNOWLEDGE_SYSTEM_REGISTRY = {
 
   [KNOWLEDGE_SYSTEM_TYPES.PROCEDURE]: {
     type: KNOWLEDGE_SYSTEM_TYPES.PROCEDURE,
-    displayName: 'Procedures',
-    description: 'SOPs and step-by-step procedures',
+    displayNameKey: 'knowledgeSystems.types.procedures.name',
+    descriptionKey: 'knowledgeSystems.types.procedures.description',
     icon: '📝',
-    defaultTitle: 'Procedures',
+    defaultTitleKey: 'knowledgeSystems.types.procedures.name',
     portalPath: 'procedures',
     supportsEditing: true,
     supportsPortal: true,
@@ -65,10 +65,10 @@ export const KNOWLEDGE_SYSTEM_REGISTRY = {
 
   [KNOWLEDGE_SYSTEM_TYPES.DOCUMENTATION]: {
     type: KNOWLEDGE_SYSTEM_TYPES.DOCUMENTATION,
-    displayName: 'Documentation',
-    description: 'Product and technical documentation',
+    displayNameKey: 'knowledgeSystems.types.documentation.name',
+    descriptionKey: 'knowledgeSystems.types.documentation.description',
     icon: '📚',
-    defaultTitle: 'Documentation',
+    defaultTitleKey: 'knowledgeSystems.types.documentation.name',
     portalPath: 'documentation',
     supportsEditing: true,
     supportsPortal: true,
@@ -94,10 +94,10 @@ export const KNOWLEDGE_SYSTEM_REGISTRY = {
 
   [KNOWLEDGE_SYSTEM_TYPES.FAQ]: {
     type: KNOWLEDGE_SYSTEM_TYPES.FAQ,
-    displayName: 'FAQs',
-    description: 'Frequently asked questions and answers',
+    displayNameKey: 'knowledgeSystems.types.faqs.name',
+    descriptionKey: 'knowledgeSystems.types.faqs.description',
     icon: '❓',
-    defaultTitle: 'FAQs',
+    defaultTitleKey: 'knowledgeSystems.types.faqs.name',
     portalPath: 'faqs',
     supportsEditing: true,
     supportsPortal: true,
@@ -116,10 +116,10 @@ export const KNOWLEDGE_SYSTEM_REGISTRY = {
 
   [KNOWLEDGE_SYSTEM_TYPES.DECISION_TREE]: {
     type: KNOWLEDGE_SYSTEM_TYPES.DECISION_TREE,
-    displayName: 'Decision Trees',
-    description: 'Interactive decision-making guides',
+    displayNameKey: 'knowledgeSystems.types.decisionTrees.name',
+    descriptionKey: 'knowledgeSystems.types.decisionTrees.description',
     icon: '🌳',
-    defaultTitle: 'Decision Trees',
+    defaultTitleKey: 'knowledgeSystems.types.decisionTrees.name',
     portalPath: 'decisions',
     supportsEditing: true,
     supportsPortal: true,

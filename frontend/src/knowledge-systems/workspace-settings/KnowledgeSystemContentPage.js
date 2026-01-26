@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Plus, Edit, Trash2, Settings, FileText, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
  * Knowledge System Content Page
  */
 function KnowledgeSystemContentPage() {
+  const { t } = useTranslation();
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -109,7 +111,7 @@ function KnowledgeSystemContentPage() {
                   {config.icon}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">{config.displayName}</h1>
+                  <h1 className="text-2xl font-bold text-white">{t(config.displayNameKey)}</h1>
                   <p className="text-slate-400 text-sm">Content Management</p>
                 </div>
               </div>
@@ -145,7 +147,7 @@ function KnowledgeSystemContentPage() {
             <div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-white text-4xl mx-auto mb-6 ${config.iconBg || 'bg-slate-600'}`}>
               {config.icon}
             </div>
-            <h2 className="text-3xl font-bold text-white mb-4">No {config.displayName} Yet</h2>
+            <h2 className="text-3xl font-bold text-white mb-4">{t('knowledgeSystems.empty.title', { type: t(config.displayNameKey) })}</h2>
             <p className="text-slate-400 text-lg mb-8 max-w-md mx-auto">
               Get started by creating your first {getItemTypeLabel(systemType).toLowerCase()}.
               This will help organize and present your knowledge content effectively.
@@ -163,7 +165,7 @@ function KnowledgeSystemContentPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white">
-                {config.displayName} ({contentItems.length})
+                {t(config.displayNameKey)} ({contentItems.length})
               </h2>
             </div>
 

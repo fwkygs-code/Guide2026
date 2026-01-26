@@ -30,7 +30,10 @@
     "done": "Done",
     "markAsDone": "Mark as done",
     "and": "and",
-    "note": "Note"
+    "note": "Note",
+    "settings": "Settings",
+    "description": "Description",
+    "categories": "Categories"
   },
   "auth": {
     "loginTitle": "Login to your account",
@@ -742,10 +745,19 @@
     "noChatSupport": "No chat support available for any category.",
     "popupBlocked": "Popup blocked. Please allow popups for this site and try again.",
     "pleaseWait": "Please wait...",
+    "enterWalkthroughName": "Please enter a walkthrough name",
+    "settingsUpdated": "Settings updated!",
+    "failedToUpdateSettings": "Failed to update settings",
+    "failedToUploadIcon": "Failed to upload icon",
+    "workspaceLocked": "Another user ({{user}}) is currently in this workspace.",
+    "failedToLoadWalkthroughs": "Failed to load walkthroughs",
+    "uploadNotCompleted": "Upload not completed (status: {{status}}). Please try again.",
+    "uploadNoUrl": "Upload succeeded but no URL returned.",
     "pleaseFillFields": "Please fill in both fields",
     "nameRequired": "Category name is required",
     "titleRequired": "Please enter a title",
-    "ratingRequired": "Please select a rating",
+    "ratingRequired": "Please select a rating before submitting",
+    "quotaExceeded": "Cannot upload file. Quota limit reached.",
     "cannotDeleteLastStep": "Cannot delete the last step",
     "cannotDeleteAllSteps": "Cannot delete all steps",
     "uploadNotCompleted": "Upload not completed (status: {{status}}). Please try again.",
@@ -808,6 +820,49 @@
     "cancelledConfirmedDesc": "PayPal has confirmed the cancellation. No further charges will occur. Final billing status is determined by PayPal.",
     "cancellationPendingConfirmation": "Cancellation pending confirmation",
     "cancellationProcessingDesc": "PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal."
+  },
+  "knowledgeSystems": {
+    "title": "Knowledge Systems",
+    "description": "Centralized knowledge management for your organization",
+    "backToSettings": "Back to Settings",
+    "types": {
+      "policies": {
+        "name": "Policies",
+        "description": "HR, security, legal, and compliance policies"
+      },
+      "procedures": {
+        "name": "Procedures",
+        "description": "SOPs and step-by-step procedures"
+      },
+      "documentation": {
+        "name": "Documentation",
+        "description": "Product and technical documentation"
+      },
+      "faqs": {
+        "name": "FAQs",
+        "description": "Frequently asked questions and answers"
+      },
+      "decisionTrees": {
+        "name": "Decision Trees",
+        "description": "Interactive decision-making guides"
+      }
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published"
+    },
+    "counts": {
+      "drafts": "{{count}} draft",
+      "drafts_plural": "{{count}} drafts",
+      "published": "{{count}} published"
+    },
+    "actions": {
+      "openEditor": "Open Editor",
+      "createFirst": "Create First"
+    },
+    "empty": {
+      "title": "No {{type}} Yet"
+    }
   },
   "notifications": {
     "title": "Notifications",

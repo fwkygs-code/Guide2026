@@ -540,7 +540,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                                     {walkthrough.title}
                                   </h3>
                                   <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {walkthrough.description || 'No description'}
+                                    {walkthrough.description || t('walkthrough.noDescription')}
                                   </p>
                                 </div>
                               </div>
@@ -605,7 +605,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                               {walkthrough.title}
                             </h3>
                             <p className="text-sm text-muted-foreground line-clamp-2">
-                              {walkthrough.description || 'No description'}
+                              {walkthrough.description || t('walkthrough.noDescription')}
                             </p>
                           </div>
                         </div>

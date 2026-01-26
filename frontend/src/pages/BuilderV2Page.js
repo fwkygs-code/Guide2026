@@ -634,21 +634,21 @@ const BuilderV2Page = () => {
       <div className="w-screen h-screen flex items-center justify-center bg-secondary p-8">
         <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border border-border p-8 max-h-[90vh] overflow-y-auto" data-onboarding="walkthrough-setup-form">
           <div className="space-y-2 mb-6">
-            <h2 className="text-2xl font-semibold text-foreground">Create New Walkthrough</h2>
-            <p className="text-sm text-muted-foreground">Set up your walkthrough before adding steps</p>
+            <h2 className="text-2xl font-semibold text-foreground">{t('walkthrough.createNew')}</h2>
+            <p className="text-sm text-muted-foreground">{t('walkthrough.setupBeforeSteps')}</p>
           </div>
 
           <div className="space-y-6">
                 {/* Walkthrough Name */}
                 <div>
                   <Label htmlFor="title" className="text-sm font-medium text-foreground mb-2 block">
-                    Walkthrough Name <span className="text-red-500">*</span>
+                    {t('walkthrough.name')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="title"
                     value={setupData.title}
                     onChange={(e) => setSetupData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter walkthrough name"
+                    placeholder={t('walkthrough.enterName')}
                     className="w-full"
                     data-testid="walkthrough-name-input"
                   />
@@ -663,7 +663,7 @@ const BuilderV2Page = () => {
                     id="description"
                     value={setupData.description}
                     onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter description (optional)"
+                    placeholder={t('walkthrough.enterDescription')}
                     rows={3}
                     className="w-full"
                     required
@@ -673,7 +673,7 @@ const BuilderV2Page = () => {
                 {/* Icon/Photo */}
                 <div>
                   <Label className="text-sm font-medium text-foreground mb-2 block">
-                    Icon/Photo <span className="text-muted-foreground font-normal">(Optional)</span>
+                    {t('walkthrough.iconPhoto')}
                   </Label>
                   {setupData.icon_url ? (
                     <div className="space-y-2">
@@ -703,9 +703,9 @@ const BuilderV2Page = () => {
                         disabled={uploadingIcon}
                         className="w-full"
                       />
-                      <p className="text-sm text-muted-foreground">or</p>
+                      <p className="text-sm text-muted-foreground">{t('walkthrough.or')}</p>
                       <Input
-                        placeholder="Enter image URL"
+                        placeholder={t('walkthrough.enterImageUrl')}
                         value={setupData.icon_url}
                         onChange={(e) => setSetupData(prev => ({ ...prev, icon_url: e.target.value }))}
                         className="w-full"
@@ -717,10 +717,10 @@ const BuilderV2Page = () => {
                 {/* Categories */}
                 <div>
                   <Label className="text-sm font-medium text-foreground mb-2 block">
-                    Categories
+                    {t('common.categories')}
                   </Label>
                   {parentCategories.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No categories available. Create categories in the Categories page.</p>
+                    <p className="text-sm text-muted-foreground">{t('walkthrough.noCategories')}</p>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
                       {parentCategories.map((category) => (

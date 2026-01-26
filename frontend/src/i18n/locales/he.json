@@ -31,7 +31,10 @@
     "markAsDone": "סמן כסיים",
     "backToWorkspace": "חזור לאזור עבודה",
     "and": "ו",
-    "note": "הערה"
+    "note": "הערה",
+    "settings": "הגדרות",
+    "description": "תיאור",
+    "categories": "קטגוריות"
   },
   "auth": {
     "loginTitle": "התחבר לחשבון שלך",
@@ -849,10 +852,19 @@
     "noChatSupport": "אין תמיכה בצ'אט זמינה עבור שום קטגוריה.",
     "popupBlocked": "חלון קופץ נחסם. אנא אפשר חלונות קופצים עבור האתר הזה ונסה שוב.",
     "pleaseWait": "אנא המתן...",
+    "enterWalkthroughName": "אנא הזן שם מדריך",
+    "settingsUpdated": "הגדרות עודכנו!",
+    "failedToUpdateSettings": "נכשל בעדכון הגדרות",
+    "failedToUploadIcon": "נכשל בהעלאת אייקון",
+    "workspaceLocked": "משתמש אחר ({{user}}) נמצא כרגע באזור עבודה זה.",
+    "failedToLoadWalkthroughs": "נכשל בטעינת מדריכים",
+    "uploadNotCompleted": "ההעלאה לא הושלמה (סטטוס: {{status}}). אנא נסה שוב.",
+    "uploadNoUrl": "ההעלאה הצליחה אך לא הוחזר URL.",
     "pleaseFillFields": "אנא מלא את שני השדות",
     "nameRequired": "שם הקטגוריה נדרש",
     "titleRequired": "אנא הזן כותרת",
     "ratingRequired": "אנא בחר דירוג",
+    "quotaExceeded": "לא ניתן להעלות קובץ. הגעת למגבלת המכסה.",
     "cannotDeleteLastStep": "לא ניתן למחוק את השלב האחרון",
     "cannotDeleteAllSteps": "לא ניתן למחוק את כל השלבים",
     "uploadNotCompleted": "ההעלאה לא הושלמה (סטטוס: {{status}}). אנא נסה שוב.",
@@ -959,6 +971,49 @@
     "cancelledConfirmedDesc": "PayPal אישר את הביטול. לא יהיו חיובים נוספים. סטטוס החיוב הסופי נקבע על ידי PayPal.",
     "cancellationPendingConfirmation": "ביטול ממתין לאישור",
     "cancellationProcessingDesc": "PayPal מעבד את הביטול. הגישה שלך נשארת פעילה עד סוף התקופה. סטטוס החיוב הסופי נקבע על ידי PayPal."
+  },
+  "knowledgeSystems": {
+    "title": "מערכות ידע",
+    "description": "ניהול ידע מרכזי עבור הארגון שלך",
+    "backToSettings": "חזרה להגדרות",
+    "types": {
+      "policies": {
+        "name": "מדיניות",
+        "description": "מדיניות משאבי אנוש, אבטחה, משפטית ותאימות"
+      },
+      "procedures": {
+        "name": "נהלים",
+        "description": "נהלי תפעול סטנדרטיים ונהלים שלב אחר שלב"
+      },
+      "documentation": {
+        "name": "תיעוד",
+        "description": "תיעוד מוצר וטכני"
+      },
+      "faqs": {
+        "name": "שאלות נפוצות",
+        "description": "שאלות נפוצות ותשובות"
+      },
+      "decisionTrees": {
+        "name": "עצי החלטה",
+        "description": "מדריכי קבלת החלטות אינטראקטיביים"
+      }
+    },
+    "status": {
+      "draft": "טיוטה",
+      "published": "פורסם"
+    },
+    "counts": {
+      "drafts": "{{count}} טיוטה",
+      "drafts_plural": "{{count}} טיוטות",
+      "published": "{{count}} פורסמו"
+    },
+    "actions": {
+      "openEditor": "פתח עורך",
+      "createFirst": "צור ראשון"
+    },
+    "empty": {
+      "title": "אין {{type}} עדיין"
+    }
   },
   "notifications": {
     "title": "התראות",
