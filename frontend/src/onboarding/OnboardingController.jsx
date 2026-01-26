@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,6 +27,9 @@ const OnboardingController = () => {
 
   const { rect, isReady } = useTargetRect(targetSelector, active);
 
+  // Use ref to store latest setStep function to avoid circular dependencies
+  const setStepRef = useRef(null);
+
   const setStep = useCallback((nextIndex, updates = {}) => {
     if (nextIndex < 0 || nextIndex >= ONBOARDING_STEPS.length) {
       if (nextIndex >= ONBOARDING_STEPS.length) {
@@ -48,6 +51,11 @@ const OnboardingController = () => {
     setActive(true);
   }, [user?.id]);
 
+  // Update ref whenever setStep changes
+  useEffect(() => {
+    setStepRef.current = setStep;
+  }, [setStep]);
+
   const markDismissed = useCallback(async () => {
     try {
       await dismissOnboarding();
@@ -67,6 +75,80 @@ const OnboardingController = () => {
       setActive(false);
     }
   }, []);
+
+  // Event handlers moved outside useEffect to avoid circular dependencies
+  const handleCreateWorkspace = useCallback(() => {
+    if (stepIndex === 1 && setStepRef.current) setStepRef.current(2);
+  }, [stepIndex]);
+
+  const handleWorkspaceCreated = useCallback((event) => {
+    if (stepIndex <= 2 && setStepRef.current) {
+      setStepRef.current(3, {
+        workspaceId: event.detail?.workspaceId || null,
+        workspaceSlug: event.detail?.workspaceSlug || null
+      });
+    }
+  }, [stepIndex]);
+
+  const handleWorkspaceEntered = useCallback(() => {
+    if (stepIndex <= 3 && setStepRef.current) setStepRef.current(4);
+  }, [stepIndex]);
+
+  const handleNavCategories = useCallback(() => {
+    if (stepIndex <= 4 && setStepRef.current) setStepRef.current(5);
+  }, [stepIndex]);
+
+  const handleCategoryCreated = useCallback((event) => {
+    if (stepIndex <= 5 && setStepRef.current) {
+      setStepRef.current(6, {
+        categoryId: event.detail?.categoryId || null
+      });
+    }
+  }, [stepIndex]);
+
+  const handleNavGuides = useCallback(() => {
+    if (stepIndex <= 6 && setStepRef.current) setStepRef.current(7);
+  }, [stepIndex]);
+
+  const handleWalkthroughCreated = useCallback((event) => {
+    if (stepIndex <= 7 && setStepRef.current) {
+      setStepRef.current(8, {
+        walkthroughId: event.detail?.walkthroughId || null,
+        step8: { hasStep: false, hasTitle: false, hasBlock: false }
+      });
+    }
+  }, [stepIndex]);
+
+  const handleStepAdded = useCallback(() => {
+    if (stepIndex === 8) {
+      const nextSession = updateOnboardingSession({ step8: { hasStep: true } });
+      setSession(nextSession);
+    }
+  }, [stepIndex]);
+
+  const handleStepTitleUpdated = useCallback((event) => {
+    if (stepIndex === 8 && event.detail?.title?.trim()) {
+      const nextSession = updateOnboardingSession({ step8: { hasTitle: true } });
+      setSession(nextSession);
+    }
+  }, [stepIndex]);
+
+  const handleBlockAdded = useCallback(() => {
+    if (stepIndex === 8) {
+      const nextSession = updateOnboardingSession({ step8: { hasBlock: true } });
+      setSession(nextSession);
+    }
+  }, [stepIndex]);
+
+  const handleDialogClosed = useCallback(() => {
+    if (stepIndex === 2 && setStepRef.current) {
+      setStepRef.current(1);
+    } else if (stepIndex === 5 && setStepRef.current) {
+      setStepRef.current(4);
+    } else if (stepIndex === 7 && setStepRef.current) {
+      setStepRef.current(6);
+    }
+  }, [stepIndex]);
 
   useEffect(() => {
     if (!user?.id || loading) {
@@ -128,74 +210,6 @@ const OnboardingController = () => {
   useEffect(() => {
     if (!active) return;
 
-    const handleCreateWorkspace = () => {
-      if (stepIndex === 1) setStep(2);
-    };
-    const handleWorkspaceCreated = (event) => {
-      if (stepIndex <= 2) {
-        setStep(3, {
-          workspaceId: event.detail?.workspaceId || null,
-          workspaceSlug: event.detail?.workspaceSlug || null
-        });
-      }
-    };
-    const handleWorkspaceEntered = () => {
-      if (stepIndex <= 3) setStep(4);
-    };
-    const handleNavCategories = () => {
-      if (stepIndex <= 4) setStep(5);
-    };
-    const handleCategoryCreated = (event) => {
-      if (stepIndex <= 5) {
-        setStep(6, {
-          categoryId: event.detail?.categoryId || null
-        });
-      }
-    };
-    const handleNavGuides = () => {
-      if (stepIndex <= 6) setStep(7);
-    };
-    const handleWalkthroughCreated = (event) => {
-      if (stepIndex <= 7) {
-        setStep(8, {
-          walkthroughId: event.detail?.walkthroughId || null,
-          step8: { hasStep: false, hasTitle: false, hasBlock: false }
-        });
-      }
-    };
-    const handleStepAdded = () => {
-      if (stepIndex === 8) {
-        const nextSession = updateOnboardingSession({ step8: { hasStep: true } });
-        setSession(nextSession);
-      }
-    };
-    const handleStepTitleUpdated = (event) => {
-      if (stepIndex === 8 && event.detail?.title?.trim()) {
-        const nextSession = updateOnboardingSession({ step8: { hasTitle: true } });
-        setSession(nextSession);
-      }
-    };
-    const handleBlockAdded = () => {
-      if (stepIndex === 8) {
-        const nextSession = updateOnboardingSession({ step8: { hasBlock: true } });
-        setSession(nextSession);
-      }
-    };
-
-    const handleDialogClosed = () => {
-      // Handle when dialogs are closed/cancelled
-      if (stepIndex === 2) {
-        // Workspace creation dialog closed, go back to step 1
-        setStep(1);
-      } else if (stepIndex === 5) {
-        // Category creation dialog closed, go back to step 4
-        setStep(4);
-      } else if (stepIndex === 7) {
-        // Walkthrough creation dialog closed, go back to step 6
-        setStep(6);
-      }
-    };
-
     window.addEventListener('onboarding:createWorkspace', handleCreateWorkspace);
     window.addEventListener('onboarding:workspaceCreated', handleWorkspaceCreated);
     window.addEventListener('onboarding:workspaceEntered', handleWorkspaceEntered);
@@ -221,7 +235,7 @@ const OnboardingController = () => {
       window.removeEventListener('onboarding:blockAdded', handleBlockAdded);
       window.removeEventListener('onboarding:dialogClosed', handleDialogClosed);
     };
-  }, [active, stepIndex]);
+  }, [active, handleCreateWorkspace, handleWorkspaceCreated, handleWorkspaceEntered, handleNavCategories, handleCategoryCreated, handleNavGuides, handleWalkthroughCreated, handleStepAdded, handleStepTitleUpdated, handleBlockAdded, handleDialogClosed]);
 
   useEffect(() => {
     if (!active) return;
@@ -229,45 +243,45 @@ const OnboardingController = () => {
 
     if (stepIndex === 1) {
       if (document.querySelector('[data-onboarding="workspace-create-form"]')) {
-        setStep(2);
+        setStepRef.current?.(2);
       } else if (document.querySelector('[data-onboarding="workspace-card"]')) {
-        setStep(3);
+        setStepRef.current?.(3);
       }
       return;
     }
 
     if (stepIndex === 2 && document.querySelector('[data-onboarding="workspace-card"]')) {
-      setStep(3);
+      setStepRef.current?.(3);
       return;
     }
 
     if (stepIndex === 3 && location.pathname.includes('/workspace/')) {
-      setStep(4);
+      setStepRef.current?.(4);
       return;
     }
 
     if (stepIndex === 4 && location.pathname.includes('/categories')) {
-      setStep(5);
+      setStepRef.current?.(5);
       return;
     }
 
     if (stepIndex === 5) {
       const categoryEl = document.querySelector('[data-onboarding="category-card"]');
       if (categoryEl) {
-        setStep(6, { categoryId: categoryEl.getAttribute('data-onboarding-category-id') });
+        setStepRef.current?.(6, { categoryId: categoryEl.getAttribute('data-onboarding-category-id') });
       }
       return;
     }
 
     if (stepIndex === 6 && location.pathname.includes('/walkthroughs')) {
-      setStep(7);
+      setStepRef.current?.(7);
       return;
     }
 
     if (stepIndex === 7) {
       const walkthroughEl = document.querySelector('[data-onboarding="walkthrough-card"]');
       if (walkthroughEl) {
-        setStep(8, { walkthroughId: walkthroughEl.getAttribute('data-onboarding-walkthrough-id') });
+        setStepRef.current?.(8, { walkthroughId: walkthroughEl.getAttribute('data-onboarding-walkthrough-id') });
       }
     }
   }, [active, step, stepIndex, location.pathname]);
@@ -284,7 +298,7 @@ const OnboardingController = () => {
     if (!active || stepIndex !== 8) return;
     const stepState = session?.step8 || {};
     if (stepState.hasStep && stepState.hasTitle && stepState.hasBlock) {
-      setStep(9); // Move to completion step
+      setStepRef.current?.(9); // Move to completion step
     }
   }, [active, stepIndex, session]);
 
@@ -299,7 +313,7 @@ const OnboardingController = () => {
       isRTL={i18n.language === 'he'}
       isWaiting={!!step.target && !isReady}
       onDismiss={markDismissed}
-      onPrimaryAction={() => setStep(stepIndex + 1)}
+      onPrimaryAction={() => setStepRef.current?.(stepIndex + 1)}
     />
   );
 };
