@@ -516,7 +516,7 @@ const WalkthroughsPage = () => {
                       className="w-full text-white"
                     />
                     <p className="text-xs text-slate-400">
-                      Custom name for the walkthrough URL. Leave empty to use the walkthrough ID.
+                      {t('walkthrough.urlNameDescription')}
                       {editSettings.slug && workspace?.slug && (
                         <span className="block mt-1 font-mono text-primary break-all">
                           URL: {window.location.origin}/portal/{workspace.slug}/{editSettings.slug}
@@ -524,7 +524,7 @@ const WalkthroughsPage = () => {
                       )}
                       {!editSettings.slug && editingWalkthrough && (
                         <span className="block mt-1 font-mono text-slate-400 text-xs">
-                          Current URL: {window.location.origin}/portal/{workspace?.slug}/{editingWalkthrough.id}
+                          {t('walkthrough.currentUrl')}: {window.location.origin}/portal/{workspace?.slug}/{editingWalkthrough.id}
                         </span>
                       )}
                     </p>
@@ -593,7 +593,7 @@ const WalkthroughsPage = () => {
                 {/* Categories */}
                 <div>
                   <Label className="text-sm font-medium text-white mb-2 block">
-                    Categories
+                    {t('common.categories')}
                   </Label>
                   {parentCategories.length === 0 ? (
                     <p className="text-sm text-slate-500">No categories available. Create categories in the Categories page.</p>
@@ -636,7 +636,7 @@ const WalkthroughsPage = () => {
                     className="mr-auto"
                   >
                     <Archive className="w-4 h-4 mr-2" />
-                    Archive Walkthrough
+                    {t('walkthrough.archiveWalkthrough')}
                   </Button>
                   <Button
                     variant="outline"
@@ -645,14 +645,14 @@ const WalkthroughsPage = () => {
                       setEditingWalkthrough(null);
                     }}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     onClick={handleSaveSettings}
                     disabled={!editSettings.title?.trim() || uploadingIcon}
                     className="flex-1"
                   >
-                    Save Settings
+                    {t('walkthrough.saveSettings')}
                   </Button>
                 </div>
               </div>

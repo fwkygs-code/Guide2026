@@ -397,8 +397,8 @@ const SettingsPage = () => {
             </h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="portal-background" className="text-foreground">Portal Background Image</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">Custom background for your public portal</p>
+                <Label htmlFor="portal-background" className="text-foreground">{t('settings.portalBackgroundImage')}</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">{t('settings.portalBackgroundDescription')}</p>
                 <div className="mt-1.5 space-y-2">
                   {portalBackgroundUrl && (
                     <div className="relative">
@@ -422,11 +422,11 @@ const SettingsPage = () => {
                 </div>
               </div>
               <div>
-                <Label className="text-foreground">Portal Color Palette</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">Customize colors for your portal</p>
+                <Label className="text-foreground">{t('settings.portalColorPalette')}</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">{t('settings.portalColorDescription')}</p>
                 <div className="grid grid-cols-3 gap-3 mt-1.5">
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1">Primary</Label>
+                    <Label className="text-xs text-muted-foreground mb-1">{t('settings.colorPrimary')}</Label>
                     <div className="flex gap-2">
                       <Input
                         type="color"
@@ -443,7 +443,7 @@ const SettingsPage = () => {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1">Secondary</Label>
+                    <Label className="text-xs text-muted-foreground mb-1">{t('settings.colorSecondary')}</Label>
                     <div className="flex gap-2">
                       <Input
                         type="color"
@@ -460,7 +460,7 @@ const SettingsPage = () => {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1">Accent</Label>
+                    <Label className="text-xs text-muted-foreground mb-1">{t('settings.colorAccent')}</Label>
                     <div className="flex gap-2">
                       <Input
                         type="color"
@@ -485,14 +485,14 @@ const SettingsPage = () => {
           <div className="glass rounded-xl p-6">
             <h2 className="text-xl font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
               <Phone className="w-5 h-5" />
-              Portal Contact Information
+              {t('settings.portalContactInfo')}
             </h2>
-            <p className="text-xs text-muted-foreground mb-4">Add contact information that will appear at the top of your portal</p>
+            <p className="text-xs text-muted-foreground mb-4">{t('settings.portalContactDescription')}</p>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="portal-phone" className="flex items-center gap-2 text-foreground">
                   <Phone className="w-4 h-4" />
-                  Phone Number
+                  {t('settings.phoneNumber')}
                 </Label>
                 <Input
                   id="portal-phone"
@@ -505,7 +505,7 @@ const SettingsPage = () => {
               <div>
                 <Label htmlFor="portal-working-hours" className="flex items-center gap-2 text-foreground">
                   <Clock className="w-4 h-4" />
-                  Working Hours
+                  {t('settings.workingHours')}
                 </Label>
                 <Input
                   id="portal-working-hours"
@@ -518,7 +518,7 @@ const SettingsPage = () => {
               <div>
                 <Label htmlFor="portal-whatsapp" className="flex items-center gap-2 text-foreground">
                   <MessageCircle className="w-4 h-4" />
-                  WhatsApp Link
+                  {t('settings.whatsappLink')}
                 </Label>
                 <Input
                   id="portal-whatsapp"
@@ -539,7 +539,7 @@ const SettingsPage = () => {
               <ExternalLink className="w-5 h-5" />
               {t('settings.portalExternalLinks')}
             </h2>
-            <p className="text-xs text-muted-foreground mb-4">Add buttons with external links that will appear at the top of your portal (e.g., link to your website, support page, etc.)</p>
+            <p className="text-xs text-muted-foreground mb-4">{t('settings.portalLinksDescription')}</p>
             <div className="space-y-3">
               {portalLinks.map((link, index) => (
                 <div key={index} className="flex gap-2 items-start p-3 bg-secondary/50 dark:bg-background/50 rounded-lg border border-border/50 dark:border-slate-800/50">
@@ -603,7 +603,7 @@ const SettingsPage = () => {
               <div>
                 <Label>Current Plan</Label>
                 <p className="text-sm text-muted-foreground mt-1.5">
-                  Manage your subscription and plan settings
+                  {t('settings.planManagementDescription')}
                 </p>
               </div>
               <Button
@@ -611,7 +611,7 @@ const SettingsPage = () => {
                 onClick={() => setPlanSelectionOpen(true)}
                 className="w-full"
               >
-                Change Plan
+                {t('settings.changePlan')}
               </Button>
             </div>
           </div>
@@ -621,9 +621,9 @@ const SettingsPage = () => {
             <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.dangerZone')}</h2>
             <div className="space-y-4">
               <div>
-                <Label className="text-red-900">Delete Workspace</Label>
+                <Label className="text-red-900">{t('settings.deleteWorkspace')}</Label>
                 <p className="text-sm text-red-700 mt-1.5 mb-3">
-                  This action cannot be undone. This will permanently delete the workspace, all categories, and all walkthroughs under it forever.
+                  {t('settings.deleteWorkspaceWarning')}
                 </p>
                 <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                   <AlertDialogTrigger asChild>
@@ -633,14 +633,14 @@ const SettingsPage = () => {
                       disabled={deleting}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Workspace
+                      {t('settings.deleteWorkspace')}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete:
+                        {t('settings.deleteConfirmMessage')}
                         <ul className="list-disc list-inside mt-2 space-y-1">
                           <li>All walkthroughs in this workspace</li>
                           <li>All categories in this workspace</li>
@@ -659,7 +659,7 @@ const SettingsPage = () => {
                         disabled={deleting}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        {deleting ? 'Deleting...' : 'Yes, Delete Workspace'}
+                        {deleting ? t('settings.deleting') : t('settings.confirmDelete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -673,27 +673,27 @@ const SettingsPage = () => {
             <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.textSize')}</h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="text-size" className="text-foreground">Text Size Preference</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">Adjust text size throughout the application</p>
+                <Label htmlFor="text-size" className="text-foreground">{t('settings.textSizePreference')}</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">{t('settings.textSizeDescription')}</p>
                 <Select value={textSize} onValueChange={setTextSize} className="mt-1.5">
                   <SelectTrigger id="text-size" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="small">Small</SelectItem>
-                    <SelectItem value="medium">Medium (Default)</SelectItem>
-                    <SelectItem value="large">Large</SelectItem>
-                    <SelectItem value="xl">Extra Large</SelectItem>
+                    <SelectItem value="small">{t('settings.textSizeSmall')}</SelectItem>
+                    <SelectItem value="medium">{t('settings.textSizeMedium')}</SelectItem>
+                    <SelectItem value="large">{t('settings.textSizeLarge')}</SelectItem>
+                    <SelectItem value="xl">{t('settings.textSizeXL')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="mt-3 p-3 glass rounded-xl">
-                  <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-xs text-muted-foreground mb-2">{t('settings.preview')}:</p>
                   <div className="space-y-1">
                     <p className={`${textSize === 'small' ? 'text-sm' : textSize === 'medium' ? 'text-base' : textSize === 'large' ? 'text-lg' : 'text-xl'}`}>
-                      This is how body text will look
+                      {t('settings.previewBodyText')}
                     </p>
                     <p className={`font-heading font-semibold ${textSize === 'small' ? 'text-base' : textSize === 'medium' ? 'text-lg' : textSize === 'large' ? 'text-xl' : 'text-2xl'}`}>
-                      This is how headings will look
+                      {t('settings.previewHeadingText')}
                     </p>
                   </div>
                 </div>
@@ -707,8 +707,8 @@ const SettingsPage = () => {
               <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.workspaceSharing')}</h2>
               <div className="space-y-4">
                 <div>
-                  <Label>Invite User by Email</Label>
-                  <p className="text-xs text-muted-foreground mb-1.5">Invite users to collaborate on this workspace</p>
+                  <Label>{t('settings.inviteUserByEmail')}</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">{t('settings.inviteDescription')}</p>
                   <div className="flex gap-2 mt-1.5">
                     <Input
                       type="email"
@@ -723,14 +723,14 @@ const SettingsPage = () => {
                       disabled={inviting || !inviteEmail}
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
-                      {inviting ? 'Inviting...' : 'Invite'}
+                      {inviting ? t('settings.inviting') : t('settings.invite')}
                     </Button>
                   </div>
                 </div>
 
                 <div>
-                  <Label>Workspace Members</Label>
-                  <p className="text-xs text-muted-foreground mb-1.5">People who have access to this workspace</p>
+                  <Label>{t('settings.workspaceMembers')}</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">{t('settings.workspaceMembersDescription')}</p>
                   {loadingMembers ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">Loading members...</div>
                   ) : members.length === 0 ? (
@@ -785,22 +785,22 @@ const SettingsPage = () => {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="share">
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  {t('settings.share')}
                 </TabsTrigger>
                 <TabsTrigger value="embed">
                   <Code className="w-4 h-4 mr-2" />
-                  Embed
+                  {t('settings.embed')}
                 </TabsTrigger>
                 <TabsTrigger value="integration">
                   <Globe className="w-4 h-4 mr-2" />
-                  Integration
+                  {t('settings.integration')}
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="share" className="space-y-4 mt-4">
                 <div>
-                  <Label className="text-foreground">Portal Link</Label>
-                  <p className="text-xs text-muted-foreground mb-1.5">Share this link to give others access to your portal</p>
+                  <Label className="text-foreground">{t('settings.portalLink')}</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">{t('settings.portalLinkDescription')}</p>
                   <div className="flex gap-2 mt-1.5">
                     <Input
                       value={portalUrl}
@@ -927,11 +927,11 @@ const SettingsPage = () => {
                   setName(workspace?.name || '');
                 }}
               >
-                Reset
+                {t('settings.reset')}
               </Button>
               <Button onClick={handleSave} disabled={saving} data-testid="save-settings-button">
                 <Save className="w-4 h-4 mr-2" />
-                Save Changes
+                {t('settings.saveChanges')}
               </Button>
             </div>
           </div>

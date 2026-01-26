@@ -400,7 +400,7 @@ const DashboardPage = () => {
                     }}
                   >
                     <BookOpen className="w-4 h-4 mr-2" />
-                    Guides
+                    {t('workspace.guides')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -427,7 +427,7 @@ const DashboardPage = () => {
                     }}
                   >
                     <FolderOpen className="w-4 h-4 mr-2" />
-                    Categories
+                    {t('workspace.categories')}
                   </Button>
                   {workspace.owner_id === user?.id && (
                     <Button

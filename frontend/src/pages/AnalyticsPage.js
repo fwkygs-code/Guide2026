@@ -210,11 +210,8 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
         </div>
 
         {/* Walkthrough Stats */}
-        <Card interactive={true} className="mb-6">
-          <Card.Header className="pb-4">
-            <Card.Title className="text-white text-xl font-semibold">{t('analytics.walkthroughPerformance')}</Card.Title>
-          </Card.Header>
-          <Card.Content>
+        <div className="glass rounded-xl p-6 mb-6">
+          <h2 className="text-xl font-heading font-semibold text-white mb-6">{t('analytics.walkthroughPerformance')}</h2>
           
           {walkthroughs.length > 0 ? (
             <div className="space-y-4">
@@ -310,8 +307,7 @@ className="rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border b
               <p className="text-slate-400">{t('analytics.noPublishedWalkthroughs')}</p>
             </div>
           )}
-          </Card.Content>
-        </Card>
+        </div>
 
         {/* Basic Workspace Stats */}
         <div className="grid md:grid-cols-3 gap-6 mt-8">
