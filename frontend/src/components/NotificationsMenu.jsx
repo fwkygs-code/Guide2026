@@ -236,17 +236,17 @@ const NotificationsMenu = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0 bg-card text-foreground" align="end">
         <div className="p-4 border-b">
           <h3 className="font-semibold text-sm">{t('notifications.title')}</h3>
         </div>
         <ScrollArea className="h-[400px]">
           {loading ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
+            <div className="p-4 text-center text-sm text-foreground/70">
               {t('notifications.loading')}
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
+            <div className="p-4 text-center text-sm text-foreground/70">
               {t('notifications.noNotifications')}
             </div>
           ) : (
@@ -264,10 +264,10 @@ const NotificationsMenu = () => {
                       <p className="text-sm font-medium text-foreground">
                         {notification.title}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-foreground/80 mt-1">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-muted-foreground/80 mt-1">
+                      <p className="text-xs text-foreground/60 mt-1">
                         {formatNotificationTime(notification.created_at)}
                       </p>
                       {notification.type === 'invite' && notification.metadata?.workspace_id && (

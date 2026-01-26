@@ -1564,7 +1564,8 @@
     "nameRequired": "Category name is required",
     "updated": "Category updated!",
     "deleted": "Category deleted. Walkthroughs are now uncategorized.",
-    "subCategories": "Sub-categories"
+    "subCategories": "Sub-categories",
+    "addSubCategory": "Add Sub-category"
   },
   "admin": {
     "actions": {

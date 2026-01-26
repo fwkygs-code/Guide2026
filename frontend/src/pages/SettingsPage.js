@@ -43,6 +43,7 @@ const SettingsPage = () => {
   const [planSelectionOpen, setPlanSelectionOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [members, setMembers] = useState([]);
@@ -238,6 +239,13 @@ const SettingsPage = () => {
   };
 
   const handleDeleteWorkspace = async () => {
+    const expectedPhrase = `delete my workspace ${workspace?.name || ''}`;
+    
+    if (deleteConfirmation.trim().toLowerCase() !== expectedPhrase.toLowerCase()) {
+      toast.error('Please type the exact phrase to confirm deletion');
+      return;
+    }
+    
     setDeleting(true);
     try {
       await api.deleteWorkspace(workspaceId);
@@ -249,6 +257,7 @@ const SettingsPage = () => {
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
+      setDeleteConfirmation('');
     }
   };
 
@@ -625,7 +634,12 @@ const SettingsPage = () => {
                 <p className="text-sm text-red-700 mt-1.5 mb-3">
                   {t('settings.deleteWorkspaceWarning')}
                 </p>
-                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+                  setDeleteDialogOpen(open);
+                  if (!open) {
+                    setDeleteConfirmation('');
+                  }
+                }}>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="destructive"
@@ -636,7 +650,7 @@ const SettingsPage = () => {
                       {t('settings.deleteWorkspace')}
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -650,13 +664,35 @@ const SettingsPage = () => {
                         <p className="mt-3 font-semibold text-red-600">
                           All data will be deleted forever.
                         </p>
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                          <p className="text-sm font-medium text-red-800 mb-2">
+                            To confirm deletion, type the following phrase:
+                          </p>
+                          <code className="block p-2 bg-red-100 rounded text-red-900 text-sm font-mono">
+                            delete my workspace {workspace?.name || ''}
+                          </code>
+                        </div>
+                        <div className="mt-3">
+                          <Input
+                            value={deleteConfirmation}
+                            onChange={(e) => setDeleteConfirmation(e.target.value)}
+                            placeholder="Type the phrase above to confirm"
+                            className="w-full"
+                            disabled={deleting}
+                          />
+                        </div>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel 
+                        disabled={deleting}
+                        onClick={() => setDeleteConfirmation('')}
+                      >
+                        Cancel
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDeleteWorkspace}
-                        disabled={deleting}
+                        disabled={deleting || deleteConfirmation.trim().toLowerCase() !== `delete my workspace ${workspace?.name || ''}`.toLowerCase()}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         {deleting ? t('settings.deleting') : t('settings.confirmDelete')}

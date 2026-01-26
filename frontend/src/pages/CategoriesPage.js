@@ -267,7 +267,7 @@ const CategoriesPage = () => {
             setNewCategoryNotebooklmUrl('');
           }
         }}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto z-[9999]">
+          <DialogContent className="max-h-[90vh] overflow-y-auto z-[9999] text-foreground">
               <DialogHeader>
                 <DialogTitle>
                   {creatingForParent
@@ -285,7 +285,7 @@ const CategoriesPage = () => {
                     placeholder={t('category.gettingStarted', 'Getting Started')}
                     required
                     data-testid="category-name-input"
-                    className="mt-1.5"
+                    className="mt-1.5 text-foreground"
                   />
                 </div>
                 <div>
@@ -297,7 +297,7 @@ const CategoriesPage = () => {
                     placeholder={t('category.guidesForNewUsers', 'Guides for new users')}
                     rows={3}
                     data-testid="category-description-input"
-                    className="mt-1.5"
+                    className="mt-1.5 text-foreground"
                     required
                   />
                 </div>
@@ -324,7 +324,7 @@ const CategoriesPage = () => {
                         value={newCategoryIcon}
                         onChange={(e) => setNewCategoryIcon(e.target.value)}
                         placeholder={t('category.iconUrl', 'Icon/Photo URL')}
-                        className="h-9"
+                        className="h-9 text-foreground"
                         data-testid="category-icon-url-input"
                       />
                       <label>
@@ -399,7 +399,7 @@ const CategoriesPage = () => {
                     value={newCategoryNotebooklmUrl}
                     onChange={(e) => setNewCategoryNotebooklmUrl(e.target.value)}
                     placeholder={t('category.notebooklmExample', 'https://notebooklm.google.com/notebook/...')}
-                    className="mt-1.5"
+                    className="mt-1.5 text-foreground"
                     data-testid="category-notebooklm-url-input"
                   />
                   <p className="text-xs text-slate-500 mt-1.5">
@@ -608,7 +608,7 @@ const CategoriesPage = () => {
                   placeholder="Category name"
                   required
                   data-testid="edit-category-name-input"
-                  className="mt-1.5"
+                  className="mt-1.5 text-foreground"
                 />
               </div>
               <div>
@@ -620,7 +620,7 @@ const CategoriesPage = () => {
                   placeholder="Category description"
                   rows={3}
                   data-testid="edit-category-description-input"
-                  className="mt-1.5"
+                  className="mt-1.5 text-foreground"
                 />
               </div>
               <div>
@@ -646,7 +646,7 @@ const CategoriesPage = () => {
                       value={editCategoryIcon}
                       onChange={(e) => setEditCategoryIcon(e.target.value)}
                       placeholder="Icon/Photo URL"
-                      className="h-9"
+                      className="h-9 text-foreground"
                       data-testid="edit-category-icon-url-input"
                     />
                     <label>
@@ -677,7 +677,7 @@ const CategoriesPage = () => {
                   value={editCategoryNotebooklmUrl}
                   onChange={(e) => setEditCategoryNotebooklmUrl(e.target.value)}
                   placeholder="https://notebooklm.google.com/notebook/..."
-                  className="mt-1.5"
+                  className="mt-1.5 text-foreground"
                   data-testid="edit-category-notebooklm-url-input"
                 />
                 <p className="text-xs text-slate-500 mt-1.5">
