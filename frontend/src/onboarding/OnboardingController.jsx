@@ -255,9 +255,23 @@ const OnboardingController = () => {
       return;
     }
 
-    if (stepIndex === 3 && location.pathname.includes('/workspace/')) {
-      setStepRef.current?.(4);
+    // Handle case where user closes workspace creation dialog - go back to step 1
+    if (stepIndex === 2 && !document.querySelector('[data-onboarding="workspace-create-form"]')) {
+      setStepRef.current?.(1);
       return;
+    }
+
+    if (stepIndex === 3) {
+      // Check if we're in a workspace
+      if (location.pathname.includes('/workspace/')) {
+        setStepRef.current?.(4);
+        return;
+      }
+      // If no workspace cards exist, go back to step 1
+      if (!document.querySelector('[data-onboarding="workspace-card"]')) {
+        setStepRef.current?.(1);
+        return;
+      }
     }
 
     if (stepIndex === 4 && location.pathname.includes('/categories')) {
@@ -282,7 +296,11 @@ const OnboardingController = () => {
       const walkthroughEl = document.querySelector('[data-onboarding="walkthrough-card"]');
       if (walkthroughEl) {
         setStepRef.current?.(8, { walkthroughId: walkthroughEl.getAttribute('data-onboarding-walkthrough-id') });
+      } else if (!document.querySelector('[data-onboarding="walkthrough-setup-form"]') && !document.querySelector('[data-onboarding="create-walkthrough-button"]')) {
+        // If walkthrough creation form is not visible and no walkthrough cards exist, go back to step 6
+        setStepRef.current?.(6);
       }
+      return;
     }
   }, [active, step, stepIndex, location.pathname]);
 

@@ -109,7 +109,7 @@ const EmailVerificationRequiredPage = () => {
               variant="outline"
               className="w-full"
             >
-              {t('auth.logout')}
+              {t('common.logout')}
             </Button>
           </div>
 
