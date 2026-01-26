@@ -959,7 +959,7 @@
       "problemTitle": "כותרת בעיה",
       "explanation": "הסבר",
       "checklistItem": "פריט ברשימת משימות",
-      "startTyping": "התחל להקליד..., בחר טקסט לאפשרויות עיצוב",
+      "startTyping": "התחל להקליד...",
       "or": "או",
       "fileUrl": "כתובת קובץ",
       "pasteMediaUrl": "הדבק כתובת מדיה",
@@ -967,7 +967,12 @@
       "enterHtml": "הכנס קוד HTML...",
       "remove": "הסר",
       "removeMedia": "הסר מדיה",
-      "addMoreSteps": "הוסף שלבים נוספים כדי לאפשר פעולה זו"
+      "addMoreSteps": "הוסף שלבים נוספים כדי לאפשר פעולה זו",
+      "addSlide": "הוסף שקופית",
+      "sectionTitle": "כותרת קטע",
+      "sectionNotSupported": "בלוק קטע (בלוקים מקוננים עדיין לא נתמכים בתצוגה זו)",
+      "column1": "עמודה 1",
+      "column2": "עמודה 2"
     },
     "blocks": {
       "heading": "כותרת",

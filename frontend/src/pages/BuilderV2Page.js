@@ -1405,7 +1405,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             placeholder={t('builder.placeholders.headingText')}
             textSize={headingSize}
             isBold={true}
-            className="text-foreground"
+            className="text-foreground text-gray-900"
           />
         </div>
       );
@@ -1706,7 +1706,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
 
     case BLOCK_TYPES.PROBLEM:
       return (
-        <div className="border border-warning-300 rounded-lg p-4 bg-warning-50 space-y-3 text-foreground">
+        <div className="border border-warning-300 rounded-lg p-4 bg-warning-50 space-y-3 text-foreground text-gray-900">
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block font-medium">{t('builder.problemTitle')}</Label>
             <InlineRichEditor
@@ -1717,7 +1717,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               textSize="text-base"
               isBold={true}
               align="left"
-              className="text-foreground"
+              className="text-foreground text-gray-900"
             />
           </div>
           <div>
@@ -1730,7 +1730,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               textSize="text-sm"
               isBold={false}
               align="left"
-              className="text-foreground"
+              className="text-foreground text-gray-900"
             />
           </div>
         </div>
@@ -1790,6 +1790,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               const newItems = [...items, { id: `item-${Date.now()}`, text: '', checked: false }];
               onUpdate({ data: { ...block.data, items: newItems } });
             }}
+            className="text-foreground text-gray-900"
           >
             <Plus className="w-4 h-4 mr-2" />
             {t('builder.addItem')}
@@ -1950,11 +1951,11 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           <Input
             value={block.data?.title || ''}
             onChange={(e) => onUpdate({ data: { ...block.data, title: e.target.value } })}
-            placeholder="Section title"
+            placeholder={t('builder.placeholders.sectionTitle')}
             className="font-semibold"
           />
           <div className="text-sm text-muted-foreground">
-            Section block (nested blocks not yet supported in this view)
+            {t('builder.placeholders.sectionNotSupported')}
           </div>
         </div>
       );
@@ -2122,14 +2123,14 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Column 1</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.placeholders.column1')}</Label>
               <RichTextEditor
                 content={block.data?.column1 || ''}
                 onChange={(content) => onUpdate({ data: { ...block.data, column1: content } })}
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Column 2</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.placeholders.column2')}</Label>
               <RichTextEditor
                 content={block.data?.column2 || ''}
                 onChange={(content) => onUpdate({ data: { ...block.data, column2: content } })}
@@ -3216,7 +3217,7 @@ const AnnotatedImageBlockEditor = ({ block, onUpdate, onMediaUpload, canUploadFi
                 });
               }
             }}
-            className="h-7 text-xs"
+            className="h-7 text-xs text-foreground"
           >
             <Plus className="w-3 h-3 mr-1" />
             {t('builder.annotatedImage.addCenter')}
@@ -3501,9 +3502,9 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
     return (
       <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
         <p className="text-sm text-muted-foreground mb-4">No slides yet. Add your first slide to start.</p>
-        <Button onClick={addSlide} size="sm">
+        <Button onClick={addSlide} size="sm" className="text-foreground text-gray-900">
           <Plus className="w-4 h-4 mr-2" />
-          Add Slide
+          {t('builder.placeholders.addSlide')}
         </Button>
       </div>
     );
@@ -3619,6 +3620,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                 }
               }}
               disabled={slides.length <= 1}
+              className="text-foreground text-gray-900"
             >
               <X className="w-4 h-4 mr-1" />
               {t('builder.placeholders.remove')}
@@ -3631,9 +3633,10 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
                 addSlide();
               }}
               disabled={slides.length >= MAX_SLIDES}
+              className="text-foreground text-gray-900"
             >
               <Plus className="w-4 h-4 mr-1" />
-              Add Slide
+              {t('builder.placeholders.addSlide')}
             </Button>
           </div>
         </div>

@@ -812,7 +812,7 @@
       "problemTitle": "Problem title",
       "explanation": "Explanation",
       "checklistItem": "Checklist item",
-      "startTyping": "Start typing..., select text for formatting options",
+      "startTyping": "Start typing...",
       "or": "or",
       "fileUrl": "File URL",
       "pasteMediaUrl": "Paste media URL",
@@ -820,7 +820,12 @@
       "enterHtml": "Enter HTML code...",
       "remove": "Remove",
       "removeMedia": "Remove Media",
-      "addMoreSteps": "Add more steps to enable this action"
+      "addMoreSteps": "Add more steps to enable this action",
+      "addSlide": "Add Slide",
+      "sectionTitle": "Section title",
+      "sectionNotSupported": "Section block (nested blocks not yet supported in this view)",
+      "column1": "Column 1",
+      "column2": "Column 2"
     },
     "blocks": {
       "heading": "Heading",
