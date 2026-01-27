@@ -95,7 +95,7 @@ const LandingPage = () => {
                   {t('landing.getStartedFree')}
                 </Button>
               </Link>
-              <Button size="lg" variant="secondary" className="rounded-full px-8 text-foreground" data-testid="hero-view-demo-button">
+              <Button size="lg" variant="outline" className="rounded-full px-8 text-white border-white hover:bg-white hover:text-slate-900" data-testid="hero-view-demo-button">
                 {t('landing.viewDemo')}
               </Button>
             </div>

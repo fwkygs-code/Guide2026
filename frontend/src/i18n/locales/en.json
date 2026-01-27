@@ -690,6 +690,12 @@
     "changePlanDescription": "Select a new plan. Your current usage will be preserved.",
     "popular": "Popular",
     "freeTrial": "Start with a free 14-day trial",
+    "planNames": {
+      "free": "Free",
+      "pro": "Pro", 
+      "enterprise": "Enterprise"
+    },
+    "enterpriseRequiresSetup": "Enterprise plan requires custom setup. Please contact sales for pricing and configuration.",
     "planFeatures": {
       "workspace": "{{count}} workspace",
       "workspaces": "{{count}} workspaces",

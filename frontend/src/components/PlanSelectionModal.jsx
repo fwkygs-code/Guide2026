@@ -16,7 +16,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
   const plans = [
     {
       name: 'free',
-      displayName: 'Free',
+      displayName: t('upgrade.planNames.free'),
       price: '$0',
       period: 'forever',
       features: [
@@ -40,14 +40,14 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     },
     {
       name: 'pro',
-      displayName: 'Pro',
+      displayName: t('upgrade.planNames.pro'),
       price: 'Free Trial',
       period: '14 days',
       features: [
         t('upgrade.planFeatures.workspaces', { count: 3 }),
         t('upgrade.planFeatures.unlimitedCategories'),
         t('upgrade.planFeatures.unlimitedWalkthroughs'),
-        t('upgrade.planFeatures.storage', { size: '25 GB' }),
+        t('upgrade.planFeatures.storage', { size: '3 GB' }),
         t('upgrade.planFeatures.maxFileSize', { size: '150 MB' }),
         t('upgrade.planFeatures.extraStorageAvailable'),
         t('upgrade.planFeatures.prioritySupport'),
@@ -67,7 +67,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     },
     {
       name: 'enterprise',
-      displayName: 'Enterprise',
+      displayName: t('upgrade.planNames.enterprise'),
       price: 'Custom',
       period: 'pricing',
       features: [
@@ -206,6 +206,13 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
                 <Info className="w-4 h-4 mr-2" />
                 {t('upgrade.maxMediaCapacity')}
               </Button>
+              {plan.name === 'enterprise' && (
+                <div className="mt-4 p-3 bg-secondary rounded-lg">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>{t('common.note')}:</strong> {t('upgrade.enterpriseRequiresSetup')}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>

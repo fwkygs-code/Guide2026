@@ -873,6 +873,12 @@
     "changePlanDescription": "בחר תוכנית חדשה. השימוש הנוכחי שלך יישמר.",
     "popular": "פופולרי",
     "freeTrial": "התחל עם תקופת ניסיון חינם של 14 ימים",
+    "planNames": {
+      "free": "חינם",
+      "pro": "פרו",
+      "enterprise": "ארגוני"
+    },
+    "enterpriseRequiresSetup": "תוכנית ארגונית דורשת התאמה אישית. אנא צור קשר עם מכירות לקבלת מחיר והגדרות.",
     "planFeatures": {
       "workspace": "{{count}} אזור עבודה",
       "workspaces": "{{count}} אזורי עבודה",

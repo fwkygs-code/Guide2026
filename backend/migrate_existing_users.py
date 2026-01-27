@@ -50,9 +50,9 @@ async def initialize_default_plans():
             "max_workspaces": 3,
             "max_categories": None,  # unlimited
             "max_walkthroughs": None,  # unlimited
-            "storage_bytes": 25 * 1024 * 1024 * 1024,  # 25 GB
+            "storage_bytes": 3 * 1024 * 1024 * 1024,  # 3 GB
             "max_file_size_bytes": 150 * 1024 * 1024,  # 150 MB
-            "extra_storage_increment_bytes": 25 * 1024 * 1024 * 1024,  # 25 GB increments
+            "extra_storage_increment_bytes": 3 * 1024 * 1024 * 1024,  # 3 GB increments
             "is_public": True,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()

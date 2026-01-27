@@ -66,7 +66,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
         '3 workspaces',
         'Unlimited categories',
         'Unlimited walkthroughs',
-        '25 GB storage',
+        '3 GB storage',
         '150 MB max file size',
         'Extra storage available'
       ],
