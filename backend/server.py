@@ -5999,113 +5999,154 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
 @api_router.get("/users/me/plan")
 async def get_user_plan_endpoint(current_user: User = Depends(get_current_user)):
     """
-    UI CLEANUP: Canonical subscription state API
+    CANONICAL SUBSCRIPTION STATE API - NO EARLY RETURNS
     
     Returns ONLY the current subscription state derived from PayPal.
-    No historical states, no internal workflow statuses, no "pending" UI language.
+    Guarantees: All code paths reach final return with complete canonical object.
     
     Returns:
     {
-        "plan": "Pro" | "Free",
+        "plan": "pro" | "free" (string, never undefined),
         "provider": "PAYPAL" | null,
-        "access_granted": true | false,
-        "access_until": "2026-02-17T00:00:00Z" | null,
+        "access_granted": true | false (boolean, never undefined),
+        "access_until": ISO timestamp | null,
         "is_recurring": true | false,
-        "management_url": "https://www.paypal.com/..." | null,
+        "management_url": string | null,
         "quota": {...}
     }
     """
-    # UI CLEANUP: Get current PayPal-derived state
-    # Step 1: Find user's PayPal subscription
+    # ========== PHASE 1: RECONCILIATION (ALWAYS RUNS) ==========
+    logging.info(f"[GET_PLAN] START for user {current_user.email}")
+    
+    # Initialize canonical state (defaults = Free plan, no access)
+    plan_name = "free"  # STRING, never undefined
+    access_granted = False  # BOOLEAN, never undefined
+    access_until = None
+    is_recurring = False
+    management_url = None
+    provider = None
+    
+    # Find PayPal subscription
     subscription_doc = await db.subscriptions.find_one(
         {"user_id": current_user.id, "provider": "paypal"},
         {"_id": 0}
     )
     
-    # LEGACY USER DEBUG: Log subscription state for troubleshooting
+    # If subscription exists, reconcile with PayPal
     if subscription_doc:
         logging.info(
-            f"[GET_PLAN] User {current_user.email} has subscription: "
+            f"[GET_PLAN] Subscription found: "
             f"id={subscription_doc.get('id')}, "
-            f"paypal_verified_status={subscription_doc.get('paypal_verified_status')}, "
-            f"has_billing_timestamps={bool(subscription_doc.get('next_billing_time') or subscription_doc.get('final_payment_time'))}"
+            f"paypal_status={subscription_doc.get('paypal_verified_status')}"
         )
-    
-    # Step 2: Reconcile with PayPal to get current truth
-    access_granted = False
-    access_until = None
-    is_recurring = False
-    management_url = None
-    plan_name = "Free"
-    
-    if subscription_doc:
-        # LEGACY USER FIX: Force reconciliation if billing timestamps missing
-        # This ensures canonical state for users created before the refactor
-        has_billing_timestamps = (
+        
+        # ALWAYS force reconciliation for legacy users (no billing timestamps)
+        has_billing_timestamps = bool(
             subscription_doc.get('next_billing_time') or 
             subscription_doc.get('final_payment_time') or 
             subscription_doc.get('last_payment_time')
         )
-        force_reconciliation = not has_billing_timestamps
+        force = not has_billing_timestamps
         
-        reconcile_result = await reconcile_subscription_with_paypal(
-            subscription_id=subscription_doc['id'],
-            force=force_reconciliation  # Force for legacy users, cache for new users
+        logging.info(
+            f"[GET_PLAN] Reconciling with force={force} "
+            f"(has_timestamps={has_billing_timestamps})"
         )
         
+        # Reconcile subscription with PayPal
+        reconcile_result = await reconcile_subscription_with_paypal(
+            subscription_id=subscription_doc['id'],
+            force=force
+        )
+        
+        # Process reconciliation result
         if reconcile_result.get("success"):
-            # UI CLEANUP: Derive canonical state from PayPal
-            access_granted = reconcile_result.get("access_granted", False)
+            # Extract canonical fields from reconciliation
+            access_granted = bool(reconcile_result.get("access_granted", False))
             
-            # Extract access_until from billing info
+            # Extract billing timestamps
             billing_info = reconcile_result.get("billing_info", {})
             next_billing_time = billing_info.get("next_billing_time")
             final_payment_time = billing_info.get("final_payment_time")
+            paypal_status = reconcile_result.get("paypal_status", "")
             
+            # Derive plan name from access
             if access_granted:
-                plan_name = "Pro"
-                # access_until = when access expires
+                plan_name = "pro"  # STRING
+                
+                # access_until = when paid access expires
                 if next_billing_time:
                     access_until = next_billing_time
                 elif final_payment_time:
                     access_until = final_payment_time
                 
-                # is_recurring = true if subscription will auto-renew
-                paypal_status = reconcile_result.get("paypal_status", "")
+                # is_recurring = subscription auto-renews
                 is_recurring = (paypal_status == "ACTIVE" and not final_payment_time)
             
-            # Management URL (always provide for PayPal subscriptions)
+            # Management URL (for all PayPal subscriptions)
+            provider = "PAYPAL"
             provider_subscription_id = subscription_doc.get('provider_subscription_id')
             if provider_subscription_id:
                 management_url = f"https://www.paypal.com/myaccount/autopay/connect/{provider_subscription_id}"
-    
-    # Step 3: Get quota info
-    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
-    
-    # UI CLEANUP: Get plan document for quota limits
-    if access_granted:
-        plan_doc = await db.plans.find_one({"name": "pro"}, {"_id": 0})
+            
+            logging.info(
+                f"[GET_PLAN] Reconciliation success: "
+                f"access_granted={access_granted}, "
+                f"plan={plan_name}, "
+                f"access_until={access_until}"
+            )
+        else:
+            # Reconciliation failed - log but continue with Free plan
+            error = reconcile_result.get("error", "unknown")
+            logging.warning(
+                f"[GET_PLAN] Reconciliation failed for user {current_user.email}: {error}"
+            )
+            # State remains: plan=free, access_granted=False
     else:
-        plan_doc = await db.plans.find_one({"name": "free"}, {"_id": 0})
+        logging.info(f"[GET_PLAN] No PayPal subscription found for {current_user.email}")
     
+    # ========== PHASE 2: QUOTA INFO (ALWAYS RUNS) ==========
+    
+    # Get plan document for quota limits
+    plan_doc = await db.plans.find_one(
+        {"name": plan_name},  # "pro" or "free"
+        {"_id": 0}
+    )
+    
+    # Fallback to free plan if plan_doc missing (should never happen)
     if not plan_doc:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        logging.error(f"[GET_PLAN] Plan document not found for plan={plan_name}, falling back to free")
+        plan_doc = await db.plans.find_one({"name": "free"}, {"_id": 0})
+        if not plan_doc:
+            # Last resort: hardcoded free plan limits
+            logging.error(f"[GET_PLAN] No plan documents in database! Using hardcoded free plan")
+            plan_doc = {
+                "max_file_size_bytes": 10485760,  # 10 MB
+                "max_workspaces": 1,
+                "max_walkthroughs": 5,
+                "max_categories": 10,
+                "storage_bytes": 524288000  # 500 MB
+            }
     
+    # Calculate quota usage
     storage_used = await get_user_storage_usage(current_user.id)
     storage_allowed = await get_user_allowed_storage(current_user.id)
     workspace_count = await get_workspace_count(current_user.id)
     
-    # Get all user's workspaces to calculate total walkthroughs and categories
-    workspaces = await db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1}).to_list(100)
+    # Get workspace IDs for user
+    workspaces = await db.workspaces.find(
+        {"owner_id": current_user.id},
+        {"_id": 0, "id": 1}
+    ).to_list(100)
     workspace_ids = [w["id"] for w in workspaces]
     
-    # Calculate total walkthroughs across all workspaces
+    # Count walkthroughs
     total_walkthroughs = await db.walkthroughs.count_documents({
         "workspace_id": {"$in": workspace_ids},
         "archived": {"$ne": True}
     })
     
-    # Calculate total top-level categories across all workspaces (exclude sub-categories)
+    # Count top-level categories
     total_categories = await db.categories.count_documents({
         "workspace_id": {"$in": workspace_ids},
         "$or": [
@@ -6115,19 +6156,23 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         ]
     })
     
-    # UI CLEANUP: Return ONLY canonical state (no legacy fields)
-    response_data = {
-        "plan": plan_name,
-        "provider": "PAYPAL" if subscription_doc else None,
-        "access_granted": access_granted,
-        "access_until": access_until,
-        "is_recurring": is_recurring,
-        "management_url": management_url,
+    # ========== PHASE 3: ASSEMBLE CANONICAL RESPONSE (SINGLE RETURN) ==========
+    
+    canonical_response = {
+        "plan": plan_name,  # STRING: "pro" | "free"
+        "provider": provider,  # "PAYPAL" | null
+        "access_granted": access_granted,  # BOOLEAN: true | false
+        "access_until": access_until,  # ISO timestamp | null
+        "is_recurring": is_recurring,  # BOOLEAN: true | false
+        "management_url": management_url,  # string | null
         "quota": {
             "storage_used_bytes": storage_used,
             "storage_allowed_bytes": storage_allowed,
             "max_file_size_bytes": plan_doc.get('max_file_size_bytes', 10485760),
-            "storage_used_percent": round((storage_used / storage_allowed * 100) if storage_allowed > 0 else 0, 2),
+            "storage_used_percent": round(
+                (storage_used / storage_allowed * 100) if storage_allowed > 0 else 0,
+                2
+            ),
             "workspace_count": workspace_count,
             "workspace_limit": plan_doc.get('max_workspaces', 1),
             "walkthroughs_used": total_walkthroughs,
@@ -6138,13 +6183,16 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         }
     }
     
-    # LEGACY USER DEBUG: Log response for troubleshooting
+    # Final validation log
     logging.info(
-        f"[GET_PLAN] Returning for {current_user.email}: "
-        f"plan={plan_name}, access_granted={access_granted}, access_until={access_until}"
+        f"[GET_PLAN] FINAL RESPONSE for {current_user.email}: "
+        f"plan={canonical_response['plan']} (type={type(canonical_response['plan']).__name__}), "
+        f"access_granted={canonical_response['access_granted']} (type={type(canonical_response['access_granted']).__name__}), "
+        f"access_until={canonical_response['access_until']}"
     )
     
-    return response_data
+    # SINGLE RETURN - Guaranteed canonical structure
+    return canonical_response
 
 # UI CLEANUP: Canonical state API complete
 
