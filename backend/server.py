@@ -6044,7 +6044,8 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         has_billing_timestamps = bool(
             subscription_doc.get('next_billing_time') or 
             subscription_doc.get('final_payment_time') or 
-            subscription_doc.get('last_payment_time')
+            subscription_doc.get('last_payment_time') or
+            subscription_doc.get('effective_end_date')  # CRITICAL: Check our internal field too!
         )
         force = not has_billing_timestamps
         
