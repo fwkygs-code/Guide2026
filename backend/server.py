@@ -54,6 +54,87 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
+# PRODUCTION METRICS: In-memory metrics for observability
+# In production, export these to Prometheus/Grafana/CloudWatch
+class ProductionMetrics:
+    """Thread-safe metrics collector for production monitoring"""
+    def __init__(self):
+        self._metrics = defaultdict(int)
+        self._lock = asyncio.Lock()
+    
+    async def increment(self, metric_name: str, value: int = 1):
+        """Increment a counter metric"""
+        async with self._lock:
+            self._metrics[metric_name] += value
+    
+    async def get_all(self) -> Dict[str, int]:
+        """Get all metrics (for /metrics endpoint)"""
+        async with self._lock:
+            return dict(self._metrics)
+    
+    async def reset(self):
+        """Reset all metrics (for testing)"""
+        async with self._lock:
+            self._metrics.clear()
+
+metrics = ProductionMetrics()
+
+# PRODUCTION ALERTS: Alert conditions (log when triggered)
+async def check_alert_conditions():
+    """Check alert conditions and log violations"""
+    all_metrics = await metrics.get_all()
+    
+    # Alert: Access granted without timestamps (MUST NEVER HAPPEN)
+    if all_metrics.get('access_granted_no_timestamps', 0) > 0:
+        logging.critical(
+            f"🚨 ALERT: Access granted without timestamps detected! "
+            f"Count: {all_metrics['access_granted_no_timestamps']}"
+        )
+    
+    # Alert: Polling beyond terminal state (MUST NEVER HAPPEN)
+    if all_metrics.get('poll_after_terminal', 0) > 0:
+        logging.error(
+            f"🚨 ALERT: Polling after terminal state! "
+            f"Count: {all_metrics['poll_after_terminal']}"
+        )
+    
+    # Alert: Reconciliation failures above 10%
+    total_reconciles = all_metrics.get('reconcile_total', 0)
+    failed_reconciles = all_metrics.get('reconcile_failed', 0)
+    if total_reconciles > 0:
+        failure_rate = failed_reconciles / total_reconciles
+        if failure_rate > 0.10:
+            logging.warning(
+                f"⚠️ ALERT: Reconciliation failure rate high: {failure_rate:.1%} "
+                f"({failed_reconciles}/{total_reconciles})"
+            )
+
+# PRODUCTION KILL SWITCH: Disable features in emergency
+class KillSwitch:
+    """Emergency kill switches for production incidents"""
+    def __init__(self):
+        self.frontend_polling_enabled = True
+        self.webhook_processing_enabled = True
+        self.scheduled_reconciliation_enabled = True
+        self.user_reconciliation_enabled = True
+    
+    def disable_all_except_scheduled(self):
+        """Emergency: Disable all except scheduled reconciliation"""
+        self.frontend_polling_enabled = False
+        self.webhook_processing_enabled = False
+        self.user_reconciliation_enabled = False
+        logging.critical("🚨 KILL SWITCH: Disabled frontend polling, webhooks, user reconciliation")
+    
+    def enable_all(self):
+        """Re-enable all features after incident resolved"""
+        self.frontend_polling_enabled = True
+        self.webhook_processing_enabled = True
+        self.scheduled_reconciliation_enabled = True
+        self.user_reconciliation_enabled = True
+        logging.info("✅ KILL SWITCH: Re-enabled all features")
+
+kill_switch = KillSwitch()
+
 # Cloudinary Configuration (MANDATORY for persistent file storage)
 # Local filesystem storage is NOT supported - files will be lost on redeploy
 CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
@@ -6807,8 +6888,20 @@ async def reconcile_my_subscription(current_user: User = Depends(get_current_use
     Returns:
         Complete subscription state from PayPal including access decision
     """
+    # KILL SWITCH: Check if user reconciliation is enabled
+    if not kill_switch.user_reconciliation_enabled:
+        logging.warning(f"[RECONCILE] User reconciliation disabled by kill switch (user={current_user.id})")
+        return {
+            "success": False,
+            "error": "Reconciliation temporarily unavailable. Please try again later.",
+            "kill_switch_active": True
+        }
+    
     user_id = current_user.id
     now = datetime.now(timezone.utc)
+    
+    # METRICS: Track user-triggered reconciliation
+    await metrics.increment('reconcile_user_triggered')
     
     # Rate limiting check
     if user_id in _reconciliation_cache:
@@ -7205,6 +7298,9 @@ async def reconcile_subscription_with_paypal(
     """
     now = datetime.now(timezone.utc)
     
+    # METRICS: Track reconciliation attempt
+    await metrics.increment('reconcile_total')
+    
     # Fetch subscription from database
     subscription_doc = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
     if not subscription_doc:
@@ -7307,18 +7403,37 @@ async def reconcile_subscription_with_paypal(
                 next_billing_dt = datetime.fromisoformat(next_billing_time.replace('Z', '+00:00'))
             except Exception as e:
                 logging.error(f"[RECONCILE] Invalid next_billing_time format: {next_billing_time}, error: {e}")
+                await metrics.increment('reconcile_timestamp_parse_error')
         
         if final_payment_time:
             try:
                 final_payment_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
             except Exception as e:
                 logging.error(f"[RECONCILE] Invalid final_payment_time format: {final_payment_time}, error: {e}")
+                await metrics.increment('reconcile_timestamp_parse_error')
         
         # PRODUCTION RULE: Access granted IFF billing timestamps prove it
         access_granted = (
             (next_billing_dt is not None and next_billing_dt > now) or
             (final_payment_dt is not None and final_payment_dt > now)
         )
+        
+        # METRICS & ALERT: Track access decisions
+        if access_granted:
+            await metrics.increment('access_granted_total')
+            if next_billing_dt:
+                await metrics.increment('access_granted_next_billing')
+            if final_payment_dt:
+                await metrics.increment('access_granted_final_payment')
+            # CRITICAL ALERT: Access without timestamps (should never happen)
+            if not next_billing_dt and not final_payment_dt:
+                await metrics.increment('access_granted_no_timestamps')
+                logging.critical(
+                    f"🚨 CRITICAL: Access granted without timestamps! "
+                    f"subscription_id={subscription_id}, paypal_status={paypal_status}"
+                )
+        else:
+            await metrics.increment('access_denied_total')
         
         # Access reason (for audit)
         if access_granted:
@@ -7411,6 +7526,12 @@ async def reconcile_subscription_with_paypal(
             f"access_granted={access_granted}, plan={plan_name}, reason='{access_reason}'"
         )
         
+        # METRICS: Track successful reconciliation
+        await metrics.increment('reconcile_success')
+        await metrics.increment(f'reconcile_status_{paypal_status.lower()}')
+        if paypal_status in TERMINAL_FOR_POLLING:
+            await metrics.increment('reconcile_terminal')
+        
         # STEP 7: Return complete state
         return {
             "success": True,
@@ -7430,6 +7551,8 @@ async def reconcile_subscription_with_paypal(
         }
         
     except Exception as e:
+        # METRICS: Track failed reconciliation
+        await metrics.increment('reconcile_failed')
         logging.error(f"[RECONCILE] Error for subscription {subscription_id}: {str(e)}", exc_info=True)
         return {
             "success": False,
@@ -7535,6 +7658,12 @@ async def paypal_webhook(
     All state changes are determined by reconciliation function querying PayPal directly.
     Webhooks exist only for optimistic updates - system works even if webhooks never arrive.
     """
+    # KILL SWITCH: Check if webhook processing is enabled
+    if not kill_switch.webhook_processing_enabled:
+        logging.warning("[WEBHOOK] Webhook processing disabled by kill switch")
+        # Return 200 to acknowledge receipt (prevents PayPal retries)
+        return JSONResponse({"status": "disabled", "message": "Webhook processing temporarily disabled"})
+    
     try:
         body = await request.body()
         webhook_data = json.loads(body)
@@ -7543,8 +7672,13 @@ async def paypal_webhook(
         event_id = webhook_data.get('id')
         resource = webhook_data.get('resource', {})
         
+        # METRICS: Track webhook receipt
+        await metrics.increment('webhook_received_total')
+        await metrics.increment(f'webhook_event_{event_type.lower().replace(".", "_")}')
+        
         if not event_id:
             logging.error("[WEBHOOK] Missing event ID")
+            await metrics.increment('webhook_error_missing_event_id')
             return JSONResponse({"status": "error", "message": "Missing event ID"}, status_code=400)
         
         # PRODUCTION HARDENING: Composite key idempotency (event_id, transmission_time)
@@ -8100,6 +8234,69 @@ OLD_WEBHOOK_LOGIC_START
         
 OLD_WEBHOOK_LOGIC_END
 """
+
+@api_router.get("/metrics")
+async def get_production_metrics(current_user: User = Depends(require_admin)):
+    """
+    PRODUCTION OBSERVABILITY: Get real-time metrics
+    Admin-only endpoint for monitoring.
+    """
+    all_metrics = await metrics.get_all()
+    
+    # Calculate derived metrics
+    total_reconciles = all_metrics.get('reconcile_total', 0)
+    success_reconciles = all_metrics.get('reconcile_success', 0)
+    failed_reconciles = all_metrics.get('reconcile_failed', 0)
+    success_rate = (success_reconciles / total_reconciles * 100) if total_reconciles > 0 else 0
+    
+    total_access = all_metrics.get('access_granted_total', 0) + all_metrics.get('access_denied_total', 0)
+    granted_access = all_metrics.get('access_granted_total', 0)
+    grant_rate = (granted_access / total_access * 100) if total_access > 0 else 0
+    
+    # Check alert conditions
+    await check_alert_conditions()
+    
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "metrics": all_metrics,
+        "derived": {
+            "reconciliation_success_rate_pct": round(success_rate, 2),
+            "access_grant_rate_pct": round(grant_rate, 2),
+            "total_reconciliations": total_reconciles,
+            "total_access_decisions": total_access
+        },
+        "kill_switch": {
+            "frontend_polling_enabled": kill_switch.frontend_polling_enabled,
+            "webhook_processing_enabled": kill_switch.webhook_processing_enabled,
+            "scheduled_reconciliation_enabled": kill_switch.scheduled_reconciliation_enabled,
+            "user_reconciliation_enabled": kill_switch.user_reconciliation_enabled
+        }
+    }
+
+@api_router.post("/admin/kill-switch")
+async def control_kill_switch(
+    action: str = Query(..., description="enable_all | disable_all | disable_except_scheduled"),
+    current_user: User = Depends(require_admin)
+):
+    """
+    PRODUCTION SAFETY: Emergency kill switch control
+    Admin-only endpoint for incident response.
+    """
+    if action == "enable_all":
+        kill_switch.enable_all()
+        return {"status": "success", "message": "All features enabled"}
+    elif action == "disable_all":
+        kill_switch.frontend_polling_enabled = False
+        kill_switch.webhook_processing_enabled = False
+        kill_switch.scheduled_reconciliation_enabled = False
+        kill_switch.user_reconciliation_enabled = False
+        logging.critical("🚨 KILL SWITCH: All features disabled")
+        return {"status": "success", "message": "All features disabled"}
+    elif action == "disable_except_scheduled":
+        kill_switch.disable_all_except_scheduled()
+        return {"status": "success", "message": "Only scheduled reconciliation enabled"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
 
 @api_router.get("/plans")
 async def get_plans(current_user: Optional[User] = Depends(get_current_user_optional)):
@@ -10209,8 +10406,14 @@ async def scheduled_reconciliation_job():
             logging.info(f"[SCHEDULED_RECONCILE] Next run in {wait_seconds/3600:.1f} hours at {target_time.isoformat()}")
             await asyncio.sleep(wait_seconds)
             
+            # KILL SWITCH: Check if scheduled reconciliation is enabled
+            if not kill_switch.scheduled_reconciliation_enabled:
+                logging.warning("[SCHEDULED_RECONCILE] Skipped (disabled by kill switch)")
+                continue
+            
             # Run reconciliation for all non-terminal subscriptions
             logging.info("[SCHEDULED_RECONCILE] Starting daily reconciliation job")
+            await metrics.increment('scheduled_reconcile_run')
             
             # Find all PayPal subscriptions not in terminal-for-access states
             # Terminal-for-access: EXPIRED, SUSPENDED (no timestamps can grant access)
