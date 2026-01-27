@@ -49,7 +49,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <img 
-              src="/InterGuide.png" 
+              src="/NewLogo.png" 
               alt="InterGuide" 
               className="h-14 w-auto object-contain"
             />
@@ -77,7 +77,7 @@ const LandingPage = () => {
           >
             <div className="flex justify-center mb-8">
               <img 
-                src="/InterGuide.png" 
+                src="/NewLogo.png" 
                 alt="InterGuide" 
                 className="h-64 md:h-80 lg:h-96 w-auto object-contain"
               />
@@ -169,7 +169,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center gap-2 mb-6">
             <img 
-              src="/InterGuide.png" 
+              src="/NewLogo.png" 
               alt="InterGuide" 
               className="h-8 w-auto object-contain"
             />
