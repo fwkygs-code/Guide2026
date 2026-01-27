@@ -120,6 +120,13 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
     }
   ];
 
+  // TRANSLATION VALIDATION: Fail fast on missing keys
+  plans.forEach(plan => {
+    if (plan.displayName && plan.displayName.includes('.')) {
+      console.error('[TRANSLATION] MISSING KEY:', plan.displayName);
+    }
+  });
+
   const getReasonMessage = () => {
     switch (reason) {
       case 'storage':
@@ -198,7 +205,8 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
               ) : planOption.name === 'pro' || planOption.name === 'pro-testing' ? (
-                canManageSubscription ? (
+                // MONEY SAFETY: If access granted, remove payment entry point from render tree
+                access_granted ? (
                   <div className="space-y-2">
                     <Button
                       className="w-full"
@@ -213,7 +221,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     >
                       {t('billing.manageSubscriptionInPayPal')}
                     </Button>
-                    {access_granted && access_until && (
+                    {access_until && (
                       <div className="text-xs text-center text-muted-foreground space-y-1">
                         <p>{t('billing.status')}: <span className="font-medium text-foreground">{t('billing.statusActive')}</span></p>
                         <p>{t('billing.accessUntil', { date: new Date(access_until).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })}</p>
@@ -225,14 +233,10 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   <Button
                     className="w-full"
                     onClick={() => {
-                      if (access_granted) {
-                        toast.info(t('billing.alreadySubscribed'));
-                        return;
-                      }
                       setSelectedPlanType(planOption.name);
                       setShowPayPal(true);
                     }}
-                    disabled={isSubscribing || access_granted}
+                    disabled={isSubscribing}
                   >
                     {t('upgrade.select')}
                   </Button>

@@ -66,23 +66,21 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
           // PRODUCTION RULE: Stop polling if access granted OR terminal-for-polling
           if (access_granted) {
             // Access granted - PayPal confirmed activation
+            console.log('[APPROVAL HIT]', Date.now());
+            console.log('[RELOAD CALLED]');
+            
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current);
               pollingIntervalRef.current = null;
             }
-            setPollingActive(false);
-            setIsSubscribing(false);
-            
-            // Refresh quota
-            if (refreshQuota) {
-              await refreshQuota();
-            }
             
             toast.success('Pro access activated! Welcome to Pro plan.');
             
-            // CRITICAL FIX: Reload page BEFORE calling onSuccess to prevent component unmount
-            // This ensures the page reload executes even if modal closes
-            window.location.reload();
+            // CRITICAL: Navigate immediately, synchronously, unconditionally
+            // Do NOT call onSuccess, do NOT use setTimeout, do NOT await anything
+            // This guarantees convergence even if React state is corrupted
+            window.location.replace(window.location.pathname);
+            return;
             
           } else if (is_terminal_for_polling) {
             // Terminal-for-polling reached but no access

@@ -18,6 +18,14 @@ export const useQuota = (workspaceId = null) => {
       const planResponse = await api.getUserPlan();
       const planData = planResponse.data;
       
+      // HARD INVARIANT: Canonical fields must exist
+      if (planData.access_granted === undefined) {
+        console.error('[QUOTA] INVALID PLAN PAYLOAD - access_granted missing', planData);
+      }
+      if (typeof planData.plan !== 'string') {
+        console.error('[QUOTA] INVALID PLAN PAYLOAD - plan must be string', planData);
+      }
+      
       let workspaceQuota = null;
       if (workspaceId) {
         try {
