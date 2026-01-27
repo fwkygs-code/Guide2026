@@ -477,7 +477,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                 className="text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap"
                 data-testid="back-to-portal-link"
               >
-                ← Back to portal
+                ← {t('portal.backToPortal')}
               </Link>
               <div className="h-4 w-px bg-background" />
               <h1 className="text-xl font-heading font-bold text-foreground truncate">{walkthrough.title}</h1>
@@ -1273,10 +1273,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                 <Check className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-3xl font-heading font-bold text-foreground mb-4">
-                Walkthrough Complete!
+                {t('portal.walkthroughComplete')}
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                How was your experience?
+                {t('portal.howWasExperience')}
               </p>
 
               <div className="flex justify-center gap-4 mb-6">
@@ -1318,7 +1318,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               <Textarea
                 value={feedbackComment}
                 onChange={(e) => setFeedbackComment(e.target.value)}
-                placeholder="Any additional comments? (optional)"
+                placeholder={t('portal.additionalComments')}
                 rows={4}
                 className="mb-6"
                 data-testid="feedback-comment"
@@ -1330,13 +1330,13 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   onClick={() => navigate(`/portal/${slug}`)}
                   data-testid="skip-feedback-button"
                 >
-                  Skip
+                  {t('portal.skip')}
                 </Button>
                 <Button
                   onClick={handleFeedbackSubmit}
                   data-testid="submit-feedback-button"
                 >
-                  Submit Feedback
+                  {t('portal.submitFeedback')}
                 </Button>
               </div>
             </motion.div>

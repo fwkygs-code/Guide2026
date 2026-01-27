@@ -409,6 +409,11 @@
     "wantKnowledgeBase": "Want a knowledge base center for yourself?",
     "getStarted": "Get Started",
     "backToPortal": "Back to Portal",
+    "walkthroughComplete": "Walkthrough Complete!",
+    "howWasExperience": "How was your experience?",
+    "additionalComments": "Any additional comments? (optional)",
+    "submitFeedback": "Submit Feedback",
+    "skip": "Skip",
     "adminDialog": {
       "title": "Admin Dashboard",
       "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
