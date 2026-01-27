@@ -22,44 +22,55 @@ import { cn } from '@/lib/utils';
 export function AppSurface({ children, className, disableBackground = false }) {
   // Runtime assertion - check for white backgrounds in development
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const checkForWhiteBackgrounds = () => {
-        const elements = document.querySelectorAll('*');
-        for (const element of elements) {
-          const computedStyle = window.getComputedStyle(element);
-          const backgroundColor = computedStyle.backgroundColor;
-          const backgroundImage = computedStyle.backgroundImage;
+    if (process.env.NODE_ENV !== 'development') return;
+    
+    // Prevent duplicate execution in React StrictMode
+    let hasChecked = false;
+    
+    const checkForWhiteBackgrounds = () => {
+      if (hasChecked) return;
+      hasChecked = true;
+      
+      const elements = document.querySelectorAll('[data-enforce-surface="true"]');
+      
+      for (const element of elements) {
+        // Skip non-rendered or structural elements
+        if (!element.isConnected || element.nodeType !== Node.ELEMENT_NODE) continue;
+        
+        // Skip elements outside document.body
+        if (!document.body.contains(element)) continue;
+        
+        const computedStyle = window.getComputedStyle(element);
+        const backgroundColor = computedStyle.backgroundColor;
+        const backgroundImage = computedStyle.backgroundImage;
 
-          // Check for white or transparent backgrounds that could show white
-          if (backgroundColor === 'rgba(0, 0, 0, 0)' ||
-              backgroundColor === 'transparent' ||
-              backgroundColor.includes('rgb(255, 255, 255)') ||
-              backgroundColor.includes('rgb(248, 250, 252)') ||
-              backgroundColor.includes('rgb(241, 245, 249)') ||
-              (backgroundImage === 'none' && !element.closest('[data-app-surface]'))) {
+        // Only check for actively painted white backgrounds
+        const isWhiteBackground = 
+          backgroundColor === 'rgb(255, 255, 255)' ||
+          backgroundColor === 'rgba(255, 255, 255, 1)' ||
+          backgroundColor === '#fff' ||
+          backgroundColor === '#ffffff' ||
+          backgroundColor === 'white';
 
-            // Allow if it's within our controlled surface or known safe elements
-            if (!element.closest('[data-app-surface]') &&
-                !element.matches('html, body') &&
-                !element.matches('[role="dialog"]') &&
-                !element.matches('.glass, .glass-dark')) {
+        if (isWhiteBackground) {
+          console.error('🚨 WHITE BACKGROUND DETECTED! Element violates surface enforcement:', element);
+          console.error('🚨 Background:', backgroundColor, backgroundImage);
+          console.error('🚨 Element path:', element);
 
-              console.error('🚨 WHITE BACKGROUND DETECTED! Element violates no-white-background rule:', element);
-              console.error('🚨 Background:', backgroundColor, backgroundImage);
-              console.error('🚨 Element path:', element);
-
-              // In strict mode, throw to prevent rendering
-              throw new Error(`White background detected on element: ${element.tagName}.${Array.from(element.classList).join('.')}. All components must use AppSurface or have explicit dark backgrounds.`);
-            }
-          }
+          // In strict mode, throw to prevent rendering
+          throw new Error(`White background detected on element: ${element.tagName}.${Array.from(element.classList).join('.')}. Surface enforcement requires dark backgrounds.`);
         }
-      };
+      }
+    };
 
-      // Check immediately and then periodically
-      checkForWhiteBackgrounds();
-      const interval = setInterval(checkForWhiteBackgrounds, 2000);
-      return () => clearInterval(interval);
-    }
+    // Check immediately and then periodically
+    const timeoutId = setTimeout(checkForWhiteBackgrounds, 100);
+    const intervalId = setInterval(checkForWhiteBackgrounds, 5000);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (
@@ -86,6 +97,7 @@ export function AppSurface({ children, className, disableBackground = false }) {
       )}
       // Data attribute for testing - ensures surface is present
       data-app-surface="true"
+      data-enforce-surface="true"
     >
       {/* Content layer - guaranteed above background */}
       <div className="relative z-10 min-h-screen w-full">

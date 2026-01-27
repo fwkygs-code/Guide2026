@@ -47,8 +47,13 @@ class ImportFirewallPlugin {
 
             const packageName = getPackageName(request);
             const candidate = packageName || request;
+            
+            // Special handling for react-refresh and related packages
+            const isReactRefreshPackage = candidate.startsWith('react-refresh') || 
+                                        candidate.startsWith('@pmmmwh/react-refresh');
+            
             const isAllowed = this.allowedPackages.some(
-              (pkg) => candidate === pkg || candidate.startsWith(`${pkg}/`)
+              (pkg) => candidate === pkg || candidate.startsWith(`${pkg}/`) || isReactRefreshPackage
             );
             if (!isAllowed) {
               violations.push(

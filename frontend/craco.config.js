@@ -79,7 +79,9 @@ const webpackConfig = {
             "debounce",
             "lodash.debounce",
             "axios",
-            "react-i18next"
+            "react-i18next",
+            "react-refresh/runtime",
+            "@pmmmwh/react-refresh-webpack-plugin"
           ]
         })
       );

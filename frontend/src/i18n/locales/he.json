@@ -588,7 +588,12 @@
     "poweredBy": "מופעל על ידי InterGuide",
     "wantKnowledgeBase": "רוצה מרכז מאגר ידע משלך?",
     "getStarted": "התחל",
-    "backToPortal": "חזרה לפורטל"
+    "backToPortal": "חזרה לפורטל",
+    "walkthroughComplete": "הדרכה הושלמה!",
+    "howWasExperience": "איך הייתה החוויה שלך?",
+    "additionalComments": "הערות נוספות? (רשות)",
+    "submitFeedback": "שלח משוב",
+    "skip": "דלג"
   },
   "category": {
     "create": "צור קטגוריה",
