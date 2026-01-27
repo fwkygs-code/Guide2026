@@ -5,8 +5,6 @@ import { api } from '../lib/api';
 // PayPal configuration from environment variables
 const PAYPAL_CLIENT_ID = process.env.REACT_APP_PAYPAL_CLIENT_ID || '';
 const PAYPAL_PLAN_ID = process.env.REACT_APP_PAYPAL_PLAN_ID || 'P-96597808B1860013DNFWI6KI';
-// TESTING-ONLY: Test plan ID
-const PAYPAL_PLAN_ID_TEST = 'P-1GF05053LD9745329NF4FQIQ';
 
 if (!PAYPAL_CLIENT_ID) {
   console.error('REACT_APP_PAYPAL_CLIENT_ID environment variable is not set');
@@ -244,10 +242,9 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
         },
         createSubscription: function(data, actions) {
           setIsSubscribing(true);
-          // TESTING-ONLY: Select plan ID based on planType prop
-          const selectedPlanId = planType === 'pro-testing' ? PAYPAL_PLAN_ID_TEST : PAYPAL_PLAN_ID;
+          // Always use production PayPal plan ID
           return actions.subscription.create({
-            plan_id: selectedPlanId
+            plan_id: PAYPAL_PLAN_ID
           });
         },
         onApprove: async function(data, actions) {

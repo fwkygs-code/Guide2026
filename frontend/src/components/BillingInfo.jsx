@@ -17,7 +17,7 @@ const BillingInfo = () => {
 
   const { plan, provider, access_granted, access_until, is_recurring, management_url } = quotaData;
   const isPayPalSubscription = provider === 'PAYPAL';
-  const isProPlan = plan === 'pro' || plan === 'pro-testing';
+  const isProPlan = plan === 'pro';
 
   if (!isProPlan || !isPayPalSubscription) {
     return null;

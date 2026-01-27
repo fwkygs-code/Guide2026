@@ -74,34 +74,6 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
         maxMegapixelAllFrames: '100 MP'
       }
     },
-    // TESTING-ONLY: pro-testing plan
-    {
-      name: 'pro-testing',
-      displayName: t('plans.proTesting.name'),
-      price: t('plans.proTesting.price'),
-      priceAfter: t('plans.proTesting.priceAfter'),
-      features: [
-        t('plans.pro.features.workspaces'),
-        t('plans.pro.features.categories'),
-        t('plans.pro.features.walkthroughs'),
-        t('plans.pro.features.storage'),
-        t('plans.pro.features.fileSize'),
-        t('plans.pro.features.extraStorage'),
-        t('plans.proTesting.testingBadge')
-      ],
-      current: currentPlanName === 'pro-testing',
-      recommended: false,
-      mediaCapacity: {
-        maxImageFileSize: '20 MB',
-        maxVideoFileSize: '2 GB',
-        maxRawFileSize: '20 MB',
-        maxImageTransformationSize: '100 MB',
-        maxVideoTransformationSize: '300 MB',
-        maxImageMegapixel: '25 MP',
-        maxMegapixelAllFrames: '100 MP'
-      }
-    },
-    // END TESTING-ONLY
     {
       name: 'enterprise',
       displayName: t('plans.enterprise.name'),
@@ -204,7 +176,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 <Button variant="outline" className="w-full" disabled>
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
-              ) : planOption.name === 'pro' || planOption.name === 'pro-testing' ? (
+              ) : planOption.name === 'pro' ? (
                 // MONEY SAFETY: If access granted, remove payment entry point from render tree
                 access_granted ? (
                   <div className="space-y-2">
