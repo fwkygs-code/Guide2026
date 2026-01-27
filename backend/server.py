@@ -7413,6 +7413,13 @@ async def reconcile_subscription_with_paypal(
         # CRITICAL FIX: Include billing_info even when skipping
         # This ensures /users/me/plan can extract access_until for legacy users
         # Use getattr() for safe attribute access (legacy subscriptions may not have these fields)
+        
+        # For CANCELLED subscriptions, use effective_end_date as fallback if final_payment_time is null
+        # (PayPal doesn't always return final_payment_time for cancelled subs)
+        final_payment = getattr(subscription, 'final_payment_time', None)
+        if not final_payment and subscription.paypal_verified_status == 'CANCELLED':
+            final_payment = getattr(subscription, 'effective_end_date', None)
+        
         return {
             "success": True,
             "subscription_id": subscription_id,
@@ -7424,7 +7431,7 @@ async def reconcile_subscription_with_paypal(
             "billing_info": {
                 "last_payment_time": getattr(subscription, 'last_payment_time', None),
                 "next_billing_time": getattr(subscription, 'next_billing_time', None),
-                "final_payment_time": getattr(subscription, 'final_payment_time', None)
+                "final_payment_time": final_payment  # Uses effective_end_date as fallback for CANCELLED
             },
             "skipped": True
         }
