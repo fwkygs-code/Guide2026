@@ -6022,6 +6022,15 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         {"_id": 0}
     )
     
+    # LEGACY USER DEBUG: Log subscription state for troubleshooting
+    if subscription_doc:
+        logging.info(
+            f"[GET_PLAN] User {current_user.email} has subscription: "
+            f"id={subscription_doc.get('id')}, "
+            f"paypal_verified_status={subscription_doc.get('paypal_verified_status')}, "
+            f"has_billing_timestamps={bool(subscription_doc.get('next_billing_time') or subscription_doc.get('final_payment_time'))}"
+        )
+    
     # Step 2: Reconcile with PayPal to get current truth
     access_granted = False
     access_until = None
@@ -6030,10 +6039,18 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     plan_name = "Free"
     
     if subscription_doc:
-        # Trigger reconciliation to get fresh PayPal state
+        # LEGACY USER FIX: Force reconciliation if billing timestamps missing
+        # This ensures canonical state for users created before the refactor
+        has_billing_timestamps = (
+            subscription_doc.get('next_billing_time') or 
+            subscription_doc.get('final_payment_time') or 
+            subscription_doc.get('last_payment_time')
+        )
+        force_reconciliation = not has_billing_timestamps
+        
         reconcile_result = await reconcile_subscription_with_paypal(
             subscription_id=subscription_doc['id'],
-            force=False  # Use cache if available
+            force=force_reconciliation  # Force for legacy users, cache for new users
         )
         
         if reconcile_result.get("success"):
@@ -6099,7 +6116,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     })
     
     # UI CLEANUP: Return ONLY canonical state (no legacy fields)
-    return {
+    response_data = {
         "plan": plan_name,
         "provider": "PAYPAL" if subscription_doc else None,
         "access_granted": access_granted,
@@ -6109,6 +6126,7 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         "quota": {
             "storage_used_bytes": storage_used,
             "storage_allowed_bytes": storage_allowed,
+            "max_file_size_bytes": plan_doc.get('max_file_size_bytes', 10485760),
             "storage_used_percent": round((storage_used / storage_allowed * 100) if storage_allowed > 0 else 0, 2),
             "workspace_count": workspace_count,
             "workspace_limit": plan_doc.get('max_workspaces', 1),
@@ -6119,6 +6137,14 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
             "over_quota": storage_used > storage_allowed
         }
     }
+    
+    # LEGACY USER DEBUG: Log response for troubleshooting
+    logging.info(
+        f"[GET_PLAN] Returning for {current_user.email}: "
+        f"plan={plan_name}, access_granted={access_granted}, access_until={access_until}"
+    )
+    
+    return response_data
 
 # UI CLEANUP: Canonical state API complete
 
@@ -7289,6 +7315,8 @@ async def reconcile_subscription_with_paypal(
             access_granted = True  # Conservative: assume ACTIVE means access
             access_reason = "ACTIVE status (cached, not verified with PayPal)"
         
+        # CRITICAL FIX: Include billing_info even when skipping
+        # This ensures /users/me/plan can extract access_until for legacy users
         return {
             "success": True,
             "subscription_id": subscription_id,
@@ -7297,6 +7325,11 @@ async def reconcile_subscription_with_paypal(
             "access_granted": access_granted,
             "access_reason": access_reason,
             "is_terminal_for_polling": True,
+            "billing_info": {
+                "last_payment_time": subscription.last_payment_time,
+                "next_billing_time": subscription.next_billing_time,
+                "final_payment_time": subscription.final_payment_time
+            },
             "skipped": True
         }
     
