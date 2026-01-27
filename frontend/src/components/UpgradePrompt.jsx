@@ -16,25 +16,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
   const [showPayPal, setShowPayPal] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  // TESTING-ONLY: Track selected plan type for PayPal subscription
   const [selectedPlanType, setSelectedPlanType] = useState('pro');
   
-  // Check if user has an active, pending, or cancelled PayPal subscription
-  // CANCELLED subscriptions still show "Cancel Subscription" until EXPIRED
-  const subscription = quotaData?.subscription;
-  const isPayPalSubscription = subscription && subscription.provider === 'paypal';
-  const hasActiveSubscription = isPayPalSubscription && subscription.status === 'active';
-  const hasPendingSubscription = isPayPalSubscription && subscription.status === 'pending';
-  const hasCancelledSubscription = isPayPalSubscription && subscription.status === 'cancelled';
-  // Show cancel button for ACTIVE, PENDING, or CANCELLED (user can still see status)
-  const canManageSubscription = isPayPalSubscription && (hasActiveSubscription || hasPendingSubscription || hasCancelledSubscription);
-
+  // UI CLEANUP Fix 12: Use canonical state from API
   if (!quotaData) return null;
 
-  const { plan } = quotaData;
-  const currentPlanName = plan.name;
+  const { plan, provider, access_granted, access_until, is_recurring, management_url } = quotaData;
+  const currentPlanName = plan;
+  const isPayPalSubscription = provider === 'PAYPAL';
+  const canManageSubscription = isPayPalSubscription && access_granted;
 
   const plans = [
     {
@@ -207,131 +197,40 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 <Button variant="outline" className="w-full" disabled>
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
-              ) : planOption.name === 'pro' || planOption.name === 'pro-testing' ? ( // TESTING-ONLY: added pro-testing
-                // Show "Cancel Subscription" if user has ACTIVE, PENDING, or CANCELLED PayPal subscription
+              ) : planOption.name === 'pro' || planOption.name === 'pro-testing' ? (
                 canManageSubscription ? (
                   <div className="space-y-2">
-                    {hasCancelledSubscription ? (
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground text-center">
-                          Your subscription will remain active until the end of your billing period, then automatically cancel. No further charges will occur after that date unless you re-subscribe. Final billing status is determined by PayPal.
-                        </p>
-                        <p className="text-xs text-muted-foreground/80 text-center mt-1 italic">
-                          Payments made without a PayPal account are still managed by PayPal and renew automatically unless cancelled.
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          onClick={() => setShowCancelDialog(true)}
-                          disabled={isCancelling}
-                        >
-                          {isCancelling ? t('billing.processing') : t('billing.cancelSubscription')}
-                        </Button>
-                        
-                        {/* Cancellation Confirmation Dialog */}
-                        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>{t('billing.cancelSubscriptionConfirm')}</DialogTitle>
-                              <DialogDescription>
-                                <div className="space-y-2">
-                                  <p>
-                                    {t('billing.keepAccessUntil', { date: quotaData?.current_period_end ? new Date(quotaData.current_period_end).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : t('billing.endOfBillingPeriod') })}
-                                  </p>
-                                  <p className="font-medium">
-                                    {t('billing.noFurtherCharges')}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {t('billing.finalStatusByPayPal')}
-                                  </p>
-                                </div>
-                              </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                              <Button
-                                variant="outline"
-                                onClick={() => setShowCancelDialog(false)}
-                              >
-                                {t('common.cancel')}
-                              </Button>
-                              <Button
-                                onClick={async () => {
-                                  setShowCancelDialog(false);
-                                  setIsCancelling(true);
-                                  try {
-                                    const response = await api.cancelPayPalSubscription();
-                                    if (response.data && response.data.success) {
-                                      const status = response.data.status;
-                                      const paypalVerified = response.data.paypal_verified;
-                                      
-                                      // Show different messages based on PayPal verification
-                                      if (status === 'cancelled_confirmed' && paypalVerified) {
-                                        toast.success(
-                                          <div>
-                                            <div className="font-medium">{t('billing.cancelledByPayPal')}</div>
-                                            <div className="text-sm">{t('billing.cancelledByPayPalDesc')}</div>
-                                          </div>
-                                        );
-                                      } else {
-                                        toast.success(
-                                          <div>
-                                            <div className="font-medium">{t('billing.cancellationPending')}</div>
-                                            <div className="text-sm">{t('billing.cancellationPendingDesc')}</div>
-                                          </div>
-                                        );
-                                      }
-                                      
-                                      // Refresh quota to update subscription status and lock UI
-                                      if (refreshQuota) {
-                                        await refreshQuota();
-                                      }
-                                    }
-                                  } catch (error) {
-                                    const errorMessage = error.response?.data?.detail || 'Failed to process cancellation request. Please try again or contact support.';
-                                    toast.error(errorMessage);
-                                  } finally {
-                                    setIsCancelling(false);
-                                  }
-                                }}
-                                disabled={isCancelling}
-                              >
-                                {isCancelling ? t('billing.processing') : t('billing.confirmCancellation')}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </>
-                    )}
-                    {/* Optional: "Manage via PayPal" link for users with PayPal accounts */}
-                    {/* Note: Card-only (guest) users may not have PayPal accounts, so this is optional */}
                     <Button
                       className="w-full"
-                      variant="ghost"
-                      size="sm"
+                      variant="outline"
                       onClick={() => {
-                        // Optional: Open PayPal subscription management page
-                        // Note: This may not work for card-only (guest checkout) users
-                        // but is harmless to show as an option
-                        window.open('https://www.paypal.com/myaccount/autopay/', '_blank');
+                        if (management_url) {
+                          window.open(management_url, '_blank');
+                        } else {
+                          toast.error('Unable to open PayPal management');
+                        }
                       }}
                     >
-                      {t('billing.manageViaPayPal')}
+                      Manage Subscription in PayPal
                     </Button>
+                    {access_granted && access_until && (
+                      <div className="text-xs text-center text-muted-foreground space-y-1">
+                        <p>Status: <span className="font-medium text-foreground">Active</span></p>
+                        <p>Access until {new Date(access_until).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        {is_recurring && <p className="text-muted-foreground/80">Renews automatically unless cancelled in PayPal</p>}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <Button
                     className="w-full"
                     onClick={() => {
-                      // TESTING-ONLY: Set selected plan type before showing PayPal
                       setSelectedPlanType(planOption.name);
                       setShowPayPal(true);
                     }}
                     disabled={isSubscribing}
                   >
-                    {isSubscribing ? t('billing.processing') : t('upgrade.select')}
+                    {t('upgrade.select')}
                   </Button>
                 )
               ) : (
