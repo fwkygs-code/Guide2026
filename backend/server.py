@@ -7363,10 +7363,11 @@ async def reconcile_subscription_with_paypal(
         }
     
     # Check if already terminal-for-polling (skip unless force=True)
-    # CRITICAL: For CANCELLED subscriptions, if final_payment_time is missing, force reconciliation
+    # CRITICAL: For CANCELLED subscriptions, if end date is missing, force reconciliation
     if (not force and 
         subscription.paypal_verified_status in TERMINAL_FOR_POLLING and 
-        not (subscription.paypal_verified_status == 'CANCELLED' and not getattr(subscription, 'final_payment_time', None))):
+        not (subscription.paypal_verified_status == 'CANCELLED' and 
+             not (getattr(subscription, 'effective_end_date', None) or getattr(subscription, 'final_payment_time', None)))):
         logging.info(f"[RECONCILE] Subscription {subscription_id} is terminal-for-polling ({subscription.paypal_verified_status}), skipping")
         
         # Even when skipping, we must return accurate access status based on timestamps
@@ -7382,22 +7383,31 @@ async def reconcile_subscription_with_paypal(
             access_reason = "ACTIVE status (cached, not verified with PayPal)"
         elif subscription.paypal_verified_status == 'CANCELLED':
             # CRITICAL FIX: For CANCELLED, check if user still has paid time remaining
-            # User should keep access until final_payment_time (end of billing period)
+            # User should keep access until effective_end_date or final_payment_time
+            # Check both our internal field (effective_end_date) and PayPal field (final_payment_time)
+            effective_end_date = getattr(subscription, 'effective_end_date', None)
             final_payment_time = getattr(subscription, 'final_payment_time', None)
-            if final_payment_time:
+            end_date = effective_end_date or final_payment_time
+            
+            if end_date:
                 try:
-                    final_payment_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
-                    if final_payment_dt > now:
-                        access_granted = True
-                        access_reason = f"CANCELLED but access until final_payment_time: {final_payment_time}"
-                        logging.info(f"[RECONCILE] Cancelled subscription {subscription_id} still has access until {final_payment_time}")
+                    # Handle both datetime objects and ISO strings
+                    if isinstance(end_date, str):
+                        end_date_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
                     else:
-                        access_reason = f"CANCELLED and final_payment_time expired: {final_payment_time}"
+                        end_date_dt = end_date
+                    
+                    if end_date_dt > now:
+                        access_granted = True
+                        access_reason = f"CANCELLED but access until {end_date_dt.isoformat()}"
+                        logging.info(f"[RECONCILE] Cancelled subscription {subscription_id} still has access until {end_date_dt.isoformat()}")
+                    else:
+                        access_reason = f"CANCELLED and billing period expired: {end_date_dt.isoformat()}"
                 except Exception as e:
-                    logging.error(f"[RECONCILE] Failed to parse final_payment_time: {final_payment_time}, error: {e}")
-                    access_reason = f"CANCELLED with unparseable final_payment_time: {final_payment_time}"
+                    logging.error(f"[RECONCILE] Failed to parse end date: {end_date}, error: {e}")
+                    access_reason = f"CANCELLED with unparseable end date: {end_date}"
             else:
-                access_reason = "CANCELLED with no final_payment_time - access denied"
+                access_reason = "CANCELLED with no end date - access denied"
         
         # CRITICAL FIX: Include billing_info even when skipping
         # This ensures /users/me/plan can extract access_until for legacy users
