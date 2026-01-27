@@ -8,11 +8,13 @@ import { api } from '../lib/api';
 import { toast } from 'sonner';
 
 const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = false }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selecting, setSelecting] = useState(false);
   const [mediaCapacityDialogOpen, setMediaCapacityDialogOpen] = useState(false);
   const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
 
+  // REACTIVE: Plans array re-evaluates when language changes
+  // t() calls are inside component, so language switch triggers re-render
   const plans = [
     {
       name: 'free',
@@ -196,7 +198,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
 
               <Button
                 className="w-full mt-2"
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   setSelectedPlanMedia(plan);

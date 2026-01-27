@@ -859,6 +859,18 @@
     "categoriesExceeded": "הגעת למגבלת הקטגוריות שלך. שדרג כדי לקבל קטגוריות ללא הגבלה.",
     "genericMessage": "שדרג את התוכנית שלך כדי לפתוח תכונות נוספות ומגבלות גבוהות יותר.",
     "maxMediaCapacity": "קיבולת מדיה מקסימלית",
+    "mediaCapacityDetails": "גדלי קבצים מקסימליים ומגבלות עיבוד עבור תוכנית זו:",
+    "contactForMediaCapacity": "צור קשר עם מכירות למגבלות קיבולת מדיה מותאמות אישית ודרישות עיבוד.",
+    "enterpriseMediaCapacityDesc": "תוכניות ארגוניות כוללות מגבלות עיבוד מדיה מותאמות אישית לצרכים שלך.",
+    "mediaCapacity": {
+      "maxImageFileSize": "גודל קובץ תמונה מקסימלי",
+      "maxVideoFileSize": "גודל קובץ וידאו מקסימלי",
+      "maxRawFileSize": "גודל קובץ גולמי מקסימלי",
+      "maxImageTransformSize": "גודל טרנספורמציה תמונה מקסימלי",
+      "maxVideoTransformSize": "גודל טרנספורמציה וידאו מקסימלי",
+      "maxImageMegapixel": "מגה-פיקסל תמונה מקסימלי",
+      "maxMegapixelAllFrames": "מגה-פיקסל כל הפריימים"
+    },
     "contactSales": "צור קשר עם מכירות",
     "current": "נוכחי",
     "recommended": "מומלץ",
