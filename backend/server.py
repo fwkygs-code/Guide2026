@@ -7363,7 +7363,10 @@ async def reconcile_subscription_with_paypal(
         }
     
     # Check if already terminal-for-polling (skip unless force=True)
-    if not force and subscription.paypal_verified_status in TERMINAL_FOR_POLLING:
+    # CRITICAL: For CANCELLED subscriptions, if final_payment_time is missing, force reconciliation
+    if (not force and 
+        subscription.paypal_verified_status in TERMINAL_FOR_POLLING and 
+        not (subscription.paypal_verified_status == 'CANCELLED' and not getattr(subscription, 'final_payment_time', None))):
         logging.info(f"[RECONCILE] Subscription {subscription_id} is terminal-for-polling ({subscription.paypal_verified_status}), skipping")
         
         # Even when skipping, we must return accurate access status based on timestamps
@@ -7377,6 +7380,24 @@ async def reconcile_subscription_with_paypal(
             # This is approximate - force reconciliation if precision needed
             access_granted = True  # Conservative: assume ACTIVE means access
             access_reason = "ACTIVE status (cached, not verified with PayPal)"
+        elif subscription.paypal_verified_status == 'CANCELLED':
+            # CRITICAL FIX: For CANCELLED, check if user still has paid time remaining
+            # User should keep access until final_payment_time (end of billing period)
+            final_payment_time = getattr(subscription, 'final_payment_time', None)
+            if final_payment_time:
+                try:
+                    final_payment_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
+                    if final_payment_dt > now:
+                        access_granted = True
+                        access_reason = f"CANCELLED but access until final_payment_time: {final_payment_time}"
+                        logging.info(f"[RECONCILE] Cancelled subscription {subscription_id} still has access until {final_payment_time}")
+                    else:
+                        access_reason = f"CANCELLED and final_payment_time expired: {final_payment_time}"
+                except Exception as e:
+                    logging.error(f"[RECONCILE] Failed to parse final_payment_time: {final_payment_time}, error: {e}")
+                    access_reason = f"CANCELLED with unparseable final_payment_time: {final_payment_time}"
+            else:
+                access_reason = "CANCELLED with no final_payment_time - access denied"
         
         # CRITICAL FIX: Include billing_info even when skipping
         # This ensures /users/me/plan can extract access_until for legacy users
