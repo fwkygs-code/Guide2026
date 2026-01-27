@@ -237,21 +237,104 @@ const LoginPage = () => {
       {/* Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md relative z-10"
-      >
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <img 
-              src="/logo-main.png" 
-              alt="InterGuide" 
-              className="h-10 w-auto object-contain"
-            />
-          </Link>
-          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('common.welcome')}</h1>
-          <p className={`${getSizeClass('base')} text-muted-foreground`}>{t('auth.loginTitle')}</p>
-        </div>
 
+const handleSubmit = async (e) => {
+e.preventDefault();
+setLoading(true);
+        
+try {
+  await login(email, password);
+  toast.success(t('toast.welcomeBack'));
+  navigate('/dashboard');
+} catch (error) {
+  // Show user-friendly error messages
+  let errorMessage = error.response?.data?.detail || error.message || t('toast.loginFailed');
+          
+  // Map specific error messages to translations
+  if (errorMessage === 'Invalid credentials') {
+    errorMessage = t('toast.invalidCredentials');
+  }
+          
+  // Provide helpful context for timeout errors
+  if (errorMessage.includes('not responding') || errorMessage.includes('timeout')) {
+    errorMessage += ' ' + t('toast.systemInitializing');
+  }
+          
+  toast.error(errorMessage, {
+    duration: 8000 // Show longer for important errors
+  });
+  console.error('Login error:', error);
+} finally {
+  setLoading(false);
+}
+};
+
+return (
+<div 
+  className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden"
+  style={{
+    backgroundImage: 'url(/auth-background.jpg), linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+    width: '100%',
+    height: '100vh',
+    minHeight: '100vh'
+  }}
+>
+  {/* Dark overlay for better readability - ensures text is always readable */}
+  <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-800/75 to-slate-900/85"></div>
+          
+  {/* Animated gradient overlay for depth and visual interest */}
+  <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-primary/10"></div>
+          
+  {/* Subtle animated particles effect */}
+  <div className="absolute inset-0 opacity-30">
+    <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
+    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+  </div>
+          
+  {/* Language Switcher - Fixed top right */}
+  <div className="fixed top-6 right-6 z-50">
+    <LanguageSwitcher />
+  </div>
+
+  {/* Content */}
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="w-full max-w-md relative z-10"
+  >
+    <div className="text-center mb-8">
+      <Link to="/" className="inline-flex items-center gap-2 mb-4">
+        <img 
+          src="/InterGuide.png" 
+          alt="InterGuide" 
+          className="h-10 w-auto object-contain"
+        />
+      </Link>
+      <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('common.welcome')}</h1>
+      <p className={`${getSizeClass('base')} text-muted-foreground`}>{t('auth.loginTitle')}</p>
+    </div>
+
+    <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
+      {/* Backend Status Indicator */}
+      <div className="mb-6 pb-4 border-b border-slate-200/50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {backendStatus === 'checking' && (
+              <>
+                <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                <span className="text-xs text-muted-foreground">{t('auth.checkingServer')}</span>
+              </>
+            )}
+            {backendStatus === 'ready' && (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <span className="text-xs text-green-600">{t('auth.serverReady')}</span>
+              </>
+            )}
         <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
           {/* Backend Status Indicator */}
           <div className="mb-6 pb-4 border-b border-slate-200/50">

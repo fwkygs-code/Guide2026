@@ -69,9 +69,9 @@ const ForgotPasswordPage = () => {
       >
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <img
-              src="/logo-main.png"
-              alt="InterGuide"
+            <img 
+              src="/InterGuide.png" 
+              alt="InterGuide" 
               className="h-10 w-auto object-contain"
             />
           </Link>

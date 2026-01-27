@@ -5,7 +5,7 @@
  * and used consistently across the application.
  */
 
-export const INTERGUIDE_LOGO_PATH = '/interguide-logo.png';
+export const INTERGUIDE_LOGO_PATH = '/InterGuide.png';
 export const INTERGUIDE_LOGO_ALT = 'InterGuide';
 
 /**
