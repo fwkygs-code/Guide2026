@@ -20,11 +20,10 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
   const [pollingActive, setPollingActive] = useState(false); // Track if polling is active
   const pollingIntervalRef = useRef(null); // Store polling interval
 
-  // Define polling function before it's used
+  // PRODUCTION HARDENING: Poll reconciliation endpoint until PayPal confirms state
   const startPollingForActivation = () => {
-    // Poll every 2 seconds for up to 60 seconds (30 attempts)
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 30; // 60 seconds max
     
     const poll = async () => {
       if (attempts >= maxAttempts) {
@@ -33,8 +32,8 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
         pollingIntervalRef.current = null;
         setPollingActive(false);
         setIsSubscribing(false);
-        toast.info('Subscription is being processed. Your Pro access will be activated shortly. You can refresh the page to check status.');
-        // Still call onSuccess to close modal, but user needs to refresh
+        toast.info('Subscription is being processed. Please refresh the page to check status.');
+        // Close modal on timeout
         if (onSuccess) {
           onSuccess(null);
         }
@@ -44,43 +43,62 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
       attempts++;
       
       try {
-        // Fetch current plan status from backend
-        const planResponse = await api.getUserPlan();
-        const planData = planResponse.data;
+        // PRODUCTION HARDENING: Call reconciliation endpoint (backend queries PayPal directly)
+        const response = await api.reconcileSubscription();
+        const reconcileData = response.data;
         
-        // Check if subscription is now ACTIVE
-        const subscription = planData.subscription;
-        if (subscription && subscription.status === 'active' && subscription.provider === 'paypal') {
-          // Subscription is active! Stop polling
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-          setPollingActive(false);
-          setIsSubscribing(false);
+        // Log reconciliation result for debugging
+        console.log('[POLL] Reconciliation result:', reconcileData);
+        
+        if (reconcileData.success) {
+          const { access_granted, is_terminal, paypal_status, access_reason } = reconcileData;
           
-          // Refresh quota data to update UI
-          if (refreshQuota) {
-            await refreshQuota();
-          }
-          
-          toast.success('Pro access activated! Welcome to Pro plan.');
-          
-          // Close modal after short delay
-          setTimeout(() => {
-            if (onSuccess) {
-              onSuccess(subscription.id);
+          // PRODUCTION RULE: Stop polling if access granted OR terminal state reached
+          if (access_granted) {
+            // Access granted - PayPal confirmed activation
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setPollingActive(false);
+            setIsSubscribing(false);
+            
+            // Refresh quota
+            if (refreshQuota) {
+              await refreshQuota();
             }
-          }, 1000);
-          
-          // Auto-refresh page after toast message disappears (typically 4-5 seconds)
-          // This ensures all UI components reflect the new Pro status
-          setTimeout(() => {
-            window.location.reload();
-          }, 5000);
+            
+            toast.success('Pro access activated! Welcome to Pro plan.');
+            
+            // Close modal immediately - no delays
+            if (onSuccess) {
+              onSuccess(reconcileData.subscription_id);
+            }
+            
+            // Refresh page to update all UI
+            setTimeout(() => window.location.reload(), 2000);
+            
+          } else if (is_terminal) {
+            // Terminal state reached but no access (CANCELLED, EXPIRED, SUSPENDED)
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setPollingActive(false);
+            setIsSubscribing(false);
+            
+            toast.error(`Subscription ${paypal_status.toLowerCase()}: ${access_reason}`);
+            
+            if (onSuccess) {
+              onSuccess(null);
+            }
+          }
+            // Otherwise continue polling (non-terminal, no access yet)
         }
-        // If still PENDING, continue polling (no action needed)
       } catch (error) {
-        console.error('Error polling for subscription activation:', error);
-        // Continue polling on error (might be temporary network issue)
+        console.error('[POLL] Error:', error);
+        // Handle rate limiting
+        if (error.response?.status === 429) {
+          console.log('[POLL] Rate limited, slowing down...');
+          // Continue polling (will be rate limited again, that's ok)
+        }
+        // Continue polling on other errors
       }
     };
     

@@ -6787,6 +6787,91 @@ class PayPalAuditLog(BaseModel):
     source: str  # api_call, webhook, reconciliation
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# PRODUCTION HARDENING: Rate limiting for reconciliation endpoint
+_reconciliation_cache = {}  # {user_id: {"last_call": datetime, "count": int, "result": dict}}
+RECONCILIATION_RATE_LIMIT = 5  # Max calls per window
+RECONCILIATION_WINDOW_SECONDS = 60  # Time window
+RECONCILIATION_CACHE_TTL = 10  # Cache results for 10 seconds
+
+@api_router.post("/billing/reconcile")
+async def reconcile_my_subscription(current_user: User = Depends(get_current_user)):
+    """
+    PRODUCTION HARDENING: User-triggered PayPal reconciliation
+    
+    Security:
+    - Only reconciles authenticated user's stored PayPal subscription ID
+    - Rejects client-provided subscription IDs
+    - Rate-limited: 5 calls per 60 seconds
+    - Results cached for 10 seconds
+    
+    Returns:
+        Complete subscription state from PayPal including access decision
+    """
+    user_id = current_user.id
+    now = datetime.now(timezone.utc)
+    
+    # Rate limiting check
+    if user_id in _reconciliation_cache:
+        cache_entry = _reconciliation_cache[user_id]
+        last_call = cache_entry.get("last_call")
+        call_count = cache_entry.get("count", 0)
+        
+        # Check if within rate limit window
+        if last_call and (now - last_call).total_seconds() < RECONCILIATION_WINDOW_SECONDS:
+            if call_count >= RECONCILIATION_RATE_LIMIT:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Rate limit exceeded. Maximum {RECONCILIATION_RATE_LIMIT} reconciliation requests per {RECONCILIATION_WINDOW_SECONDS} seconds."
+                )
+            # Within window, increment count
+            cache_entry["count"] = call_count + 1
+        else:
+            # Window expired, reset
+            cache_entry["last_call"] = now
+            cache_entry["count"] = 1
+    else:
+        # First call
+        _reconciliation_cache[user_id] = {
+            "last_call": now,
+            "count": 1
+        }
+    
+    # Check cache for recent result (10 second TTL)
+    if user_id in _reconciliation_cache:
+        cached_result = _reconciliation_cache[user_id].get("result")
+        cached_at = _reconciliation_cache[user_id].get("cached_at")
+        if cached_result and cached_at:
+            age = (now - cached_at).total_seconds()
+            if age < RECONCILIATION_CACHE_TTL:
+                logging.info(f"[RECONCILE] Returning cached result for user {user_id} (age: {age}s)")
+                return cached_result
+    
+    # Find user's PayPal subscription
+    subscription_doc = await db.subscriptions.find_one(
+        {"user_id": user_id, "provider": "paypal"},
+        {"_id": 0}
+    )
+    
+    if not subscription_doc:
+        return {
+            "success": False,
+            "error": "No PayPal subscription found for user",
+            "user_id": user_id
+        }
+    
+    subscription_id = subscription_doc['id']
+    
+    # SECURITY: Reconcile only the authenticated user's stored subscription ID
+    # Never accept subscription ID from client
+    result = await reconcile_subscription_with_paypal(subscription_id, force=False)
+    
+    # Cache result
+    if user_id in _reconciliation_cache:
+        _reconciliation_cache[user_id]["result"] = result
+        _reconciliation_cache[user_id]["cached_at"] = now
+    
+    return result
+
 @api_router.post("/billing/paypal/subscribe")
 async def subscribe_paypal(
     request: PayPalSubscribeRequest,
@@ -7076,33 +7161,89 @@ async def get_paypal_subscription_details(paypal_subscription_id: str, user_id: 
         logging.error(f"Error fetching PayPal subscription details: {error_msg}")
         return None
 
-async def reconcile_pending_subscription(subscription: Subscription) -> Optional[Subscription]:
+# PRODUCTION HARDENING: Terminal and non-terminal PayPal statuses
+TERMINAL_PAYPAL_STATUSES = frozenset(['CANCELLED', 'EXPIRED', 'SUSPENDED'])
+NON_TERMINAL_PAYPAL_STATUSES = frozenset(['APPROVAL_PENDING', 'ACTIVE', 'PENDING'])
+
+async def reconcile_subscription_with_paypal(
+    subscription_id: str,
+    force: bool = False
+) -> Dict[str, Any]:
     """
-    Reconcile PENDING subscription with PayPal API.
-    If PayPal status is ACTIVE, update local subscription to ACTIVE.
+    PRODUCTION-GRADE PayPal Reconciliation - Single Source of Truth
     
-    Rules:
-    - Only reconciles PENDING subscriptions
-    - Idempotent (safe to call multiple times)
-    - Fails silently if PayPal API unavailable
-    - Never downgrades
-    - Returns updated subscription if reconciled, None otherwise
+    This function is the ONLY authoritative source for subscription state.
+    All other code paths (webhooks, polling, manual checks) MUST delegate here.
+    
+    Rules (NON-NEGOTIABLE):
+    1. Fetch subscription directly from PayPal API
+    2. Map PayPal status → internal status (deterministic, no inference)
+    3. Persist immediately to database
+    4. Derive access from billing timestamps, NOT status strings
+    5. Handle ALL PayPal statuses explicitly
+    6. Stop reconciliation at terminal states (unless force=True)
+    7. Return complete state including access decision
+    
+    Returns:
+        {
+            "success": bool,
+            "subscription_id": str,
+            "paypal_status": str,
+            "internal_status": str,
+            "access_granted": bool,
+            "access_reason": str,
+            "is_terminal": bool,
+            "billing_info": {...},
+            "reconciled_at": str
+        }
     """
-    # Only reconcile PENDING subscriptions
-    if subscription.status != SubscriptionStatus.PENDING:
-        return None
+    now = datetime.now(timezone.utc)
+    
+    # Fetch subscription from database
+    subscription_doc = await db.subscriptions.find_one({"id": subscription_id}, {"_id": 0})
+    if not subscription_doc:
+        return {
+            "success": False,
+            "error": "Subscription not found",
+            "subscription_id": subscription_id
+        }
+    
+    subscription = Subscription(**subscription_doc)
     
     # Only reconcile PayPal subscriptions
     if subscription.provider != 'paypal':
-        return None
+        return {
+            "success": False,
+            "error": "Not a PayPal subscription",
+            "subscription_id": subscription_id,
+            "provider": subscription.provider
+        }
     
     # Must have PayPal subscription ID
     if not subscription.provider_subscription_id:
-        logging.warning(f"Cannot reconcile subscription {subscription.id}: missing provider_subscription_id")
-        return None
+        logging.error(f"[RECONCILE] Subscription {subscription_id} missing provider_subscription_id")
+        return {
+            "success": False,
+            "error": "Missing PayPal subscription ID",
+            "subscription_id": subscription_id
+        }
+    
+    # Check if already terminal (skip unless force=True)
+    if not force and subscription.paypal_verified_status in TERMINAL_PAYPAL_STATUSES:
+        logging.info(f"[RECONCILE] Subscription {subscription_id} is terminal ({subscription.paypal_verified_status}), skipping")
+        return {
+            "success": True,
+            "subscription_id": subscription_id,
+            "paypal_status": subscription.paypal_verified_status,
+            "internal_status": subscription.status,
+            "access_granted": False,
+            "access_reason": f"Terminal state: {subscription.paypal_verified_status}",
+            "is_terminal": True,
+            "skipped": True
+        }
     
     try:
-        # Fetch subscription details from PayPal
+        # STEP 1: Fetch subscription from PayPal (SINGLE SOURCE OF TRUTH)
         paypal_details = await get_paypal_subscription_details(
             subscription.provider_subscription_id,
             user_id=subscription.user_id,
@@ -7110,102 +7251,191 @@ async def reconcile_pending_subscription(subscription: Subscription) -> Optional
             action="reconcile",
             source="reconciliation"
         )
+        
         if not paypal_details:
-            # PayPal API unavailable or subscription not found - fail silently
-            logging.warning(f"PayPal reconciliation: Could not fetch details for subscription {subscription.id} (PayPal ID: {subscription.provider_subscription_id})")
-            return None
+            logging.error(f"[RECONCILE] Failed to fetch PayPal details for subscription {subscription_id}")
+            return {
+                "success": False,
+                "error": "PayPal API unavailable or subscription not found",
+                "subscription_id": subscription_id
+            }
         
-        # Check PayPal subscription status
+        # STEP 2: Extract PayPal status and billing info
         paypal_status = paypal_details.get('status', '').upper()
+        billing_info = paypal_details.get('billing_info', {})
         
-        # If PayPal says ACTIVE, update local subscription
+        # Extract billing timestamps
+        last_payment_time = billing_info.get('last_payment', {}).get('time')
+        next_billing_time = billing_info.get('next_billing_time')
+        final_payment_time = billing_info.get('final_payment_time')
+        
+        logging.info(
+            f"[RECONCILE] PayPal state for subscription {subscription_id}: "
+            f"status={paypal_status}, last_payment={last_payment_time}, "
+            f"next_billing={next_billing_time}, final_payment={final_payment_time}"
+        )
+        
+        # STEP 3: Map PayPal status → internal status (DETERMINISTIC)
+        internal_status = None
+        access_granted = False
+        access_reason = ""
+        
         if paypal_status == 'ACTIVE':
-            logging.info(f"PayPal reconciliation: Subscription {subscription.id} is ACTIVE in PayPal, updating local status")
+            internal_status = SubscriptionStatus.ACTIVE
+            # Access granted if billing timestamps valid
+            if next_billing_time:
+                try:
+                    next_billing_dt = datetime.fromisoformat(next_billing_time.replace('Z', '+00:00'))
+                    if next_billing_dt > now:
+                        access_granted = True
+                        access_reason = f"Active subscription, next billing: {next_billing_time}"
+                    else:
+                        access_reason = f"Next billing time passed: {next_billing_time}"
+                except:
+                    access_reason = "Invalid next_billing_time format"
+            elif last_payment_time:
+                access_granted = True
+                access_reason = f"Active with payment history: {last_payment_time}"
+            else:
+                access_reason = "Active status but no billing timestamps"
+                
+        elif paypal_status == 'CANCELLED':
+            internal_status = SubscriptionStatus.CANCELLED
+            # Access preserved until final_payment_time
+            if final_payment_time:
+                try:
+                    final_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
+                    if final_dt > now:
+                        access_granted = True
+                        access_reason = f"Cancelled but active until: {final_payment_time}"
+                    else:
+                        access_reason = f"Cancelled, final payment passed: {final_payment_time}"
+                except:
+                    access_reason = "Cancelled, invalid final_payment_time"
+            else:
+                access_reason = "Cancelled, no final_payment_time (immediate revocation)"
+                
+        elif paypal_status == 'EXPIRED':
+            internal_status = SubscriptionStatus.EXPIRED
+            access_granted = False
+            access_reason = "Subscription expired"
             
-            # Get trial end date from PayPal billing schedule
-            trial_ends_at = None
-            billing_info = paypal_details.get('billing_info')
-            if billing_info and billing_info.get('next_billing_time'):
-                trial_ends_at = billing_info['next_billing_time']
+        elif paypal_status == 'SUSPENDED':
+            internal_status = SubscriptionStatus.SUSPENDED
+            access_granted = False
+            access_reason = "Subscription suspended by PayPal"
             
-            # Get Pro plan
-            pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
-            if not pro_plan:
-                logging.error(f"PayPal reconciliation: Pro plan not found, cannot upgrade subscription {subscription.id}")
-                return None
+        elif paypal_status == 'APPROVAL_PENDING':
+            internal_status = SubscriptionStatus.PENDING
+            access_granted = False
+            access_reason = "Awaiting PayPal approval"
             
-            # Update subscription status to ACTIVE
-            update_data = {
-                "status": SubscriptionStatus.ACTIVE,
-                "started_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }
-            
-            # Ensure subscription plan_id is Pro (safety check)
-            if subscription.plan_id != pro_plan['id']:
-                update_data["plan_id"] = pro_plan['id']
-                logging.warning(f"PayPal reconciliation: Subscription {subscription.id} plan_id mismatch, correcting to Pro")
-            
-            await db.subscriptions.update_one(
-                {"id": subscription.id},
-                {"$set": update_data}
-            )
-            
-            # Upgrade user to Pro plan
-            user_update_data = {
-                "plan_id": pro_plan['id']
-            }
-            if trial_ends_at:
-                user_update_data["trial_ends_at"] = trial_ends_at
-            
-            await db.users.update_one(
-                {"id": subscription.user_id},
-                {"$set": user_update_data}
-            )
-            
-            # AUDIT LOG: Reconciliation successful - subscription activated
-            await log_paypal_action(
-                action="reconcile_success",
-                paypal_endpoint=f"/v1/billing/subscriptions/{subscription.provider_subscription_id}",
-                http_method="GET",
-                source="reconciliation",
-                user_id=subscription.user_id,
-                subscription_id=subscription.id,
-                http_status_code=200,
-                paypal_status="ACTIVE",
-                verified=True,
-                raw_paypal_response=paypal_details
-            )
-            
-            logging.info(f"PayPal reconciliation: Subscription {subscription.id} reconciled to ACTIVE, user {subscription.user_id} upgraded to Pro")
-            
-            # Return updated subscription object
-            updated_sub = await db.subscriptions.find_one({"id": subscription.id}, {"_id": 0})
-            if updated_sub:
-                return Subscription(**updated_sub)
         else:
-            # PayPal status is not ACTIVE - leave as PENDING
-            # AUDIT LOG: Reconciliation checked but status not ACTIVE
-            await log_paypal_action(
-                action="reconcile_no_action",
-                paypal_endpoint=f"/v1/billing/subscriptions/{subscription.provider_subscription_id}",
-                http_method="GET",
-                source="reconciliation",
-                user_id=subscription.user_id,
-                subscription_id=subscription.id,
-                http_status_code=200,
-                paypal_status=paypal_status,
-                verified=(paypal_status in ['CANCELLED', 'EXPIRED', 'SUSPENDED']),
-                raw_paypal_response=paypal_details
-            )
-            logging.debug(f"PayPal reconciliation: Subscription {subscription.id} status in PayPal is {paypal_status}, leaving as PENDING")
-            return None
-            
+            # Unknown status - treat as no access
+            internal_status = SubscriptionStatus.PENDING
+            access_granted = False
+            access_reason = f"Unknown PayPal status: {paypal_status}"
+            logging.warning(f"[RECONCILE] Unknown PayPal status '{paypal_status}' for subscription {subscription_id}")
+        
+        # STEP 4: Determine plan based on access
+        plan_name = "pro" if access_granted else "free"
+        target_plan = await db.plans.find_one({"name": plan_name}, {"_id": 0})
+        if not target_plan:
+            logging.error(f"[RECONCILE] Plan '{plan_name}' not found in database")
+            return {
+                "success": False,
+                "error": f"Plan '{plan_name}' not found",
+                "subscription_id": subscription_id
+            }
+        
+        # STEP 5: Persist to database (IMMEDIATE)
+        update_data = {
+            "status": internal_status,
+            "paypal_verified_status": paypal_status,
+            "last_verified_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        
+        # Set started_at if newly active
+        if internal_status == SubscriptionStatus.ACTIVE and not subscription_doc.get('started_at'):
+            update_data["started_at"] = now.isoformat()
+        
+        # Update subscription
+        await db.subscriptions.update_one(
+            {"id": subscription_id},
+            {"$set": update_data}
+        )
+        
+        # Update user plan
+        user_update = {"plan_id": target_plan['id']}
+        if next_billing_time and access_granted:
+            user_update["trial_ends_at"] = next_billing_time
+        
+        await db.users.update_one(
+            {"id": subscription.user_id},
+            {"$set": user_update}
+        )
+        
+        # STEP 6: Audit logging (COMPREHENSIVE)
+        await log_paypal_action(
+            action="reconcile_complete",
+            paypal_endpoint=f"/v1/billing/subscriptions/{subscription.provider_subscription_id}",
+            http_method="GET",
+            source="reconciliation",
+            user_id=subscription.user_id,
+            subscription_id=subscription_id,
+            http_status_code=200,
+            paypal_status=paypal_status,
+            verified=True,
+            raw_paypal_response=paypal_details
+        )
+        
+        logging.info(
+            f"[RECONCILE] Completed for subscription {subscription_id}: "
+            f"paypal_status={paypal_status} → internal_status={internal_status}, "
+            f"access_granted={access_granted}, plan={plan_name}, reason='{access_reason}'"
+        )
+        
+        # STEP 7: Return complete state
+        return {
+            "success": True,
+            "subscription_id": subscription_id,
+            "paypal_status": paypal_status,
+            "internal_status": internal_status,
+            "access_granted": access_granted,
+            "access_reason": access_reason,
+            "is_terminal": paypal_status in TERMINAL_PAYPAL_STATUSES,
+            "billing_info": {
+                "last_payment_time": last_payment_time,
+                "next_billing_time": next_billing_time,
+                "final_payment_time": final_payment_time
+            },
+            "reconciled_at": now.isoformat(),
+            "plan_name": plan_name
+        }
+        
     except Exception as e:
-        # Fail silently on errors (PayPal API might be temporarily unavailable)
-        logging.error(f"PayPal reconciliation error for subscription {subscription.id}: {str(e)}")
+        logging.error(f"[RECONCILE] Error for subscription {subscription_id}: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "subscription_id": subscription_id
+        }
+
+# DEPRECATED: Legacy function maintained for backward compatibility
+# All new code should use reconcile_subscription_with_paypal()
+async def reconcile_pending_subscription(subscription: Subscription) -> Optional[Subscription]:
+    """
+    DEPRECATED: Use reconcile_subscription_with_paypal() instead.
+    Maintained for backward compatibility only.
+    """
+    if subscription.status != SubscriptionStatus.PENDING or subscription.provider != 'paypal':
         return None
     
+    result = await reconcile_subscription_with_paypal(subscription.id)
+    if result.get("success") and result.get("access_granted"):
+        updated_sub = await db.subscriptions.find_one({"id": subscription.id}, {"_id": 0})
+        return Subscription(**updated_sub) if updated_sub else None
     return None
 
 async def verify_paypal_webhook_signature(
@@ -7279,8 +7509,16 @@ async def paypal_webhook(
     paypal_transmission_time: str = Header(None, alias="PAYPAL-TRANSMISSION-TIME")
 ):
     """
-    Handle PayPal webhook events.
-    Verifies webhook signature and processes subscription events.
+    PRODUCTION HARDENING: PayPal Webhook Handler
+    
+    This handler is OPTIMISTIC ONLY. It:
+    1. Verifies webhook signature (security)
+    2. Prevents duplicate processing (idempotency)
+    3. Delegates ALL business logic to reconcile_subscription_with_paypal()
+    4. Contains ZERO independent decision logic
+    
+    All state changes are determined by reconciliation function querying PayPal directly.
+    Webhooks exist only for optimistic updates - system works even if webhooks never arrive.
     """
     try:
         body = await request.body()
@@ -7291,7 +7529,7 @@ async def paypal_webhook(
         resource = webhook_data.get('resource', {})
         
         if not event_id:
-            logging.error("PayPal webhook missing event ID")
+            logging.error("[WEBHOOK] Missing event ID")
             return JSONResponse({"status": "error", "message": "Missing event ID"}, status_code=400)
         
         # Idempotency check - ignore duplicate events
@@ -7300,18 +7538,18 @@ async def paypal_webhook(
             {"_id": 0}
         )
         if existing_event:
-            logging.info(f"PayPal webhook event already processed: {event_id}")
+            logging.info(f"[WEBHOOK] Event already processed: {event_id}")
             return JSONResponse({"status": "success", "message": "Event already processed"})
         
-        logging.info(f"PayPal webhook received: event_type={event_type}, event_id={event_id}, resource_id={resource.get('id')}")
+        logging.info(f"[WEBHOOK] Received: event_type={event_type}, event_id={event_id}, resource_id={resource.get('id')}")
         
         # Verify webhook signature (CRITICAL for security)
         if not all([paypal_transmission_id, paypal_cert_url, paypal_auth_algo, paypal_transmission_sig, paypal_transmission_time]):
-            logging.error("PayPal webhook missing required headers for signature verification")
+            logging.error("[WEBHOOK] Missing required headers for signature verification")
             return JSONResponse({"status": "error", "message": "Missing webhook headers"}, status_code=400)
         
         if not PAYPAL_WEBHOOK_ID:
-            logging.error("PAYPAL_WEBHOOK_ID not configured - cannot verify webhook")
+            logging.error("[WEBHOOK] PAYPAL_WEBHOOK_ID not configured")
             return JSONResponse({"status": "error", "message": "Webhook not configured"}, status_code=500)
         
         signature_valid = await verify_paypal_webhook_signature(
@@ -7325,10 +7563,10 @@ async def paypal_webhook(
         )
         
         if not signature_valid:
-            logging.error(f"PayPal webhook signature verification failed for event {event_id}")
+            logging.error(f"[WEBHOOK] Signature verification failed for event {event_id}")
             return JSONResponse({"status": "error", "message": "Invalid webhook signature"}, status_code=401)
         
-        # AUDIT LOG: Webhook received (before processing)
+        # AUDIT LOG: Webhook received
         await log_paypal_action(
             action="webhook_received",
             paypal_endpoint="/v1/notifications/webhooks",
@@ -7336,13 +7574,78 @@ async def paypal_webhook(
             source="webhook",
             http_status_code=None,
             paypal_status=None,
-            verified=False,
+            verified=True,
             raw_paypal_response=webhook_data
         )
         
-        # Process webhook events
-        subscription_id = None
+        # PRODUCTION HARDENING: Extract PayPal subscription ID
+        paypal_subscription_id = resource.get('id') or resource.get('billing_agreement_id')
+        if not paypal_subscription_id:
+            logging.error(f"[WEBHOOK] Missing PayPal subscription ID in event {event_id}")
+            return JSONResponse({"status": "error", "message": "Missing subscription ID"}, status_code=400)
         
+        # Find our subscription record
+        subscription_doc = await db.subscriptions.find_one(
+            {"provider_subscription_id": paypal_subscription_id, "provider": "paypal"},
+            {"_id": 0}
+        )
+        
+        subscription_id = None
+        if subscription_doc:
+            subscription_id = subscription_doc['id']
+            
+            # PRODUCTION HARDENING: Delegate ALL logic to reconciliation
+            # Webhooks contain ZERO independent business logic
+            logging.info(f"[WEBHOOK] Delegating to reconciliation: subscription_id={subscription_id}, event_type={event_type}")
+            
+            reconcile_result = await reconcile_subscription_with_paypal(
+                subscription_id=subscription_id,
+                force=True  # Force reconciliation even if terminal
+            )
+            
+            if reconcile_result.get("success"):
+                logging.info(
+                    f"[WEBHOOK] Reconciliation complete: subscription_id={subscription_id}, "
+                    f"paypal_status={reconcile_result.get('paypal_status')}, "
+                    f"access_granted={reconcile_result.get('access_granted')}, "
+                    f"event_type={event_type}"
+                )
+            else:
+                logging.error(
+                    f"[WEBHOOK] Reconciliation failed: subscription_id={subscription_id}, "
+                    f"error={reconcile_result.get('error')}, event_type={event_type}"
+                )
+        else:
+            # Subscription not found - log for debugging
+            all_paypal_subs = await db.subscriptions.find(
+                {"provider": "paypal"},
+                {"provider_subscription_id": 1, "user_id": 1, "status": 1, "_id": 0}
+            ).to_list(20)
+            logging.warning(
+                f"[WEBHOOK] Subscription not found for PayPal ID: {paypal_subscription_id}. "
+                f"Event: {event_type}. Available PayPal subscriptions: {all_paypal_subs}"
+            )
+        
+        # Record processed event for idempotency
+        processed_event = ProcessedWebhookEvent(
+            paypal_event_id=event_id,
+            event_type=event_type,
+            subscription_id=subscription_id
+        )
+        processed_event_dict = processed_event.model_dump()
+        processed_event_dict['processed_at'] = processed_event_dict['processed_at'].isoformat()
+        await db.processed_webhook_events.insert_one(processed_event_dict)
+        
+        return JSONResponse({"status": "success"})
+    
+    except Exception as e:
+        logging.error(f"[WEBHOOK] Error: {str(e)}", exc_info=True)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+# DEPRECATED: Old webhook logic preserved below for reference/rollback
+# Delete after confirming new webhook works in production
+"""
+OLD_WEBHOOK_LOGIC_START
         if event_type == "BILLING.SUBSCRIPTION.ACTIVATED":
             # Subscription activated - upgrade user to Pro
             # CRITICAL: This is the ONLY place where user gets upgraded to Pro
@@ -7771,21 +8074,8 @@ async def paypal_webhook(
             raw_paypal_response={"event_type": event_type, "event_id": event_id, "processed": True}
         )
         
-        # Record processed event for idempotency
-        processed_event = ProcessedWebhookEvent(
-            paypal_event_id=event_id,
-            event_type=event_type,
-            subscription_id=subscription_id
-        )
-        processed_event_dict = processed_event.model_dump()
-        processed_event_dict['processed_at'] = processed_event_dict['processed_at'].isoformat()
-        await db.processed_webhook_events.insert_one(processed_event_dict)
-        
-        return JSONResponse({"status": "success"})
-    
-    except Exception as e:
-        logging.error(f"PayPal webhook error: {str(e)}", exc_info=True)
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+OLD_WEBHOOK_LOGIC_END
+"""
 
 @api_router.get("/plans")
 async def get_plans(current_user: Optional[User] = Depends(get_current_user_optional)):

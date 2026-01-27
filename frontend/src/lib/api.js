@@ -155,6 +155,8 @@ export const api = {
   // PayPal Subscriptions
   subscribePayPal: (data) => axios.post(`${API}/billing/paypal/subscribe`, data),
   cancelPayPalSubscription: () => axios.post(`${API}/billing/paypal/cancel`),
+  // PRODUCTION HARDENING: Reconciliation endpoint (queries PayPal directly)
+  reconcileSubscription: () => axios.post(`${API}/billing/reconcile`),
   
   // File Management
   deleteFile: (fileId) => axios.delete(`${API}/files/${fileId}`),
