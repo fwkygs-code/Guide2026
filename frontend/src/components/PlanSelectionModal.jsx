@@ -164,7 +164,7 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
                 {selectedPlanMedia ? getPlanDisplayName(selectedPlanMedia) : ''} - {t('upgrade.maxMediaCapacity')}
               </DialogTitle>
               <DialogDescription>
-                {selectedPlanMedia?.name === 'enterprise'
+                {selectedPlanMedia?.id === 'enterprise'
                   ? t('upgrade.contactForMediaCapacity')
                   : t('upgrade.mediaCapacityDetails')}
               </DialogDescription>
