@@ -7364,11 +7364,11 @@ async def reconcile_subscription_with_paypal(
         }
     
     # Check if already terminal-for-polling (skip unless force=True)
-    # CRITICAL: For CANCELLED subscriptions, if end date is missing, force reconciliation
+    # CRITICAL: For CANCELLED subscriptions, if PayPal timestamps are missing, force reconciliation
     if (not force and 
         subscription.paypal_verified_status in TERMINAL_FOR_POLLING and 
         not (subscription.paypal_verified_status == 'CANCELLED' and 
-             not (getattr(subscription, 'effective_end_date', None) or getattr(subscription, 'final_payment_time', None)))):
+             not (getattr(subscription, 'next_billing_time', None) or getattr(subscription, 'final_payment_time', None)))):
         logging.info(f"[RECONCILE] Subscription {subscription_id} is terminal-for-polling ({subscription.paypal_verified_status}), skipping")
         
         # Even when skipping, we must return accurate access status based on timestamps
@@ -7383,43 +7383,43 @@ async def reconcile_subscription_with_paypal(
             access_granted = True  # Conservative: assume ACTIVE means access
             access_reason = "ACTIVE status (cached, not verified with PayPal)"
         elif subscription.paypal_verified_status == 'CANCELLED':
-            # CRITICAL FIX: For CANCELLED, check if user still has paid time remaining
-            # User should keep access until effective_end_date or final_payment_time
-            # Check both our internal field (effective_end_date) and PayPal field (final_payment_time)
-            effective_end_date = getattr(subscription, 'effective_end_date', None)
+            # STRICT: For CANCELLED, check ONLY PayPal timestamps
+            # PayPal provides next_billing_time until period ends (Auto Pay = OFF)
+            # PayPal provides final_payment_time after period fully expires
+            # If NEITHER exists → NO ACCESS (PayPal is source of truth)
+            next_billing_time = getattr(subscription, 'next_billing_time', None)
             final_payment_time = getattr(subscription, 'final_payment_time', None)
-            end_date = effective_end_date or final_payment_time
             
-            if end_date:
+            # Try next_billing_time first (provided during active period with Auto Pay OFF)
+            if next_billing_time:
                 try:
-                    # Handle both datetime objects and ISO strings
-                    if isinstance(end_date, str):
-                        end_date_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-                    else:
-                        end_date_dt = end_date
-                    
-                    if end_date_dt > now:
+                    next_billing_dt = datetime.fromisoformat(next_billing_time.replace('Z', '+00:00'))
+                    if next_billing_dt > now:
                         access_granted = True
-                        access_reason = f"CANCELLED but access until {end_date_dt.isoformat()}"
-                        logging.info(f"[RECONCILE] Cancelled subscription {subscription_id} still has access until {end_date_dt.isoformat()}")
+                        access_reason = f"CANCELLED but access until next_billing_time: {next_billing_time}"
                     else:
-                        access_reason = f"CANCELLED and billing period expired: {end_date_dt.isoformat()}"
+                        access_reason = f"CANCELLED and next_billing_time expired: {next_billing_time}"
                 except Exception as e:
-                    logging.error(f"[RECONCILE] Failed to parse end date: {end_date}, error: {e}")
-                    access_reason = f"CANCELLED with unparseable end date: {end_date}"
+                    logging.error(f"[RECONCILE] Failed to parse next_billing_time: {next_billing_time}, error: {e}")
+                    access_reason = f"CANCELLED with unparseable next_billing_time"
+            # Try final_payment_time (provided after period fully expires)
+            elif final_payment_time:
+                try:
+                    final_payment_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
+                    if final_payment_dt > now:
+                        access_granted = True
+                        access_reason = f"CANCELLED but access until final_payment_time: {final_payment_time}"
+                    else:
+                        access_reason = f"CANCELLED and final_payment_time expired: {final_payment_time}"
+                except Exception as e:
+                    logging.error(f"[RECONCILE] Failed to parse final_payment_time: {final_payment_time}, error: {e}")
+                    access_reason = f"CANCELLED with unparseable final_payment_time"
             else:
-                access_reason = "CANCELLED with no end date - access denied"
+                # No PayPal timestamps → NO ACCESS (strict rule)
+                access_reason = "CANCELLED with no PayPal timestamps - access denied"
         
-        # CRITICAL FIX: Include billing_info even when skipping
-        # This ensures /users/me/plan can extract access_until for legacy users
-        # Use getattr() for safe attribute access (legacy subscriptions may not have these fields)
-        
-        # For CANCELLED subscriptions, use effective_end_date as fallback if final_payment_time is null
-        # (PayPal doesn't always return final_payment_time for cancelled subs)
-        final_payment = getattr(subscription, 'final_payment_time', None)
-        if not final_payment and subscription.paypal_verified_status == 'CANCELLED':
-            final_payment = getattr(subscription, 'effective_end_date', None)
-        
+        # Return billing_info with ONLY PayPal timestamps (no fallbacks, no inference)
+        # If PayPal doesn't provide timestamps, they are null (strict rule)
         return {
             "success": True,
             "subscription_id": subscription_id,
@@ -7431,7 +7431,7 @@ async def reconcile_subscription_with_paypal(
             "billing_info": {
                 "last_payment_time": getattr(subscription, 'last_payment_time', None),
                 "next_billing_time": getattr(subscription, 'next_billing_time', None),
-                "final_payment_time": final_payment  # Uses effective_end_date as fallback for CANCELLED
+                "final_payment_time": getattr(subscription, 'final_payment_time', None)
             },
             "skipped": True
         }
