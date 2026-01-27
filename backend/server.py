@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
+from collections import defaultdict
 import uuid
 from datetime import datetime, timezone, timedelta
 import bcrypt
