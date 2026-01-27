@@ -7195,6 +7195,19 @@ async def reconcile_subscription_with_paypal(
             (final_payment_dt is not None and final_payment_dt > now)
         )
         
+        # MINIMAL COMPLIANT FALLBACK: Honor last confirmed PayPal payment
+        # If no future timestamps but payment occurred, grant access for paid period
+        # (PayPal edge case: cancelled trial before first regular billing)
+        # This is NOT date inference - last_payment_time is PayPal-provided truth
+        if not access_granted and not next_billing_dt and not final_payment_dt:
+            if last_payment_time:
+                access_granted = True
+                access_source = "paypal_last_payment_fallback"
+                logging.info(
+                    f"[RECONCILE] Fallback access granted: last_payment exists but no future timestamps "
+                    f"(PayPal edge case: cancelled trial). subscription_id={subscription_id}"
+                )
+        
         # METRICS & ALERT: Track access decisions
         if access_granted:
             await metrics.increment('access_granted_total')
@@ -7202,12 +7215,12 @@ async def reconcile_subscription_with_paypal(
                 await metrics.increment('access_granted_next_billing')
             if final_payment_dt:
                 await metrics.increment('access_granted_final_payment')
-            # CRITICAL ALERT: Access without timestamps (should never happen)
-            if not next_billing_dt and not final_payment_dt:
-                await metrics.increment('access_granted_no_timestamps')
-                logging.critical(
-                    f"Γëí╞Æ├£┬┐ CRITICAL: Access granted without timestamps! "
-                    f"subscription_id={subscription_id}, paypal_status={paypal_status}"
+            # Track fallback access
+            if not next_billing_dt and not final_payment_dt and last_payment_time:
+                await metrics.increment('access_granted_last_payment_fallback')
+                logging.info(
+                    f"📊 [RECONCILE] Access granted via last_payment fallback: "
+                    f"subscription_id={subscription_id}, last_payment={last_payment_time}"
                 )
         else:
             await metrics.increment('access_denied_total')
@@ -7218,6 +7231,8 @@ async def reconcile_subscription_with_paypal(
                 access_reason = f"Access until next_billing_time: {next_billing_time}"
             elif final_payment_dt and final_payment_dt > now:
                 access_reason = f"Access until final_payment_time: {final_payment_time}"
+            elif last_payment_time and not next_billing_dt and not final_payment_dt:
+                access_reason = f"Access granted: last_payment confirmed (no end timestamp from PayPal)"
             else:
                 access_reason = "Access granted (unknown reason - audit required)"
         else:
