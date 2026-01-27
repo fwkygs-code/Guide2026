@@ -89,14 +89,14 @@ async def check_alert_conditions():
     # Alert: Access granted without timestamps (MUST NEVER HAPPEN)
     if all_metrics.get('access_granted_no_timestamps', 0) > 0:
         logging.critical(
-            f"🚨 ALERT: Access granted without timestamps detected! "
+            f"≡ƒÜ¿ ALERT: Access granted without timestamps detected! "
             f"Count: {all_metrics['access_granted_no_timestamps']}"
         )
     
     # Alert: Polling beyond terminal state (MUST NEVER HAPPEN)
     if all_metrics.get('poll_after_terminal', 0) > 0:
         logging.error(
-            f"🚨 ALERT: Polling after terminal state! "
+            f"≡ƒÜ¿ ALERT: Polling after terminal state! "
             f"Count: {all_metrics['poll_after_terminal']}"
         )
     
@@ -107,7 +107,7 @@ async def check_alert_conditions():
         failure_rate = failed_reconciles / total_reconciles
         if failure_rate > 0.10:
             logging.warning(
-                f"⚠️ ALERT: Reconciliation failure rate high: {failure_rate:.1%} "
+                f"ΓÜá∩╕Å ALERT: Reconciliation failure rate high: {failure_rate:.1%} "
                 f"({failed_reconciles}/{total_reconciles})"
             )
 
@@ -125,7 +125,7 @@ class KillSwitch:
         self.frontend_polling_enabled = False
         self.webhook_processing_enabled = False
         self.user_reconciliation_enabled = False
-        logging.critical("🚨 KILL SWITCH: Disabled frontend polling, webhooks, user reconciliation")
+        logging.critical("≡ƒÜ¿ KILL SWITCH: Disabled frontend polling, webhooks, user reconciliation")
     
     def enable_all(self):
         """Re-enable all features after incident resolved"""
@@ -133,7 +133,7 @@ class KillSwitch:
         self.webhook_processing_enabled = True
         self.scheduled_reconciliation_enabled = True
         self.user_reconciliation_enabled = True
-        logging.info("✅ KILL SWITCH: Re-enabled all features")
+        logging.info("Γ£à KILL SWITCH: Re-enabled all features")
 
 kill_switch = KillSwitch()
 
@@ -1753,9 +1753,9 @@ async def can_access_paid_features(user_id: str) -> bool:
     Single source of truth for subscription access control.
     
     Three states:
-    1. Free tier user → always allowed
-    2. Paid user with active subscription → allowed
-    3. Paid user with inactive subscription → blocked (after grace)
+    1. Free tier user ΓåÆ always allowed
+    2. Paid user with active subscription ΓåÆ allowed
+    3. Paid user with inactive subscription ΓåÆ blocked (after grace)
     
     Rules:
     - Free tier bypasses all blocking
@@ -1784,7 +1784,7 @@ async def can_access_paid_features(user_id: str) -> bool:
     # Paid plan user - check subscription status
     subscription = await get_user_subscription(user_id)
     
-    # Active subscription → allowed
+    # Active subscription ΓåÆ allowed
     if subscription and subscription.status == SubscriptionStatus.ACTIVE:
         return True
     
@@ -1799,13 +1799,13 @@ async def can_access_paid_features(user_id: str) -> bool:
             
             now = datetime.now(timezone.utc)
             
-            # Within grace period → allowed
+            # Within grace period ΓåÆ allowed
             if now < grace_end:
                 return True
         except Exception as e:
             logging.error(f"Error checking grace period for user {user_id}: {e}", exc_info=True)
     
-    # Paid user with no active subscription and no grace → blocked
+    # Paid user with no active subscription and no grace ΓåÆ blocked
     return False
 
 async def require_subscription_access(current_user: User = Depends(get_current_user)) -> User:
@@ -6040,12 +6040,12 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
             f"paypal_status={subscription_doc.get('paypal_verified_status')}"
         )
         
-        # ALWAYS force reconciliation for legacy users (no billing timestamps)
+        # ALWAYS force reconciliation for legacy users (no PayPal billing timestamps)
+        # ONLY check PayPal API fields (PayPal is single source of truth)
         has_billing_timestamps = bool(
             subscription_doc.get('next_billing_time') or 
             subscription_doc.get('final_payment_time') or 
-            subscription_doc.get('last_payment_time') or
-            subscription_doc.get('effective_end_date')  # CRITICAL: Check our internal field too!
+            subscription_doc.get('last_payment_time')
         )
         force = not has_billing_timestamps
         
@@ -7293,7 +7293,7 @@ TERMINAL_FOR_POLLING = frozenset(['ACTIVE', 'CANCELLED', 'EXPIRED', 'SUSPENDED']
 # Non-terminal-for-polling: Polling continues for these
 NON_TERMINAL_FOR_POLLING = frozenset(['APPROVAL_PENDING', 'PENDING'])
 
-# IMPORTANT: Terminal-for-polling ≠ Terminal-for-access
+# IMPORTANT: Terminal-for-polling Γëá Terminal-for-access
 # ACTIVE is terminal for polling but may grant access
 # CANCELLED is terminal for polling but may preserve access until final_payment_time
 
@@ -7309,7 +7309,7 @@ async def reconcile_subscription_with_paypal(
     
     Rules (NON-NEGOTIABLE):
     1. Fetch subscription directly from PayPal API
-    2. Map PayPal status → internal status (deterministic, no inference)
+    2. Map PayPal status ΓåÆ internal status (deterministic, no inference)
     3. Persist immediately to database
     4. Derive access from billing timestamps, NOT status strings
     5. Handle ALL PayPal statuses explicitly
@@ -7501,7 +7501,7 @@ async def reconcile_subscription_with_paypal(
             if not next_billing_dt and not final_payment_dt:
                 await metrics.increment('access_granted_no_timestamps')
                 logging.critical(
-                    f"🚨 CRITICAL: Access granted without timestamps! "
+                    f"≡ƒÜ¿ CRITICAL: Access granted without timestamps! "
                     f"subscription_id={subscription_id}, paypal_status={paypal_status}"
                 )
         else:
@@ -7523,7 +7523,7 @@ async def reconcile_subscription_with_paypal(
             else:
                 access_reason = "No valid billing timestamps from PayPal"
         
-        # Map PayPal status → internal status (for display/tracking only, NOT access)
+        # Map PayPal status ΓåÆ internal status (for display/tracking only, NOT access)
         internal_status = None
         if paypal_status == 'ACTIVE':
             internal_status = SubscriptionStatus.ACTIVE
@@ -7551,11 +7551,16 @@ async def reconcile_subscription_with_paypal(
             }
         
         # STEP 5: Persist to database (IMMEDIATE)
+        # CRITICAL: Store PayPal billing timestamps (single source of truth)
         update_data = {
             "status": internal_status,
             "paypal_verified_status": paypal_status,
             "last_verified_at": now.isoformat(),
-            "updated_at": now.isoformat()
+            "updated_at": now.isoformat(),
+            # PayPal API fields (source of truth for access decisions)
+            "last_payment_time": last_payment_time,
+            "next_billing_time": next_billing_time,
+            "final_payment_time": final_payment_time
         }
         
         # Set started_at if newly active
@@ -7594,7 +7599,7 @@ async def reconcile_subscription_with_paypal(
         
         logging.info(
             f"[RECONCILE] Completed for subscription {subscription_id}: "
-            f"paypal_status={paypal_status} → internal_status={internal_status}, "
+            f"paypal_status={paypal_status} ΓåÆ internal_status={internal_status}, "
             f"access_granted={access_granted}, plan={plan_name}, reason='{access_reason}'"
         )
         
@@ -8362,7 +8367,7 @@ async def control_kill_switch(
         kill_switch.webhook_processing_enabled = False
         kill_switch.scheduled_reconciliation_enabled = False
         kill_switch.user_reconciliation_enabled = False
-        logging.critical("🚨 KILL SWITCH: All features disabled")
+        logging.critical("≡ƒÜ¿ KILL SWITCH: All features disabled")
         return {"status": "success", "message": "All features disabled"}
     elif action == "disable_except_scheduled":
         kill_switch.disable_all_except_scheduled()
@@ -8656,8 +8661,8 @@ async def share_workspace(slug: str, request: Request):
         logging.info(f"[share_workspace] No workspace logo, using fallback: {og_image_url}")
     
     # Build Open Graph HTML with proper escaping
-    og_title = f"InterGuide – {workspace_name}"
-    og_description = f"InterGuide – {workspace_name}"
+    og_title = f"InterGuide ΓÇô {workspace_name}"
+    og_description = f"InterGuide ΓÇô {workspace_name}"
     
     # Escape HTML entities for safety
     og_title_escaped = html_module.escape(og_title)
@@ -8776,8 +8781,8 @@ async def share_portal(slug: str, request: Request):
         logging.info(f"[share_portal] No workspace logo, using fallback: {og_image_url}")
     
     # Build Open Graph HTML with proper escaping
-    og_title = f"InterGuide – {workspace_name}"
-    og_description = f"InterGuide – {workspace_name}"
+    og_title = f"InterGuide ΓÇô {workspace_name}"
+    og_description = f"InterGuide ΓÇô {workspace_name}"
     
     # Escape HTML entities for safety
     og_title_escaped = html_module.escape(og_title)
