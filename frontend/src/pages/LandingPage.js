@@ -49,7 +49,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <img 
-              src="/NewLogo.png" 
+              src="/logo-main.png" 
               alt="InterGuide" 
               className="h-14 w-auto object-contain"
             />
