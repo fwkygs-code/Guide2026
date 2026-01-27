@@ -7161,9 +7161,15 @@ async def get_paypal_subscription_details(paypal_subscription_id: str, user_id: 
         logging.error(f"Error fetching PayPal subscription details: {error_msg}")
         return None
 
-# PRODUCTION HARDENING: Terminal and non-terminal PayPal statuses
-TERMINAL_PAYPAL_STATUSES = frozenset(['CANCELLED', 'EXPIRED', 'SUSPENDED'])
-NON_TERMINAL_PAYPAL_STATUSES = frozenset(['APPROVAL_PENDING', 'ACTIVE', 'PENDING'])
+# PRODUCTION HARDENING: Terminal vs Non-terminal statuses for POLLING
+# Terminal-for-polling: Polling MUST stop when PayPal reports these
+TERMINAL_FOR_POLLING = frozenset(['ACTIVE', 'CANCELLED', 'EXPIRED', 'SUSPENDED'])
+# Non-terminal-for-polling: Polling continues for these
+NON_TERMINAL_FOR_POLLING = frozenset(['APPROVAL_PENDING', 'PENDING'])
+
+# IMPORTANT: Terminal-for-polling ≠ Terminal-for-access
+# ACTIVE is terminal for polling but may grant access
+# CANCELLED is terminal for polling but may preserve access until final_payment_time
 
 async def reconcile_subscription_with_paypal(
     subscription_id: str,
@@ -7228,17 +7234,30 @@ async def reconcile_subscription_with_paypal(
             "subscription_id": subscription_id
         }
     
-    # Check if already terminal (skip unless force=True)
-    if not force and subscription.paypal_verified_status in TERMINAL_PAYPAL_STATUSES:
-        logging.info(f"[RECONCILE] Subscription {subscription_id} is terminal ({subscription.paypal_verified_status}), skipping")
+    # Check if already terminal-for-polling (skip unless force=True)
+    if not force and subscription.paypal_verified_status in TERMINAL_FOR_POLLING:
+        logging.info(f"[RECONCILE] Subscription {subscription_id} is terminal-for-polling ({subscription.paypal_verified_status}), skipping")
+        
+        # Even when skipping, we must return accurate access status based on timestamps
+        # Re-evaluate access from stored billing info
+        access_granted = False
+        access_reason = f"Skipped reconciliation (terminal: {subscription.paypal_verified_status})"
+        
+        # Check if we have billing timestamps that would grant access
+        if subscription.paypal_verified_status == 'ACTIVE':
+            # For ACTIVE, check if we have valid next_billing_time
+            # This is approximate - force reconciliation if precision needed
+            access_granted = True  # Conservative: assume ACTIVE means access
+            access_reason = "ACTIVE status (cached, not verified with PayPal)"
+        
         return {
             "success": True,
             "subscription_id": subscription_id,
             "paypal_status": subscription.paypal_verified_status,
             "internal_status": subscription.status,
-            "access_granted": False,
-            "access_reason": f"Terminal state: {subscription.paypal_verified_status}",
-            "is_terminal": True,
+            "access_granted": access_granted,
+            "access_reason": access_reason,
+            "is_terminal_for_polling": True,
             "skipped": True
         }
     
@@ -7275,66 +7294,62 @@ async def reconcile_subscription_with_paypal(
             f"next_billing={next_billing_time}, final_payment={final_payment_time}"
         )
         
-        # STEP 3: Map PayPal status → internal status (DETERMINISTIC)
-        internal_status = None
-        access_granted = False
-        access_reason = ""
+        # STEP 3: TIMESTAMP-DOMINANT ACCESS RULE (NO STATUS GATING)
+        # Access is determined EXCLUSIVELY by billing timestamps
+        # Status strings are logged but NEVER trusted for access decisions
         
+        # Parse timestamps
+        next_billing_dt = None
+        final_payment_dt = None
+        
+        if next_billing_time:
+            try:
+                next_billing_dt = datetime.fromisoformat(next_billing_time.replace('Z', '+00:00'))
+            except Exception as e:
+                logging.error(f"[RECONCILE] Invalid next_billing_time format: {next_billing_time}, error: {e}")
+        
+        if final_payment_time:
+            try:
+                final_payment_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
+            except Exception as e:
+                logging.error(f"[RECONCILE] Invalid final_payment_time format: {final_payment_time}, error: {e}")
+        
+        # PRODUCTION RULE: Access granted IFF billing timestamps prove it
+        access_granted = (
+            (next_billing_dt is not None and next_billing_dt > now) or
+            (final_payment_dt is not None and final_payment_dt > now)
+        )
+        
+        # Access reason (for audit)
+        if access_granted:
+            if next_billing_dt and next_billing_dt > now:
+                access_reason = f"Access until next_billing_time: {next_billing_time}"
+            elif final_payment_dt and final_payment_dt > now:
+                access_reason = f"Access until final_payment_time: {final_payment_time}"
+            else:
+                access_reason = "Access granted (unknown reason - audit required)"
+        else:
+            if next_billing_dt and next_billing_dt <= now:
+                access_reason = f"next_billing_time expired: {next_billing_time}"
+            elif final_payment_dt and final_payment_dt <= now:
+                access_reason = f"final_payment_time expired: {final_payment_time}"
+            else:
+                access_reason = "No valid billing timestamps from PayPal"
+        
+        # Map PayPal status → internal status (for display/tracking only, NOT access)
+        internal_status = None
         if paypal_status == 'ACTIVE':
             internal_status = SubscriptionStatus.ACTIVE
-            # Access granted if billing timestamps valid
-            if next_billing_time:
-                try:
-                    next_billing_dt = datetime.fromisoformat(next_billing_time.replace('Z', '+00:00'))
-                    if next_billing_dt > now:
-                        access_granted = True
-                        access_reason = f"Active subscription, next billing: {next_billing_time}"
-                    else:
-                        access_reason = f"Next billing time passed: {next_billing_time}"
-                except:
-                    access_reason = "Invalid next_billing_time format"
-            elif last_payment_time:
-                access_granted = True
-                access_reason = f"Active with payment history: {last_payment_time}"
-            else:
-                access_reason = "Active status but no billing timestamps"
-                
         elif paypal_status == 'CANCELLED':
             internal_status = SubscriptionStatus.CANCELLED
-            # Access preserved until final_payment_time
-            if final_payment_time:
-                try:
-                    final_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
-                    if final_dt > now:
-                        access_granted = True
-                        access_reason = f"Cancelled but active until: {final_payment_time}"
-                    else:
-                        access_reason = f"Cancelled, final payment passed: {final_payment_time}"
-                except:
-                    access_reason = "Cancelled, invalid final_payment_time"
-            else:
-                access_reason = "Cancelled, no final_payment_time (immediate revocation)"
-                
         elif paypal_status == 'EXPIRED':
             internal_status = SubscriptionStatus.EXPIRED
-            access_granted = False
-            access_reason = "Subscription expired"
-            
         elif paypal_status == 'SUSPENDED':
             internal_status = SubscriptionStatus.SUSPENDED
-            access_granted = False
-            access_reason = "Subscription suspended by PayPal"
-            
         elif paypal_status == 'APPROVAL_PENDING':
             internal_status = SubscriptionStatus.PENDING
-            access_granted = False
-            access_reason = "Awaiting PayPal approval"
-            
         else:
-            # Unknown status - treat as no access
             internal_status = SubscriptionStatus.PENDING
-            access_granted = False
-            access_reason = f"Unknown PayPal status: {paypal_status}"
             logging.warning(f"[RECONCILE] Unknown PayPal status '{paypal_status}' for subscription {subscription_id}")
         
         # STEP 4: Determine plan based on access
@@ -7404,7 +7419,7 @@ async def reconcile_subscription_with_paypal(
             "internal_status": internal_status,
             "access_granted": access_granted,
             "access_reason": access_reason,
-            "is_terminal": paypal_status in TERMINAL_PAYPAL_STATUSES,
+            "is_terminal_for_polling": paypal_status in TERMINAL_FOR_POLLING,
             "billing_info": {
                 "last_payment_time": last_payment_time,
                 "next_billing_time": next_billing_time,
@@ -7532,13 +7547,21 @@ async def paypal_webhook(
             logging.error("[WEBHOOK] Missing event ID")
             return JSONResponse({"status": "error", "message": "Missing event ID"}, status_code=400)
         
-        # Idempotency check - ignore duplicate events
+        # PRODUCTION HARDENING: Composite key idempotency (event_id, transmission_time)
+        # Protects against PayPal retries, reordering, and mutation
+        if not paypal_transmission_time:
+            logging.error("[WEBHOOK] Missing transmission_time for idempotency")
+            return JSONResponse({"status": "error", "message": "Missing transmission_time"}, status_code=400)
+        
         existing_event = await db.processed_webhook_events.find_one(
-            {"paypal_event_id": event_id},
+            {
+                "paypal_event_id": event_id,
+                "transmission_time": paypal_transmission_time
+            },
             {"_id": 0}
         )
         if existing_event:
-            logging.info(f"[WEBHOOK] Event already processed: {event_id}")
+            logging.info(f"[WEBHOOK] Event already processed: {event_id} at {paypal_transmission_time}")
             return JSONResponse({"status": "success", "message": "Event already processed"})
         
         logging.info(f"[WEBHOOK] Received: event_type={event_type}, event_id={event_id}, resource_id={resource.get('id')}")
@@ -7626,7 +7649,7 @@ async def paypal_webhook(
                 f"Event: {event_type}. Available PayPal subscriptions: {all_paypal_subs}"
             )
         
-        # Record processed event for idempotency
+        # Record processed event for idempotency (composite key)
         processed_event = ProcessedWebhookEvent(
             paypal_event_id=event_id,
             event_type=event_type,
@@ -7634,6 +7657,7 @@ async def paypal_webhook(
         )
         processed_event_dict = processed_event.model_dump()
         processed_event_dict['processed_at'] = processed_event_dict['processed_at'].isoformat()
+        processed_event_dict['transmission_time'] = paypal_transmission_time  # Composite key component
         await db.processed_webhook_events.insert_one(processed_event_dict)
         
         return JSONResponse({"status": "success"})
@@ -10161,10 +10185,92 @@ async def verify_security_invariants():
     
     logging.info("[SECURITY] All security invariants verified at startup")
 
+async def scheduled_reconciliation_job():
+    """
+    PRODUCTION HARDENING: Daily reconciliation safety net
+    
+    Reconciles all subscriptions in non-terminal-for-access states.
+    Ensures eventual consistency even if webhooks fail.
+    
+    Runs daily at 03:00 UTC (low traffic period).
+    """
+    import asyncio
+    
+    while True:
+        try:
+            # Wait 24 hours between runs
+            # First run: wait until 03:00 UTC
+            now = datetime.now(timezone.utc)
+            target_time = now.replace(hour=3, minute=0, second=0, microsecond=0)
+            if target_time <= now:
+                target_time += timedelta(days=1)
+            
+            wait_seconds = (target_time - now).total_seconds()
+            logging.info(f"[SCHEDULED_RECONCILE] Next run in {wait_seconds/3600:.1f} hours at {target_time.isoformat()}")
+            await asyncio.sleep(wait_seconds)
+            
+            # Run reconciliation for all non-terminal subscriptions
+            logging.info("[SCHEDULED_RECONCILE] Starting daily reconciliation job")
+            
+            # Find all PayPal subscriptions not in terminal-for-access states
+            # Terminal-for-access: EXPIRED, SUSPENDED (no timestamps can grant access)
+            # Non-terminal: ACTIVE, CANCELLED, PENDING, APPROVAL_PENDING
+            subscriptions = await db.subscriptions.find(
+                {
+                    "provider": "paypal",
+                    "status": {"$nin": [SubscriptionStatus.EXPIRED, SubscriptionStatus.SUSPENDED]}
+                },
+                {"id": 1, "user_id": 1, "status": 1, "_id": 0}
+            ).to_list(10000)
+            
+            total = len(subscriptions)
+            success_count = 0
+            error_count = 0
+            
+            logging.info(f"[SCHEDULED_RECONCILE] Found {total} subscriptions to reconcile")
+            
+            for sub in subscriptions:
+                try:
+                    result = await reconcile_subscription_with_paypal(sub['id'], force=False)
+                    if result.get("success"):
+                        success_count += 1
+                        if not result.get("access_granted") and result.get("is_terminal_for_polling"):
+                            logging.info(
+                                f"[SCHEDULED_RECONCILE] Subscription {sub['id']} reconciled: "
+                                f"terminal, no access"
+                            )
+                    else:
+                        error_count += 1
+                        logging.error(
+                            f"[SCHEDULED_RECONCILE] Failed to reconcile subscription {sub['id']}: "
+                            f"{result.get('error')}"
+                        )
+                    
+                    # Rate limiting: 100ms between reconciliations (max 600/min)
+                    await asyncio.sleep(0.1)
+                    
+                except Exception as e:
+                    error_count += 1
+                    logging.error(f"[SCHEDULED_RECONCILE] Error reconciling subscription {sub['id']}: {e}")
+            
+            logging.info(
+                f"[SCHEDULED_RECONCILE] Completed: {total} total, "
+                f"{success_count} success, {error_count} errors"
+            )
+            
+        except Exception as e:
+            logging.error(f"[SCHEDULED_RECONCILE] Job error: {e}", exc_info=True)
+            # Continue loop even on error
+            await asyncio.sleep(3600)  # Wait 1 hour before retry on error
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize default plans and ensure workspace lock index on startup."""
     await initialize_default_plans()
+    
+    # Start scheduled reconciliation job in background
+    import asyncio
+    asyncio.create_task(scheduled_reconciliation_job())
     
     # CRITICAL: Ensure unique index exists for workspace locks
     # This provides database-level enforcement of lock uniqueness

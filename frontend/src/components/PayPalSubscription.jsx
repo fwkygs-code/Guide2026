@@ -23,13 +23,19 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
   // PRODUCTION HARDENING: Poll reconciliation endpoint until PayPal confirms state
   const startPollingForActivation = () => {
     let attempts = 0;
-    const maxAttempts = 30; // 60 seconds max
+    const maxAttempts = 30; // 60 seconds max with base interval
+    let currentInterval = 2000; // Start at 2 seconds
+    const baseInterval = 2000;
+    const maxInterval = 16000; // Max 16 seconds
+    let consecutiveRateLimits = 0;
     
     const poll = async () => {
       if (attempts >= maxAttempts) {
         // Timeout - stop polling
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
         setPollingActive(false);
         setIsSubscribing(false);
         toast.info('Subscription is being processed. Please refresh the page to check status.');
@@ -47,17 +53,23 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
         const response = await api.reconcileSubscription();
         const reconcileData = response.data;
         
+        // Reset backoff on successful response
+        consecutiveRateLimits = 0;
+        currentInterval = baseInterval;
+        
         // Log reconciliation result for debugging
         console.log('[POLL] Reconciliation result:', reconcileData);
         
         if (reconcileData.success) {
-          const { access_granted, is_terminal, paypal_status, access_reason } = reconcileData;
+          const { access_granted, is_terminal_for_polling, paypal_status, access_reason } = reconcileData;
           
-          // PRODUCTION RULE: Stop polling if access granted OR terminal state reached
+          // PRODUCTION RULE: Stop polling if access granted OR terminal-for-polling
           if (access_granted) {
             // Access granted - PayPal confirmed activation
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
             setPollingActive(false);
             setIsSubscribing(false);
             
@@ -76,35 +88,45 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
             // Refresh page to update all UI
             setTimeout(() => window.location.reload(), 2000);
             
-          } else if (is_terminal) {
-            // Terminal state reached but no access (CANCELLED, EXPIRED, SUSPENDED)
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
+          } else if (is_terminal_for_polling) {
+            // Terminal-for-polling reached but no access
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
             setPollingActive(false);
             setIsSubscribing(false);
             
-            toast.error(`Subscription ${paypal_status.toLowerCase()}: ${access_reason}`);
+            toast.error(`Subscription ${paypal_status?.toLowerCase()}: ${access_reason}`);
             
             if (onSuccess) {
               onSuccess(null);
             }
           }
-            // Otherwise continue polling (non-terminal, no access yet)
+          // Otherwise continue polling (non-terminal-for-polling, no access yet)
         }
       } catch (error) {
         console.error('[POLL] Error:', error);
-        // Handle rate limiting
+        
+        // PRODUCTION HARDENING: Exponential backoff ONLY for 429 (transport-level)
         if (error.response?.status === 429) {
-          console.log('[POLL] Rate limited, slowing down...');
-          // Continue polling (will be rate limited again, that's ok)
+          consecutiveRateLimits++;
+          currentInterval = Math.min(currentInterval * 2, maxInterval);
+          console.log(`[POLL] Rate limited (${consecutiveRateLimits}x), backing off to ${currentInterval}ms`);
+          
+          // Restart interval with new backoff
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+          }
+          pollingIntervalRef.current = setInterval(poll, currentInterval);
         }
-        // Continue polling on other errors
+        // Continue polling on other errors (no backoff)
       }
     };
     
-    // Start polling immediately, then every 2 seconds
+    // Start polling immediately, then every 2 seconds (or current backoff interval)
     poll();
-    pollingIntervalRef.current = setInterval(poll, 2000);
+    pollingIntervalRef.current = setInterval(poll, currentInterval);
   };
 
   // Cleanup polling on unmount
