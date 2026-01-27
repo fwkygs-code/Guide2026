@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useQuota } from '../hooks/useQuota';
 
 const OverQuotaBanner = ({ onUpgrade, onDismiss, workspaceId = null }) => {
+  const { t } = useTranslation();
   const { quotaData, isOverQuota } = useQuota(workspaceId);
   const [dismissed, setDismissed] = React.useState(false);
 
@@ -21,7 +23,7 @@ const OverQuotaBanner = ({ onUpgrade, onDismiss, workspaceId = null }) => {
     <Alert variant="destructive" className="mb-4 border-2 border-destructive/50">
       <AlertTriangle className="h-5 w-5" />
       <AlertTitle className="flex items-center justify-between">
-        <span>Storage Quota Exceeded</span>
+        <span>{t('upgrade.overQuotaBanner.title')}</span>
         {onDismiss && (
           <Button
             variant="ghost"
@@ -34,16 +36,10 @@ const OverQuotaBanner = ({ onUpgrade, onDismiss, workspaceId = null }) => {
         )}
       </AlertTitle>
       <AlertDescription className="flex items-center justify-between gap-4">
-        <span>
-          You have exceeded your storage quota. You cannot upload new files until you delete some files or upgrade your plan.
-        </span>
+        <span>{t('upgrade.overQuotaBanner.description')}</span>
         {onUpgrade && (
-          <Button
-            size="sm"
-            onClick={onUpgrade}
-            className="shrink-0"
-          >
-            Upgrade Plan
+          <Button size="sm" onClick={onUpgrade} className="shrink-0">
+            {t('upgrade.overQuotaBanner.cta')}
           </Button>
         )}
       </AlertDescription>

@@ -679,6 +679,14 @@
     "mediaCapacityDetails": "Maximum file sizes and processing limits for this plan:",
     "contactForMediaCapacity": "Contact sales for custom media capacity limits and processing requirements.",
     "enterpriseMediaCapacityDesc": "Enterprise plans include custom media processing limits tailored to your needs.",
+    "overQuotaBanner": {
+      "title": "Storage Quota Exceeded",
+      "description": "You have exceeded your storage quota. You cannot upload new files until you delete some files or upgrade your plan.",
+      "cta": "Upgrade Plan"
+    },
+    "enterprisePlanInquirySubject": "Enterprise Plan Inquiry",
+    "enterpriseMediaCapacityInquirySubject": "Enterprise Media Capacity Inquiry",
+    "selectPlanError": "Failed to select plan. Please try again.",
     "mediaCapacity": {
       "maxImageFileSize": "Max Image File Size",
       "maxVideoFileSize": "Max Video File Size",
@@ -687,6 +695,26 @@
       "maxVideoTransformSize": "Max Video Transform Size",
       "maxImageMegapixel": "Max Image Megapixel",
       "maxMegapixelAllFrames": "Max Megapixel All Frames"
+    },
+    "mediaCapacityValues": {
+      "free": {
+        "maxImageFileSize": "10 MB",
+        "maxVideoFileSize": "100 MB",
+        "maxRawFileSize": "10 MB",
+        "maxImageTransformSize": "100 MB",
+        "maxVideoTransformSize": "40 MB",
+        "maxImageMegapixel": "25 MP",
+        "maxMegapixelAllFrames": "50 MP"
+      },
+      "pro": {
+        "maxImageFileSize": "20 MB",
+        "maxVideoFileSize": "2 GB",
+        "maxRawFileSize": "20 MB",
+        "maxImageTransformSize": "100 MB",
+        "maxVideoTransformSize": "300 MB",
+        "maxImageMegapixel": "25 MP",
+        "maxMegapixelAllFrames": "100 MP"
+      }
     },
     "contactSales": "Contact Sales",
     "current": "Current",
@@ -714,6 +742,18 @@
       "enterprise": "Enterprise"
     },
     "enterpriseRequiresSetup": "Enterprise plan requires custom setup. Please contact sales for pricing and configuration.",
+    "planValues": {
+      "storage": {
+        "free": "500 MB",
+        "pro": "3 GB",
+        "enterprise": "200 GB"
+      },
+      "maxFileSize": {
+        "free": "10 MB",
+        "pro": "150 MB",
+        "enterprise": "500 MB"
+      }
+    },
     "planFeatures": {
       "workspace": "{{count}} workspace",
       "workspaces": "{{count}} workspaces",
@@ -733,51 +773,6 @@
       "advancedFeatures": "Advanced features",
       "dedicatedAccountManager": "Dedicated account manager",
       "customIntegrations": "Custom integrations"
-    }
-  },
-  "plans": {
-    "free": {
-      "name": "Free",
-      "price": "$0",
-      "features": {
-        "workspaces": "1 workspace",
-        "categories": "3 categories",
-        "walkthroughs": "5 walkthroughs",
-        "storage": "500 MB storage",
-        "fileSize": "10 MB max file size"
-      }
-    },
-    "pro": {
-      "name": "Pro",
-      "price": "14 days free trial",
-      "priceAfter": "$5/month",
-      "features": {
-        "workspaces": "3 workspaces",
-        "categories": "Unlimited categories",
-        "walkthroughs": "Unlimited walkthroughs",
-        "storage": "3 GB storage",
-        "fileSize": "150 MB max file size",
-        "extraStorage": "Extra storage available"
-      }
-    },
-    "proTesting": {
-      "name": "Pro Test",
-      "price": "₪0.1 first day",
-      "priceAfter": "₪0.2/day",
-      "testingBadge": "🧪 Testing Plan"
-    },
-    "enterprise": {
-      "name": "Enterprise",
-      "price": "Custom pricing",
-      "features": {
-        "workspaces": "Unlimited workspaces",
-        "categories": "Unlimited categories",
-        "walkthroughs": "Unlimited walkthroughs",
-        "storage": "200 GB storage",
-        "fileSize": "500 MB max file size",
-        "customLimits": "Custom file size limits",
-        "support": "Priority support"
-      }
     }
   },
   "builder": {

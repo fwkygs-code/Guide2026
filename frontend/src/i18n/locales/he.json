@@ -862,6 +862,14 @@
     "mediaCapacityDetails": "גדלי קבצים מקסימליים ומגבלות עיבוד עבור תוכנית זו:",
     "contactForMediaCapacity": "צור קשר עם מכירות למגבלות קיבולת מדיה מותאמות אישית ודרישות עיבוד.",
     "enterpriseMediaCapacityDesc": "תוכניות ארגוניות כוללות מגבלות עיבוד מדיה מותאמות אישית לצרכים שלך.",
+    "overQuotaBanner": {
+      "title": "מכסת האחסון חרגה",
+      "description": "חרגת ממכסת האחסון שלך. אינך יכול להעלות קבצים חדשים עד שתמחק קבצים או תשדרג את התוכנית שלך.",
+      "cta": "שדרג תוכנית"
+    },
+    "enterprisePlanInquirySubject": "פנייה לגבי תוכנית ארגונית",
+    "enterpriseMediaCapacityInquirySubject": "פנייה לגבי קיבולת מדיה ארגונית",
+    "selectPlanError": "נכשל בבחירת תוכנית. נסה שוב.",
     "mediaCapacity": {
       "maxImageFileSize": "גודל קובץ תמונה מקסימלי",
       "maxVideoFileSize": "גודל קובץ וידאו מקסימלי",
@@ -870,6 +878,26 @@
       "maxVideoTransformSize": "גודל טרנספורמציה וידאו מקסימלי",
       "maxImageMegapixel": "מגה-פיקסל תמונה מקסימלי",
       "maxMegapixelAllFrames": "מגה-פיקסל כל הפריימים"
+    },
+    "mediaCapacityValues": {
+      "free": {
+        "maxImageFileSize": "10 MB",
+        "maxVideoFileSize": "100 MB",
+        "maxRawFileSize": "10 MB",
+        "maxImageTransformSize": "100 MB",
+        "maxVideoTransformSize": "40 MB",
+        "maxImageMegapixel": "25 MP",
+        "maxMegapixelAllFrames": "50 MP"
+      },
+      "pro": {
+        "maxImageFileSize": "20 MB",
+        "maxVideoFileSize": "2 GB",
+        "maxRawFileSize": "20 MB",
+        "maxImageTransformSize": "100 MB",
+        "maxVideoTransformSize": "300 MB",
+        "maxImageMegapixel": "25 MP",
+        "maxMegapixelAllFrames": "100 MP"
+      }
     },
     "contactSales": "צור קשר עם מכירות",
     "current": "נוכחי",
@@ -901,6 +929,18 @@
       "enterprise": "ארגוני"
     },
     "enterpriseRequiresSetup": "תוכנית ארגונית דורשת התאמה אישית. אנא צור קשר עם מכירות לקבלת מחיר והגדרות.",
+    "planValues": {
+      "storage": {
+        "free": "500 MB",
+        "pro": "3 GB",
+        "enterprise": "200 GB"
+      },
+      "maxFileSize": {
+        "free": "10 MB",
+        "pro": "150 MB",
+        "enterprise": "500 MB"
+      }
+    },
     "planFeatures": {
       "workspace": "{{count}} אזור עבודה",
       "workspaces": "{{count}} אזורי עבודה",

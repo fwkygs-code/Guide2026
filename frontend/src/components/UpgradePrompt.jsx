@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Info } from 'lucide-react';
+import { Check, Info } from 'lucide-react';
 import { useQuota } from '../hooks/useQuota';
 import PayPalSubscription from './PayPalSubscription';
-import { api } from '../lib/api';
 import { toast } from 'sonner';
+import { PLAN_DEFINITIONS } from '../config/plans';
 
 const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { quotaData, refreshQuota } = useQuota(workspaceId);
   const [mediaCapacityDialogOpen, setMediaCapacityDialogOpen] = useState(false);
   const [selectedPlanMedia, setSelectedPlanMedia] = useState(null);
@@ -21,83 +21,27 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   // UI CLEANUP Fix 12: Use canonical state from API
   if (!quotaData) return null;
 
-  const { plan, provider, access_granted, access_until, is_recurring, management_url } = quotaData;
+  const { plan, access_granted, access_until, is_recurring, management_url } = quotaData;
   const currentPlanName = plan;
-  const isPayPalSubscription = provider === 'PAYPAL';
-  const canManageSubscription = isPayPalSubscription && access_granted;
 
-  const plans = [
-    {
-      name: 'free',
-      displayName: t('plans.free.name'),
-      price: t('plans.free.price'),
-      features: [
-        t('plans.free.features.workspaces'),
-        t('plans.free.features.categories'),
-        t('plans.free.features.walkthroughs'),
-        t('plans.free.features.storage'),
-        t('plans.free.features.fileSize')
-      ],
-      current: currentPlanName === 'free',
-      mediaCapacity: {
-        maxImageFileSize: '10 MB',
-        maxVideoFileSize: '100 MB',
-        maxRawFileSize: '10 MB',
-        maxImageTransformationSize: '100 MB',
-        maxVideoTransformationSize: '40 MB',
-        maxImageMegapixel: '25 MP',
-        maxMegapixelAllFrames: '50 MP'
-      }
-    },
-    {
-      name: 'pro',
-      displayName: t('plans.pro.name'),
-      price: t('plans.pro.price'),
-      priceAfter: t('plans.pro.priceAfter'),
-      features: [
-        t('plans.pro.features.workspaces'),
-        t('plans.pro.features.categories'),
-        t('plans.pro.features.walkthroughs'),
-        t('plans.pro.features.storage'),
-        t('plans.pro.features.fileSize'),
-        t('plans.pro.features.extraStorage')
-      ],
-      current: currentPlanName === 'pro',
-      recommended: true,
-      mediaCapacity: {
-        maxImageFileSize: '20 MB',
-        maxVideoFileSize: '2 GB',
-        maxRawFileSize: '20 MB',
-        maxImageTransformationSize: '100 MB',
-        maxVideoTransformationSize: '300 MB',
-        maxImageMegapixel: '25 MP',
-        maxMegapixelAllFrames: '100 MP'
-      }
-    },
-    {
-      name: 'enterprise',
-      displayName: t('plans.enterprise.name'),
-      price: t('plans.enterprise.price'),
-      features: [
-        t('plans.enterprise.features.workspaces'),
-        t('plans.enterprise.features.categories'),
-        t('plans.enterprise.features.walkthroughs'),
-        t('plans.enterprise.features.storage'),
-        t('plans.enterprise.features.fileSize'),
-        t('plans.enterprise.features.customLimits'),
-        t('plans.enterprise.features.support')
-      ],
-      current: currentPlanName === 'enterprise',
-      mediaCapacity: null
+  const getPlanDisplayName = (plan) => t(plan.nameKey);
+  const getPlanPrice = (plan) => t(plan.priceKey);
+  const getPlanPriceAfter = (plan) => (plan.priceAfterKey ? t(plan.priceAfterKey) : null);
+  const getPlanFeature = (feature) => {
+    const values = {};
+    if (feature.count !== undefined) {
+      values.count = feature.count;
     }
-  ];
+    if (feature.sizeKey) {
+      values.size = t(feature.sizeKey);
+    }
+    return t(feature.key, values);
+  };
 
-  // TRANSLATION VALIDATION: Fail fast on missing keys
-  plans.forEach(plan => {
-    if (plan.displayName && plan.displayName.includes('.')) {
-      console.error('[TRANSLATION] MISSING KEY:', plan.displayName);
-    }
-  });
+  const plans = PLAN_DEFINITIONS.map((plan) => ({
+    ...plan,
+    current: plan.id === currentPlanName
+  }));
 
   const getReasonMessage = () => {
     switch (reason) {
@@ -129,7 +73,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           {plans.map((planOption) => (
             <div
-              key={planOption.name}
+              key={planOption.id}
               className={`relative rounded-xl border-2 p-6 ${
                 planOption.current
                   ? 'border-primary bg-primary/5'
@@ -149,15 +93,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
 
               <div className="mb-4">
                 <h3 className="text-xl font-semibold text-foreground">
-                  {planOption.displayName}
+                  {getPlanDisplayName(planOption)}
                 </h3>
                 <div className="mt-2">
                   <p className="text-2xl font-bold text-foreground">
-                    {planOption.price}
+                    {getPlanPrice(planOption)}
                   </p>
-                  {planOption.priceAfter && (
+                  {getPlanPriceAfter(planOption) && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      {planOption.priceAfter}
+                      {getPlanPriceAfter(planOption)}
                     </p>
                   )}
                 </div>
@@ -167,7 +111,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 {planOption.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                    <span className="text-foreground">{feature}</span>
+                    <span className="text-foreground">{getPlanFeature(feature)}</span>
                   </li>
                 ))}
               </ul>
@@ -176,12 +120,12 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 <Button variant="outline" className="w-full" disabled>
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
-              ) : planOption.name === 'pro' ? (
+              ) : planOption.id === 'pro' ? (
                 // MONEY SAFETY: If access granted, remove payment entry point from render tree
                 access_granted ? (
                   <div className="space-y-2">
                     <Button
-                      className="w-full"
+                      className="w-full text-foreground"
                       variant="outline"
                       onClick={() => {
                         if (management_url) {
@@ -196,7 +140,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                     {access_until && (
                       <div className="text-xs text-center text-muted-foreground space-y-1">
                         <p>{t('billing.status')}: <span className="font-medium text-foreground">{t('billing.statusActive')}</span></p>
-                        <p>{t('billing.accessUntil', { date: new Date(access_until).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })}</p>
+                        <p>{t('billing.accessUntil', { date: new Date(access_until).toLocaleDateString(i18n.language || 'en', { year: 'numeric', month: 'long', day: 'numeric' }) })}</p>
                         {is_recurring && <p className="text-muted-foreground/80">{t('billing.renewsAutomatically')}</p>}
                       </div>
                     )}
@@ -205,7 +149,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   <Button
                     className="w-full"
                     onClick={() => {
-                      setSelectedPlanType(planOption.name);
+                      setSelectedPlanType(planOption.id);
                       setShowPayPal(true);
                     }}
                     disabled={isSubscribing}
@@ -218,7 +162,8 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   className="w-full"
                   onClick={() => {
                     // Enterprise plan - still use mailto
-                    window.open('mailto:support@example.com?subject=Enterprise Plan Inquiry', '_blank');
+                    const subject = encodeURIComponent(t('upgrade.enterprisePlanInquirySubject'));
+                    window.open(`mailto:support@example.com?subject=${subject}`, '_blank');
                     onOpenChange(false);
                   }}
                 >
@@ -227,7 +172,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
               )}
 
               <Button
-                className="w-full mt-2"
+                className="w-full mt-2 text-foreground"
                 variant="ghost"
                 size="sm"
                 onClick={() => {
@@ -247,7 +192,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {selectedPlanMedia?.displayName} - {t('upgrade.maxMediaCapacity')}
+                {selectedPlanMedia ? getPlanDisplayName(selectedPlanMedia) : ''} - {t('upgrade.maxMediaCapacity')}
               </DialogTitle>
               <DialogDescription>
                 {selectedPlanMedia?.name === 'enterprise'
@@ -256,14 +201,15 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
               </DialogDescription>
             </DialogHeader>
 
-            {selectedPlanMedia?.name === 'enterprise' ? (
+            {selectedPlanMedia?.id === 'enterprise' ? (
               <div className="py-6">
                 <p className="text-muted-foreground mb-4">
                   {t('upgrade.enterpriseMediaCapacityDesc')}
                 </p>
                 <Button
                   onClick={() => {
-                    window.open('mailto:support@example.com?subject=Enterprise Media Capacity Inquiry', '_blank');
+                    const subject = encodeURIComponent(t('upgrade.enterpriseMediaCapacityInquirySubject'));
+                    window.open(`mailto:support@example.com?subject=${subject}`, '_blank');
                     setMediaCapacityDialogOpen(false);
                   }}
                 >
@@ -273,34 +219,18 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
             ) : selectedPlanMedia?.mediaCapacity ? (
               <div className="py-4">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageFileSize')}</span>
-                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageFileSize}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxVideoFileSize')}</span>
-                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoFileSize}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxRawFileSize')}</span>
-                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxRawFileSize}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageTransformSize')}</span>
-                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageTransformationSize}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxVideoTransformSize')}</span>
-                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxVideoTransformationSize}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxImageMegapixel')}</span>
-                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxImageMegapixel}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-foreground font-medium">{t('upgrade.mediaCapacity.maxMegapixelAllFrames')}</span>
-                    <span className="text-foreground font-semibold">{selectedPlanMedia.mediaCapacity.maxMegapixelAllFrames}</span>
-                  </div>
+                  {selectedPlanMedia.mediaCapacity.map((item, index) => {
+                    const isLast = index === selectedPlanMedia.mediaCapacity.length - 1;
+                    return (
+                      <div
+                        key={item.labelKey}
+                        className={`flex justify-between items-center py-2 ${isLast ? '' : 'border-b border-border'}`}
+                      >
+                        <span className="text-foreground font-medium">{t(item.labelKey)}</span>
+                        <span className="text-foreground font-semibold">{t(item.valueKey)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
