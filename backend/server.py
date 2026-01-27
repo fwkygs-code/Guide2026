@@ -1,4 +1,4 @@
-﻿# Force Render rebuild - 2026-01-21 23:45 - CRITICAL CACHE PURGE v4
+# Force Render rebuild - 2026-01-21 23:45 - CRITICAL CACHE PURGE v4
 # Local file compiles perfectly - Render cache is corrupted
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form, Body, BackgroundTasks
 from fastapi.exceptions import RequestValidationError
@@ -6034,10 +6034,15 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     
     # If subscription exists, reconcile with PayPal
     if subscription_doc:
-        logging.info(
-            f"[GET_PLAN] Subscription found: "
-            f"id={subscription_doc.get('id')}, "
-            f"paypal_status={subscription_doc.get('paypal_verified_status')}"
+        # FORENSIC LOG: What's in DB before reconciliation
+        logging.critical(
+            f"📖 [GET_PLAN] DB STATE BEFORE RECONCILIATION for user {current_user.id}:\n"
+            f"  subscription_id={subscription_doc.get('id')}\n"
+            f"  status={subscription_doc.get('status')}\n"
+            f"  paypal_verified_status={subscription_doc.get('paypal_verified_status')}\n"
+            f"  last_payment_time={subscription_doc.get('last_payment_time')}\n"
+            f"  next_billing_time={subscription_doc.get('next_billing_time')}\n"
+            f"  final_payment_time={subscription_doc.get('final_payment_time')}"
         )
         
         # ALWAYS force reconciliation for legacy users (no PayPal billing timestamps)
@@ -6062,6 +6067,15 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         
         # Process reconciliation result
         if reconcile_result.get("success"):
+            # FORENSIC LOG: What reconciliation returned
+            logging.critical(
+                f"📊 [GET_PLAN] RECONCILIATION RETURNED for user {current_user.id}:\n"
+                f"  success={reconcile_result.get('success')}\n"
+                f"  access_granted={reconcile_result.get('access_granted')}\n"
+                f"  paypal_status={reconcile_result.get('paypal_status')}\n"
+                f"  billing_info={reconcile_result.get('billing_info')}"
+            )
+            
             # Extract canonical fields from reconciliation
             access_granted = bool(reconcile_result.get("access_granted", False))
             
@@ -6467,7 +6481,17 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
         
         # CRITICAL: Immediately reconcile to fetch PayPal timestamps
         # PayPal provides next_billing_time (until paid period ends) for Auto Pay = OFF
+        logging.critical(f"🔄 [CANCEL] Triggering forced reconciliation for subscription {subscription.id}")
         reconcile_result = await reconcile_subscription_with_paypal(subscription.id, force=True)
+        
+        # FORENSIC LOG: Reconciliation result
+        logging.critical(
+            f"🔄 [CANCEL] Reconciliation result:\n"
+            f"  success={reconcile_result.get('success')}\n"
+            f"  access_granted={reconcile_result.get('access_granted')}\n"
+            f"  billing_info={reconcile_result.get('billing_info')}\n"
+            f"  full_result={reconcile_result}"
+        )
         
         if not reconcile_result.get("success"):
             logging.error(f"Reconciliation failed after cancel: {reconcile_result.get('error')}")
@@ -6482,6 +6506,14 @@ async def cancel_paypal_subscription(current_user: User = Depends(get_current_us
         next_billing_time = billing_info.get("next_billing_time")  # PayPal-provided
         final_payment_time = billing_info.get("final_payment_time")  # PayPal-provided
         access_granted = reconcile_result.get("access_granted", False)
+        
+        # FORENSIC LOG: Final response data
+        logging.critical(
+            f"✅ [CANCEL] Returning to user:\n"
+            f"  access_granted={access_granted}\n"
+            f"  next_billing_time={next_billing_time}\n"
+            f"  final_payment_time={final_payment_time}"
+        )
         
         # Format message with PayPal date (if provided)
         access_until_message = "PayPal determines when access ends"
@@ -7125,10 +7157,14 @@ async def reconcile_subscription_with_paypal(
         next_billing_time = billing_info.get('next_billing_time')
         final_payment_time = billing_info.get('final_payment_time')
         
-        logging.info(
-            f"[RECONCILE] PayPal state for subscription {subscription_id}: "
-            f"status={paypal_status}, last_payment={last_payment_time}, "
-            f"next_billing={next_billing_time}, final_payment={final_payment_time}"
+        # FORENSIC LOG: Full billing_info from PayPal
+        logging.critical(
+            f"🔍 [RECONCILE] RAW PAYPAL RESPONSE for subscription {subscription_id}:\n"
+            f"  status={paypal_status}\n"
+            f"  billing_info={billing_info}\n"
+            f"  last_payment_time={last_payment_time}\n"
+            f"  next_billing_time={next_billing_time}\n"
+            f"  final_payment_time={final_payment_time}"
         )
         
         # STEP 3: TIMESTAMP-DOMINANT ACCESS RULE (NO STATUS GATING)
@@ -7242,6 +7278,16 @@ async def reconcile_subscription_with_paypal(
             {"$set": update_data}
         )
         
+        # FORENSIC LOG: Confirm what was persisted
+        logging.critical(
+            f"💾 [RECONCILE] PERSISTED TO DB for subscription {subscription_id}:\n"
+            f"  status={internal_status}\n"
+            f"  paypal_verified_status={paypal_status}\n"
+            f"  last_payment_time={last_payment_time}\n"
+            f"  next_billing_time={next_billing_time}\n"
+            f"  final_payment_time={final_payment_time}"
+        )
+        
         # Update user plan
         user_update = {"plan_id": target_plan['id']}
         if next_billing_time and access_granted:
@@ -7250,6 +7296,13 @@ async def reconcile_subscription_with_paypal(
         await db.users.update_one(
             {"id": subscription.user_id},
             {"$set": user_update}
+        )
+        
+        # FORENSIC LOG: Confirm user plan update
+        logging.critical(
+            f"👤 [RECONCILE] USER UPDATED for {subscription.user_id}:\n"
+            f"  plan_id={target_plan['id']} ({plan_name})\n"
+            f"  trial_ends_at={next_billing_time if (next_billing_time and access_granted) else 'NOT SET'}"
         )
         
         # STEP 6: Audit logging (COMPREHENSIVE)
