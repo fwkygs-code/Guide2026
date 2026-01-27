@@ -152,6 +152,10 @@ PAYPAL_API_BASE = os.environ.get('PAYPAL_API_BASE', 'https://api-m.paypal.com') 
 # Email Configuration (Resend HTTP API only)
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL')
+# TEMPORARY: Fallback to Resend test domain if primary fails
+if not RESEND_FROM_EMAIL or '@' not in RESEND_FROM_EMAIL:
+    RESEND_FROM_EMAIL = "onboarding@resend.dev"
+    logging.warning("Using Resend test domain (onboarding@resend.dev) as fallback")
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
 RESEND_API_URL = "https://api.resend.com/emails"
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://interguide.app')
