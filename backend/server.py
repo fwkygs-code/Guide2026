@@ -7380,6 +7380,7 @@ async def reconcile_subscription_with_paypal(
         
         # CRITICAL FIX: Include billing_info even when skipping
         # This ensures /users/me/plan can extract access_until for legacy users
+        # Use getattr() for safe attribute access (legacy subscriptions may not have these fields)
         return {
             "success": True,
             "subscription_id": subscription_id,
@@ -7389,9 +7390,9 @@ async def reconcile_subscription_with_paypal(
             "access_reason": access_reason,
             "is_terminal_for_polling": True,
             "billing_info": {
-                "last_payment_time": subscription.last_payment_time,
-                "next_billing_time": subscription.next_billing_time,
-                "final_payment_time": subscription.final_payment_time
+                "last_payment_time": getattr(subscription, 'last_payment_time', None),
+                "next_billing_time": getattr(subscription, 'next_billing_time', None),
+                "final_payment_time": getattr(subscription, 'final_payment_time', None)
             },
             "skipped": True
         }
