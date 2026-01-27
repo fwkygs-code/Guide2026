@@ -98,6 +98,32 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
             }
           }
           // Otherwise continue polling (non-terminal-for-polling, no access yet)
+        } else {
+          // CRITICAL: Reconciliation failed (PayPal API error)
+          console.error('[POLL] Reconciliation failed:', reconcileData.error);
+          
+          // If we've failed multiple times, stop polling and show error
+          if (attempts >= 3) {
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            setPollingActive(false);
+            setIsSubscribing(false);
+            
+            toast.error(
+              'Unable to verify subscription with PayPal. Please refresh the page in a few moments.',
+              { duration: 8000 }
+            );
+            
+            // Auto-refresh after 5 seconds to check if it resolved
+            setTimeout(() => {
+              window.location.reload();
+            }, 5000);
+            
+            return;
+          }
+          // Continue polling for first 2 failures (might be temporary)
         }
       } catch (error) {
         console.error('[POLL] Error:', error);
