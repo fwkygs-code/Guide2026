@@ -56,19 +56,29 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
         }
       }
       
-      // Transform API response to match component expectations
+      // CANONICAL API: plan is STRING, not object
+      // Validate canonical fields
+      if (typeof planData.plan !== 'string') {
+        console.error('[QuotaDisplay] INVALID: plan must be string', planData);
+      }
+      if (planData.access_granted === undefined) {
+        console.error('[QuotaDisplay] INVALID: access_granted missing', planData);
+      }
+      
+      // Transform canonical API response to component state
       setQuotaData({
-        plan: planData.plan,
-        subscription: planData.subscription,
-        trial_period_end: planData.trial_period_end || null,
-        next_billing_date: planData.next_billing_date || null,
-        current_period_end: planData.current_period_end || null,
-        cancel_at_period_end: planData.cancel_at_period_end || false,
-        paypal_verified_status: planData.paypal_verified_status || null,
-        last_verified_at: planData.last_verified_at || null,
+        // Canonical subscription fields
+        planName: planData.plan || 'free',  // STRING: "pro" | "free" | "enterprise"
+        access_granted: planData.access_granted || false,
+        access_until: planData.access_until || null,
+        is_recurring: planData.is_recurring || false,
+        management_url: planData.management_url || null,
+        provider: planData.provider || null,
+        // Quota fields
         quota: {
           storage_used: planData.quota.storage_used_bytes || 0,
           storage_allowed: planData.quota.storage_allowed_bytes || 0,
+          max_file_size: planData.quota.max_file_size_bytes || 0,
           workspaces_used: planData.quota.workspace_count || 0,
           workspaces_limit: planData.quota.workspace_limit,
           walkthroughs_used: planData.quota.walkthroughs_used || 0,
@@ -120,9 +130,9 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     );
   }
 
-  const { plan, quota, workspaceQuota, trial_period_end, next_billing_date } = quotaData;
+  const { planName, quota, workspaceQuota, access_until, is_recurring, access_granted } = quotaData;
   
-  // Calculate time until trial ends or next billing
+  // Calculate time until access expires
   const formatTimeUntil = (dateString) => {
     if (!dateString) return null;
     const date = new Date(dateString);
@@ -143,6 +153,11 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
     }
   };
+  
+  // Get plan display name
+  const planDisplayName = planName === 'pro' ? 'Pro' : 
+                          planName === 'enterprise' ? 'Enterprise' : 
+                          'Free';
   
   // Calculate percentages
   const storagePercent = quota.storage_allowed > 0 
@@ -202,69 +217,41 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.usage')}</h3>
         <div className="flex items-center gap-2">
-          {onUpgrade && (
+          {onUpgrade && !access_granted && (
             <Button size="sm" variant="default" onClick={onUpgrade}>
               {t('quota.upgrade')}
             </Button>
           )}
-          <Badge variant={plan.name === 'enterprise' ? 'default' : plan.name === 'pro' ? 'secondary' : 'outline'}>
-            {plan.display_name} {t('quota.plan')}
+          <Badge variant={planName === 'enterprise' ? 'default' : planName === 'pro' ? 'secondary' : 'outline'}>
+            {planDisplayName} {t('quota.plan')}
           </Badge>
         </div>
       </div>
 
-      {/* Trial Period / Billing Date Info */}
-      {(() => {
-        // Debug logging
-        console.log('[QuotaDisplay] Trial/Billing data:', { trial_period_end, next_billing_date, plan: plan.name });
-        
-        // Always check and show if trial is active or billing is upcoming
+      {/* Subscription Status / Access Until */}
+      {access_granted && access_until && (() => {
         const now = new Date();
-        const trialActive = trial_period_end && new Date(trial_period_end) > now;
-        const billingUpcoming = next_billing_date && new Date(next_billing_date) > now;
+        const accessUntilDate = new Date(access_until);
+        const isActive = accessUntilDate > now;
         
-        // For Pro plan, always show trial/billing info if subscription exists
-        if (plan.name === 'pro' && (trial_period_end || next_billing_date)) {
-          return (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="pt-4">
-                {trialActive && (
-                  <div className="flex items-center gap-2 text-sm text-blue-900">
-                    <span className="font-medium">{t('quota.trialEndsIn')}:</span>
-                    <span>{formatTimeUntil(trial_period_end)}</span>
-                  </div>
-                )}
-                {billingUpcoming && !trialActive && (
-                  <div className="flex items-center gap-2 text-sm text-blue-900">
-                    <span className="font-medium">{t('quota.nextBillingIn')}:</span>
-                    <span>{formatTimeUntil(next_billing_date)}</span>
-                  </div>
-                )}
-                {!trialActive && !billingUpcoming && trial_period_end && (
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
-                    <span>{t('quota.trialEnded')}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        }
+        if (!isActive) return null;
         
-        // For Enterprise or other plans, show billing if available
-        if (billingUpcoming) {
-          return (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-sm text-blue-900">
-                  <span className="font-medium">{t('quota.nextBillingIn')}:</span>
-                  <span>{formatTimeUntil(next_billing_date)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        }
-        
-        return null;
+        return (
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-sm text-blue-900">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="font-medium">{t('billing.statusActive')}:</span>
+                <span>
+                  {is_recurring 
+                    ? t('billing.renewsAutomatically')
+                    : `${t('billing.accessUntil')} ${formatTimeUntil(access_until)}`
+                  }
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        );
       })()}
 
       {/* Warnings */}
@@ -489,14 +476,8 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
         <CardContent className="space-y-2 text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
             <span>{t('quota.maxFileSize')}:</span>
-            <span className="font-medium">{formatBytes(plan.max_file_size_bytes, t)}</span>
+            <span className="font-medium">{formatBytes(quota.max_file_size, t)}</span>
           </div>
-          {plan.extra_storage_increment_bytes && (
-            <div className="flex items-center justify-between">
-              <span>{t('quota.extraStorageIncrements')}:</span>
-              <span className="font-medium">{formatBytes(plan.extra_storage_increment_bytes, t)}</span>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
