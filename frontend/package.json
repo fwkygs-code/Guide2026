@@ -77,8 +77,8 @@
     "zod": "^3.24.4"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
+    "start": "node scripts/copy-nagishli.js && craco start",
+    "build": "node scripts/copy-nagishli.js && craco build",
     "test": "craco test"
   },
   "browserslist": {

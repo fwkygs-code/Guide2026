@@ -4,10 +4,13 @@ import { api } from '../lib/api';
 
 // PayPal configuration from environment variables
 const PAYPAL_CLIENT_ID = process.env.REACT_APP_PAYPAL_CLIENT_ID || '';
-const PAYPAL_PLAN_ID = process.env.REACT_APP_PAYPAL_PLAN_ID || 'P-96597808B1860013DNFWI6KI';
+const PAYPAL_PLAN_ID = process.env.REACT_APP_PAYPAL_PLAN_ID || '';
 
 if (!PAYPAL_CLIENT_ID) {
   console.error('REACT_APP_PAYPAL_CLIENT_ID environment variable is not set');
+}
+if (!PAYPAL_PLAN_ID) {
+  console.error('REACT_APP_PAYPAL_PLAN_ID environment variable is not set');
 }
 
 const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribing, refreshQuota, planType = 'pro' }) => {
@@ -161,6 +164,10 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
     // Load PayPal SDK script
     if (!PAYPAL_CLIENT_ID) {
       toast.error('PayPal is not configured. Please contact support.');
+      return;
+    }
+    if (!PAYPAL_PLAN_ID) {
+      toast.error('PayPal plan is not configured. Please contact support.');
       return;
     }
     
