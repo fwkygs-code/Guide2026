@@ -872,7 +872,16 @@
     "selectPlanDescription": "בחר תוכנית כדי להתחיל. תוכל לשנות את התוכנית שלך בכל עת.",
     "changePlanDescription": "בחר תוכנית חדשה. השימוש הנוכחי שלך יישמר.",
     "popular": "פופולרי",
-    "freeTrial": "התחל עם תקופת ניסיון חינם של 14 ימים",
+    "freeTrial": "5$/חודש לשנה הראשונה, ואז 10$/חודש",
+    "proPeriod": "ל-12 חודשים הראשונים, אחר כך $10/חודש",
+    "freePrice": "0$",
+    "forever": "לנצח",
+    "freeTrialPrice": "ניסיון חינם",
+    "trialDays": "14 ימים",
+    "monthlyPrice": "5$/חודש",
+    "monthlyPriceAfter": "10$/חודש לאחר שנה ראשונה",
+    "customPrice": "מותאם אישית",
+    "customPricing": "מחיר",
     "planNames": {
       "free": "חינם",
       "pro": "פרו",
@@ -1750,4 +1759,4 @@
       "permanentDelete": "מחיקה קבועה"
     }
   }
-}
+}                           

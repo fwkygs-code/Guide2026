@@ -2153,7 +2153,7 @@ async def initialize_default_plans():
             "display_name": "Free",
             "max_workspaces": 1,
             "max_categories": 3,
-            "max_walkthroughs": 5,
+            "max_walkthroughs": 5,  # Up to 5 guides
             "storage_bytes": 500 * 1024 * 1024,  # 500 MB
             "max_file_size_bytes": 10 * 1024 * 1024,  # 10 MB
             "extra_storage_increment_bytes": None,
@@ -2172,26 +2172,14 @@ async def initialize_default_plans():
             "max_file_size_bytes": 150 * 1024 * 1024,  # 150 MB
             "extra_storage_increment_bytes": 3 * 1024 * 1024 * 1024,  # 3 GB increments
             "is_public": True,
+            # NOTE: PayPal plan must be created manually with:
+            # - NO TRIAL (removed as of Jan 2026)
+            # - $5/month for first 12 months (introductory pricing)
+            # - $10/month after 12 months (regular pricing)
+            # Update 'paypal_plan_id' field after creating the plan in PayPal
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         },
-        # TESTING-ONLY: pro-testing plan - Remove this entire block to delete
-        {
-            "id": "plan_pro_testing",
-            "name": "pro-testing",
-            "display_name": "Pro Test",
-            "max_workspaces": 3,
-            "max_categories": None,  # unlimited
-            "max_walkthroughs": None,  # unlimited
-            "storage_bytes": 3 * 1024 * 1024 * 1024,  # 3 GB
-            "max_file_size_bytes": 150 * 1024 * 1024,  # 150 MB
-            "extra_storage_increment_bytes": 3 * 1024 * 1024 * 1024,  # 3 GB increments
-            "is_public": True,
-            "paypal_plan_id": "P-1GF05053LD9745329NF4FQIQ",  # Test plan: 0.1 INS first day, 0.2 INS/day
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        },
-        # END TESTING-ONLY
         {
             "id": "plan_enterprise",
             "name": "enterprise",
