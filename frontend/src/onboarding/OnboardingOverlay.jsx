@@ -34,6 +34,7 @@ const OnboardingOverlay = ({
   const { t, i18n } = useTranslation();
   const tooltipRef = useRef(null);
   const [tooltipStyle, setTooltipStyle] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+  const [shouldRender, setShouldRender] = useState(false);
 
   const handleLanguageChange = (lang) => {
     i18n.changeLanguage(lang);
@@ -48,6 +49,15 @@ const OnboardingOverlay = ({
 
   useLayoutEffect(() => {
     if (!tooltipRef.current) return;
+    
+    // Don't render overlay until target is ready or there's no target
+    if (isWaiting) {
+      setShouldRender(false);
+      return;
+    }
+    
+    setShouldRender(true);
+    
     if (!paddedRect || typeof window === 'undefined') {
       setTooltipStyle({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
       return;
@@ -69,7 +79,7 @@ const OnboardingOverlay = ({
     setTooltipStyle({ top: `${top}px`, left: `${left}px` });
   }, [paddedRect, isRTL]);
 
-  if (!step) return null;
+  if (!step || !shouldRender) return null;
 
   const showTarget = !!paddedRect;
 

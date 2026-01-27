@@ -250,21 +250,15 @@ const OnboardingController = () => {
     if (!active) return;
     if (!step) return;
     
-    // Don't run DOM checking logic for steps 8 and 9 - they have special handling
-    // But keep step 7 to handle walkthrough creation state
-    if (stepIndex >= 8) return;
+    // Don't run DOM checking logic for step 9 - it has special handling
+    // But keep step 8 to handle walkthrough creation state
+    if (stepIndex >= 9) return;
 
     if (stepIndex === 1) {
       if (document.querySelector('[data-onboarding="workspace-create-form"]')) {
         setStepRef.current?.(2);
-      } else if (document.querySelector('[data-onboarding="workspace-card"]')) {
-        setStepRef.current?.(3);
       }
-      return;
-    }
-
-    if (stepIndex === 2 && document.querySelector('[data-onboarding="workspace-card"]')) {
-      setStepRef.current?.(3);
+      // Don't automatically move to step 3 - wait for workspace creation event
       return;
     }
 
@@ -317,6 +311,17 @@ const OnboardingController = () => {
         // If walkthrough creation form is not visible and no walkthrough cards exist, go back to step 6
         setStepRef.current?.(6);
       }
+      return;
+    }
+
+    if (stepIndex === 8) {
+      // Check if walkthrough creation form is still visible
+      if (!document.querySelector('[data-onboarding="walkthrough-setup-form"]') && !document.querySelector('[data-onboarding="create-walkthrough-button"]')) {
+        // If walkthrough creation form is not visible and no create button, go back to step 7
+        setStepRef.current?.(7);
+        return;
+      }
+      // Stay in step 8 if walkthrough creation elements are present
       return;
     }
   }, [active, step, stepIndex, location.pathname, domCheckTrigger]);
