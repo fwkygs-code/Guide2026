@@ -2149,7 +2149,7 @@ async def create_file_record_from_url(url: str, user_id: str, workspace_id: str,
     return file_id
 
 async def initialize_default_plans():
-    """Initialize default plans if they don't exist."""
+    """Initialize or update default plans to match current code configuration."""
     plans = [
         {
             "id": "plan_free",
@@ -2203,8 +2203,27 @@ async def initialize_default_plans():
     for plan_data in plans:
         existing = await db.plans.find_one({"id": plan_data["id"]})
         if not existing:
+            # Create new plan
             await db.plans.insert_one(plan_data)
-            logging.info(f"Initialized plan: {plan_data['name']}")
+            logging.info(f"Created plan: {plan_data['name']}")
+        else:
+            # Update existing plan with current configuration
+            # Preserve created_at from existing plan
+            plan_data["created_at"] = existing.get("created_at", plan_data["created_at"])
+            plan_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+            
+            await db.plans.update_one(
+                {"id": plan_data["id"]},
+                {"$set": plan_data}
+            )
+            logging.info(f"Updated plan: {plan_data['name']} with current configuration")
+    
+    # Delete deprecated plans (pro-testing)
+    deprecated_plans = ["pro-testing"]
+    for deprecated_name in deprecated_plans:
+        result = await db.plans.delete_one({"name": deprecated_name})
+        if result.deleted_count > 0:
+            logging.info(f"Deleted deprecated plan: {deprecated_name}")
 
 async def assign_free_plan_to_user(user_id: str):
     """Assign Free plan to user if they don't have one."""
