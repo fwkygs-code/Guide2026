@@ -80,13 +80,9 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
             
             toast.success('Pro access activated! Welcome to Pro plan.');
             
-            // Close modal immediately - no delays
-            if (onSuccess) {
-              onSuccess(reconcileData.subscription_id);
-            }
-            
-            // Refresh page to update all UI
-            setTimeout(() => window.location.reload(), 2000);
+            // CRITICAL FIX: Reload page BEFORE calling onSuccess to prevent component unmount
+            // This ensures the page reload executes even if modal closes
+            window.location.reload();
             
           } else if (is_terminal_for_polling) {
             // Terminal-for-polling reached but no access

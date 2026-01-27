@@ -28,19 +28,20 @@ export const useQuota = (workspaceId = null) => {
         }
       }
       
+      // CANONICAL STATE: Extract new API structure
       setQuotaData({
-        plan: planData.plan,
-        subscription: planData.subscription,
-        trial_period_end: planData.trial_period_end || null,
-        next_billing_date: planData.next_billing_date || null,
-        current_period_end: planData.current_period_end || null,
-        cancel_at_period_end: planData.cancel_at_period_end || false,
-        paypal_verified_status: planData.paypal_verified_status || null,
-        last_verified_at: planData.last_verified_at || null,
-        cancellation_receipt: planData.cancellation_receipt || null,
+        // Canonical subscription fields
+        plan: planData.plan, // Now a string: "pro" | "free" | "enterprise"
+        provider: planData.provider || null, // "PAYPAL" | null
+        access_granted: planData.access_granted || false,
+        access_until: planData.access_until || null,
+        is_recurring: planData.is_recurring || false,
+        management_url: planData.management_url || null,
+        // Quota info
         quota: {
           storage_used: planData.quota.storage_used_bytes || 0,
           storage_allowed: planData.quota.storage_allowed_bytes || 0,
+          max_file_size: planData.quota.max_file_size_bytes || 0,
           workspaces_used: planData.quota.workspace_count || 0,
           workspaces_limit: planData.quota.workspace_limit,
           walkthroughs_used: planData.quota.walkthroughs_used || 0,
@@ -72,7 +73,7 @@ export const useQuota = (workspaceId = null) => {
       return { allowed: true };
     }
     
-    const { quota, plan } = quotaData;
+    const { quota } = quotaData;
     
     // Debug logging
     console.log('[Quota Check]', {
@@ -80,13 +81,13 @@ export const useQuota = (workspaceId = null) => {
       storageUsed: formatBytes(quota.storage_used),
       storageAllowed: formatBytes(quota.storage_allowed),
       availableStorage: formatBytes(quota.storage_allowed - quota.storage_used),
-      maxFileSize: formatBytes(plan.max_file_size_bytes),
+      maxFileSize: formatBytes(quota.max_file_size),
       overQuota: quota.over_quota
     });
     
     // Check file size limit
-    if (fileSize > plan.max_file_size_bytes) {
-      return { allowed: false, reason: 'file_size', message: `File size (${formatBytes(fileSize)}) exceeds maximum allowed (${formatBytes(plan.max_file_size_bytes)}) for your plan.` };
+    if (quota.max_file_size && fileSize > quota.max_file_size) {
+      return { allowed: false, reason: 'file_size', message: `File size (${formatBytes(fileSize)}) exceeds maximum allowed (${formatBytes(quota.max_file_size)}) for your plan.` };
     }
     
     // Check storage quota
