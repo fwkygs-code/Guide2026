@@ -17,8 +17,8 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     {
       name: 'free',
       displayName: t('upgrade.planNames.free'),
-      price: '$0',
-      period: 'forever',
+      price: t('upgrade.freePrice'),
+      period: t('upgrade.forever'),
       features: [
         t('upgrade.planFeatures.workspace', { count: 1 }),
         t('upgrade.planFeatures.categories', { count: 3 }),
@@ -41,8 +41,8 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     {
       name: 'pro',
       displayName: t('upgrade.planNames.pro'),
-      price: '$5',
-      period: t('upgrade.proPeriod'), // "for first 12 months, then $10/mo"
+      price: t('upgrade.proPrice'),
+      period: t('upgrade.proPeriod'),
       features: [
         t('upgrade.planFeatures.workspaces', { count: 3 }),
         t('upgrade.planFeatures.unlimitedCategories'),
@@ -68,8 +68,8 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     {
       name: 'enterprise',
       displayName: t('upgrade.planNames.enterprise'),
-      price: 'Custom',
-      period: 'pricing',
+      price: t('upgrade.customPrice'),
+      period: t('upgrade.customPricing'),
       features: [
         t('upgrade.planFeatures.unlimitedWorkspaces'),
         t('upgrade.planFeatures.unlimitedCategories'),
