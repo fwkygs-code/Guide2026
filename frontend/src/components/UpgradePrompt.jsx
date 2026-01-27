@@ -29,14 +29,14 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const plans = [
     {
       name: 'free',
-      displayName: 'Free',
-      price: '$0',
+      displayName: t('plans.free.name'),
+      price: t('plans.free.price'),
       features: [
-        '1 workspace',
-        '3 categories',
-        '5 walkthroughs',
-        '500 MB storage',
-        '10 MB max file size'
+        t('plans.free.features.workspaces'),
+        t('plans.free.features.categories'),
+        t('plans.free.features.walkthroughs'),
+        t('plans.free.features.storage'),
+        t('plans.free.features.fileSize')
       ],
       current: currentPlanName === 'free',
       mediaCapacity: {
@@ -51,16 +51,16 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
     },
     {
       name: 'pro',
-      displayName: 'Pro',
-      price: '14 days free trial',
-      priceAfter: '$5/month',
+      displayName: t('plans.pro.name'),
+      price: t('plans.pro.price'),
+      priceAfter: t('plans.pro.priceAfter'),
       features: [
-        '3 workspaces',
-        'Unlimited categories',
-        'Unlimited walkthroughs',
-        '3 GB storage',
-        '150 MB max file size',
-        'Extra storage available'
+        t('plans.pro.features.workspaces'),
+        t('plans.pro.features.categories'),
+        t('plans.pro.features.walkthroughs'),
+        t('plans.pro.features.storage'),
+        t('plans.pro.features.fileSize'),
+        t('plans.pro.features.extraStorage')
       ],
       current: currentPlanName === 'pro',
       recommended: true,
@@ -74,20 +74,20 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
         maxMegapixelAllFrames: '100 MP'
       }
     },
-    // TESTING-ONLY: pro-testing plan - Remove this entire object to delete
+    // TESTING-ONLY: pro-testing plan
     {
       name: 'pro-testing',
-      displayName: 'Pro Test',
-      price: '₪0.1 first day',
-      priceAfter: '₪0.2/day',
+      displayName: t('plans.proTesting.name'),
+      price: t('plans.proTesting.price'),
+      priceAfter: t('plans.proTesting.priceAfter'),
       features: [
-        '3 workspaces',
-        'Unlimited categories',
-        'Unlimited walkthroughs',
-        '3 GB storage',
-        '150 MB max file size',
-        'Extra storage available',
-        '🧪 Testing Plan'
+        t('plans.pro.features.workspaces'),
+        t('plans.pro.features.categories'),
+        t('plans.pro.features.walkthroughs'),
+        t('plans.pro.features.storage'),
+        t('plans.pro.features.fileSize'),
+        t('plans.pro.features.extraStorage'),
+        t('plans.proTesting.testingBadge')
       ],
       current: currentPlanName === 'pro-testing',
       recommended: false,
@@ -104,19 +104,19 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
     // END TESTING-ONLY
     {
       name: 'enterprise',
-      displayName: 'Enterprise',
-      price: 'Custom pricing',
+      displayName: t('plans.enterprise.name'),
+      price: t('plans.enterprise.price'),
       features: [
-        'Unlimited workspaces',
-        'Unlimited categories',
-        'Unlimited walkthroughs',
-        '200 GB storage',
-        '500 MB max file size',
-        'Custom file size limits',
-        'Priority support'
+        t('plans.enterprise.features.workspaces'),
+        t('plans.enterprise.features.categories'),
+        t('plans.enterprise.features.walkthroughs'),
+        t('plans.enterprise.features.storage'),
+        t('plans.enterprise.features.fileSize'),
+        t('plans.enterprise.features.customLimits'),
+        t('plans.enterprise.features.support')
       ],
       current: currentPlanName === 'enterprise',
-      mediaCapacity: null // Custom - contact for details
+      mediaCapacity: null
     }
   ];
 
@@ -207,17 +207,17 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                         if (management_url) {
                           window.open(management_url, '_blank');
                         } else {
-                          toast.error('Unable to open PayPal management');
+                          toast.error(t('billing.unableToOpenPayPal'));
                         }
                       }}
                     >
-                      Manage Subscription in PayPal
+                      {t('billing.manageSubscriptionInPayPal')}
                     </Button>
                     {access_granted && access_until && (
                       <div className="text-xs text-center text-muted-foreground space-y-1">
-                        <p>Status: <span className="font-medium text-foreground">Active</span></p>
-                        <p>Access until {new Date(access_until).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        {is_recurring && <p className="text-muted-foreground/80">Renews automatically unless cancelled in PayPal</p>}
+                        <p>{t('billing.status')}: <span className="font-medium text-foreground">{t('billing.statusActive')}</span></p>
+                        <p>{t('billing.accessUntil', { date: new Date(access_until).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })}</p>
+                        {is_recurring && <p className="text-muted-foreground/80">{t('billing.renewsAutomatically')}</p>}
                       </div>
                     )}
                   </div>
@@ -225,10 +225,14 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   <Button
                     className="w-full"
                     onClick={() => {
+                      if (access_granted) {
+                        toast.info(t('billing.alreadySubscribed'));
+                        return;
+                      }
                       setSelectedPlanType(planOption.name);
                       setShowPayPal(true);
                     }}
-                    disabled={isSubscribing}
+                    disabled={isSubscribing || access_granted}
                   >
                     {t('upgrade.select')}
                   </Button>

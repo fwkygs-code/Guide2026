@@ -717,6 +717,51 @@
       "customIntegrations": "Custom integrations"
     }
   },
+  "plans": {
+    "free": {
+      "name": "Free",
+      "price": "$0",
+      "features": {
+        "workspaces": "1 workspace",
+        "categories": "3 categories",
+        "walkthroughs": "5 walkthroughs",
+        "storage": "500 MB storage",
+        "fileSize": "10 MB max file size"
+      }
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "14 days free trial",
+      "priceAfter": "$5/month",
+      "features": {
+        "workspaces": "3 workspaces",
+        "categories": "Unlimited categories",
+        "walkthroughs": "Unlimited walkthroughs",
+        "storage": "3 GB storage",
+        "fileSize": "150 MB max file size",
+        "extraStorage": "Extra storage available"
+      }
+    },
+    "proTesting": {
+      "name": "Pro Test",
+      "price": "₪0.1 first day",
+      "priceAfter": "₪0.2/day",
+      "testingBadge": "🧪 Testing Plan"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Custom pricing",
+      "features": {
+        "workspaces": "Unlimited workspaces",
+        "categories": "Unlimited categories",
+        "walkthroughs": "Unlimited walkthroughs",
+        "storage": "200 GB storage",
+        "fileSize": "500 MB max file size",
+        "customLimits": "Custom file size limits",
+        "support": "Priority support"
+      }
+    }
+  },
   "builder": {
     "viewPortal": "View Portal",
     "saving": "Saving...",
@@ -1293,7 +1338,15 @@
     "subscriptionRemainsActive": "Your subscription will remain active until {{date}}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.",
     "cancelledConfirmedDesc": "PayPal has confirmed the cancellation. No further charges will occur. Final billing status is determined by PayPal.",
     "cancellationPendingConfirmation": "Cancellation pending confirmation",
-    "cancellationProcessingDesc": "PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal."
+    "cancellationProcessingDesc": "PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal.",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "accessUntil": "Access until {{date}}",
+    "renewsAutomatically": "Renews automatically unless cancelled in PayPal",
+    "manageSubscriptionInPayPal": "Manage Subscription in PayPal",
+    "unableToOpenPayPal": "Unable to open PayPal management",
+    "alreadySubscribed": "You already have an active subscription"
   },
   "notifications": {
     "title": "Notifications",

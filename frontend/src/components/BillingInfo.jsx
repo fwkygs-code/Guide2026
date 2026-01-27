@@ -39,9 +39,9 @@ const BillingInfo = () => {
 
   const getCanonicalStatusBadge = () => {
     if (access_granted) {
-      return <Badge className="bg-green-500"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge>;
+      return <Badge className="bg-green-500"><CheckCircle2 className="w-3 h-3 mr-1" />{t('billing.statusActive')}</Badge>;
     }
-    return <Badge className="bg-slate-500">Inactive</Badge>;
+    return <Badge className="bg-slate-500">{t('billing.statusInactive')}</Badge>;
   };
 
   return (
@@ -69,13 +69,13 @@ const BillingInfo = () => {
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-green-900">Status: Active</div>
+                <div className="text-sm font-medium text-green-900">{t('billing.status')}: {t('billing.statusActive')}</div>
                 <div className="text-xs text-green-700 mt-1">
-                  Access until {formatDate(access_until)}
+                  {t('billing.accessUntil', { date: formatDate(access_until) })}
                 </div>
                 {is_recurring && (
                   <div className="text-xs text-green-600 mt-1">
-                    Renews automatically unless cancelled in PayPal
+                    {t('billing.renewsAutomatically')}
                   </div>
                 )}
               </div>
@@ -85,7 +85,7 @@ const BillingInfo = () => {
 
         {!access_granted && (
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="text-sm font-medium text-slate-900">Status: Inactive</div>
+            <div className="text-sm font-medium text-slate-900">{t('billing.status')}: {t('billing.statusInactive')}</div>
           </div>
         )}
 
@@ -98,7 +98,7 @@ const BillingInfo = () => {
                 window.open(management_url, '_blank');
               }}
             >
-              Manage Subscription in PayPal
+              {t('billing.manageSubscriptionInPayPal')}
             </Button>
           </div>
         )}
