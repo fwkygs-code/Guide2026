@@ -5996,171 +5996,81 @@ async def change_user_plan(plan_name: str = Query(..., description="Plan name to
 
 @api_router.get("/users/me/plan")
 async def get_user_plan_endpoint(current_user: User = Depends(get_current_user)):
-    """Get user's current plan and quota information.
-    Plan access priority (in order):
-    1. ACTIVE subscription → Pro plan access (PayPal subscription)
-    2. Active trial (trial_ends_at > now) → Pro plan access (14-day app trial)
-    3. PENDING subscription → Free plan (awaiting payment confirmation)
-    4. CANCELLED/EXPIRED or no subscription → Free plan
     """
-    # Check for active trial first (app-level trial, no PayPal required)
+    UI CLEANUP: Canonical subscription state API
+    
+    Returns ONLY the current subscription state derived from PayPal.
+    No historical states, no internal workflow statuses, no "pending" UI language.
+    
+    Returns:
+    {
+        "plan": "Pro" | "Free",
+        "provider": "PAYPAL" | null,
+        "access_granted": true | false,
+        "access_until": "2026-02-17T00:00:00Z" | null,
+        "is_recurring": true | false,
+        "management_url": "https://www.paypal.com/..." | null,
+        "quota": {...}
+    }
+    """
+    # UI CLEANUP: Get current PayPal-derived state
+    # Step 1: Find user's PayPal subscription
+    subscription_doc = await db.subscriptions.find_one(
+        {"user_id": current_user.id, "provider": "paypal"},
+        {"_id": 0}
+    )
+    
+    # Step 2: Reconcile with PayPal to get current truth
+    access_granted = False
+    access_until = None
+    is_recurring = False
+    management_url = None
+    plan_name = "Free"
+    
+    if subscription_doc:
+        # Trigger reconciliation to get fresh PayPal state
+        reconcile_result = await reconcile_subscription_with_paypal(
+            subscription_id=subscription_doc['id'],
+            force=False  # Use cache if available
+        )
+        
+        if reconcile_result.get("success"):
+            # UI CLEANUP: Derive canonical state from PayPal
+            access_granted = reconcile_result.get("access_granted", False)
+            
+            # Extract access_until from billing info
+            billing_info = reconcile_result.get("billing_info", {})
+            next_billing_time = billing_info.get("next_billing_time")
+            final_payment_time = billing_info.get("final_payment_time")
+            
+            if access_granted:
+                plan_name = "Pro"
+                # access_until = when access expires
+                if next_billing_time:
+                    access_until = next_billing_time
+                elif final_payment_time:
+                    access_until = final_payment_time
+                
+                # is_recurring = true if subscription will auto-renew
+                paypal_status = reconcile_result.get("paypal_status", "")
+                is_recurring = (paypal_status == "ACTIVE" and not final_payment_time)
+            
+            # Management URL (always provide for PayPal subscriptions)
+            provider_subscription_id = subscription_doc.get('provider_subscription_id')
+            if provider_subscription_id:
+                management_url = f"https://www.paypal.com/myaccount/autopay/connect/{provider_subscription_id}"
+    
+    # Step 3: Get quota info
     user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
-    trial_ends_at = user.get('trial_ends_at') if user else None
-    has_active_trial = False
     
-    if trial_ends_at:
-        try:
-            if isinstance(trial_ends_at, str):
-                trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
-            else:
-                trial_end_dt = trial_ends_at
-            now = datetime.now(timezone.utc)
-            has_active_trial = trial_end_dt > now
-        except Exception as e:
-            logging.warning(f"Error parsing trial_ends_at for user {current_user.id}: {e}")
-            has_active_trial = False
-    
-    subscription = await get_user_subscription(current_user.id)
-    
-    # RECONCILIATION: Check PENDING subscriptions with PayPal API
-    # This handles missed or delayed webhooks safely
-    # NOTE: Reconciliation audit logging is handled inside reconcile_pending_subscription()
-    if subscription and subscription.status == SubscriptionStatus.PENDING:
-        reconciled_subscription = await reconcile_pending_subscription(subscription)
-        if reconciled_subscription:
-            # Subscription was reconciled to ACTIVE - use updated subscription
-            subscription = reconciled_subscription
-            # Re-fetch user to get updated trial_ends_at
-            user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
-            if user and user.get('trial_ends_at'):
-                trial_ends_at = user.get('trial_ends_at')
-                # Recalculate has_active_trial if trial_ends_at was updated
-                if isinstance(trial_ends_at, str):
-                    trial_end_dt = datetime.fromisoformat(trial_ends_at.replace('Z', '+00:00'))
-                else:
-                    trial_end_dt = trial_ends_at
-                now = datetime.now(timezone.utc)
-                has_active_trial = trial_end_dt > now
-    
-    # CRITICAL: Single source of truth for Pro access
-    # User has Pro access if:
-    # 1. ACTIVE subscription (PayPal confirmed payment)
-    # 2. PENDING subscription (awaiting PayPal confirmation) - grants access during trial period
-    # 3. Active trial (trial_ends_at > now)
-    # 4. CANCELLED subscription BUT still within billing period (until EXPIRED)
-    
-    has_pro_access = False
-    
-    # CRITICAL: Check subscription's plan_id, not just status
-    # Free plan users also have ACTIVE subscriptions, so we must check the plan
-    if subscription:
-        # Get the plan for this subscription
-        subscription_plan = await db.plans.find_one({"id": subscription.plan_id}, {"_id": 0})
-        is_pro_subscription = subscription_plan and subscription_plan.get('name') == 'pro'
-        
-        if subscription.status == SubscriptionStatus.ACTIVE:
-            # ACTIVE subscription grants Pro access ONLY if it's a Pro plan subscription
-            if is_pro_subscription:
-                has_pro_access = True
-        elif subscription.status == SubscriptionStatus.PENDING:
-            # PENDING subscription grants Pro access ONLY if it's a Pro plan subscription
-            # Note: Trial period check is not required for PENDING - user gets access immediately
-            # Trial period is for billing purposes, not access control
-            if is_pro_subscription:
-                has_pro_access = True
-        elif subscription.status == SubscriptionStatus.CANCELLED:
-            # CANCELLED subscription: User keeps Pro access until EXPIRED webhook
-            # Check if user still has Pro plan_id (not yet downgraded)
-            # This means they're still within billing period
-            if is_pro_subscription:
-                user_plan_id = user.get('plan_id') if user else None
-                if user_plan_id:
-                    pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
-                    if pro_plan and user_plan_id == pro_plan['id']:
-                        # User still has Pro plan_id - access continues until EXPIRED
-                        has_pro_access = True
-                # Also check if trial is still active (for cancelled subscriptions during trial)
-                if has_active_trial:
-                    has_pro_access = True
-    
-    # Also check standalone trial (no subscription)
-    if not has_pro_access and has_active_trial:
-        has_pro_access = True
-    
-    if has_pro_access:
-        # User has Pro access - get Pro plan
-        pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
-        if pro_plan:
-            plan = Plan(**pro_plan)
-        else:
-            plan = await get_user_plan(current_user.id)
+    # UI CLEANUP: Get plan document for quota limits
+    if access_granted:
+        plan_doc = await db.plans.find_one({"name": "pro"}, {"_id": 0})
     else:
-        # No Pro access - use Free plan
-        plan = await get_user_plan(current_user.id)
+        plan_doc = await db.plans.find_one({"name": "free"}, {"_id": 0})
     
-    if not plan:
+    if not plan_doc:
         raise HTTPException(status_code=404, detail="Plan not found")
-    
-    # RUNTIME INVARIANT VALIDATION (log-only, never crash)
-    # These checks ensure system state consistency and help detect bugs
-    # PART 4: State validation assertions for production safety
-    if subscription and subscription.provider == 'paypal':
-        user_plan_id = user.get('plan_id') if user else None
-        pro_plan = await db.plans.find_one({"name": "pro"}, {"_id": 0})
-        free_plan = await db.plans.find_one({"name": "free"}, {"_id": 0})
-        
-        # INVARIANT 1: User cannot be FREE while PayPal status is ACTIVE
-        if subscription.paypal_verified_status == 'ACTIVE' and user_plan_id and free_plan and user_plan_id == free_plan['id']:
-            logging.critical(
-                f"[STATE VALIDATION] INVARIANT VIOLATION: User {current_user.id} has FREE plan but PayPal subscription status is ACTIVE. "
-                f"subscription_id={subscription.id}, paypal_subscription_id={subscription.provider_subscription_id}, "
-                f"paypal_verified_status={subscription.paypal_verified_status}, user_plan_id={user_plan_id}"
-            )
-        
-        # INVARIANT 2: User cannot be PRO if PayPal status is EXPIRED (unless EXPIRED webhook hasn't processed yet)
-        if subscription.paypal_verified_status == 'CANCELLED' and subscription.status == SubscriptionStatus.EXPIRED and user_plan_id and pro_plan and user_plan_id == pro_plan['id']:
-            # This is actually OK - user keeps access until EXPIRED webhook processes
-            # But log if EXPIRED webhook hasn't processed yet
-            logging.warning(
-                f"[STATE VALIDATION] User {current_user.id} has PRO plan but subscription is EXPIRED. "
-                f"This may be expected if EXPIRED webhook is processing. subscription_id={subscription.id}"
-            )
-        
-        # INVARIANT 3: Cancellation cannot be marked CONFIRMED unless PayPal confirms
-        if subscription.status == SubscriptionStatus.CANCELLED and subscription.paypal_verified_status not in ['CANCELLED', 'UNKNOWN']:
-            logging.critical(
-                f"[STATE VALIDATION] INVARIANT VIOLATION: Subscription {subscription.id} marked CANCELLED but paypal_verified_status={subscription.paypal_verified_status}. "
-                f"user_id={current_user.id}, paypal_subscription_id={subscription.provider_subscription_id}, "
-                f"subscription_status={subscription.status}"
-            )
-        
-        # INVARIANT 4: Downgrade may occur ONLY on BILLING.SUBSCRIPTION.EXPIRED webhook
-        # This is verified by code review - only EXPIRED webhook downgrades
-        # Log if user is FREE but subscription is not EXPIRED
-        if user_plan_id and free_plan and user_plan_id == free_plan['id']:
-            if subscription.status not in [SubscriptionStatus.EXPIRED]:
-                logging.warning(
-                    f"[STATE VALIDATION] User {current_user.id} has FREE plan but subscription status is {subscription.status}. "
-                    f"This may be expected if subscription was never created or was manually downgraded. subscription_id={subscription.id}"
-                )
-        
-        # INVARIANT 5: User cannot be PRO if PayPal status != ACTIVE/CANCELLED (unless PENDING)
-        if user_plan_id and pro_plan and user_plan_id == pro_plan['id']:
-            if subscription.paypal_verified_status not in ['ACTIVE', 'CANCELLED', None] and subscription.status != SubscriptionStatus.PENDING:
-                logging.critical(
-                    f"[STATE VALIDATION] INVARIANT VIOLATION: User {current_user.id} has PRO plan but PayPal verified status is {subscription.paypal_verified_status}. "
-                    f"subscription_id={subscription.id}, subscription_status={subscription.status}, "
-                    f"paypal_subscription_id={subscription.provider_subscription_id}"
-                )
-        
-        # INVARIANT 6: trial_ends_at exists without PayPal billing_info source
-        if user.get('trial_ends_at') and subscription.status == SubscriptionStatus.ACTIVE:
-            # Check if trial_ends_at was set from PayPal (should have paypal_verified_status)
-            if not subscription.paypal_verified_status:
-                logging.warning(
-                    f"[STATE VALIDATION] User {current_user.id} has trial_ends_at but subscription has no paypal_verified_status. "
-                    f"This may indicate trial was set without PayPal confirmation. subscription_id={subscription.id}"
-                )
     
     storage_used = await get_user_storage_usage(current_user.id)
     storage_allowed = await get_user_allowed_storage(current_user.id)
@@ -6186,31 +6096,68 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         ]
     })
     
-    # Calculate trial period end and next billing date
-    trial_period_end = None
-    next_billing_date = None
+    # UI CLEANUP: Return ONLY canonical state (no legacy fields)
+    return {
+        "plan": plan_name,
+        "provider": "PAYPAL" if subscription_doc else None,
+        "access_granted": access_granted,
+        "access_until": access_until,
+        "is_recurring": is_recurring,
+        "management_url": management_url,
+        "quota": {
+            "storage_used_bytes": storage_used,
+            "storage_allowed_bytes": storage_allowed,
+            "storage_used_percent": round((storage_used / storage_allowed * 100) if storage_allowed > 0 else 0, 2),
+            "workspace_count": workspace_count,
+            "workspace_limit": plan_doc.get('max_workspaces', 1),
+            "walkthroughs_used": total_walkthroughs,
+            "walkthroughs_limit": plan_doc.get('max_walkthroughs', 5),
+            "categories_used": total_categories,
+            "categories_limit": plan_doc.get('max_categories', 10),
+            "over_quota": storage_used > storage_allowed
+        }
+    }
+
+# UI CLEANUP: Canonical state API complete
+
+# Trial & Subscription Models
+# NOTE: start-trial endpoint removed - trials now only start after PayPal subscription activation
+
+# PayPal Subscription Models
+class PayPalSubscribeRequest(BaseModel):
+    subscriptionID: str
+
+@api_router.post("/billing/paypal/cancel")
+async def cancel_paypal_subscription(current_user: User = Depends(get_current_user)):
+    """
+    UI CLEANUP Fix 13: Redirect to PayPal management
     
-    # Priority 1: Use app-level trial_ends_at if active (from User model)
-    # This comes from PayPal's billing_info.next_billing_time (set by webhook)
-    if has_active_trial and trial_ends_at:
-        if isinstance(trial_ends_at, str):
-            trial_period_end = trial_ends_at
-        else:
-            trial_period_end = trial_ends_at.isoformat()
+    The site does NOT perform cancellations directly.
+    Returns PayPal management URL for user to manage subscription.
+    """
+    subscription_doc = await db.subscriptions.find_one(
+        {"user_id": current_user.id, "provider": "paypal"},
+        {"_id": 0}
+    )
     
-    if subscription:
-        subscription_dict = subscription.model_dump()
-        started_at = subscription.started_at
-        
-        # For Pro plan with subscription, use trial_ends_at from User model (set by PayPal webhook)
-        # Do NOT calculate trial period - it must come from PayPal billing schedule
-        if plan.name == 'pro' and subscription.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING, SubscriptionStatus.CANCELLED]:
-            # Trial period end comes from PayPal billing_info.next_billing_time (already set above)
-            # For CANCELLED subscriptions, user keeps access until EXPIRED webhook
-            # No need to calculate - trial_period_end is already set from User.trial_ends_at if active
-            
-            # Calculate next billing date from trial end (if trial exists)
-            if trial_period_end:
+    if subscription_doc:
+        provider_subscription_id = subscription_doc.get('provider_subscription_id')
+        if provider_subscription_id:
+            management_url = f"https://www.paypal.com/myaccount/autopay/connect/{provider_subscription_id}"
+            return {
+                "success": True,
+                "message": "Please manage your subscription via PayPal",
+                "management_url": management_url
+            }
+    
+    return {
+        "success": False,
+        "message": "No PayPal subscription found"
+    }
+
+# DEPRECATED OLD CANCEL LOGIC - Delete after confirming new flow works
+"""
+    if trial_period_end:
                 try:
                     now = datetime.now(timezone.utc)
                     trial_end_dt_str = trial_period_end if isinstance(trial_period_end, str) else trial_period_end.isoformat()
@@ -6329,16 +6276,10 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     }
     
     return response_data
+"""
+# END DEPRECATED
 
-# Trial & Subscription Models
-# NOTE: start-trial endpoint removed - trials now only start after PayPal subscription activation
-# The 14-day trial is automatically set when BILLING.SUBSCRIPTION.ACTIVATED webhook is received
-
-# PayPal Subscription Models
-class PayPalSubscribeRequest(BaseModel):
-    subscriptionID: str
-
-@api_router.post("/billing/paypal/cancel")
+@api_router.post("/billing/paypal/subscribe")
 async def cancel_paypal_subscription(current_user: User = Depends(get_current_user)):
     """
     Cancel user's PayPal subscription.
