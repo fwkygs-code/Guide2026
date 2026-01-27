@@ -6973,14 +6973,29 @@ async def reconcile_my_subscription(current_user: User = Depends(get_current_use
     
     # SECURITY: Reconcile only the authenticated user's stored subscription ID
     # Never accept subscription ID from client
-    result = await reconcile_subscription_with_paypal(subscription_id, force=False)
-    
-    # Cache result
-    if user_id in _reconciliation_cache:
-        _reconciliation_cache[user_id]["result"] = result
-        _reconciliation_cache[user_id]["cached_at"] = now
-    
-    return result
+    try:
+        result = await reconcile_subscription_with_paypal(subscription_id, force=False)
+        
+        # Cache result
+        if user_id in _reconciliation_cache:
+            _reconciliation_cache[user_id]["result"] = result
+            _reconciliation_cache[user_id]["cached_at"] = now
+        
+        return result
+    except Exception as e:
+        # CRITICAL: Catch all exceptions to prevent 500 errors
+        logging.error(
+            f"[RECONCILE] Unhandled exception for user {user_id}, subscription {subscription_id}: {str(e)}",
+            exc_info=True
+        )
+        
+        # Return error response instead of crashing
+        return {
+            "success": False,
+            "error": "Failed to reconcile subscription with PayPal. Please try again later.",
+            "details": str(e) if os.getenv("DEBUG") else None,
+            "subscription_id": subscription_id
+        }
 
 @api_router.post("/billing/paypal/subscribe")
 async def subscribe_paypal(
