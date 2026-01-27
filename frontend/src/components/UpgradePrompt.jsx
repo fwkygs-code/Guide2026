@@ -18,6 +18,8 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  // TESTING-ONLY: Track selected plan type for PayPal subscription
+  const [selectedPlanType, setSelectedPlanType] = useState('pro');
   
   // Check if user has an active, pending, or cancelled PayPal subscription
   // CANCELLED subscriptions still show "Cancel Subscription" until EXPIRED
@@ -82,6 +84,34 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
         maxMegapixelAllFrames: '100 MP'
       }
     },
+    // TESTING-ONLY: pro-testing plan - Remove this entire object to delete
+    {
+      name: 'pro-testing',
+      displayName: 'Pro Test',
+      price: '₪0.1 first day',
+      priceAfter: '₪0.2/day',
+      features: [
+        '3 workspaces',
+        'Unlimited categories',
+        'Unlimited walkthroughs',
+        '3 GB storage',
+        '150 MB max file size',
+        'Extra storage available',
+        '🧪 Testing Plan'
+      ],
+      current: currentPlanName === 'pro-testing',
+      recommended: false,
+      mediaCapacity: {
+        maxImageFileSize: '20 MB',
+        maxVideoFileSize: '2 GB',
+        maxRawFileSize: '20 MB',
+        maxImageTransformationSize: '100 MB',
+        maxVideoTransformationSize: '300 MB',
+        maxImageMegapixel: '25 MP',
+        maxMegapixelAllFrames: '100 MP'
+      }
+    },
+    // END TESTING-ONLY
     {
       name: 'enterprise',
       displayName: 'Enterprise',
@@ -177,7 +207,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                 <Button variant="outline" className="w-full" disabled>
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
-              ) : planOption.name === 'pro' ? (
+              ) : planOption.name === 'pro' || planOption.name === 'pro-testing' ? ( // TESTING-ONLY: added pro-testing
                 // Show "Cancel Subscription" if user has ACTIVE, PENDING, or CANCELLED PayPal subscription
                 canManageSubscription ? (
                   <div className="space-y-2">
@@ -295,6 +325,8 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   <Button
                     className="w-full"
                     onClick={() => {
+                      // TESTING-ONLY: Set selected plan type before showing PayPal
+                      setSelectedPlanType(planOption.name);
                       setShowPayPal(true);
                     }}
                     disabled={isSubscribing}
@@ -416,6 +448,7 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
             {/* CRITICAL: Keep PayPal component mounted - use visibility instead of conditional rendering */}
             <div className="py-4" style={{ display: showPayPal ? 'block' : 'none' }}>
               <PayPalSubscription
+                planType={selectedPlanType}
                 refreshQuota={refreshQuota}
                 onSuccess={async (subscriptionID) => {
                   // Close modal after payment success (polling will handle this automatically)

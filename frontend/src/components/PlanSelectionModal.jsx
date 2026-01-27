@@ -65,6 +65,37 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
         maxMegapixelAllFrames: '100 MP'
       }
     },
+    // TESTING-ONLY: pro-testing plan - Remove this entire object to delete
+    {
+      name: 'pro-testing',
+      displayName: 'Pro Test',
+      price: '₪0.1',
+      period: 'first day, then ₪0.2/day',
+      features: [
+        t('upgrade.planFeatures.workspaces', { count: 3 }),
+        t('upgrade.planFeatures.unlimitedCategories'),
+        t('upgrade.planFeatures.unlimitedWalkthroughs'),
+        t('upgrade.planFeatures.storage', { size: '3 GB' }),
+        t('upgrade.planFeatures.maxFileSize', { size: '150 MB' }),
+        t('upgrade.planFeatures.extraStorageAvailable'),
+        t('upgrade.planFeatures.prioritySupport'),
+        t('upgrade.planFeatures.advancedFeatures'),
+        '🧪 Testing Plan - For Development Only'
+      ],
+      popular: false,
+      trial: false,
+      mediaCapacity: {
+        maxImageFileSize: '20 MB',
+        maxVideoFileSize: '2 GB',
+        maxRawFileSize: '20 MB',
+        maxImageTransformationSize: '100 MB',
+        maxVideoTransformationSize: '300 MB',
+        maxImageMegapixel: '25 MP',
+        maxMegapixelAllFrames: '100 MP'
+      },
+      paypalPlanId: 'P-1GF05053LD9745329NF4FQIQ' // Test PayPal plan
+    },
+    // END TESTING-ONLY
     {
       name: 'enterprise',
       displayName: t('upgrade.planNames.enterprise'),
@@ -95,8 +126,9 @@ const PlanSelectionModal = ({ open, onOpenChange, onPlanSelected, isSignup = fal
     
     setSelecting(true);
     try {
-      // CRITICAL: Pro plan requires PayPal subscription first - no trial without payment approval
-      if (planName === 'pro') {
+      // CRITICAL: Pro plans require PayPal subscription first - no trial without payment approval
+      // TESTING-ONLY: pro-testing also requires PayPal
+      if (planName === 'pro' || planName === 'pro-testing') {
         toast.error(t('billing.proRequiresPayPal'));
         onOpenChange(false);
         if (onPlanSelected) {

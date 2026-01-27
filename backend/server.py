@@ -2092,6 +2092,23 @@ async def initialize_default_plans():
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         },
+        # TESTING-ONLY: pro-testing plan - Remove this entire block to delete
+        {
+            "id": "plan_pro_testing",
+            "name": "pro-testing",
+            "display_name": "Pro Test",
+            "max_workspaces": 3,
+            "max_categories": None,  # unlimited
+            "max_walkthroughs": None,  # unlimited
+            "storage_bytes": 3 * 1024 * 1024 * 1024,  # 3 GB
+            "max_file_size_bytes": 150 * 1024 * 1024,  # 150 MB
+            "extra_storage_increment_bytes": 3 * 1024 * 1024 * 1024,  # 3 GB increments
+            "is_public": True,
+            "paypal_plan_id": "P-1GF05053LD9745329NF4FQIQ",  # Test plan: 0.1 INS first day, 0.2 INS/day
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        },
+        # END TESTING-ONLY
         {
             "id": "plan_enterprise",
             "name": "enterprise",
