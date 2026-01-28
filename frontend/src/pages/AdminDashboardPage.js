@@ -20,7 +20,7 @@ import DashboardLayout from '../components/DashboardLayout';
 
 const AdminDashboardPage = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   
   // Users tab
@@ -96,6 +96,12 @@ const AdminDashboardPage = () => {
   useEffect(() => {
     fetchUsers();
   }, [usersPage, usersSearch]);
+
+  const refreshCurrentUserIfNeeded = async (updatedUserId) => {
+    if (user?.id && updatedUserId === user.id) {
+      await refreshUser();
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -197,6 +203,7 @@ const AdminDashboardPage = () => {
         await api.adminUpdateUserPlan(selectedUser.id, editForm.planName);
       }
       
+      await refreshCurrentUserIfNeeded(selectedUser.id);
       toast.success('User updated successfully');
       setEditDialogOpen(false);
       fetchUsers();
@@ -410,6 +417,7 @@ const AdminDashboardPage = () => {
     try {
       setDowngradingUser(true);
       await api.adminDowngradeUser(selectedUser.id);
+      await refreshCurrentUserIfNeeded(selectedUser.id);
       toast.success('User downgraded to Free plan successfully');
       fetchUsers();
       fetchStats();
@@ -437,6 +445,7 @@ const AdminDashboardPage = () => {
     try {
       setUpgradingUser(true);
       await api.adminUpgradeUser(selectedUser.id);
+      await refreshCurrentUserIfNeeded(selectedUser.id);
       toast.success('User upgraded to Pro plan successfully');
       fetchUsers();
       fetchStats();

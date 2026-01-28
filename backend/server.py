@@ -9377,12 +9377,63 @@ async def admin_update_user_plan(
         old_plan = await db.plans.find_one({"id": old_plan_id}, {"_id": 0, "name": 1})
     
     is_downgrade = old_plan and old_plan.get('name') == 'pro' and plan_name == 'free'
+    now = datetime.now(timezone.utc)
     
     # Update user plan
     await db.users.update_one(
         {"id": user_id},
-        {"$set": {"plan_id": plan["id"], "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {"plan_id": plan["id"], "updated_at": now.isoformat()}}
     )
+
+    # For paid plans, ensure subscription exists and restore memberships
+    if plan_name != 'free':
+        subscription_id = user.get('subscription_id')
+        if subscription_id:
+            await db.subscriptions.update_one(
+                {"id": subscription_id},
+                {"$set": {
+                    "plan_id": plan["id"],
+                    "status": SubscriptionStatus.ACTIVE.value,
+                    "updated_at": now.isoformat()
+                }}
+            )
+        else:
+            subscription_id = str(uuid.uuid4())
+            subscription = Subscription(
+                id=subscription_id,
+                user_id=user_id,
+                plan_id=plan["id"],
+                status=SubscriptionStatus.ACTIVE,
+                provider="manual"
+            )
+            sub_dict = subscription.model_dump()
+            sub_dict['started_at'] = sub_dict['started_at'].isoformat()
+            sub_dict['created_at'] = sub_dict['created_at'].isoformat()
+            sub_dict['updated_at'] = sub_dict['updated_at'].isoformat()
+            await db.subscriptions.insert_one(sub_dict)
+
+            await db.users.update_one(
+                {"id": user_id},
+                {"$set": {"subscription_id": subscription_id}}
+            )
+
+        await db.workspace_members.update_many(
+            {
+                "user_id": user_id,
+                "status": InvitationStatus.PENDING,
+                "frozen_reason": {"$in": ["subscription_expired", "admin_downgrade"]}
+            },
+            {
+                "$set": {
+                    "status": InvitationStatus.ACCEPTED,
+                    "restored_at": now.isoformat()
+                },
+                "$unset": {
+                    "frozen_at": "",
+                    "frozen_reason": ""
+                }
+            }
+        )
     
     # If downgrading to Free, check and enforce storage quota immediately
     if is_downgrade:
@@ -9397,6 +9448,9 @@ async def admin_update_user_plan(
             )
             # Note: We don't block the downgrade, but user will hit quota errors on uploads
     
+    if user_id in _reconciliation_cache:
+        del _reconciliation_cache[user_id]
+
     logging.info(f"[ADMIN] User {current_user.id} updated plan for user {user_id} to {plan_name}")
     
     return {"success": True, "user_id": user_id, "plan_name": plan_name, "plan_id": plan["id"]}
