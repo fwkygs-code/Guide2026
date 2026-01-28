@@ -45,6 +45,33 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [showSupportDialog, setShowSupportDialog] = useState(false);
   const [supportContactInfo, setSupportContactInfo] = useState(null);
+
+  const normalizePortalWalkthrough = (data) => {
+    if (!data || !Array.isArray(data.steps)) return data;
+    const steps = data.steps.map((step) => {
+      const blocks = Array.isArray(step.blocks) ? step.blocks : [];
+      const normalizedBlocks = blocks.map((block) => {
+        if (!block || typeof block !== 'object') return block;
+        const blockData = block.data && typeof block.data === 'object' ? block.data : {};
+        const blockSettings = block.settings && typeof block.settings === 'object' ? block.settings : {};
+        const fallbackContent =
+          (typeof block.data === 'string' ? block.data : null) ||
+          (typeof block.content === 'string' ? block.content : null) ||
+          (typeof block.text === 'string' ? block.text : null) ||
+          (typeof block.data?.text === 'string' ? block.data.text : null);
+        if (!blockData.content && fallbackContent) {
+          blockData.content = fallbackContent;
+        }
+        return {
+          ...block,
+          data: blockData,
+          settings: blockSettings
+        };
+      });
+      return { ...step, blocks: normalizedBlocks };
+    });
+    return { ...data, steps };
+  };
   
   // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
   const isGif = (url, mediaType = null) => {
@@ -319,7 +346,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const fetchWalkthrough = async () => {
     try {
       const response = await apiClient.get(`/portal/${slug}/walkthroughs/${walkthroughId}`);
-      setWalkthrough(response.data);
+      setWalkthrough(normalizePortalWalkthrough(response.data));
     } catch (error) {
       if (error.response?.status === 401) {
         setShowPasswordDialog(true);
@@ -337,7 +364,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       const response = await apiClient.post(`/portal/${slug}/walkthroughs/${walkthroughId}/access`, {
         password: portalPassword
       });
-      setWalkthrough(response.data);
+      setWalkthrough(normalizePortalWalkthrough(response.data));
       setShowPasswordDialog(false);
       setPortalPassword('');
     } catch (error) {

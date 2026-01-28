@@ -233,6 +233,7 @@ const OnboardingController = () => {
   }, [hasDismissed, hasCompleted, user?.id, loading, location.pathname]);
 
   useEffect(() => {
+    if (hasDismissed || hasCompleted) return;
     if (!active) return;
 
     window.addEventListener('onboarding:createWorkspace', handleCreateWorkspace);
@@ -260,9 +261,10 @@ const OnboardingController = () => {
       window.removeEventListener('onboarding:blockAdded', handleBlockAdded);
       window.removeEventListener('onboarding:dialogClosed', handleDialogClosed);
     };
-  }, [active, handleCreateWorkspace, handleWorkspaceCreated, handleWorkspaceEntered, handleNavCategories, handleCategoryCreated, handleNavGuides, handleWalkthroughCreated, handleStepAdded, handleStepTitleUpdated, handleBlockAdded, handleDialogClosed]);
+  }, [active, hasDismissed, hasCompleted, handleCreateWorkspace, handleWorkspaceCreated, handleWorkspaceEntered, handleNavCategories, handleCategoryCreated, handleNavGuides, handleWalkthroughCreated, handleStepAdded, handleStepTitleUpdated, handleBlockAdded, handleDialogClosed]);
 
   useEffect(() => {
+    if (hasDismissed || hasCompleted) return;
     if (!active) return;
     if (!step) return;
     
@@ -340,23 +342,25 @@ const OnboardingController = () => {
       // Stay in step 8 if walkthrough creation elements are present
       return;
     }
-  }, [active, step, stepIndex, location.pathname, domCheckTrigger]);
+  }, [active, hasDismissed, hasCompleted, step, stepIndex, location.pathname, domCheckTrigger]);
 
   useEffect(() => {
+    if (hasDismissed || hasCompleted) return;
     if (!active) return;
     if (!step || stepIndex < 0 || stepIndex >= ONBOARDING_STEPS.length) {
       clearOnboardingSession();
       setActive(false);
     }
-  }, [active, step, stepIndex]);
+  }, [active, hasDismissed, hasCompleted, step, stepIndex]);
 
   useEffect(() => {
+    if (hasDismissed || hasCompleted) return;
     if (!active || stepIndex !== 8) return;
     const stepState = session?.step8 || {};
     if (stepState.hasStep && stepState.hasTitle && stepState.hasBlock) {
       setStepRef.current?.(9); // Move to completion step
     }
-  }, [active, stepIndex, session]);
+  }, [active, hasDismissed, hasCompleted, stepIndex, session]);
 
   if (!active || !step || hasDismissed || hasCompleted) return null;
 
