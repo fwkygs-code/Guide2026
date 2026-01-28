@@ -107,11 +107,11 @@ class TestSecurityInvariants:
             assert fragment in set_source, f"SECURITY REGRESSION: set_auth_cookie missing {fragment}"
             assert fragment in clear_source, f"SECURITY REGRESSION: clear_auth_cookie missing {fragment}"
 
-    def test_app_env_default_is_development(self):
-        """Guard 8: Verify APP_ENV defaults to development."""
+    def test_app_env_default_is_production(self):
+        """Guard 8: Verify APP_ENV defaults to production."""
         import inspect
         source = inspect.getsource(server_module)
-        assert 'APP_ENV = os.environ.get(\'APP_ENV\', \'development\')' in source, "SECURITY REGRESSION: APP_ENV default must be development"
+        assert 'APP_ENV = os.environ.get(\'APP_ENV\', \'production\')' in source, "SECURITY REGRESSION: APP_ENV default must be production"
 
     def test_get_current_user_reads_cookie(self):
         """Guard 9: Verify get_current_user reads from HttpOnly cookie."""
