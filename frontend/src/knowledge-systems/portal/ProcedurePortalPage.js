@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
+import sanitizeHtml from '../../lib/sanitizeHtml';
 
 /**
  * Procedure Portal Page - Systematic Display
@@ -329,7 +330,7 @@ function ProcedureStep({ step, stepIndex, isCompleted, onToggle, isLast }) {
             <div className="prose prose-sm max-w-none">
               <div
                 className={`leading-relaxed ${isCompleted ? 'text-green-50/80' : 'text-cyan-50/80'}`}
-                dangerouslySetInnerHTML={{ __html: step.description }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(step.description || '') }}
               />
             </div>
           )}

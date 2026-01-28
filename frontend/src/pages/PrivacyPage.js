@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 const PrivacyPage = () => {
   const { t } = useTranslation();
@@ -160,7 +161,7 @@ const PrivacyPage = () => {
               <h2 className="text-2xl font-heading font-semibold text-foreground mb-4">{t('portal.privacy.dataRetention.title')}</h2>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
                 {t('portal.privacy.dataRetention.items', { returnObjects: true }).map((item, index) => (
-                  <li key={index} dangerouslySetInnerHTML={{ __html: item }} />
+                  <li key={index} dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
                 ))}
               </ul>
             </section>

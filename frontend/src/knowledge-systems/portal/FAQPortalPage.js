@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Surface } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
+import sanitizeHtml from '../../lib/sanitizeHtml';
 
 /**
  * FAQ Portal Page - User-Friendly Help
@@ -348,7 +349,7 @@ function FaqItem({ faq, index, isExpanded, onToggle }) {
               <div className="flex-1 prose prose-sm max-w-none">
                 <div className="text-emerald-50/90 leading-relaxed">
                   {faq.content?.answer ? (
-                    <div dangerouslySetInnerHTML={{ __html: faq.content.answer }} />
+                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(faq.content?.answer || '') }} />
                   ) : (
                     <span className="text-slate-500 italic">No answer provided yet</span>
                   )}

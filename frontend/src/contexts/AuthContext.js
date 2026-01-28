@@ -14,30 +14,25 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
+axios.defaults.withCredentials = true;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Only fetch user if we don't already have it (e.g., on page refresh)
-      // Skip fetch on public portal pages to prevent timeout
-      const isPublicPage = window.location.pathname.includes('/portal/') || 
-                          window.location.pathname.includes('/embed/');
-      // Skip fetch if we already have user (e.g., just logged in)
-      if (!user && !isPublicPage) {
-        fetchUser();
-      } else {
-        setLoading(false);
-      }
+    // Only fetch user if we don't already have it (e.g., on page refresh)
+    // Skip fetch on public portal pages to prevent timeout
+    const isPublicPage = window.location.pathname.includes('/portal/') || 
+                        window.location.pathname.includes('/embed/');
+    if (!user && !isPublicPage) {
+      fetchUser();
     } else {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, []);
 
   const fetchUser = async () => {
     try {
@@ -49,10 +44,7 @@ export const AuthProvider = ({ children }) => {
       const response = await Promise.race([
         axios.get(`${API}/auth/me`, {
           timeout: 20000, // Also set axios timeout
-          validateStatus: (status) => status < 500, // Don't throw on 401/403
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          validateStatus: (status) => status < 500 // Don't throw on 401/403
         }),
         timeoutPromise
       ]);
@@ -141,15 +133,8 @@ export const AuthProvider = ({ children }) => {
           
           // Success - break out of retry loop
           const data = response.data || {};
-          const token = data.token || data.access_token || data.jwt;
           const user = data.user;
-          if (!token) {
-            throw new Error('Login succeeded but no token was returned (check API base URL/env vars).');
-          }
-          localStorage.setItem('token', token);
-          setToken(token);
           setUser(user); // Set user immediately from login response
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           // Don't fetch user again - we already have it from login response
           setLoading(false);
           return user;
@@ -208,16 +193,9 @@ export const AuthProvider = ({ children }) => {
         timeoutPromise
       ]);
       const data = response.data || {};
-      const token = data.token || data.access_token || data.jwt;
       const user = data.user;
       const email_verification_sent = data.email_verification_sent;
-      if (!token) {
-        throw new Error('Signup succeeded but no token was returned (check API base URL/env vars).');
-      }
-      localStorage.setItem('token', token);
-      setToken(token);
       setUser(user); // Set user immediately from signup response
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Don't fetch user again - we already have it from signup response
       setLoading(false);
       return { user, email_verification_sent };
@@ -230,18 +208,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    setIsBlocked(false);
-    delete axios.defaults.headers.common['Authorization'];
+  const logout = async () => {
+    try {
+      await axios.post(`${API}/auth/logout`);
+    } catch (error) {
+      console.warn('Logout request failed:', error);
+    } finally {
+      setUser(null);
+      setIsBlocked(false);
+    }
   };
 
   const refreshUser = async () => {
-    if (token) {
-      await fetchUser();
-    }
+    await fetchUser();
   };
 
   return (

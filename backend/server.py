@@ -1,6 +1,6 @@
 # Force Render rebuild - 2026-01-21 23:45 - CRITICAL CACHE PURGE v4
 # Local file compiles perfectly - Render cache is corrupted
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Header, Query, Form, Body, BackgroundTasks
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Response, Header, Query, Form, Body, BackgroundTasks
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -47,9 +47,20 @@ db_name = os.environ.get("DB_NAME", "guide2026")
 db = client[db_name]
 
 # JWT Configuration
-JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key-change-in-production')
+JWT_SECRET = os.environ.get('JWT_SECRET')
 JWT_ALGORITHM = 'HS256'
-JWT_EXPIRATION_HOURS = 720
+JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '24'))
+
+if not JWT_SECRET or JWT_SECRET.strip() == '':
+    raise RuntimeError("JWT_SECRET must be set in environment variables")
+if len(JWT_SECRET) < 32:
+    raise RuntimeError("JWT_SECRET must be at least 32 characters long")
+if JWT_SECRET == 'your-secret-key-change-in-production':
+    raise RuntimeError("JWT_SECRET must not use default placeholder value")
+
+APP_ENV = os.environ.get('APP_ENV', 'development').lower()
+AUTH_COOKIE_NAME = os.environ.get('AUTH_COOKIE_NAME', 'ig_access_token')
+COOKIE_SECURE = APP_ENV != 'development'
 
 # Create the main app
 app = FastAPI()
@@ -1000,8 +1011,32 @@ def decode_token(token: str) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
+def set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="Lax",
+        max_age=JWT_EXPIRATION_HOURS * 60 * 60,
+        path="/"
+    )
+
+def clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=AUTH_COOKIE_NAME,
+        path="/"
+    )
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
+):
+    token = credentials.credentials if credentials else None
+    if not token:
+        token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     payload = decode_token(token)
     user = await db.users.find_one({"id": payload['user_id']}, {"_id": 0})
     if not user:
@@ -1069,6 +1104,10 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
         raise HTTPException(status_code=401, detail="User not found")
     
     user_role = user_doc.get("role", UserRole.OWNER.value)
+    if current_user.role != user_role:
+        logging.warning(
+            f"[SECURITY] Role mismatch for user {current_user.id}: token={current_user.role} db={user_role}"
+        )
     if user_role != UserRole.ADMIN.value:
         raise HTTPException(status_code=403, detail="Admin access required")
     
@@ -1109,12 +1148,17 @@ async def require_email_verified(current_user: User = Depends(get_current_user))
         detail="Email verification required. Please verify your email address to access Pro features."
     )
 
-async def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))):
+async def get_current_user_optional(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
+):
     """Optional authentication - returns user if token provided, None otherwise."""
-    if not credentials:
+    token = credentials.credentials if credentials else None
+    if not token:
+        token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token:
         return None
     try:
-        token = credentials.credentials
         payload = decode_token(token)
         user = await db.users.find_one({"id": payload['user_id']}, {"_id": 0})
         return User(**user) if user else None
@@ -2264,7 +2308,7 @@ async def assign_free_plan_to_user(user_id: str):
 
 # Auth Routes
 @api_router.post("/auth/signup")
-async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
+async def signup(user_data: UserCreate, background_tasks: BackgroundTasks, response: Response):
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -2325,6 +2369,7 @@ async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
         user = User(**user_dict)
     
     token = create_token(user.id)
+    set_auth_cookie(response, token)
     
     # Use model_dump to ensure proper JSON serialization
     # Note: email_verification_sent is always True here since email is sent in background
@@ -2332,15 +2377,21 @@ async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
     return {"user": user.model_dump(mode='json'), "token": token, "email_verification_sent": True}
 
 @api_router.post("/auth/login")
-async def login(login_data: UserLogin):
+async def login(login_data: UserLogin, response: Response):
     user_doc = await db.users.find_one({"email": login_data.email})
     if not user_doc or not verify_password(login_data.password, user_doc['password']):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     user = User(**{k: v for k, v in user_doc.items() if k != 'password'})
     token = create_token(user.id)
+    set_auth_cookie(response, token)
     
     return {"user": user, "token": token}
+
+@api_router.post("/auth/logout")
+async def logout(response: Response):
+    clear_auth_cookie(response)
+    return {"success": True}
 
 @api_router.get("/auth/verify-email")
 async def verify_email(token: str = Query(..., description="Email verification token")):
@@ -2600,10 +2651,11 @@ async def reset_password(request: ResetPasswordRequest):
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
 
     try:
-        # Find user with valid reset token
+        token_hash = hash_verification_token(request.token)
+        # Find user with matching reset token
         user_doc = await db.users.find_one({
-            "password_reset_token": {"$ne": None},
-            "password_reset_expires_at": {"$ne": None}
+            "password_reset_token": token_hash,
+            "password_reset_expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
         }, {"_id": 0})
 
         if not user_doc:
@@ -8354,6 +8406,12 @@ async def health_check_api():
 raw_cors_origins = os.environ.get("CORS_ORIGINS", "*")
 cors_origins = [o.strip() for o in raw_cors_origins.split(",") if o.strip()]
 allow_all_origins = "*" in cors_origins
+
+if allow_all_origins and APP_ENV != "development":
+    logging.warning(
+        "[SECURITY] CORS_ORIGINS is '*' in non-development environment. "
+        "Credentialed cookies will be blocked and this is not recommended for production."
+    )
 
 app.add_middleware(
     CORSMiddleware,

@@ -12,6 +12,8 @@ const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
 
+axios.defaults.withCredentials = true;
+
 // Get backend URL for sharing (WhatsApp previews need backend route)
 export const getBackendUrl = () => {
   // Remove /api suffix if present to get base backend URL

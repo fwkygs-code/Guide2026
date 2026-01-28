@@ -22,6 +22,7 @@ const rawBase =
 
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
+axios.defaults.withCredentials = true;
 
 // Get backend URL for sharing (WhatsApp previews need backend route)
 const getBackendUrl = () => {
@@ -41,7 +42,7 @@ const PortalPage = ({ isEmbedded = false }) => {
   const [selectedCategoryForChat, setSelectedCategoryForChat] = useState(null);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [knowledgeSystemCounts, setKnowledgeSystemCounts] = useState({});
-  const isLoggedIn = !!localStorage.getItem('token');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Detect if we're in an iframe
   const inIframe = isEmbedded || window.self !== window.top;
@@ -49,6 +50,20 @@ const PortalPage = ({ isEmbedded = false }) => {
   useEffect(() => {
     fetchPortal();
   }, [slug]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get(`${API}/auth/me`, {
+          validateStatus: (status) => status < 500
+        });
+        setIsLoggedIn(response.status === 200);
+      } catch (error) {
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   // Update page title, favicon, and meta tags when portal data loads
   useEffect(() => {

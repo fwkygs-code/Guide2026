@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { documentationPortalApiClient } from './portal-api-client';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 type DocumentationPortalRootProps = {
   portalSlug?: string;
@@ -80,6 +81,9 @@ export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootP
         {publishedDocs.map((docSystem) => {
           const content = docSystem.content?.content || '';
           const subsections = docSystem.content?.subsections || [];
+          const safeContent = sanitizeHtml(
+            content.split('\n\n').map((p) => `<p>${p}</p>`).join('')
+          );
           
           return (
             <div key={docSystem.id} className="space-y-8">
@@ -92,7 +96,7 @@ export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootP
                 <section className="prose prose-lg max-w-none">
                   <div
                     className="text-purple-100/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: content.split('\n\n').map(p => `<p>${p}</p>`).join('') }}
+                    dangerouslySetInnerHTML={{ __html: safeContent }}
                   />
                 </section>
               )}
@@ -104,7 +108,7 @@ export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootP
                       <h3 className="text-2xl font-semibold text-purple-50 mb-3">{subsection.title || 'Untitled Section'}</h3>
                       <div
                         className="text-purple-100/80 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: subsection.content || '<p>No content provided.</p>' }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(subsection.content || '<p>No content provided.</p>') }}
                       />
                     </section>
                   ))}

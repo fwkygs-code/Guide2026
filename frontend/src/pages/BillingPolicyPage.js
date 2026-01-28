@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 const BillingPolicyPage = () => {
   const { t } = useTranslation();
@@ -57,7 +58,7 @@ const BillingPolicyPage = () => {
               </p>
               <ul className="list-disc list-inside text-foreground space-y-2 ml-4">
                 {t('portal.billing.plansAndPricing.items', { returnObjects: true }).map((item, index) => (
-                  <li key={index} dangerouslySetInnerHTML={{ __html: item }} />
+                  <li key={index} dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
                 ))}
               </ul>
               <p className="text-foreground leading-relaxed">

@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
+import sanitizeHtml from '../lib/sanitizeHtml';
 import { BLOCK_TYPES, createBlock, getBlockLabelKey, getBlockLabel, getBlockIcon, getAllBlockTypes } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
 import RichTextEditor from '../components/canvas-builder/RichTextEditor';
@@ -2054,7 +2055,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             <div className="border border-border rounded-lg p-4">
               <div 
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: block.data.html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.html || '') }}
               />
             </div>
           )}
@@ -3581,7 +3582,7 @@ const CarouselBlockEditor = ({ block, onUpdate, workspaceId, canUploadFile }) =>
           <div className="px-2 mt-2">
             <div 
               className="prose prose-sm max-w-none bg-transparent text-foreground rounded-lg px-4 py-3"
-              dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentSlide.caption || '') }}
             />
           </div>
         )}

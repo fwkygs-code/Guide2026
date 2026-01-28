@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DocumentationDraft, DocumentationMeta, DocumentationSection } from './model';
 import { createDocumentationEntry, loadDocumentationDraft, loadDocumentationMeta, publishDocumentation, saveDocumentationDraft } from './service';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 type DocumentationEditorRootProps = {
   workspaceId?: string;
@@ -74,7 +75,7 @@ const renderPreviewSection = (section: DocumentationSection, depth: number) => (
     </h3>
     <div
       className="mt-2 text-purple-100/80 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: section.content || '<p>No content provided.</p>' }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(section.content || '<p>No content provided.</p>') }}
     />
     {section.codeBlock && (
       <pre className="mt-4 bg-slate-950/80 border border-purple-500/20 rounded-xl p-4 text-sm text-purple-100 overflow-x-auto">

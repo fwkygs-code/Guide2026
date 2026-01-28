@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { procedurePortalApiClient } from './portal-api-client';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 type ProcedurePortalRootProps = {
   portalSlug?: string;
@@ -103,7 +104,7 @@ export const ProcedurePortalRoot = ({ portalSlug }: ProcedurePortalRootProps) =>
                           </div>
                           <div
                             className="mt-4 text-cyan-50/90 leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: step.description || '<p>No instructions provided.</p>' }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(step.description || '<p>No instructions provided.</p>') }}
                           />
                         </div>
                       </div>

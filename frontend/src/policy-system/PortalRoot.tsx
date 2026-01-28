@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PolicyDraft, POLICY_MODEL_VERSION } from './model';
 import { policyPortalApiClient } from './portal-api-client';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 type PolicyPortalRootProps = {
   portalSlug?: string;
@@ -122,7 +123,7 @@ export const PolicyPortalRoot = ({ portalSlug }: PolicyPortalRootProps) => {
                     </div>
                     <div
                       className="mt-6 space-y-4 text-amber-50/90 leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: section.content || '<p>No content provided.</p>' }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(section.content || '<p>No content provided.</p>') }}
                     />
                   </article>
                 ))

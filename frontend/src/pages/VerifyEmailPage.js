@@ -15,6 +15,7 @@ const rawBase =
 
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
+axios.defaults.withCredentials = true;
 
 const VerifyEmailPage = () => {
   const { t } = useTranslation();
@@ -116,11 +117,7 @@ const VerifyEmailPage = () => {
 
     setResending(true);
     try {
-      await axios.post(`${API}/auth/resend-verification`, {}, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await axios.post(`${API}/auth/resend-verification`, {});
       toast.success('Verification email sent! Please check your inbox.');
       setMessage('Verification email sent. Please check your inbox.');
     } catch (error) {

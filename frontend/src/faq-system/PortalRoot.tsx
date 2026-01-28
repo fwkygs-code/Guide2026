@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { faqPortalApiClient } from './portal-api-client';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 type FAQPortalRootProps = {
   portalSlug?: string;
@@ -123,7 +124,7 @@ export const FAQPortalRoot = ({ portalSlug }: FAQPortalRootProps) => {
               {openId === faqId && answer && (
                 <div
                   className="mt-4 text-emerald-100/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: answer }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(answer) }}
                 />
               )}
               {category && (

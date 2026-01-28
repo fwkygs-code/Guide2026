@@ -12,22 +12,6 @@
  */
 
 import { api } from '../lib/api';
-import axios from 'axios';
-
-// Set auth token for all requests
-export const setAuthToken = (token) => {
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete axios.defaults.headers.common['Authorization'];
-  }
-};
-
-// Initialize auth token from localStorage
-const token = localStorage.getItem('token');
-if (token) {
-  setAuthToken(token);
-}
 
 // ==========================================
 // POLICY SYSTEM

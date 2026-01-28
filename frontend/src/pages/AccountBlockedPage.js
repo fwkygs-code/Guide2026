@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ShieldX, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * AccountBlockedPage - Shown when user account is disabled or deleted
@@ -10,10 +11,11 @@ import { Button } from '@/components/ui/button';
 const AccountBlockedPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
     // Clear auth and redirect to login
-    localStorage.removeItem('token');
+    logout();
     navigate('/login');
   };
 

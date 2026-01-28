@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FAQDraft, FAQItem, FAQMeta } from './model';
 import { createFAQEntry, loadFAQDraft, loadFAQMeta, publishFAQ, saveFAQDraft } from './service';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 type FAQEditorRootProps = {
   workspaceId?: string;
@@ -322,7 +323,7 @@ export const FAQEditorRoot = ({ workspaceId, itemId, closeHref }: FAQEditorRootP
                 <h3 className="text-lg font-semibold">{item.question || 'Untitled question'}</h3>
                 <div
                   className="mt-2 text-emerald-100/80"
-                  dangerouslySetInnerHTML={{ __html: item.answer || '<p>No answer yet.</p>' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.answer || '<p>No answer yet.</p>') }}
                 />
               </div>
             ))}

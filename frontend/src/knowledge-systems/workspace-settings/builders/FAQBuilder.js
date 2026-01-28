@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, HelpCircle, Plus, Trash2, GripVertical, Eye, EyeOff } from 'lucide-react';
 import RichTextEditor from '../../../components/canvas-builder/RichTextEditor';
+import sanitizeHtml from '../../../lib/sanitizeHtml';
 
 /**
  * FAQ Builder Interface
@@ -283,7 +284,7 @@ function FaqPreview({ faqs }) {
                     </div>
                     <div className="flex-1 text-emerald-50/90 prose prose-sm max-w-none">
                       {faq.answer ? (
-                        <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
+                        <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(faq.answer) }} />
                       ) : (
                         <span className="text-slate-500 italic">No answer provided yet</span>
                       )}

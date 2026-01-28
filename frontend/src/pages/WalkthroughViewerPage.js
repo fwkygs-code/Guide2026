@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { detectRTL } from '../utils/blockUtils';
+import sanitizeHtml from '../lib/sanitizeHtml';
 
 const rawBase =
   process.env.REACT_APP_API_URL ||
@@ -22,6 +23,7 @@ const rawBase =
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
 const API = `${API_BASE.replace(/\/$/, '')}/api`;
+axios.defaults.withCredentials = true;
 
 const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const { slug, walkthroughId } = useParams();
@@ -279,10 +281,17 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   }, [currentStep, walkthrough]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsLoggedIn(true);
-    }
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get(`${API}/auth/me`, {
+          validateStatus: (status) => status < 500
+        });
+        setIsLoggedIn(response.status === 200);
+      } catch (error) {
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuth();
     fetchWalkthrough();
   }, [slug, walkthroughId]);
 
@@ -676,14 +685,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             block.data?.level === 1 ? 'text-3xl' :
                             block.data?.level === 2 ? 'text-2xl' : 'text-xl'
                           }`}
-                          dangerouslySetInnerHTML={{ __html: block.data?.content || '' }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || '') }}
                         />
                       )}
                       {block.type === 'text' && (
                         <div
                           className="prose max-w-none text-foreground"
                           style={{ direction: detectRTL(block.data?.content) ? 'rtl' : 'ltr' }}
-                          dangerouslySetInnerHTML={{ __html: block.data?.content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || '') }}
                         />
                       )}
                       {block.type === 'image' && (() => {
@@ -985,11 +994,11 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         <div className="border-l-4 border-warning/40 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none">
                           <h4 
                             className="font-semibold text-foreground mb-1 relative z-10"
-                            dangerouslySetInnerHTML={{ __html: block.data?.title || '' }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.title || '') }}
                           />
                           <div 
                             className="text-foreground relative z-10 prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: block.data?.explanation || '' }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.explanation || '') }}
                           />
                         </div>
                       )}
@@ -1023,7 +1032,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             </span>
                             <div
                               className="prose prose-sm max-w-none text-foreground"
-                              dangerouslySetInnerHTML={{ __html: block.data?.content || block.data?.text || '' }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || block.data?.text || '') }}
                             />
                           </div>
                         </div>
@@ -1121,7 +1130,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           {block.data?.content && (
                             <div
                               className="prose prose-sm max-w-none text-foreground"
-                              dangerouslySetInnerHTML={{ __html: block.data.content }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || '') }}
                             />
                           )}
                         </div>
@@ -1134,7 +1143,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           />
                           <div
                             className="prose prose-sm max-w-none text-foreground flex-1"
-                            dangerouslySetInnerHTML={{ __html: block.data?.message || '' }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.message || '') }}
                           />
                         </div>
                       )}
@@ -1189,7 +1198,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {step?.content && !step?.blocks?.length && (
                 <div 
                   className="prose max-w-none mb-8 text-foreground"
-                  dangerouslySetInnerHTML={{ __html: step?.content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(step?.content || '') }}
                   data-testid="step-content"
                 />
               )}
@@ -2120,7 +2129,7 @@ const CarouselViewer = ({ slides }) => {
         <div className="px-2">
           <div 
             className="prose prose-sm max-w-none bg-transparent text-foreground rounded-lg px-4 py-3"
-            dangerouslySetInnerHTML={{ __html: currentSlide.caption }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentSlide.caption || '') }}
           />
         </div>
       )}
