@@ -176,7 +176,8 @@ if not RESEND_FROM_EMAIL or '@' not in RESEND_FROM_EMAIL:
     logging.warning("Using Resend test domain (onboarding@resend.dev) as fallback")
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
 RESEND_API_URL = "https://api.resend.com/emails"
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://interguide.app')
+# Frontend origin (production)
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://www.interguide.app')
 # Main domain for email verification links (should always be the production domain)
 MAIN_DOMAIN = 'https://www.interguide.app'
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
@@ -1029,19 +1030,21 @@ def set_auth_cookie(response: Response, token: str) -> None:
         key=AUTH_COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=COOKIE_SECURE,
-        samesite=COOKIE_SAMESITE,
+        secure=True,
+        samesite="None",
         max_age=JWT_EXPIRATION_HOURS * 60 * 60,
-        path="/"
+        path="/",
+        domain=".interguide.app"
     )
 
 def clear_auth_cookie(response: Response) -> None:
     response.delete_cookie(
         key=AUTH_COOKIE_NAME,
         httponly=True,
-        secure=COOKIE_SECURE,
-        samesite=COOKIE_SAMESITE,
-        path="/"
+        secure=True,
+        samesite="None",
+        path="/",
+        domain=".interguide.app"
     )
 
 async def get_current_user(
@@ -8515,27 +8518,12 @@ async def health_check_api():
 
 # CORS - MUST be added BEFORE router to handle preflight requests
 # IMPORTANT: allow_credentials=True requires explicit origins (no "*").
-raw_cors_origins = os.environ.get("CORS_ORIGINS", "")
-cors_origins = [
-    o.strip() for o in raw_cors_origins.split(",")
-    if o.strip() and o.strip() != "*"
-]
-
-# Always include canonical frontend origins (handles www vs non-www)
-frontend_origins = {FRONTEND_URL, "https://interguide.app", "https://www.interguide.app"}
-for origin in list(frontend_origins):
-    if origin.startswith("https://www."):
-        frontend_origins.add(origin.replace("https://www.", "https://", 1))
-    elif origin.startswith("https://"):
-        frontend_origins.add(origin.replace("https://", "https://www.", 1))
-
-cors_origins = list({*cors_origins, *frontend_origins})
+cors_origins = ["https://www.interguide.app", "https://interguide.app"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=cors_origins,
-    allow_origin_regex=r"^https://(www\.)?interguide\.app$",
     allow_methods=["*"],
     allow_headers=[
         "Content-Type",
