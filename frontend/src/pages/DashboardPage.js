@@ -143,18 +143,28 @@ const DashboardPage = () => {
         title={t('dashboard.welcome', { name: user?.name })}
         description={t('dashboard.manageWorkspaces')}
         actions={
-          <Button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('onboarding:createWorkspace'));
-              setCreateDialogOpen(true);
-            }}
-            className="rounded-full"
-            data-testid="create-workspace-button"
-            data-onboarding="create-workspace-button"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t('dashboard.newWorkspace')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setUpgradePromptOpen(true)}
+              className="rounded-full"
+              data-testid="upgrade-plan-button"
+            >
+              {t('quota.upgrade')}
+            </Button>
+            <Button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('onboarding:createWorkspace'));
+                setCreateDialogOpen(true);
+              }}
+              className="rounded-full"
+              data-testid="create-workspace-button"
+              data-onboarding="create-workspace-button"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t('dashboard.newWorkspace')}
+            </Button>
+          </div>
         }
       />
 
