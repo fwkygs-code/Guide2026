@@ -61,7 +61,13 @@ if JWT_SECRET == 'your-secret-key-change-in-production':
 
 APP_ENV = os.environ.get('APP_ENV', 'development').lower()
 AUTH_COOKIE_NAME = os.environ.get('AUTH_COOKIE_NAME', 'ig_access_token')
-COOKIE_SECURE = APP_ENV != 'development'
+# Cross-site auth cookies require SameSite=None and Secure=true in production.
+if APP_ENV == 'development':
+    COOKIE_SECURE = False
+    COOKIE_SAMESITE = "Lax"
+else:
+    COOKIE_SECURE = True
+    COOKIE_SAMESITE = "None"
 
 # Create the main app
 app = FastAPI()
@@ -1020,7 +1026,7 @@ def set_auth_cookie(response: Response, token: str) -> None:
         value=token,
         httponly=True,
         secure=COOKIE_SECURE,
-        samesite="Lax",
+        samesite=COOKIE_SAMESITE,
         max_age=JWT_EXPIRATION_HOURS * 60 * 60,
         path="/"
     )
@@ -1028,6 +1034,8 @@ def set_auth_cookie(response: Response, token: str) -> None:
 def clear_auth_cookie(response: Response) -> None:
     response.delete_cookie(
         key=AUTH_COOKIE_NAME,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
         path="/"
     )
 
