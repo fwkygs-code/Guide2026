@@ -2766,7 +2766,13 @@ async def get_notifications(current_user: User = Depends(get_current_user)):
                     continue
         filtered_notifications.append(n)
     
-    return [Notification(**n) for n in filtered_notifications]
+    safe_notifications = []
+    for n in filtered_notifications:
+        try:
+            safe_notifications.append(Notification(**n))
+        except Exception as error:
+            logging.error(f"[NOTIFICATIONS] Invalid notification payload skipped: {error}", exc_info=True)
+    return safe_notifications
 
 @api_router.post("/notifications/{notification_id}/read")
 async def mark_notification_read(notification_id: str, current_user: User = Depends(get_current_user)):
