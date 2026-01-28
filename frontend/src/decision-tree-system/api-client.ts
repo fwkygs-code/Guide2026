@@ -3,7 +3,30 @@
  * Handles all backend communication for decision tree management
  */
 
-import { apiClient } from '../lib/api';
+const rawBase =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://127.0.0.1:8000';
+
+const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+const API = `${API_BASE.replace(/\/$/, '')}/api`;
+
+const request = async (path: string, options: RequestInit = {}) => {
+  const response = await fetch(`${API}${path}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    },
+    ...options
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    throw new Error(data?.detail || 'Request failed');
+  }
+  return data;
+};
 
 export interface DecisionTreeContent {
   nodes?: Array<{
@@ -34,32 +57,43 @@ export interface DecisionTreeSystem {
 
 export const decisionTreeApiClient = {
   async create(workspaceId: string, title: string, description: string = ''): Promise<DecisionTreeSystem> {
-    const response = await apiClient.post(`/workspaces/${workspaceId}/knowledge-systems`, {
-      title,
-      description,
-      system_type: 'decision_tree',
-      content: { nodes: [], rootNodeId: null },
-      status: 'draft'
+    const response = await request(`/workspaces/${workspaceId}/knowledge-systems`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        description,
+        system_type: 'decision_tree',
+        content: { nodes: [], rootNodeId: null },
+        status: 'draft'
+      })
     });
-    return response.data;
+    return response;
   },
 
   async getById(workspaceId: string, systemId: string): Promise<DecisionTreeSystem> {
-    const response = await apiClient.get(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
-    return response.data;
+    const response = await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
+    return response;
   },
 
   async update(workspaceId: string, systemId: string, data: { title: string; description: string; content: DecisionTreeContent }): Promise<DecisionTreeSystem> {
-    const response = await apiClient.put(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, data);
-    return response.data;
+    const response = await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    return response;
   },
 
   async publish(workspaceId: string, systemId: string): Promise<DecisionTreeSystem> {
-    const response = await apiClient.put(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, { status: 'published' });
-    return response.data;
+    const response = await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: 'published' })
+    });
+    return response;
   },
 
   async delete(workspaceId: string, systemId: string): Promise<void> {
-    await apiClient.delete(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
+    await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, {
+      method: 'DELETE'
+    });
   }
 };
