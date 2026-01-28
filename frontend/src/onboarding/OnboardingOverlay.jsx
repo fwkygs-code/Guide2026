@@ -48,16 +48,16 @@ const OnboardingOverlay = ({
   const paddedRect = useMemo(() => getPaddedRect(rect), [rect]);
 
   useLayoutEffect(() => {
-    if (!tooltipRef.current) return;
-    
     // Don't render overlay until target is ready or there's no target
     if (isWaiting) {
       setShouldRender(false);
       return;
     }
-    
+
     setShouldRender(true);
-    
+
+    if (!tooltipRef.current) return;
+
     if (!paddedRect || typeof window === 'undefined') {
       setTooltipStyle({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
       return;
