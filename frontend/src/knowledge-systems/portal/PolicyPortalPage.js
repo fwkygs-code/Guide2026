@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
-import axios from 'axios';
 
 /**
  * Policy Portal Page - Authoritative Display

@@ -8,21 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import axios from 'axios';
+import { apiClient, API_BASE } from '../lib/api';
 import { normalizeImageUrl } from '../lib/utils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
 import { AppShell } from '../components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
-
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
-axios.defaults.withCredentials = true;
 
 // Get backend URL for sharing (WhatsApp previews need backend route)
 const getBackendUrl = () => {
@@ -54,7 +46,7 @@ const PortalPage = ({ isEmbedded = false }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get(`${API}/auth/me`, {
+        const response = await apiClient.get(`/auth/me`, {
           validateStatus: (status) => status < 500
         });
         setIsLoggedIn(response.status === 200);
@@ -145,7 +137,7 @@ const PortalPage = ({ isEmbedded = false }) => {
 
   const fetchPortal = async () => {
     try {
-      const response = await axios.get(`${API}/portal/${slug}`);
+      const response = await apiClient.get(`/portal/${slug}`);
       setPortal(response.data);
       // Debug: Log workspace logo
       if (response.data?.workspace?.logo) {

@@ -1,20 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiClient, API, API_BASE } from '../lib/api';
 
 const AuthContext = createContext();
-
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL || // backwards compatibility
-  'http://127.0.0.1:8000';
-
-// Render `fromService.property: host` provides a bare hostname (no scheme).
-// Axios needs a full URL, otherwise it becomes a relative path on the frontend origin.
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
-
-axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -42,19 +30,24 @@ export const AuthProvider = ({ children }) => {
         setTimeout(() => reject(new Error('Request timeout')), 20000)
       );
       const response = await Promise.race([
-        axios.get(`${API}/auth/me`, {
+        apiClient.get(`/auth/me`, {
           timeout: 20000, // Also set axios timeout
           validateStatus: (status) => status < 500 // Don't throw on 401/403
         }),
         timeoutPromise
       ]);
-      setUser(response.data);
+      if (response.status === 200) {
+        setUser(response.data);
+        setLoading(false);
+        return;
+      }
+      // Block initialization until /auth/me succeeds
+      return;
     } catch (error) {
       console.error('Failed to fetch user:', error);
       // Check if account is disabled or deleted (403)
       if (error.response?.status === 403) {
         setIsBlocked(true);
-        setLoading(false);
         return;
       }
       // Only logout on actual auth errors (401), not timeouts or network errors
@@ -64,8 +57,6 @@ export const AuthProvider = ({ children }) => {
       // For timeouts or network errors, just clear loading state
       // Don't logout - user might still have valid token, just slow connection
       // This prevents the "Failed to fetch user" error from blocking the app
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -122,7 +113,7 @@ export const AuthProvider = ({ children }) => {
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
           const response = await Promise.race([
-            axios.post(`${API}/auth/login`, { email, password }, {
+            apiClient.post(`/auth/login`, { email, password }, {
               timeout: 45000, // Also set axios timeout - longer for wake-up
               headers: {
                 'Content-Type': 'application/json'
@@ -130,12 +121,15 @@ export const AuthProvider = ({ children }) => {
             }),
             timeoutPromise
           ]);
-          
-          // Success - break out of retry loop
-          const data = response.data || {};
-          const user = data.user;
-          setUser(user); // Set user immediately from login response
-          // Don't fetch user again - we already have it from login response
+          const meResponse = await apiClient.get(`/auth/me`, {
+            timeout: 20000,
+            validateStatus: (status) => status < 500
+          });
+          if (meResponse.status !== 200) {
+            throw new Error('Auth session not established');
+          }
+          const user = meResponse.data;
+          setUser(user);
           setLoading(false);
           return user;
         } catch (error) {
@@ -187,16 +181,22 @@ export const AuthProvider = ({ children }) => {
         setTimeout(() => reject(new Error('Signup request timeout')), 30000)
       );
       const response = await Promise.race([
-        axios.post(`${API}/auth/signup`, { email, password, name }, {
+        apiClient.post(`/auth/signup`, { email, password, name }, {
           timeout: 30000 // Also set axios timeout
         }),
         timeoutPromise
       ]);
       const data = response.data || {};
-      const user = data.user;
       const email_verification_sent = data.email_verification_sent;
-      setUser(user); // Set user immediately from signup response
-      // Don't fetch user again - we already have it from signup response
+      const meResponse = await apiClient.get(`/auth/me`, {
+        timeout: 20000,
+        validateStatus: (status) => status < 500
+      });
+      if (meResponse.status !== 200) {
+        throw new Error('Auth session not established');
+      }
+      const user = meResponse.data;
+      setUser(user);
       setLoading(false);
       return { user, email_verification_sent };
     } catch (error) {
@@ -210,7 +210,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post(`${API}/auth/logout`);
+        await apiClient.post(`/auth/logout`);
     } catch (error) {
       console.warn('Logout request failed:', error);
     } finally {

@@ -5,7 +5,7 @@ import { ArrowLeft, BookOpen, FileText, Hash, Clock, Layers } from 'lucide-react
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
-import axios from 'axios';
+import { apiClient } from '../../lib/api';
 import { DocumentationSystem } from './model';
 import { getPublishedDocumentationSystems } from './service';
 
@@ -22,7 +22,7 @@ export function DocumentationPortalRoot() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      const portalResponse = await axios.get(`/api/portal/${slug}`);
+      const portalResponse = await apiClient.get(`/portal/${slug}`);
       const workspaceId = portalResponse.data.workspace.id;
       const publishedSystems = getPublishedDocumentationSystems(workspaceId);
       const documentationSystem = publishedSystems[0];

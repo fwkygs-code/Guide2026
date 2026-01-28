@@ -11,19 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import axios from 'axios';
+import { apiClient, API_BASE } from '../lib/api';
 import { detectRTL } from '../utils/blockUtils';
 import sanitizeHtml from '../lib/sanitizeHtml';
 
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL || // backwards compatibility
-  'http://127.0.0.1:8000';
-
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
-axios.defaults.withCredentials = true;
 
 const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const { slug, walkthroughId } = useParams();
@@ -283,7 +274,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get(`${API}/auth/me`, {
+        const response = await apiClient.get(`/auth/me`, {
           validateStatus: (status) => status < 500
         });
         setIsLoggedIn(response.status === 200);
@@ -327,7 +318,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 
   const fetchWalkthrough = async () => {
     try {
-      const response = await axios.get(`${API}/portal/${slug}/walkthroughs/${walkthroughId}`);
+      const response = await apiClient.get(`/portal/${slug}/walkthroughs/${walkthroughId}`);
       setWalkthrough(response.data);
     } catch (error) {
       if (error.response?.status === 401) {
@@ -343,7 +334,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const submitPortalPassword = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API}/portal/${slug}/walkthroughs/${walkthroughId}/access`, {
+      const response = await apiClient.post(`/portal/${slug}/walkthroughs/${walkthroughId}/access`, {
         password: portalPassword
       });
       setWalkthrough(response.data);
@@ -356,7 +347,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 
   const trackEvent = async (eventType, stepId = null) => {
     try {
-      await axios.post(`${API}/analytics/event`, {
+      await apiClient.post(`/analytics/event`, {
         walkthrough_id: walkthroughId,
         event_type: eventType,
         step_id: stepId,
@@ -370,8 +361,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API}/auth/login`, { email, password });
-      localStorage.setItem('token', response.data.token);
+      await apiClient.post(`/auth/login`, { email, password });
       setIsLoggedIn(true);
       setShowAuthDialog(false);
       toast.success(t('toast.welcomeBack'));
@@ -383,8 +373,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API}/auth/signup`, { email, password, name });
-      localStorage.setItem('token', response.data.token);
+      await apiClient.post(`/auth/signup`, { email, password, name });
       setIsLoggedIn(true);
       setShowAuthDialog(false);
       toast.success(t('toast.accountCreatedShort'));

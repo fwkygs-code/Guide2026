@@ -8,11 +8,13 @@ const rawBase =
   'http://127.0.0.1:8000';
 
 // Render `fromService.property: host` provides a bare hostname (no scheme).
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
+export const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
-
-axios.defaults.withCredentials = true;
+export const API = `${API_BASE.replace(/\/$/, '')}/api`;
+export const apiClient = axios.create({
+  baseURL: API,
+  withCredentials: true
+});
 
 // Get backend URL for sharing (WhatsApp previews need backend route)
 export const getBackendUrl = () => {
@@ -22,67 +24,67 @@ export const getBackendUrl = () => {
 
 export const api = {
   // Workspaces
-  createWorkspace: (data) => axios.post(`${API}/workspaces`, data),
-  getWorkspaces: () => axios.get(`${API}/workspaces`),
-  getWorkspace: (id) => axios.get(`${API}/workspaces/${id}`),
-  updateWorkspace: (id, data) => axios.put(`${API}/workspaces/${id}`, data),
-  deleteWorkspace: (id) => axios.delete(`${API}/workspaces/${id}`),
+  createWorkspace: (data) => apiClient.post(`/workspaces`, data),
+  getWorkspaces: () => apiClient.get(`/workspaces`),
+  getWorkspace: (id) => apiClient.get(`/workspaces/${id}`),
+  updateWorkspace: (id, data) => apiClient.put(`/workspaces/${id}`, data),
+  deleteWorkspace: (id) => apiClient.delete(`/workspaces/${id}`),
 
   // Categories
-  createCategory: (workspaceId, data) => axios.post(`${API}/workspaces/${workspaceId}/categories`, data),
-  getCategories: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/categories`),
-  updateCategory: (workspaceId, categoryId, data) => axios.put(`${API}/workspaces/${workspaceId}/categories/${categoryId}`, data),
-  deleteCategory: (workspaceId, categoryId) => axios.delete(`${API}/workspaces/${workspaceId}/categories/${categoryId}`),
+  createCategory: (workspaceId, data) => apiClient.post(`/workspaces/${workspaceId}/categories`, data),
+  getCategories: (workspaceId) => apiClient.get(`/workspaces/${workspaceId}/categories`),
+  updateCategory: (workspaceId, categoryId, data) => apiClient.put(`/workspaces/${workspaceId}/categories/${categoryId}`, data),
+  deleteCategory: (workspaceId, categoryId) => apiClient.delete(`/workspaces/${workspaceId}/categories/${categoryId}`),
 
   // Walkthroughs
-  createWalkthrough: (workspaceId, data) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs`, data),
-  getWalkthroughs: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs`),
-  getArchivedWalkthroughs: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs-archived`),
-  getWalkthrough: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}`),
-  updateWalkthrough: (workspaceId, id, data) => axios.put(`${API}/workspaces/${workspaceId}/walkthroughs/${id}`, data),
-  getWalkthroughVersions: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/versions`),
-  deleteWalkthroughVersion: (workspaceId, id, version) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/versions/${version}`),
-  rollbackWalkthrough: (workspaceId, id, version) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/rollback/${version}`),
-  diagnoseWalkthrough: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/diagnose`),
-  diagnoseBlocks: (workspaceId, id) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/diagnose-blocks`),
+  createWalkthrough: (workspaceId, data) => apiClient.post(`/workspaces/${workspaceId}/walkthroughs`, data),
+  getWalkthroughs: (workspaceId) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs`),
+  getArchivedWalkthroughs: (workspaceId) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs-archived`),
+  getWalkthrough: (workspaceId, id) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs/${id}`),
+  updateWalkthrough: (workspaceId, id, data) => apiClient.put(`/workspaces/${workspaceId}/walkthroughs/${id}`, data),
+  getWalkthroughVersions: (workspaceId, id) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs/${id}/versions`),
+  deleteWalkthroughVersion: (workspaceId, id, version) => apiClient.delete(`/workspaces/${workspaceId}/walkthroughs/${id}/versions/${version}`),
+  rollbackWalkthrough: (workspaceId, id, version) => apiClient.post(`/workspaces/${workspaceId}/walkthroughs/${id}/rollback/${version}`),
+  diagnoseWalkthrough: (workspaceId, id) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs/${id}/diagnose`),
+  diagnoseBlocks: (workspaceId, id) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs/${id}/diagnose-blocks`),
   recoverBlocks: (workspaceId, id, versionNumber = null) => {
     const body = versionNumber !== null ? { version_number: versionNumber } : {};
-    return axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/recover-blocks`, body);
+    return apiClient.post(`/workspaces/${workspaceId}/walkthroughs/${id}/recover-blocks`, body);
   },
-  archiveWalkthrough: (workspaceId, id) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/archive`),
-  restoreWalkthrough: (workspaceId, id) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/restore`),
-  permanentlyDeleteWalkthrough: (workspaceId, id) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${id}/permanent`),
-  deleteWalkthrough: (workspaceId, id) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${id}`),
+  archiveWalkthrough: (workspaceId, id) => apiClient.post(`/workspaces/${workspaceId}/walkthroughs/${id}/archive`),
+  restoreWalkthrough: (workspaceId, id) => apiClient.post(`/workspaces/${workspaceId}/walkthroughs/${id}/restore`),
+  permanentlyDeleteWalkthrough: (workspaceId, id) => apiClient.delete(`/workspaces/${workspaceId}/walkthroughs/${id}/permanent`),
+  deleteWalkthrough: (workspaceId, id) => apiClient.delete(`/workspaces/${workspaceId}/walkthroughs/${id}`),
 
   // Steps
-  addStep: (workspaceId, walkthroughId, data) => axios.post(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps`, data),
-  updateStep: (workspaceId, walkthroughId, stepId, data) => axios.put(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps/${stepId}`, data),
-  deleteStep: (workspaceId, walkthroughId, stepId) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps/${stepId}`),
+  addStep: (workspaceId, walkthroughId, data) => apiClient.post(`/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps`, data),
+  updateStep: (workspaceId, walkthroughId, stepId, data) => apiClient.put(`/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps/${stepId}`, data),
+  deleteStep: (workspaceId, walkthroughId, stepId) => apiClient.delete(`/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps/${stepId}`),
   reorderSteps: (workspaceId, walkthroughId, step_ids) =>
-    axios.put(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps/reorder`, { step_ids }),
+    apiClient.put(`/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/steps/reorder`, { step_ids }),
 
   // Portal
-  getPortal: (slug) => axios.get(`${API}/portal/${slug}`),
-  getPublicWalkthrough: (slug, walkthroughId) => axios.get(`${API}/portal/${slug}/walkthroughs/${walkthroughId}`),
+  getPortal: (slug) => apiClient.get(`/portal/${slug}`),
+  getPublicWalkthrough: (slug, walkthroughId) => apiClient.get(`/portal/${slug}/walkthroughs/${walkthroughId}`),
 
   // Analytics
-  trackEvent: (data) => axios.post(`${API}/analytics/event`, data),
-  getAnalytics: (workspaceId, walkthroughId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/analytics`),
-  resetAnalytics: (workspaceId, walkthroughId) => axios.delete(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/analytics`),
+  trackEvent: (data) => apiClient.post(`/analytics/event`, data),
+  getAnalytics: (workspaceId, walkthroughId) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/analytics`),
+  resetAnalytics: (workspaceId, walkthroughId) => apiClient.delete(`/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/analytics`),
 
   // Feedback
-  submitFeedback: (data) => axios.post(`${API}/feedback`, data),
-  getFeedback: (workspaceId, walkthroughId) => axios.get(`${API}/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/feedback`),
+  submitFeedback: (data) => apiClient.post(`/feedback`, data),
+  getFeedback: (workspaceId, walkthroughId) => apiClient.get(`/workspaces/${workspaceId}/walkthroughs/${walkthroughId}/feedback`),
 
   // Onboarding
-  getOnboardingStatus: () => axios.get(`${API}/onboarding/status`),
-  completeOnboarding: () => axios.post(`${API}/onboarding/complete`),
-  dismissOnboarding: () => axios.post(`${API}/onboarding/dismiss`),
+  getOnboardingStatus: () => apiClient.get(`/onboarding/status`),
+  completeOnboarding: () => apiClient.post(`/onboarding/complete`),
+  dismissOnboarding: () => apiClient.post(`/onboarding/dismiss`),
 
   // Password Reset
-  forgotPassword: (email) => axios.post(`${API}/auth/forgot-password`, { email }),
+  forgotPassword: (email) => apiClient.post(`/auth/forgot-password`, { email }),
   resetPassword: (token, newPassword, confirmPassword) =>
-    axios.post(`${API}/auth/reset-password`, { token, new_password: newPassword, confirm_password: confirmPassword }),
+    apiClient.post(`/auth/reset-password`, { token, new_password: newPassword, confirm_password: confirmPassword }),
 
   // Upload
   uploadFile: (file, options = {}) => {
@@ -121,7 +123,7 @@ export const api = {
     
     // Set timeout for large files (GIFs can be several MB)
     // 5 minutes should be enough for most files
-    const requestPromise = axios.post(`${API}/upload`, formData, { 
+    const requestPromise = apiClient.post(`/upload`, formData, { 
       headers,
       timeout: 300000, // 5 minutes for large files
       maxContentLength: Infinity,
@@ -149,36 +151,36 @@ export const api = {
   },
   
   // Quota & Plan
-  getUserPlan: () => axios.get(`${API}/users/me/plan`),
-  getWorkspaceQuota: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/quota`),
-  changePlan: (planName) => axios.put(`${API}/users/me/plan`, null, { params: { plan_name: planName } }),
-  getPlans: () => axios.get(`${API}/plans`),
+  getUserPlan: () => apiClient.get(`/users/me/plan`),
+  getWorkspaceQuota: (workspaceId) => apiClient.get(`/workspaces/${workspaceId}/quota`),
+  changePlan: (planName) => apiClient.put(`/users/me/plan`, null, { params: { plan_name: planName } }),
+  getPlans: () => apiClient.get(`/plans`),
   
   // PayPal Subscriptions
-  subscribePayPal: (data) => axios.post(`${API}/billing/paypal/subscribe`, data),
-  cancelPayPalSubscription: () => axios.post(`${API}/billing/paypal/cancel`),
+  subscribePayPal: (data) => apiClient.post(`/billing/paypal/subscribe`, data),
+  cancelPayPalSubscription: () => apiClient.post(`/billing/paypal/cancel`),
   // PRODUCTION HARDENING: Reconciliation endpoint (queries PayPal directly)
-  reconcileSubscription: () => axios.post(`${API}/billing/reconcile`),
+  reconcileSubscription: () => apiClient.post(`/billing/reconcile`),
   
   // File Management
-  deleteFile: (fileId) => axios.delete(`${API}/files/${fileId}`),
+  deleteFile: (fileId) => apiClient.delete(`/files/${fileId}`),
   
   // Notifications
-  getNotifications: () => axios.get(`${API}/notifications`),
-  markNotificationRead: (notificationId) => axios.post(`${API}/notifications/${notificationId}/read`),
-  deleteNotification: (notificationId) => axios.delete(`${API}/notifications/${notificationId}`),
+  getNotifications: () => apiClient.get(`/notifications`),
+  markNotificationRead: (notificationId) => apiClient.post(`/notifications/${notificationId}/read`),
+  deleteNotification: (notificationId) => apiClient.delete(`/notifications/${notificationId}`),
   
   // Workspace Invitations & Members
-  inviteUserToWorkspace: (workspaceId, email) => axios.post(`${API}/workspaces/${workspaceId}/invite`, { email }),
-  acceptInvitation: (workspaceId, invitationId) => axios.post(`${API}/workspaces/${workspaceId}/invitations/${invitationId}/accept`),
-  declineInvitation: (workspaceId, invitationId) => axios.post(`${API}/workspaces/${workspaceId}/invitations/${invitationId}/decline`),
-  removeWorkspaceMember: (workspaceId, userId) => axios.delete(`${API}/workspaces/${workspaceId}/members/${userId}`),
-  getWorkspaceMembers: (workspaceId) => axios.get(`${API}/workspaces/${workspaceId}/members`),
+  inviteUserToWorkspace: (workspaceId, email) => apiClient.post(`/workspaces/${workspaceId}/invite`, { email }),
+  acceptInvitation: (workspaceId, invitationId) => apiClient.post(`/workspaces/${workspaceId}/invitations/${invitationId}/accept`),
+  declineInvitation: (workspaceId, invitationId) => apiClient.post(`/workspaces/${workspaceId}/invitations/${invitationId}/decline`),
+  removeWorkspaceMember: (workspaceId, userId) => apiClient.delete(`/workspaces/${workspaceId}/members/${userId}`),
+  getWorkspaceMembers: (workspaceId) => apiClient.get(`/workspaces/${workspaceId}/members`),
   
   // Workspace Locking
   lockWorkspace: async (workspaceId, force = false) => {
     try {
-      const response = await axios.post(`${API}/workspaces/${workspaceId}/lock?force=${force}`);
+      const response = await apiClient.post(`/workspaces/${workspaceId}/lock?force=${force}`);
       return { success: true, locked: false, data: response.data };
     } catch (error) {
       if (error.response?.status === 409) {
@@ -198,7 +200,7 @@ export const api = {
       // If it fails with 409, return lock info without acquiring
       const response = await axios.post(`${API}/workspaces/${workspaceId}/lock?force=false`);
       // Lock acquired successfully, release it immediately (we just wanted to check)
-      await axios.delete(`${API}/workspaces/${workspaceId}/lock`).catch(() => {});
+      await apiClient.delete(`/workspaces/${workspaceId}/lock`).catch(() => {});
       return { success: true, locked: false };
     } catch (error) {
       if (error.response?.status === 409) {
@@ -211,88 +213,88 @@ export const api = {
       throw error;
     }
   },
-  unlockWorkspace: (workspaceId) => axios.delete(`${API}/workspaces/${workspaceId}/lock`),
+  unlockWorkspace: (workspaceId) => apiClient.delete(`/workspaces/${workspaceId}/lock`),
   
   // Admin endpoints
   // Users
   adminListUsers: (page = 1, limit = 50, search = null) => {
     const params = { page, limit };
     if (search) params.search = search;
-    return axios.get(`${API}/admin/users`, { params });
+    return apiClient.get(`/admin/users`, { params });
   },
-  adminGetUser: (userId) => axios.get(`${API}/admin/users/${userId}`),
-  adminUpdateUserRole: (userId, role) => axios.put(`${API}/admin/users/${userId}/role`, { role }),
-  adminUpdateUserPlan: (userId, planName) => axios.put(`${API}/admin/users/${userId}/plan`, { plan_name: planName }),
+  adminGetUser: (userId) => apiClient.get(`/admin/users/${userId}`),
+  adminUpdateUserRole: (userId, role) => apiClient.put(`/admin/users/${userId}/role`, { role }),
+  adminUpdateUserPlan: (userId, planName) => apiClient.put(`/admin/users/${userId}/plan`, { plan_name: planName }),
   
   // Subscriptions
   adminCreateManualSubscription: (userId, planName, durationDays = null) => 
-    axios.post(`${API}/admin/users/${userId}/subscription/manual`, { plan_name: planName, duration_days: durationDays }),
-  adminCancelSubscription: (userId) => axios.delete(`${API}/admin/users/${userId}/subscription`),
-  adminGetSubscription: (userId) => axios.get(`${API}/admin/users/${userId}/subscription`),
+    apiClient.post(`/admin/users/${userId}/subscription/manual`, { plan_name: planName, duration_days: durationDays }),
+  adminCancelSubscription: (userId) => apiClient.delete(`/admin/users/${userId}/subscription`),
+  adminGetSubscription: (userId) => apiClient.get(`/admin/users/${userId}/subscription`),
   adminUpdateSubscription: (userId, startedAt, effectiveEndDate, status) => 
-    axios.put(`${API}/admin/users/${userId}/subscription`, { 
+    apiClient.put(`/admin/users/${userId}/subscription`, { 
       started_at: startedAt, 
       effective_end_date: effectiveEndDate, 
       status: status 
     }),
   adminSendPaymentReminder: (userId, message = null) => 
-    axios.post(`${API}/admin/users/${userId}/payment-reminder`, { message }),
+    apiClient.post(`/admin/users/${userId}/payment-reminder`, { message }),
   
   // User management
-  adminDisableUser: (userId) => axios.put(`${API}/admin/users/${userId}/disable`),
-  adminEnableUser: (userId) => axios.put(`${API}/admin/users/${userId}/enable`),
-  adminDowngradeUser: (userId) => axios.put(`${API}/admin/users/${userId}/plan/downgrade`),
-  adminUpgradeUser: (userId) => axios.put(`${API}/admin/users/${userId}/plan/upgrade`),
+  adminDisableUser: (userId) => apiClient.put(`/admin/users/${userId}/disable`),
+  adminEnableUser: (userId) => apiClient.put(`/admin/users/${userId}/enable`),
+  adminDowngradeUser: (userId) => apiClient.put(`/admin/users/${userId}/plan/downgrade`),
+  adminUpgradeUser: (userId) => apiClient.put(`/admin/users/${userId}/plan/upgrade`),
   adminSetGracePeriod: (userId, gracePeriodEndsAt) => 
-    axios.put(`${API}/admin/users/${userId}/grace-period`, { grace_period_ends_at: gracePeriodEndsAt }),
+    apiClient.put(`/admin/users/${userId}/grace-period`, { grace_period_ends_at: gracePeriodEndsAt }),
   adminSetCustomQuota: (userId, storageBytes, maxWorkspaces, maxWalkthroughs) => 
-    axios.put(`${API}/admin/users/${userId}/quota`, { 
+    apiClient.put(`/admin/users/${userId}/quota`, { 
       storage_bytes: storageBytes, 
       max_workspaces: maxWorkspaces, 
       max_walkthroughs: maxWalkthroughs 
     }),
-  adminSoftDeleteUser: (userId) => axios.put(`${API}/admin/users/${userId}/soft-delete`),
-  adminRestoreUser: (userId) => axios.put(`${API}/admin/users/${userId}/restore`),
-  adminHardDeleteUser: (userId) => axios.delete(`${API}/admin/users/${userId}?confirm=true`),
+  adminSoftDeleteUser: (userId) => apiClient.put(`/admin/users/${userId}/soft-delete`),
+  adminRestoreUser: (userId) => apiClient.put(`/admin/users/${userId}/restore`),
+  adminHardDeleteUser: (userId) => apiClient.delete(`/admin/users/${userId}?confirm=true`),
   
   // Stats
-  adminGetStats: () => axios.get(`${API}/admin/stats`),
+  adminGetStats: () => apiClient.get(`/admin/stats`),
   adminGetUserMemberships: (userId, page = 1, limit = 50) => {
-    return axios.get(`${API}/admin/users/${userId}/memberships`, { params: { page, limit } });
+    return apiClient.get(`/admin/users/${userId}/memberships`, { params: { page, limit } });
   },
   
   // Existing admin endpoints
   adminReconcileQuota: (userId = null, fixDiscrepancies = false) => {
     const params = { fix_discrepancies: fixDiscrepancies };
     if (userId) params.user_id = userId;
-    return axios.post(`${API}/admin/reconcile-quota`, null, { params });
+    return apiClient.post(`/admin/reconcile-quota`, null, { params });
   },
   adminCleanupFiles: (pendingHours = 24, failedDays = 7, dryRun = true) => 
-    axios.post(`${API}/admin/cleanup-files`, null, { 
+    apiClient.post(`/admin/cleanup-files`, null, { 
       params: { pending_hours: pendingHours, failed_days: failedDays, dry_run: dryRun } 
     }),
-  adminGetEmailConfig: () => axios.get(`${API}/admin/email/config`),
-  adminTestEmail: (email) => axios.post(`${API}/admin/email/test`, email),
-  adminGetPayPalAudit: (subscriptionId) => axios.get(`${API}/admin/paypal/audit/${subscriptionId}`),
-  adminGetPayPalState: (subscriptionId) => axios.get(`${API}/admin/paypal/state/${subscriptionId}`),
+  adminGetEmailConfig: () => apiClient.get(`/admin/email/config`),
+  adminTestEmail: (email) => apiClient.post(`/admin/email/test`, email),
+  adminGetPayPalAudit: (subscriptionId) => apiClient.get(`/admin/paypal/audit/${subscriptionId}`),
+  adminGetPayPalState: (subscriptionId) => apiClient.get(`/admin/paypal/state/${subscriptionId}`),
 
   // Knowledge Systems
-  createKnowledgeSystem: (workspaceId, data) => axios.post(`${API}/workspaces/${workspaceId}/knowledge-systems`, data),
+  createKnowledgeSystem: (workspaceId, data) => apiClient.post(`/workspaces/${workspaceId}/knowledge-systems`, data),
   getKnowledgeSystems: (workspaceId, systemType = null, status = null) => {
     const params = {};
     if (systemType) params.system_type = systemType;
     if (status) params.status = status;
-    return axios.get(`${API}/workspaces/${workspaceId}/knowledge-systems`, { params });
+    return apiClient.get(`/workspaces/${workspaceId}/knowledge-systems`, { params });
   },
-  getKnowledgeSystem: (workspaceId, systemId) => axios.get(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`),
-  updateKnowledgeSystem: (workspaceId, systemId, data) => axios.put(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`, data),
-  deleteKnowledgeSystem: (workspaceId, systemId) => axios.delete(`${API}/workspaces/${workspaceId}/knowledge-systems/${systemId}`),
+  getKnowledgeSystem: (workspaceId, systemId) => apiClient.get(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`),
+  updateKnowledgeSystem: (workspaceId, systemId, data) => apiClient.put(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, data),
+  deleteKnowledgeSystem: (workspaceId, systemId) => apiClient.delete(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`),
 
   // Public Portal Knowledge Systems (no auth)
   getPortalKnowledgeSystems: (slug, systemType = null) => {
     const params = {};
     if (systemType) params.system_type = systemType;
-    return axios.get(`${API}/portal/${slug}/knowledge-systems`, { params });
+    return apiClient.get(`/portal/${slug}/knowledge-systems`, { params });
   },
-  getPortalKnowledgeSystem: (slug, systemId) => axios.get(`${API}/portal/${slug}/knowledge-systems/${systemId}`)
+  getPortalKnowledgeSystem: (slug, systemId) => apiClient.get(`/portal/${slug}/knowledge-systems/${systemId}`)
 };

@@ -79,19 +79,36 @@ class TestSecurityInvariants:
         """Guard 6: Verify auth cookie attributes are cross-site safe in production."""
         import inspect
         source = inspect.getsource(server_module)
-        assert 'COOKIE_SAMESITE = "none"' in source, "SECURITY REGRESSION: COOKIE_SAMESITE must be 'none' in production"
+        assert 'COOKIE_SAMESITE = "None"' in source, "SECURITY REGRESSION: COOKIE_SAMESITE must be 'None' in production"
+        assert 'COOKIE_SAMESITE = "none"' not in source, "SECURITY REGRESSION: COOKIE_SAMESITE must not be lowercase"
+        assert 'COOKIE_SAMESITE = "lax"' not in source, "SECURITY REGRESSION: COOKIE_SAMESITE must not be lowercase"
         assert "COOKIE_SECURE = True" in source, "SECURITY REGRESSION: COOKIE_SECURE must be True in production"
         assert "samesite=COOKIE_SAMESITE" in source, "SECURITY REGRESSION: set_auth_cookie must use COOKIE_SAMESITE"
         assert "secure=COOKIE_SECURE" in source, "SECURITY REGRESSION: set_auth_cookie must use COOKIE_SECURE"
 
+    def test_cookie_clear_matches_set_attributes(self):
+        """Guard 7: Verify auth cookie clear matches set attributes."""
+        import inspect
+        set_source = inspect.getsource(server_module.set_auth_cookie)
+        clear_source = inspect.getsource(server_module.clear_auth_cookie)
+        for fragment in ["httponly=True", "secure=COOKIE_SECURE", "samesite=COOKIE_SAMESITE", 'path="/"']:
+            assert fragment in set_source, f"SECURITY REGRESSION: set_auth_cookie missing {fragment}"
+            assert fragment in clear_source, f"SECURITY REGRESSION: clear_auth_cookie missing {fragment}"
+
+    def test_app_env_default_is_development(self):
+        """Guard 8: Verify APP_ENV defaults to development."""
+        import inspect
+        source = inspect.getsource(server_module)
+        assert 'APP_ENV = os.environ.get(\'APP_ENV\', \'development\')' in source, "SECURITY REGRESSION: APP_ENV default must be development"
+
     def test_get_current_user_reads_cookie(self):
-        """Guard 7: Verify get_current_user reads from HttpOnly cookie."""
+        """Guard 9: Verify get_current_user reads from HttpOnly cookie."""
         import inspect
         source = inspect.getsource(get_current_user)
         assert "request.cookies.get(AUTH_COOKIE_NAME)" in source, "SECURITY REGRESSION: Cookie auth path missing"
 
     def test_cors_allows_credentials_and_headers(self):
-        """Guard 8: Verify CORS allows credentials and required headers."""
+        """Guard 10: Verify CORS allows credentials and required headers."""
         import inspect
         source = inspect.getsource(server_module)
         assert "allow_credentials=True" in source, "SECURITY REGRESSION: CORS must allow credentials"
@@ -104,6 +121,27 @@ class TestSecurityInvariants:
         ]
         for header in required_headers:
             assert header in source, f"SECURITY REGRESSION: CORS missing header {header}"
+
+    def test_api_client_with_credentials(self):
+        """Guard 11: Verify shared API client enforces withCredentials."""
+        api_path = Path(__file__).parent.parent / "frontend" / "src" / "lib" / "api.js"
+        api_source = api_path.read_text(encoding="utf-8")
+        assert "axios.create" in api_source, "SECURITY REGRESSION: Shared API client missing"
+        assert "withCredentials: true" in api_source, "SECURITY REGRESSION: API client must enforce withCredentials"
+        # No per-file overrides allowed
+        frontend_root = Path(__file__).parent.parent / "frontend" / "src"
+        for path in frontend_root.rglob("*.js"):
+            content = path.read_text(encoding="utf-8")
+            assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
+        for path in frontend_root.rglob("*.jsx"):
+            content = path.read_text(encoding="utf-8")
+            assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
+        for path in frontend_root.rglob("*.ts"):
+            content = path.read_text(encoding="utf-8")
+            assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
+        for path in frontend_root.rglob("*.tsx"):
+            content = path.read_text(encoding="utf-8")
+            assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
 
 
 if __name__ == "__main__":

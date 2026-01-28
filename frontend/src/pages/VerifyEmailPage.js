@@ -5,17 +5,9 @@ import { CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import axios from 'axios';
+import { apiClient } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
-
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
-axios.defaults.withCredentials = true;
 
 const VerifyEmailPage = () => {
   const { t } = useTranslation();
@@ -30,7 +22,7 @@ const VerifyEmailPage = () => {
 
   const verifyEmail = useCallback(async (token) => {
     try {
-      const response = await axios.get(`${API}/auth/verify-email`, {
+      const response = await apiClient.get(`/auth/verify-email`, {
         params: { token }
       });
       
@@ -117,7 +109,7 @@ const VerifyEmailPage = () => {
 
     setResending(true);
     try {
-      await axios.post(`${API}/auth/resend-verification`, {});
+      await apiClient.post(`/auth/resend-verification`, {});
       toast.success('Verification email sent! Please check your inbox.');
       setMessage('Verification email sent. Please check your inbox.');
     } catch (error) {

@@ -59,15 +59,15 @@ if len(JWT_SECRET) < 32:
 if JWT_SECRET == 'your-secret-key-change-in-production':
     raise RuntimeError("JWT_SECRET must not use default placeholder value")
 
-APP_ENV = os.environ.get('APP_ENV', 'production').lower()
+APP_ENV = os.environ.get('APP_ENV', 'development').lower()
 AUTH_COOKIE_NAME = os.environ.get('AUTH_COOKIE_NAME', 'ig_access_token')
 # Cross-site auth cookies require SameSite=None and Secure=true in production.
 if APP_ENV == 'development':
     COOKIE_SECURE = False
-    COOKIE_SAMESITE = "lax"
+    COOKIE_SAMESITE = "Lax"
 else:
     COOKIE_SECURE = True
-    COOKIE_SAMESITE = "none"
+    COOKIE_SAMESITE = "None"
 
 # Create the main app
 app = FastAPI()
@@ -1020,6 +1020,10 @@ def decode_token(token: str) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+_COOKIE_MISSING_LOGGED = False
+_COOKIE_INVALID_LOGGED = False
+_COOKIE_HEADER_FALLBACK_LOGGED = False
+
 def set_auth_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=AUTH_COOKIE_NAME,
@@ -1032,10 +1036,13 @@ def set_auth_cookie(response: Response, token: str) -> None:
     )
 
 def clear_auth_cookie(response: Response) -> None:
-    response.delete_cookie(
+    response.set_cookie(
         key=AUTH_COOKIE_NAME,
-        samesite=COOKIE_SAMESITE,
+        value="",
+        httponly=True,
         secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=0,
         path="/"
     )
 
@@ -1043,12 +1050,25 @@ async def get_current_user(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
 ):
-    token = credentials.credentials if credentials else None
+    global _COOKIE_MISSING_LOGGED, _COOKIE_INVALID_LOGGED, _COOKIE_HEADER_FALLBACK_LOGGED
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token and credentials:
+        if not _COOKIE_HEADER_FALLBACK_LOGGED:
+            logging.debug("[AUTH] Cookie missing; using Authorization header fallback.")
+            _COOKIE_HEADER_FALLBACK_LOGGED = True
+        token = credentials.credentials
     if not token:
-        token = request.cookies.get(AUTH_COOKIE_NAME)
-    if not token:
+        if not _COOKIE_MISSING_LOGGED:
+            logging.debug("[AUTH] Missing auth cookie.")
+            _COOKIE_MISSING_LOGGED = True
         raise HTTPException(status_code=401, detail="Not authenticated")
-    payload = decode_token(token)
+    try:
+        payload = decode_token(token)
+    except HTTPException:
+        if not _COOKIE_INVALID_LOGGED:
+            logging.debug("[AUTH] Invalid auth cookie.")
+            _COOKIE_INVALID_LOGGED = True
+        raise
     user = await db.users.find_one({"id": payload['user_id']}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
