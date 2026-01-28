@@ -217,7 +217,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-heading font-bold text-white group-hover:text-primary transition-colors">{t('quota.usage')}</h3>
         <div className="flex items-center gap-2">
-          {onUpgrade && !access_granted && (
+          {onUpgrade && (
             <Button size="sm" variant="default" onClick={onUpgrade}>
               {t('quota.upgrade')}
             </Button>
