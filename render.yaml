@@ -45,7 +45,7 @@ services:
       - key: SMTP_FROM_NAME
         value: "Guide2026"
       - key: FRONTEND_URL
-        value: "https://guide2026-frontend.onrender.com"
+        value: "https://www.interguide.app"
       # Custom domain (update if using custom domain)
       # - key: FRONTEND_URL
       #   value: "https://www.interguide.app"
@@ -68,7 +68,4 @@ services:
       - key: CI
         value: "false"
       - key: REACT_APP_API_URL
-        fromService:
-          name: guide2026-backend
-          type: web
-          property: url
+        value: "https://api.interguide.app"
