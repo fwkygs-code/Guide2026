@@ -20,6 +20,8 @@ const OnboardingController = () => {
   const [stepIndex, setStepIndex] = useState(session?.stepIndex || 0);
   const [domCheckTrigger, setDomCheckTrigger] = useState(0);
 
+  const isDismissed = status?.has_dismissed_onboarding === true;
+  const isCompleted = status?.has_completed_onboarding === true;
   const step = ONBOARDING_STEPS[stepIndex];
   const targetSelector = useMemo(() => {
     if (!step?.target) return null;
@@ -32,6 +34,9 @@ const OnboardingController = () => {
   const setStepRef = useRef(null);
 
   const setStep = useCallback((nextIndex, updates = {}) => {
+    if (isDismissed || isCompleted) {
+      return;
+    }
     if (nextIndex < 0 || nextIndex >= ONBOARDING_STEPS.length) {
       if (nextIndex >= ONBOARDING_STEPS.length) {
         markCompleted();
@@ -50,7 +55,7 @@ const OnboardingController = () => {
     setSession(nextSession);
     setStepIndex(nextIndex);
     setActive(true);
-  }, [user?.id]);
+  }, [user?.id, isDismissed, isCompleted, markCompleted]);
 
   // Update ref whenever setStep changes
   useEffect(() => {
@@ -185,11 +190,21 @@ const OnboardingController = () => {
   }, [user?.id, loading]);
 
   useEffect(() => {
+    if (!status) return;
+    if (isDismissed || isCompleted) {
+      clearOnboardingSession();
+      setActive(false);
+      setStepIndex(0);
+    }
+  }, [status, isDismissed, isCompleted]);
+
+  useEffect(() => {
     if (!user?.id || loading) {
       setActive(false);
       return;
     }
-    if (status?.has_completed_onboarding) {
+    if (!status) return;
+    if (isDismissed || isCompleted) {
       clearOnboardingSession();
       setActive(false);
       return;
@@ -213,7 +228,7 @@ const OnboardingController = () => {
       setStepIndex(0);
       setActive(true);
     }
-  }, [status, user?.id, loading, location.pathname]);
+  }, [status, isDismissed, isCompleted, user?.id, loading, location.pathname]);
 
   useEffect(() => {
     if (!active) return;
@@ -341,7 +356,7 @@ const OnboardingController = () => {
     }
   }, [active, stepIndex, session]);
 
-  if (!active || !step) return null;
+  if (!active || !step || isDismissed || isCompleted) return null;
 
   return (
     <OnboardingOverlay
