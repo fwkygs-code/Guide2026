@@ -984,10 +984,82 @@ async def send_verification_email_background(user_id: str, email: str, name: str
     except Exception as e:
         logging.error(f"[EMAIL][FAILED] user_id={user_id} email={email} error=Background task exception: {str(e)}", exc_info=True)
 
+def _log_text_block_diff(raw: dict, sanitized: dict) -> None:
+    if not raw or not sanitized:
+        return
+    diffs = []
+    raw_steps = raw.get("steps") if isinstance(raw.get("steps"), list) else []
+    sanitized_steps = sanitized.get("steps") if isinstance(sanitized.get("steps"), list) else []
+    for step_index, raw_step in enumerate(raw_steps):
+        if step_index >= len(sanitized_steps):
+            continue
+        raw_blocks = raw_step.get("blocks") if isinstance(raw_step.get("blocks"), list) else []
+        sanitized_blocks = sanitized_steps[step_index].get("blocks") if isinstance(sanitized_steps[step_index].get("blocks"), list) else []
+        for block_index, raw_block in enumerate(raw_blocks):
+            if block_index >= len(sanitized_blocks):
+                continue
+            if not isinstance(raw_block, dict) or raw_block.get("type") not in {"text", "heading"}:
+                continue
+            sanitized_block = sanitized_blocks[block_index]
+            if not isinstance(sanitized_block, dict):
+                continue
+            raw_data = raw_block.get("data")
+            sanitized_data = sanitized_block.get("data")
+            if isinstance(raw_data, dict) and isinstance(sanitized_data, dict):
+                if raw_data and not sanitized_data:
+                    diffs.append({
+                        "step_index": step_index,
+                        "block_index": block_index,
+                        "block_id": raw_block.get("id"),
+                        "raw_data_keys": list(raw_data.keys()),
+                        "sanitized_data_keys": list(sanitized_data.keys()),
+                        "raw_block": raw_block,
+                        "sanitized_block": sanitized_block
+                    })
+    if diffs:
+        logging.warning(
+            "[portal][sanitize] Text/heading block data dropped during serialization",
+            extra={
+                "diffs": diffs,
+                "raw_walkthrough": raw,
+                "sanitized_walkthrough": sanitized
+            }
+        )
+
+
+def _preserve_text_block_data(raw: dict, sanitized: dict) -> None:
+    if not raw or not sanitized:
+        return
+    raw_steps = raw.get("steps") if isinstance(raw.get("steps"), list) else []
+    sanitized_steps = sanitized.get("steps") if isinstance(sanitized.get("steps"), list) else []
+    for step_index, raw_step in enumerate(raw_steps):
+        if step_index >= len(sanitized_steps):
+            continue
+        raw_blocks = raw_step.get("blocks") if isinstance(raw_step.get("blocks"), list) else []
+        sanitized_blocks = sanitized_steps[step_index].get("blocks") if isinstance(sanitized_steps[step_index].get("blocks"), list) else []
+        for block_index, raw_block in enumerate(raw_blocks):
+            if block_index >= len(sanitized_blocks):
+                continue
+            if not isinstance(raw_block, dict) or raw_block.get("type") not in {"text", "heading"}:
+                continue
+            sanitized_block = sanitized_blocks[block_index]
+            if not isinstance(sanitized_block, dict):
+                continue
+            raw_data = raw_block.get("data")
+            sanitized_data = sanitized_block.get("data")
+            if isinstance(raw_data, dict):
+                if not isinstance(sanitized_data, dict):
+                    sanitized_block["data"] = dict(raw_data)
+                else:
+                    sanitized_block["data"] = {**raw_data, **sanitized_data}
+
+
 def sanitize_public_walkthrough(w: dict) -> dict:
     """Remove sensitive/private fields from walkthrough docs returned to the public portal."""
     if not w:
         return w
+    import copy
+    raw_walkthrough = copy.deepcopy(w)
     w = {k: v for k, v in w.items() if k != "_id"}
     # Never leak password material
     w.pop("password", None)
@@ -1004,6 +1076,8 @@ def sanitize_public_walkthrough(w: dict) -> dict:
                 step["blocks"] = []
             elif step["blocks"] is None:
                 step["blocks"] = []
+    _preserve_text_block_data(raw_walkthrough, w)
+    _log_text_block_diff(raw_walkthrough, w)
     return w
 
 def create_token(user_id: str) -> str:
