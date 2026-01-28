@@ -13,6 +13,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
+import server as server_module
 from server import (
     check_workspace_access,
     get_current_user,
@@ -73,6 +74,36 @@ class TestSecurityInvariants:
         
         assert "plan.get('name') == 'free'" in source, "SECURITY REGRESSION: Free user block missing"
         assert "Free plan users cannot access" in source, "SECURITY REGRESSION: Free user error message missing"
+
+    def test_auth_cookie_attributes_are_cross_site_safe(self):
+        """Guard 6: Verify auth cookie attributes are cross-site safe in production."""
+        import inspect
+        source = inspect.getsource(server_module)
+        assert 'COOKIE_SAMESITE = "none"' in source, "SECURITY REGRESSION: COOKIE_SAMESITE must be 'none' in production"
+        assert "COOKIE_SECURE = True" in source, "SECURITY REGRESSION: COOKIE_SECURE must be True in production"
+        assert "samesite=COOKIE_SAMESITE" in source, "SECURITY REGRESSION: set_auth_cookie must use COOKIE_SAMESITE"
+        assert "secure=COOKIE_SECURE" in source, "SECURITY REGRESSION: set_auth_cookie must use COOKIE_SECURE"
+
+    def test_get_current_user_reads_cookie(self):
+        """Guard 7: Verify get_current_user reads from HttpOnly cookie."""
+        import inspect
+        source = inspect.getsource(get_current_user)
+        assert "request.cookies.get(AUTH_COOKIE_NAME)" in source, "SECURITY REGRESSION: Cookie auth path missing"
+
+    def test_cors_allows_credentials_and_headers(self):
+        """Guard 8: Verify CORS allows credentials and required headers."""
+        import inspect
+        source = inspect.getsource(server_module)
+        assert "allow_credentials=True" in source, "SECURITY REGRESSION: CORS must allow credentials"
+        required_headers = [
+            "Content-Type",
+            "Authorization",
+            "Accept",
+            "Origin",
+            "X-Requested-With"
+        ]
+        for header in required_headers:
+            assert header in source, f"SECURITY REGRESSION: CORS missing header {header}"
 
 
 if __name__ == "__main__":

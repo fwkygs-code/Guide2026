@@ -59,15 +59,15 @@ if len(JWT_SECRET) < 32:
 if JWT_SECRET == 'your-secret-key-change-in-production':
     raise RuntimeError("JWT_SECRET must not use default placeholder value")
 
-APP_ENV = os.environ.get('APP_ENV', 'development').lower()
+APP_ENV = os.environ.get('APP_ENV', 'production').lower()
 AUTH_COOKIE_NAME = os.environ.get('AUTH_COOKIE_NAME', 'ig_access_token')
 # Cross-site auth cookies require SameSite=None and Secure=true in production.
 if APP_ENV == 'development':
     COOKIE_SECURE = False
-    COOKIE_SAMESITE = "Lax"
+    COOKIE_SAMESITE = "lax"
 else:
     COOKIE_SECURE = True
-    COOKIE_SAMESITE = "None"
+    COOKIE_SAMESITE = "none"
 
 # Create the main app
 app = FastAPI()

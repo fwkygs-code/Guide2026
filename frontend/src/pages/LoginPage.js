@@ -207,7 +207,7 @@ const LoginPage = () => {
     <div 
       className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden"
       style={{
-        backgroundImage: 'url(/auth-background.jpg), linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+        backgroundImage: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
         backgroundSize: 'cover',
         backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',
@@ -315,6 +315,7 @@ const LoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
                 data-testid="login-password-input"
                 className="mt-1.5"
