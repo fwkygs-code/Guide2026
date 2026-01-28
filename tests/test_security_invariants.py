@@ -7,7 +7,17 @@ Fail-fast if any invariant is violated.
 
 import pytest
 import sys
+import os
 from pathlib import Path
+
+# Ensure required env vars for importing server module
+os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017/test")
+os.environ.setdefault("JWT_SECRET", "test-secret-key-32-chars-minimum")
+os.environ.setdefault("CLOUDINARY_CLOUD_NAME", "test")
+os.environ.setdefault("CLOUDINARY_API_KEY", "test")
+os.environ.setdefault("CLOUDINARY_API_SECRET", "test")
+os.environ.setdefault("RESEND_API_KEY", "test")
+os.environ.setdefault("RESEND_FROM_EMAIL", "test@example.com")
 
 # Add backend to path
 backend_path = Path(__file__).parent.parent / "backend"
@@ -91,6 +101,8 @@ class TestSecurityInvariants:
         import inspect
         set_source = inspect.getsource(server_module.set_auth_cookie)
         clear_source = inspect.getsource(server_module.clear_auth_cookie)
+        assert "delete_cookie" in clear_source, "SECURITY REGRESSION: clear_auth_cookie must use delete_cookie"
+        assert "set_cookie" not in clear_source, "SECURITY REGRESSION: clear_auth_cookie must not use set_cookie"
         for fragment in ["httponly=True", "secure=COOKIE_SECURE", "samesite=COOKIE_SAMESITE", 'path="/"']:
             assert fragment in set_source, f"SECURITY REGRESSION: set_auth_cookie missing {fragment}"
             assert fragment in clear_source, f"SECURITY REGRESSION: clear_auth_cookie missing {fragment}"
@@ -106,6 +118,7 @@ class TestSecurityInvariants:
         import inspect
         source = inspect.getsource(get_current_user)
         assert "request.cookies.get(AUTH_COOKIE_NAME)" in source, "SECURITY REGRESSION: Cookie auth path missing"
+        assert "APP_ENV == \"development\"" in source, "SECURITY REGRESSION: Auth header fallback must be dev-only"
 
     def test_cors_allows_credentials_and_headers(self):
         """Guard 10: Verify CORS allows credentials and required headers."""
@@ -130,18 +143,14 @@ class TestSecurityInvariants:
         assert "withCredentials: true" in api_source, "SECURITY REGRESSION: API client must enforce withCredentials"
         # No per-file overrides allowed
         frontend_root = Path(__file__).parent.parent / "frontend" / "src"
-        for path in frontend_root.rglob("*.js"):
+        for path in list(frontend_root.rglob("*.js")) + list(frontend_root.rglob("*.jsx")) + list(frontend_root.rglob("*.ts")) + list(frontend_root.rglob("*.tsx")):
+            if str(path).endswith("frontend\\src\\lib\\api.js"):
+                continue
             content = path.read_text(encoding="utf-8")
             assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
-        for path in frontend_root.rglob("*.jsx"):
-            content = path.read_text(encoding="utf-8")
-            assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
-        for path in frontend_root.rglob("*.ts"):
-            content = path.read_text(encoding="utf-8")
-            assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
-        for path in frontend_root.rglob("*.tsx"):
-            content = path.read_text(encoding="utf-8")
-            assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"
+            assert "import axios from 'axios'" not in content, f"SECURITY REGRESSION: Raw axios import in {path}"
+            assert "axios.get(" not in content, f"SECURITY REGRESSION: Raw axios usage in {path}"
+            assert "axios.post(" not in content, f"SECURITY REGRESSION: Raw axios usage in {path}"
 
 
 if __name__ == "__main__":

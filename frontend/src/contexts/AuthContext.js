@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { apiClient, API, API_BASE } from '../lib/api';
 
 const AuthContext = createContext();
@@ -65,21 +64,27 @@ export const AuthProvider = ({ children }) => {
     try {
       // Try /health first, then /api/health as fallback
       let response;
-      try {
-        response = await axios.get(`${API_BASE}/health`, {
-          timeout: 5000 // Quick health check
-        });
-      } catch (err) {
-        // If /health fails with 404, try /api/health
-        if (err.response?.status === 404) {
-          response = await axios.get(`${API_BASE}/api/health`, {
-            timeout: 5000
-          });
-        } else {
-          throw err;
-        }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      response = await fetch(`${API_BASE}/health`, {
+        signal: controller.signal
+      }).catch(() => null);
+      clearTimeout(timeoutId);
+
+      if (response && response.status === 404) {
+        const fallbackController = new AbortController();
+        const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 5000);
+        response = await fetch(`${API_BASE}/api/health`, {
+          signal: fallbackController.signal
+        }).catch(() => null);
+        clearTimeout(fallbackTimeoutId);
       }
-      return response.data?.status === 'healthy';
+
+      if (!response || !response.ok) {
+        return false;
+      }
+      const data = await response.json().catch(() => null);
+      return data?.status === 'healthy';
     } catch (error) {
       console.warn('Backend health check failed:', error);
       return false;

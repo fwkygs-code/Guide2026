@@ -1036,13 +1036,11 @@ def set_auth_cookie(response: Response, token: str) -> None:
     )
 
 def clear_auth_cookie(response: Response) -> None:
-    response.set_cookie(
+    response.delete_cookie(
         key=AUTH_COOKIE_NAME,
-        value="",
         httponly=True,
         secure=COOKIE_SECURE,
         samesite=COOKIE_SAMESITE,
-        max_age=0,
         path="/"
     )
 
@@ -1052,7 +1050,7 @@ async def get_current_user(
 ):
     global _COOKIE_MISSING_LOGGED, _COOKIE_INVALID_LOGGED, _COOKIE_HEADER_FALLBACK_LOGGED
     token = request.cookies.get(AUTH_COOKIE_NAME)
-    if not token and credentials:
+    if not token and credentials and APP_ENV == "development":
         if not _COOKIE_HEADER_FALLBACK_LOGGED:
             logging.debug("[AUTH] Cookie missing; using Authorization header fallback.")
             _COOKIE_HEADER_FALLBACK_LOGGED = True

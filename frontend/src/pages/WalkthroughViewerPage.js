@@ -427,7 +427,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     }
 
     try {
-      await axios.post(`${API}/feedback`, {
+      await apiClient.post(`/feedback`, {
         walkthrough_id: walkthroughId,
         rating: feedbackRating,
         comment: feedbackComment

@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import axios from 'axios';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const LoginPage = () => {
@@ -56,15 +55,15 @@ const LoginPage = () => {
         
         // Try /health first, then /api/health as fallback
         let response;
+        let responseData = null;
         let healthUrl = `${API_BASE}/health`;
         
         try {
-          response = await axios.get(healthUrl, {
-            timeout: 5000,
-            signal: currentController.signal,
-            validateStatus: (status) => status < 500 // Don't throw on 4xx
+          response = await fetch(healthUrl, {
+            signal: currentController.signal
           });
-          console.log('[Health Check] Response from /health:', response.status, response.data);
+          responseData = await response.json().catch(() => null);
+          console.log('[Health Check] Response from /health:', response.status, responseData);
         } catch (err) {
           clearTimeout(timeoutId);
           
@@ -74,7 +73,7 @@ const LoginPage = () => {
           }
           
           // If /health fails with 404, try /api/health
-          if (err.response?.status === 404) {
+          if (response?.status === 404) {
             console.log('[Health Check] /health returned 404, trying /api/health');
             healthUrl = `${API_BASE}/api/health`;
             currentController = new AbortController();
@@ -84,12 +83,11 @@ const LoginPage = () => {
             }, 5000);
             
             try {
-              response = await axios.get(healthUrl, {
-                timeout: 5000,
-                signal: currentController.signal,
-                validateStatus: (status) => status < 500
+              response = await fetch(healthUrl, {
+                signal: currentController.signal
               });
-              console.log('[Health Check] Response from /api/health:', response.status, response.data);
+              responseData = await response.json().catch(() => null);
+              console.log('[Health Check] Response from /api/health:', response.status, responseData);
             } catch (err2) {
               clearTimeout(timeoutId2);
               if (currentController.signal.aborted || err2.name === 'AbortError' || err2.code === 'ECONNABORTED') {
@@ -110,13 +108,13 @@ const LoginPage = () => {
         if (!isMounted) return;
         
         // Check if we got a valid response
-        if (response && response.data) {
-          if (response.data.status === 'healthy') {
+        if (response) {
+          if (responseData?.status === 'healthy') {
             console.log('[Health Check] Server is ready!');
             statusRef.current = 'ready';
             setBackendStatus('ready');
           } else {
-            console.log('[Health Check] Unexpected status:', response.data);
+            console.log('[Health Check] Unexpected status:', responseData);
             statusRef.current = 'error';
             setBackendStatus('error');
           }
