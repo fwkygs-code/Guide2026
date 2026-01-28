@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Check, X, Smile, Meh, Frown, LogIn, UserPlus, MessageCircle, Phone, Clock } from 'lucide-react';
+import { generateHTML } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +47,26 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [showSupportDialog, setShowSupportDialog] = useState(false);
   const [supportContactInfo, setSupportContactInfo] = useState(null);
+
+  const getBlockHtmlContent = (block) => {
+    if (!block) return '';
+    const rawContent =
+      block.data?.content ??
+      block.data?.text ??
+      block.content ??
+      block.text ??
+      '';
+    if (typeof rawContent === 'string') return rawContent;
+    if (rawContent && typeof rawContent === 'object') {
+      try {
+        return generateHTML(rawContent, [StarterKit]);
+      } catch (error) {
+        console.warn('[Portal] Failed to render rich text JSON:', error);
+        return '';
+      }
+    }
+    return '';
+  };
 
   const normalizePortalWalkthrough = (data) => {
     if (!data || !Array.isArray(data.steps)) return data;
@@ -701,14 +723,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             block.data?.level === 1 ? 'text-3xl' :
                             block.data?.level === 2 ? 'text-2xl' : 'text-xl'
                           }`}
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || '') }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(getBlockHtmlContent(block)) }}
                         />
                       )}
                       {block.type === 'text' && (
                         <div
                           className="prose max-w-none text-foreground"
-                          style={{ direction: detectRTL(block.data?.content) ? 'rtl' : 'ltr' }}
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || '') }}
+                          style={{ direction: detectRTL(getBlockHtmlContent(block)) ? 'rtl' : 'ltr' }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(getBlockHtmlContent(block)) }}
                         />
                       )}
                       {block.type === 'image' && (() => {
