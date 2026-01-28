@@ -1,20 +1,8 @@
-import axios from 'axios';
+import { getApiClient, getApiBase, getApiRoot } from '../shared/http';
 
-// Render/Vercel/etc: set REACT_APP_API_URL to your backend base URL (no trailing /api).
-// Example: https://your-backend.onrender.com
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL || // backwards compatibility
-  'http://127.0.0.1:8000';
-
-// Render `fromService.property: host` provides a bare hostname (no scheme).
-export const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-
-export const API = `${API_BASE.replace(/\/$/, '')}/api`;
-export const apiClient = axios.create({
-  baseURL: API,
-  withCredentials: true
-});
+export const API_BASE = getApiBase();
+export const API = getApiRoot();
+export const apiClient = getApiClient();
 
 // Get backend URL for sharing (WhatsApp previews need backend route)
 export const getBackendUrl = () => {

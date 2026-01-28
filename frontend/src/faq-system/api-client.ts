@@ -3,30 +3,9 @@
  * Handles all backend communication for FAQ management
  */
 
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
+import { getApiClient } from 'shared-http';
 
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
-
-const request = async (path: string, options: RequestInit = {}) => {
-  const response = await fetch(`${API}${path}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    },
-    ...options
-  });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) {
-    throw new Error(data?.detail || 'Request failed');
-  }
-  return data;
-};
+const apiClient = getApiClient();
 
 export interface FAQContent {
   question?: string;
@@ -49,43 +28,32 @@ export interface FAQSystem {
 
 export const faqApiClient = {
   async create(workspaceId: string, title: string, description: string = ''): Promise<FAQSystem> {
-    const response = await request(`/workspaces/${workspaceId}/knowledge-systems`, {
-      method: 'POST',
-      body: JSON.stringify({
-        title,
-        description,
-        system_type: 'faq',
-        content: { question: '', answer: '' },
-        status: 'draft'
-      })
+    const response = await apiClient.post(`/workspaces/${workspaceId}/knowledge-systems`, {
+      title,
+      description,
+      system_type: 'faq',
+      content: { question: '', answer: '' },
+      status: 'draft'
     });
-    return response;
+    return response.data;
   },
 
   async getById(workspaceId: string, systemId: string): Promise<FAQSystem> {
-    const response = await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
-    return response;
+    const response = await apiClient.get(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
+    return response.data;
   },
 
   async update(workspaceId: string, systemId: string, data: { title: string; description: string; content: FAQContent }): Promise<FAQSystem> {
-    const response = await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    });
-    return response;
+    const response = await apiClient.put(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, data);
+    return response.data;
   },
 
   async publish(workspaceId: string, systemId: string): Promise<FAQSystem> {
-    const response = await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ status: 'published' })
-    });
-    return response;
+    const response = await apiClient.put(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, { status: 'published' });
+    return response.data;
   },
 
   async delete(workspaceId: string, systemId: string): Promise<void> {
-    await request(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`, {
-      method: 'DELETE'
-    });
+    await apiClient.delete(`/workspaces/${workspaceId}/knowledge-systems/${systemId}`);
   }
 };

@@ -4,29 +4,9 @@
  * Must be local to decision-tree-system to comply with ImportFirewall
  */
 
-const rawBase =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://127.0.0.1:8000';
+import { getApiClient } from 'shared-http';
 
-const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
-const API = `${API_BASE.replace(/\/$/, '')}/api`;
-
-const buildQuery = (params: Record<string, string>) => {
-  const search = new URLSearchParams(params);
-  const query = search.toString();
-  return query ? `?${query}` : '';
-};
-
-const request = async (path: string) => {
-  const response = await fetch(`${API}${path}`, { credentials: 'include' });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) {
-    throw new Error(data?.detail || 'Request failed');
-  }
-  return data;
-};
+const apiClient = getApiClient();
 
 export interface PortalDecisionTreeSystem {
   id: string;
@@ -54,9 +34,10 @@ export interface PortalDecisionTreeSystem {
 
 export const decisionTreePortalApiClient = {
   async getAllByType(portalSlug: string): Promise<PortalDecisionTreeSystem[]> {
-    const data = await request(
-      `/portal/${portalSlug}/knowledge-systems${buildQuery({ system_type: 'decision_tree' })}`
-    );
+    const response = await apiClient.get(`/portal/${portalSlug}/knowledge-systems`, {
+      params: { system_type: 'decision_tree' }
+    });
+    const data = response.data;
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (data.data && Array.isArray(data.data)) return data.data;

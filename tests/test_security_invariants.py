@@ -137,14 +137,14 @@ class TestSecurityInvariants:
 
     def test_api_client_with_credentials(self):
         """Guard 11: Verify shared API client enforces withCredentials."""
-        api_path = Path(__file__).parent.parent / "frontend" / "src" / "lib" / "api.js"
+        api_path = Path(__file__).parent.parent / "frontend" / "src" / "shared" / "http.ts"
         api_source = api_path.read_text(encoding="utf-8")
         assert "axios.create" in api_source, "SECURITY REGRESSION: Shared API client missing"
         assert "withCredentials: true" in api_source, "SECURITY REGRESSION: API client must enforce withCredentials"
         # No per-file overrides allowed
         frontend_root = Path(__file__).parent.parent / "frontend" / "src"
         for path in list(frontend_root.rglob("*.js")) + list(frontend_root.rglob("*.jsx")) + list(frontend_root.rglob("*.ts")) + list(frontend_root.rglob("*.tsx")):
-            if str(path).endswith("frontend\\src\\lib\\api.js"):
+            if str(path).endswith("frontend\\src\\lib\\api.js") or str(path).endswith("frontend\\src\\shared\\http.ts"):
                 continue
             content = path.read_text(encoding="utf-8")
             assert "axios.defaults.withCredentials" not in content, f"SECURITY REGRESSION: Per-file axios override in {path}"

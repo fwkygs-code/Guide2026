@@ -37,6 +37,7 @@ const webpackConfig = {
   webpack: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      'shared-http': path.resolve(__dirname, 'src/shared/http')
     },
     configure: (webpackConfig) => {
 
@@ -81,6 +82,7 @@ const webpackConfig = {
             "axios",
             "react-i18next",
             "dompurify",
+            "shared-http",
             "react-refresh/runtime",
             "@pmmmwh/react-refresh-webpack-plugin"
           ]
