@@ -189,8 +189,7 @@ const OnboardingController = () => {
       setActive(false);
       return;
     }
-    if (!status) return;
-    if (status.has_completed_onboarding || status.has_dismissed_onboarding) {
+    if (status?.has_completed_onboarding) {
       clearOnboardingSession();
       setActive(false);
       return;
