@@ -6262,9 +6262,8 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
     else:
         logging.info(f"[GET_PLAN] No PayPal subscription found for {current_user.email}")
 
-    # Fallback: Manual subscriptions or stored plan_id should not appear as Free
-    # Only applies when no PayPal subscription is present.
-    if plan_name == "free" and not access_granted and not subscription_doc:
+    # Fallback: Manual subscriptions should override when PayPal access is not granted
+    if plan_name == "free" and not access_granted:
         manual_subscription = await db.subscriptions.find_one(
             {
                 "user_id": current_user.id,
@@ -6283,21 +6282,25 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
                 access_granted = True
                 access_until = manual_subscription.get("effective_end_date") or manual_subscription.get("grace_ends_at")
                 is_recurring = False
+                provider = None
                 logging.info(
-                    f"[GET_PLAN] Manual subscription fallback: plan={plan_name}, access_granted={access_granted}"
+                    f"[GET_PLAN] Manual subscription override: plan={plan_name}, access_granted={access_granted}"
                 )
-        else:
-            user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0, "plan_id": 1})
-            stored_plan_id = user_doc.get("plan_id") if user_doc else None
-            if stored_plan_id:
-                stored_plan = await db.plans.find_one({"id": stored_plan_id}, {"_id": 0, "name": 1})
-                if stored_plan and stored_plan.get("name") and stored_plan.get("name") != "free":
-                    plan_name = stored_plan["name"]
-                    access_granted = True
-                    is_recurring = False
-                    logging.info(
-                        f"[GET_PLAN] Stored plan_id fallback: plan={plan_name}, access_granted={access_granted}"
-                    )
+
+    # Fallback: Stored plan_id should only apply when no PayPal subscription exists
+    if plan_name == "free" and not access_granted and not subscription_doc:
+        user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0, "plan_id": 1})
+        stored_plan_id = user_doc.get("plan_id") if user_doc else None
+        if stored_plan_id:
+            stored_plan = await db.plans.find_one({"id": stored_plan_id}, {"_id": 0, "name": 1})
+            if stored_plan and stored_plan.get("name") and stored_plan.get("name") != "free":
+                plan_name = stored_plan["name"]
+                access_granted = True
+                is_recurring = False
+                provider = None
+                logging.info(
+                    f"[GET_PLAN] Stored plan_id fallback: plan={plan_name}, access_granted={access_granted}"
+                )
     
     # ========== PHASE 2: QUOTA INFO (ALWAYS RUNS) ==========
     
@@ -8553,6 +8556,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=cors_origins,
+    allow_origin_regex=r"^https://(www\.)?interguide\.app$",
     allow_methods=["*"],
     allow_headers=[
         "Content-Type",
@@ -9430,10 +9434,17 @@ async def admin_update_user_plan(
         {"$set": {"plan_id": plan["id"], "updated_at": now.isoformat()}}
     )
 
-    # For paid plans, ensure subscription exists and restore memberships
+    # For paid plans, ensure manual subscription exists and restore memberships
     if plan_name != 'free':
         subscription_id = user.get('subscription_id')
+        existing_subscription = None
         if subscription_id:
+            existing_subscription = await db.subscriptions.find_one(
+                {"id": subscription_id},
+                {"_id": 0}
+            )
+
+        if existing_subscription and existing_subscription.get("provider") != "paypal":
             await db.subscriptions.update_one(
                 {"id": subscription_id},
                 {"$set": {
