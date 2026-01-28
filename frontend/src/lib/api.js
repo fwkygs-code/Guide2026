@@ -186,7 +186,7 @@ export const api = {
     try {
       // Try to acquire lock with force=false - if it succeeds, release it immediately
       // If it fails with 409, return lock info without acquiring
-      const response = await axios.post(`${API}/workspaces/${workspaceId}/lock?force=false`);
+      const response = await apiClient.post(`/workspaces/${workspaceId}/lock?force=false`);
       // Lock acquired successfully, release it immediately (we just wanted to check)
       await apiClient.delete(`/workspaces/${workspaceId}/lock`).catch(() => {});
       return { success: true, locked: false };

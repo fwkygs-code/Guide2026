@@ -5555,7 +5555,7 @@ async def submit_feedback(feedback: Feedback):
             feedback_dict["workspace_id"] = walkthrough.get("workspace_id")
     except Exception:
         pass
-    feedback_dict['timestamp'] = feedback_dict['timestamp'].isoformat()
+    feedback_dict['timestamp'] = datetime.now(timezone.utc).isoformat()
     await db.feedback.insert_one(feedback_dict)
     return {"message": "Feedback submitted"}
 
