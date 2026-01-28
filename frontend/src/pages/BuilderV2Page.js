@@ -1107,6 +1107,31 @@ const CanvasStage = ({
                 />
               )}
 
+              {/* Step Navigation Type */}
+              {onStepUpdate && currentStep && currentStep.id && (
+                <div className="flex items-center gap-3">
+                  <Label className="text-xs text-muted-foreground">
+                    {t('builder.navigationType')}
+                  </Label>
+                  <Select
+                    value={currentStep.navigation_type || 'next_prev'}
+                    onValueChange={(value) => {
+                      if (onStepUpdate && isStepLoaded) {
+                        onStepUpdate({ navigation_type: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-48 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="next_prev">{t('builder.nextPrevious')}</SelectItem>
+                      <SelectItem value="checkoff">{t('builder.checkoffRequired')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Blocks with inline "+" buttons */}
               {blocks.length === 0 ? (
                 <AddBlockButton insertAfterIndex={-1} onAdd={onBlockAdd} />

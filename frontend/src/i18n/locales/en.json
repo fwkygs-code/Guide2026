@@ -844,6 +844,8 @@
     "tips": {
       "recordGifs": "Record GIFs with ScreenToGIF",
       "recordGifsDesc": "Use ScreenToGIF (free Windows app) to record screen captures as animated GIFs. Perfect for step-by-step demonstrations.",
+      "annotatedImage": "Use Annotated Image for callouts",
+      "annotatedImageDesc": "Add an Annotated Image block to place clickable markers and explain details directly on the image.",
       "tickWhenFinished": "Set Step to Tick When Finished",
       "tickWhenFinishedDesc": "Change navigation type to 'Check-off Required' to make users confirm completion before advancing. Great for important steps.",
       "commonProblems": "Add Common Problems Block",

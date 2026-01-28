@@ -8585,7 +8585,7 @@ async def share_workspace(slug: str, request: Request):
         logging.info(f"[share_workspace] Using workspace logo: {og_image_url}")
     else:
         # Fallback to site OG image
-        og_image_url = f"{FRONTEND_URL}/og-image.png"
+        og_image_url = f"{MAIN_DOMAIN}/og-image.png"
         logging.info(f"[share_workspace] No workspace logo, using fallback: {og_image_url}")
     
     # Build Open Graph HTML with proper escaping
@@ -8612,6 +8612,8 @@ async def share_workspace(slug: str, request: Request):
     <meta property="og:image" content="{og_image_url_escaped}">
     <meta property="og:image:secure_url" content="{og_image_url_escaped}">
     <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{share_url_escaped}">
     
@@ -8705,7 +8707,7 @@ async def share_portal(slug: str, request: Request):
         logging.info(f"[share_portal] Using workspace logo: {og_image_url}")
     else:
         # Fallback to site OG image
-        og_image_url = f"{FRONTEND_URL}/og-image.png"
+        og_image_url = f"{MAIN_DOMAIN}/og-image.png"
         logging.info(f"[share_portal] No workspace logo, using fallback: {og_image_url}")
     
     # Build Open Graph HTML with proper escaping

@@ -17,6 +17,11 @@ const BuildingTips = () => {
       link: "https://www.screentogif.com/"
     },
     {
+      icon: <Image className="w-5 h-5" />,
+      title: t('builder.tips.annotatedImage'),
+      description: t('builder.tips.annotatedImageDesc'),
+    },
+    {
       icon: <CheckSquare className="w-5 h-5" />,
       title: t('builder.tips.tickWhenFinished'),
       description: t('builder.tips.tickWhenFinishedDesc'),
@@ -159,7 +164,7 @@ const BuildingTips = () => {
             variant={!showBlockReference ? 'default' : 'outline'}
             size="sm"
             onClick={() => { setShowBlockReference(false); setSelectedBlock(null); }}
-            className="h-8 text-xs text-foreground"
+            className="h-8 text-xs text-black"
           >
             <Lightbulb className="w-3 h-3 mr-1" />
             {currentLang === 'he' ? 'טיפים' : 'Tips'}
@@ -168,7 +173,7 @@ const BuildingTips = () => {
             variant={showBlockReference ? 'default' : 'outline'}
             size="sm"
             onClick={() => setShowBlockReference(true)}
-            className="h-8 text-xs text-foreground"
+            className="h-8 text-xs text-black"
           >
             <BookOpen className="w-3 h-3 mr-1" />
             {currentLang === 'he' ? 'בלוקים' : 'Blocks'}
