@@ -157,14 +157,6 @@ const DashboardPage = () => {
         actions={
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              onClick={handlePlanAction}
-              className="rounded-full"
-              data-testid="upgrade-plan-button"
-            >
-              {quotaData?.access_granted ? 'Manage Plan' : 'Upgrade Plan'}
-            </Button>
-            <Button
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('onboarding:createWorkspace'));
                 setCreateDialogOpen(true);

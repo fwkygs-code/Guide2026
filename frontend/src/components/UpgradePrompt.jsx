@@ -121,8 +121,8 @@ const UpgradePrompt = ({ open, onOpenChange, reason = null, workspaceId = null }
                   {t('upgrade.current')} {t('quota.plan')}
                 </Button>
               ) : planOption.id === 'pro' ? (
-                // MONEY SAFETY: If access granted, remove payment entry point from render tree
-                access_granted ? (
+                // Show PayPal management only when on Pro with access granted
+                access_granted && currentPlanName === 'pro' ? (
                   <div className="space-y-2">
                     <Button
                       className="w-full text-foreground"
