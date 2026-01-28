@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useQuota } from '../hooks/useQuota';
 import { normalizeImageUrl } from '../lib/utils';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -34,6 +35,7 @@ const DashboardPage = () => {
   const [pendingWorkspace, setPendingWorkspace] = useState(null);
   const [lockedBy, setLockedBy] = useState('');
   const { user } = useAuth();
+  const { quotaData } = useQuota();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +66,16 @@ const DashboardPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePlanAction = () => {
+    if (quotaData?.access_granted) {
+      if (quotaData?.management_url) {
+        window.open(quotaData.management_url, '_blank');
+        return;
+      }
+    }
+    setUpgradePromptOpen(true);
   };
 
   const handleLogoUpload = async (file) => {
@@ -146,11 +158,11 @@ const DashboardPage = () => {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => setUpgradePromptOpen(true)}
+              onClick={handlePlanAction}
               className="rounded-full"
               data-testid="upgrade-plan-button"
             >
-              {t('quota.upgrade')}
+              {quotaData?.access_granted ? t('billing.managePlan') : t('quota.upgrade')}
             </Button>
             <Button
               onClick={() => {

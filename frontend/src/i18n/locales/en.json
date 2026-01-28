@@ -1360,6 +1360,7 @@
     "accessUntil": "Access until {{date}}",
     "renewsAutomatically": "Renews automatically unless cancelled in PayPal",
     "manageSubscriptionInPayPal": "Manage Subscription in PayPal",
+    "managePlan": "Manage Plan",
     "unableToOpenPayPal": "Unable to open PayPal management",
     "alreadySubscribed": "You already have an active subscription"
   },

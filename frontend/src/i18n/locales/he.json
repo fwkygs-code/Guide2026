@@ -1503,6 +1503,7 @@
     "cancellationPending": "בקשת ביטול - ממתין לאישור PayPal",
     "cancellationPendingDesc": "בקשת ביטול נשלחה. אישור PayPal ממתין. הגישה שלך נשארת פעילה עד סוף התקופה. סטטוס החיוב הסופי נקבע על ידי PayPal.",
     "manageViaPayPal": "נהל דרך PayPal (אופציונלי)",
+    "managePlan": "ניהול תוכנית",
     "subscribeToProPlan": "הירשם לתוכנית Pro",
     "subscribeDescription": "השלם את המנוי שלך כדי לפתוח תכונות Pro. המנוי שלך יופעל אוטומטית.",
     "paymentsProcessedByPayPal": "התשלומים מעובדים על ידי PayPal. בהרשמה, אתה מסכים ל",
