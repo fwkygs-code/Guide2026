@@ -728,7 +728,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       )}
                       {block.type === 'text' && (
                         <div
-                          className="prose max-w-none text-foreground"
+                          className="prose prose-invert max-w-none text-foreground"
                           style={{ direction: detectRTL(getBlockHtmlContent(block)) ? 'rtl' : 'ltr' }}
                           dangerouslySetInnerHTML={{ __html: sanitizeHtml(getBlockHtmlContent(block)) }}
                         />
@@ -1235,7 +1235,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {/* Legacy Content Display */}
               {step?.content && !step?.blocks?.length && (
                 <div 
-                  className="prose max-w-none mb-8 text-foreground"
+                  className="prose prose-invert max-w-none mb-8 text-foreground"
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(step?.content || '') }}
                   data-testid="step-content"
                 />
