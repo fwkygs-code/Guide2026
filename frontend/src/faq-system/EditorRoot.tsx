@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FAQDraft, FAQItem, FAQMeta } from './model';
 import { createFAQEntry, loadFAQDraft, loadFAQMeta, publishFAQ, saveFAQDraft } from './service';
-import sanitizeHtml from '../lib/sanitizeHtml';
+import sanitizeHtml from './sanitizeHtml';
 
 type FAQEditorRootProps = {
   workspaceId?: string;

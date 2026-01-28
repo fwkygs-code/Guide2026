@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { procedurePortalApiClient } from './portal-api-client';
-import sanitizeHtml from '../lib/sanitizeHtml';
+import sanitizeHtml from './sanitizeHtml';
 
 type ProcedurePortalRootProps = {
   portalSlug?: string;

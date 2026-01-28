@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PolicyDraft, POLICY_MODEL_VERSION } from './model';
 import { policyPortalApiClient } from './portal-api-client';
-import sanitizeHtml from '../lib/sanitizeHtml';
+import sanitizeHtml from './sanitizeHtml';
 
 type PolicyPortalRootProps = {
   portalSlug?: string;

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DocumentationDraft, DocumentationMeta, DocumentationSection } from './model';
 import { createDocumentationEntry, loadDocumentationDraft, loadDocumentationMeta, publishDocumentation, saveDocumentationDraft } from './service';
-import sanitizeHtml from '../lib/sanitizeHtml';
+import sanitizeHtml from './sanitizeHtml';
 
 type DocumentationEditorRootProps = {
   workspaceId?: string;

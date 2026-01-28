@@ -80,6 +80,7 @@ const webpackConfig = {
             "lodash.debounce",
             "axios",
             "react-i18next",
+            "dompurify",
             "react-refresh/runtime",
             "@pmmmwh/react-refresh-webpack-plugin"
           ]

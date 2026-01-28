@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { faqPortalApiClient } from './portal-api-client';
-import sanitizeHtml from '../lib/sanitizeHtml';
+import sanitizeHtml from './sanitizeHtml';
 
 type FAQPortalRootProps = {
   portalSlug?: string;

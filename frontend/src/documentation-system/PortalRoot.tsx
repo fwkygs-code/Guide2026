@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { documentationPortalApiClient } from './portal-api-client';
-import sanitizeHtml from '../lib/sanitizeHtml';
+import sanitizeHtml from './sanitizeHtml';
 
 type DocumentationPortalRootProps = {
   portalSlug?: string;
