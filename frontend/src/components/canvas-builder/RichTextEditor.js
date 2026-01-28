@@ -7,13 +7,14 @@ import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 import { FontFamily } from '@tiptap/extension-font-family';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Bold, Italic, Underline as UnderlineIcon, Code, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SURFACES, BORDERS } from '../../utils/designTokens';
-import { RICH_TEXT_COLOR_PALETTE } from '../../utils/richTextColors';
+import { RICH_TEXT_COLOR_PALETTE, RICH_TEXT_HIGHLIGHT_PALETTE } from '../../utils/richTextColors';
 
 const RichTextEditor = ({
   content,
@@ -35,6 +36,7 @@ const RichTextEditor = ({
       Underline,
       TextStyle,
       Color,
+      Highlight.configure({ multicolor: true }),
       FontFamily,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -228,6 +230,25 @@ const RichTextEditor = ({
                 color={color}
               />
             ))}
+
+            <div className="w-px h-6 bg-white/20 mx-1" />
+
+            <HighlightButton
+              onClick={() => editor.chain().focus().unsetHighlight().run()}
+              active={!editor.getAttributes('highlight')?.color}
+              label="Clear highlight"
+              color="#ffffff"
+              isDefault
+            />
+            {RICH_TEXT_HIGHLIGHT_PALETTE.map((color) => (
+              <HighlightButton
+                key={color}
+                onClick={() => editor.chain().focus().setHighlight({ color }).run()}
+                active={editor.getAttributes('highlight')?.color === color}
+                label={color}
+                color={color}
+              />
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -257,6 +278,23 @@ const ToolbarButton = ({ onClick, active, icon: Icon }) => (
 );
 
 const ColorButton = ({ onClick, active, color, label, isDefault = false }) => (
+  <motion.button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    className={cn(
+      'h-6 w-6 rounded-full border border-white/20 transition-all duration-200',
+      active && 'ring-2 ring-white/70'
+    )}
+    style={{ backgroundColor: isDefault ? 'transparent' : color }}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+  >
+    {isDefault && <span className="block h-full w-full rounded-full border border-white/60" />}
+  </motion.button>
+);
+
+const HighlightButton = ({ onClick, active, color, label, isDefault = false }) => (
   <motion.button
     type="button"
     onClick={onClick}

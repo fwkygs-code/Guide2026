@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import { RICH_TEXT_COLOR_PALETTE } from '../utils/richTextColors';
+import { RICH_TEXT_COLOR_PALETTE, RICH_TEXT_HIGHLIGHT_PALETTE } from '../utils/richTextColors';
 
 const ALLOWED_TAGS = [
   'a',
@@ -18,6 +18,7 @@ const ALLOWED_TAGS = [
   'hr',
   'i',
   'li',
+  'mark',
   'ol',
   'p',
   'pre',
@@ -42,7 +43,11 @@ const ALLOWED_COLOR_VALUES = new Set(
   RICH_TEXT_COLOR_PALETTE.map((value) => value.toLowerCase())
 );
 
-const COLOR_STYLE_TAGS = new Set(['SPAN', 'STRONG', 'EM', 'B', 'I', 'U', 'A', 'P', 'LI']);
+const ALLOWED_HIGHLIGHT_VALUES = new Set(
+  RICH_TEXT_HIGHLIGHT_PALETTE.map((value) => value.toLowerCase())
+);
+
+const COLOR_STYLE_TAGS = new Set(['SPAN', 'STRONG', 'EM', 'B', 'I', 'U', 'A', 'P', 'LI', 'MARK']);
 
 let hooksInitialized = false;
 
@@ -56,17 +61,31 @@ const ensureHooksInitialized = () => {
       data.keepAttr = false;
       return;
     }
-    const match = /color\s*:\s*([^;]+)\s*;?/i.exec(data.attrValue || '');
-    if (!match) {
+    const styleValue = data.attrValue || '';
+    const colorMatch = /color\s*:\s*([^;]+)\s*;?/i.exec(styleValue);
+    const backgroundMatch = /background-color\s*:\s*([^;]+)\s*;?/i.exec(styleValue);
+    const allowedStyles = [];
+
+    if (colorMatch) {
+      const colorValue = colorMatch[1].trim().toLowerCase();
+      if (ALLOWED_COLOR_VALUES.has(colorValue)) {
+        allowedStyles.push(`color: ${colorValue}`);
+      }
+    }
+
+    if (backgroundMatch) {
+      const backgroundValue = backgroundMatch[1].trim().toLowerCase();
+      if (ALLOWED_HIGHLIGHT_VALUES.has(backgroundValue)) {
+        allowedStyles.push(`background-color: ${backgroundValue}`);
+      }
+    }
+
+    if (!allowedStyles.length) {
       data.keepAttr = false;
       return;
     }
-    const colorValue = match[1].trim().toLowerCase();
-    if (!ALLOWED_COLOR_VALUES.has(colorValue)) {
-      data.keepAttr = false;
-      return;
-    }
-    data.attrValue = `color: ${colorValue}`;
+
+    data.attrValue = allowedStyles.join('; ');
   });
   hooksInitialized = true;
 };

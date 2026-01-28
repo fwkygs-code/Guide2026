@@ -4,13 +4,14 @@ import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FontSize } from '@/lib/fontSize';
-import { RICH_TEXT_COLOR_PALETTE } from '../../utils/richTextColors';
+import { RICH_TEXT_COLOR_PALETTE, RICH_TEXT_HIGHLIGHT_PALETTE } from '../../utils/richTextColors';
 
 function getEditorPlainText(editor) {
   // Preserve spaces (including trailing) better than HTML/textContent which can drop/collapse them.
@@ -28,6 +29,7 @@ const InlineRichEditor = ({
   align = 'left'
 }) => {
   const [showToolbar, setShowToolbar] = React.useState(false);
+  const lastSyncedContentRef = React.useRef(content || '');
 
   const editor = useEditor({
     extensions: [
@@ -43,6 +45,7 @@ const InlineRichEditor = ({
       Underline,
       TextStyle,
       Color,
+      Highlight.configure({ multicolor: true }),
       FontSize.configure({
         types: ['textStyle', 'heading'], // Allow fontSize in textStyle marks and heading nodes
       }),
@@ -57,7 +60,9 @@ const InlineRichEditor = ({
     content: content || '',
     onUpdate: ({ editor }) => {
       // Save HTML to preserve formatting (bold, italic, underline, alignment, font size)
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      lastSyncedContentRef.current = html;
+      onChange(html);
     },
     onFocus: () => {
       setShowToolbar(true);
@@ -80,20 +85,16 @@ const InlineRichEditor = ({
   React.useEffect(() => {
     if (!editor) return;
 
-    const current = editor.getHTML();
-    // If content is HTML, use it directly; otherwise treat as plain text
-    const contentToSet = (content || '').trim();
-    if (contentToSet && contentToSet !== current) {
-      // If content looks like HTML (contains tags), use it as-is
-      // Otherwise, set as plain text
-      if (contentToSet.startsWith('<') || contentToSet.includes('<')) {
-        editor.commands.setContent(contentToSet, false);
-      } else {
-        editor.commands.setContent(contentToSet, false);
-      }
-    } else if (!contentToSet && current) {
-      editor.commands.setContent('', false);
+    const nextContent = content || '';
+    if (nextContent === lastSyncedContentRef.current) {
+      return;
     }
+
+    const current = editor.getHTML();
+    if (current !== nextContent) {
+      editor.commands.setContent(nextContent, false);
+    }
+    lastSyncedContentRef.current = nextContent;
   }, [content, editor]);
 
   if (!editor) {
@@ -230,6 +231,29 @@ const InlineRichEditor = ({
                 className={`h-5 w-5 rounded-full border border-border ${editor.getAttributes('textStyle')?.color === color ? 'ring-2 ring-primary' : ''}`}
                 style={{ backgroundColor: color }}
                 aria-label={`Text color ${color}`}
+              />
+            ))}
+            <div className="w-px h-5 bg-border mx-1" />
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                editor.chain().focus().unsetHighlight().run();
+              }}
+              className="h-5 w-5 rounded-full border border-border"
+              aria-label="Clear highlight"
+            />
+            {RICH_TEXT_HIGHLIGHT_PALETTE.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  editor.chain().focus().setHighlight({ color }).run();
+                }}
+                className={`h-5 w-5 rounded-full border border-border ${editor.getAttributes('highlight')?.color === color ? 'ring-2 ring-primary' : ''}`}
+                style={{ backgroundColor: color }}
+                aria-label={`Highlight ${color}`}
               />
             ))}
           </div>

@@ -8,3 +8,12 @@ export const RICH_TEXT_COLOR_PALETTE = [
   '#ef4444',
   '#a855f7'
 ];
+
+export const RICH_TEXT_HIGHLIGHT_PALETTE = [
+  '#fef9c3',
+  '#dcfce7',
+  '#dbeafe',
+  '#fce7f3',
+  '#fde68a',
+  '#fecaca'
+];

@@ -691,13 +691,13 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               )}
               
               {/* Blocks Display (New) */}
+              {/* DO NOT sanitize editor HTML here. */}
+              {/* Portal renders trusted, pre-sanitized editor output. */}
+              {/* Re-sanitizing breaks lists, RTL text, and inline content. */}
               {step?.blocks && step.blocks.length > 0 && (
                 <div className="space-y-6 mb-8">
                   {step.blocks.map((block, idx) => (
                     <div key={block.id || idx}>
-                      // DO NOT sanitize editor HTML here.
-                      // Portal renders trusted, pre-sanitized editor output.
-                      // Re-sanitizing breaks lists, RTL text, and inline content.
                       {block.type === 'heading' && (
                         <h3 
                           className={`font-heading font-bold text-foreground ${
