@@ -696,36 +696,20 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   {step.blocks.map((block, idx) => (
                     <div key={block.id || idx}>
                       {block.type === 'heading' && (
-                        (() => {
-                          const rawHtml = block.data?.content || '';
-                          const sanitizedHtml = sanitizeHtml(rawHtml);
-                          console.log('[Portal sanitize][heading] raw:', rawHtml);
-                          console.log('[Portal sanitize][heading] sanitized:', sanitizedHtml);
-                          return (
-                            <h3 
-                              className={`font-heading font-bold text-foreground ${
-                                block.data?.level === 1 ? 'text-3xl' :
-                                block.data?.level === 2 ? 'text-2xl' : 'text-xl'
-                              }`}
-                              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-                            />
-                          );
-                        })()
+                        <h3 
+                          className={`font-heading font-bold text-foreground ${
+                            block.data?.level === 1 ? 'text-3xl' :
+                            block.data?.level === 2 ? 'text-2xl' : 'text-xl'
+                          }`}
+                          dangerouslySetInnerHTML={{ __html: block.data?.content || '' }}
+                        />
                       )}
                       {block.type === 'text' && (
-                        (() => {
-                          const rawHtml = block.data?.content || '';
-                          const sanitizedHtml = sanitizeHtml(rawHtml);
-                          console.log('[Portal sanitize][text] raw:', rawHtml);
-                          console.log('[Portal sanitize][text] sanitized:', sanitizedHtml);
-                          return (
-                            <div
-                              className="prose max-w-none text-foreground"
-                              style={{ direction: detectRTL(block.data?.content) ? 'rtl' : 'ltr' }}
-                              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-                            />
-                          );
-                        })()
+                        <div
+                          className="prose max-w-none text-foreground"
+                          style={{ direction: detectRTL(block.data?.content) ? 'rtl' : 'ltr' }}
+                          dangerouslySetInnerHTML={{ __html: block.data?.content || '' }}
+                        />
                       )}
                       {block.type === 'image' && (() => {
                         // Check if URL exists, if not show placeholder
