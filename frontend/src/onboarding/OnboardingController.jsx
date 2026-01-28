@@ -185,7 +185,7 @@ const OnboardingController = () => {
   }, [user?.id, loading]);
 
   useEffect(() => {
-    if (!user?.id || loading || !user?.email_verified) {
+    if (!user?.id || loading) {
       setActive(false);
       return;
     }
@@ -214,7 +214,7 @@ const OnboardingController = () => {
       setStepIndex(0);
       setActive(true);
     }
-  }, [status, user?.id, user?.email_verified, loading, location.pathname]);
+  }, [status, user?.id, loading, location.pathname]);
 
   useEffect(() => {
     if (!active) return;
