@@ -16,6 +16,7 @@ from typing import List, Optional, Dict, Any
 from collections import defaultdict
 import uuid
 from datetime import datetime, timezone, timedelta
+import time
 import asyncio
 import bcrypt
 import jwt
@@ -469,6 +470,7 @@ class AnalyticsEvent(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     walkthrough_id: str
+    workspace_id: Optional[str] = None
     event_type: str
     step_id: Optional[str] = None
     problem_id: Optional[str] = None
@@ -480,6 +482,7 @@ class Feedback(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     walkthrough_id: str
+    workspace_id: Optional[str] = None
     rating: str
     comment: Optional[str] = None
     hesitation_step: Optional[str] = None
@@ -2308,7 +2311,9 @@ async def assign_free_plan_to_user(user_id: str):
 
 # Auth Routes
 @api_router.post("/auth/signup")
-async def signup(user_data: UserCreate, background_tasks: BackgroundTasks, response: Response):
+async def signup(user_data: UserCreate, background_tasks: BackgroundTasks, response: Response, request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_auth_rate_limit(f"signup:{client_ip}:{user_data.email}")
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -2377,7 +2382,9 @@ async def signup(user_data: UserCreate, background_tasks: BackgroundTasks, respo
     return {"user": user.model_dump(mode='json'), "token": token, "email_verification_sent": True}
 
 @api_router.post("/auth/login")
-async def login(login_data: UserLogin, response: Response):
+async def login(login_data: UserLogin, response: Response, request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_auth_rate_limit(f"login:{client_ip}:{login_data.email}")
     user_doc = await db.users.find_one({"email": login_data.email})
     if not user_doc or not verify_password(login_data.password, user_doc['password']):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -2582,7 +2589,8 @@ async def dismiss_onboarding(current_user: User = Depends(get_current_user)):
 @api_router.post("/auth/forgot-password")
 async def forgot_password(
     request: ForgotPasswordRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    http_request: Request
 ):
     """
     Request password reset for user.
@@ -2590,6 +2598,8 @@ async def forgot_password(
     Generates secure reset token and sends reset email.
     """
     try:
+        client_ip = http_request.client.host if http_request.client else "unknown"
+        enforce_auth_rate_limit(f"forgot:{client_ip}:{request.email}")
         # Check if user exists (but don't reveal this information)
         user_doc = await db.users.find_one({"email": request.email}, {"_id": 0})
 
@@ -3555,10 +3565,15 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
     All members are notified when workspace is deleted.
     """
     try:
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1, "name": 1})
+        if not workspace:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        if current_user.role != UserRole.ADMIN and workspace.get("owner_id") != current_user.id:
+            raise HTTPException(status_code=403, detail="Only workspace owner or admin can delete workspace")
+
         # Get workspace name for notifications
         try:
-            workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
-            workspace_name = workspace.get("name", "Unknown") if workspace else "Unknown"
+            workspace_name = workspace.get("name", "Unknown")
         except Exception as db_error:
             logging.error(f"Failed to get workspace name: {db_error}", exc_info=True)
             raise HTTPException(status_code=500, detail="Database error while accessing workspace")
@@ -3572,8 +3587,6 @@ async def delete_workspace(workspace_id: str, current_user: User = Depends(get_c
 
         try:
             workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
-            if not workspace:
-                raise HTTPException(status_code=404, detail="Workspace not found")
         except Exception as workspace_error:
             logging.error(f"Failed to get workspace details: {workspace_error}", exc_info=True)
             raise
@@ -5412,6 +5425,15 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
 @api_router.post("/analytics/event")
 async def track_event(event: AnalyticsEvent):
     event_dict = event.model_dump()
+    try:
+        walkthrough = await db.walkthroughs.find_one(
+            {"id": event.walkthrough_id},
+            {"_id": 0, "workspace_id": 1}
+        )
+        if walkthrough:
+            event_dict["workspace_id"] = walkthrough.get("workspace_id")
+    except Exception:
+        pass
     event_dict['timestamp'] = event_dict['timestamp'].isoformat()
     await db.analytics_events.insert_one(event_dict)
     return {"message": "Event tracked"}
@@ -5421,8 +5443,18 @@ async def get_analytics(workspace_id: str, walkthrough_id: str, current_user: Us
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
     
-    events = await db.analytics_events.find({"walkthrough_id": walkthrough_id}, {"_id": 0}).to_list(10000)
+    events = await db.analytics_events.find(
+        {"walkthrough_id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    ).to_list(10000)
     
     views = len([e for e in events if e['event_type'] == 'view'])
     starts = len([e for e in events if e['event_type'] == 'start'])
@@ -5463,7 +5495,9 @@ async def reset_analytics(workspace_id: str, walkthrough_id: str, current_user: 
         raise HTTPException(status_code=404, detail="Walkthrough not found")
 
     # Delete all analytics events for this walkthrough
-    result = await db.analytics_events.delete_many({"walkthrough_id": walkthrough_id})
+    result = await db.analytics_events.delete_many(
+        {"walkthrough_id": walkthrough_id, "workspace_id": workspace_id}
+    )
 
     logging.info(f"Reset analytics for walkthrough {walkthrough_id}: deleted {result.deleted_count} events")
 
@@ -5477,6 +5511,15 @@ async def reset_analytics(workspace_id: str, walkthrough_id: str, current_user: 
 @api_router.post("/feedback")
 async def submit_feedback(feedback: Feedback):
     feedback_dict = feedback.model_dump()
+    try:
+        walkthrough = await db.walkthroughs.find_one(
+            {"id": feedback.walkthrough_id},
+            {"_id": 0, "workspace_id": 1}
+        )
+        if walkthrough:
+            feedback_dict["workspace_id"] = walkthrough.get("workspace_id")
+    except Exception:
+        pass
     feedback_dict['timestamp'] = feedback_dict['timestamp'].isoformat()
     await db.feedback.insert_one(feedback_dict)
     return {"message": "Feedback submitted"}
@@ -5486,8 +5529,18 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
     member = await get_workspace_member(workspace_id, current_user.id)
     if not member:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found")
     
-    feedback_list = await db.feedback.find({"walkthrough_id": walkthrough_id}, {"_id": 0}).to_list(1000)
+    feedback_list = await db.feedback.find(
+        {"walkthrough_id": walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0}
+    ).to_list(1000)
     return feedback_list
 
 # Media Upload Route - Two-Phase Commit with Quota Enforcement
@@ -6648,6 +6701,21 @@ _reconciliation_cache = {}  # {user_id: {"last_call": datetime, "count": int, "r
 RECONCILIATION_RATE_LIMIT = 5  # Max calls per window
 RECONCILIATION_WINDOW_SECONDS = 60  # Time window
 RECONCILIATION_CACHE_TTL = 10  # Cache results for 10 seconds
+
+# Auth rate limiting (in-memory)
+_auth_rate_limit = {}  # {key: {"count": int, "window_start": float}}
+AUTH_RATE_LIMIT = 10  # Max requests per window
+AUTH_RATE_WINDOW_SECONDS = 60
+
+def enforce_auth_rate_limit(key: str) -> None:
+    now = time.time()
+    entry = _auth_rate_limit.get(key)
+    if not entry or (now - entry["window_start"]) > AUTH_RATE_WINDOW_SECONDS:
+        _auth_rate_limit[key] = {"count": 1, "window_start": now}
+        return
+    entry["count"] += 1
+    if entry["count"] > AUTH_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
 
 @api_router.post("/billing/reconcile")
 async def reconcile_my_subscription(current_user: User = Depends(get_current_user)):
