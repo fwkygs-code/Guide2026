@@ -10,6 +10,7 @@ import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, Align
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FontSize } from '@/lib/fontSize';
+import { RICH_TEXT_COLOR_PALETTE } from '../../utils/richTextColors';
 
 function getEditorPlainText(editor) {
   // Preserve spaces (including trailing) better than HTML/textContent which can drop/collapse them.
@@ -208,6 +209,29 @@ const InlineRichEditor = ({
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-px h-5 bg-border mx-1" />
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                editor.chain().focus().unsetColor().run();
+              }}
+              className="h-5 w-5 rounded-full border border-border"
+              aria-label="Default text color"
+            />
+            {RICH_TEXT_COLOR_PALETTE.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  editor.chain().focus().setColor(color).run();
+                }}
+                className={`h-5 w-5 rounded-full border border-border ${editor.getAttributes('textStyle')?.color === color ? 'ring-2 ring-primary' : ''}`}
+                style={{ backgroundColor: color }}
+                aria-label={`Text color ${color}`}
+              />
+            ))}
           </div>
         </div>
       )}
