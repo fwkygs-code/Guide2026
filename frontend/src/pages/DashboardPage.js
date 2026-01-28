@@ -162,7 +162,7 @@ const DashboardPage = () => {
               className="rounded-full"
               data-testid="upgrade-plan-button"
             >
-              {quotaData?.access_granted ? t('billing.managePlan') : t('quota.upgrade')}
+              {quotaData?.access_granted ? 'Manage Plan' : 'Upgrade Plan'}
             </Button>
             <Button
               onClick={() => {
