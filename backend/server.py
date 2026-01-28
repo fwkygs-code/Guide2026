@@ -1018,12 +1018,15 @@ def _log_text_block_diff(raw: dict, sanitized: dict) -> None:
                     })
     if diffs:
         logging.warning(
-            "[portal][sanitize] Text/heading block data dropped during serialization",
-            extra={
-                "diffs": diffs,
-                "raw_walkthrough": raw,
-                "sanitized_walkthrough": sanitized
-            }
+            "[portal][sanitize] Text/heading block data dropped during serialization | %s",
+            json.dumps(
+                {
+                    "diffs": diffs,
+                    "raw_walkthrough": raw,
+                    "sanitized_walkthrough": sanitized
+                },
+                default=str
+            )
         )
 
 
@@ -5510,15 +5513,18 @@ async def get_public_walkthrough(slug: str, walkthrough_id: str):
         raw_summary = _summarize_text_blocks(walkthrough)
         sanitized_summary = _summarize_text_blocks(walkthrough_with_workspace)
         logging.warning(
-            "[portal][debug] Text/heading block summary",
-            extra={
-                "walkthrough_id": walkthrough_id,
-                "workspace_slug": slug,
-                "raw_summary": raw_summary,
-                "sanitized_summary": sanitized_summary,
-                "raw_walkthrough": walkthrough,
-                "sanitized_walkthrough": walkthrough_with_workspace
-            }
+            "[portal][debug] Text/heading block summary | %s",
+            json.dumps(
+                {
+                    "walkthrough_id": walkthrough_id,
+                    "workspace_slug": slug,
+                    "raw_summary": raw_summary,
+                    "sanitized_summary": sanitized_summary,
+                    "raw_walkthrough": walkthrough,
+                    "sanitized_walkthrough": walkthrough_with_workspace
+                },
+                default=str
+            )
         )
     walkthrough_with_workspace["workspace"] = {
         "contact_whatsapp": workspace.get("contact_whatsapp"),
@@ -5572,15 +5578,18 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
         raw_summary = _summarize_text_blocks(walkthrough)
         sanitized_summary = _summarize_text_blocks(walkthrough_with_workspace)
         logging.warning(
-            "[portal][debug] Text/heading block summary (password)",
-            extra={
-                "walkthrough_id": walkthrough_id,
-                "workspace_slug": slug,
-                "raw_summary": raw_summary,
-                "sanitized_summary": sanitized_summary,
-                "raw_walkthrough": walkthrough,
-                "sanitized_walkthrough": walkthrough_with_workspace
-            }
+            "[portal][debug] Text/heading block summary (password) | %s",
+            json.dumps(
+                {
+                    "walkthrough_id": walkthrough_id,
+                    "workspace_slug": slug,
+                    "raw_summary": raw_summary,
+                    "sanitized_summary": sanitized_summary,
+                    "raw_walkthrough": walkthrough,
+                    "sanitized_walkthrough": walkthrough_with_workspace
+                },
+                default=str
+            )
         )
     walkthrough_with_workspace["workspace"] = {
         "contact_whatsapp": workspace.get("contact_whatsapp"),
