@@ -1027,6 +1027,38 @@ def _log_text_block_diff(raw: dict, sanitized: dict) -> None:
         )
 
 
+def _summarize_text_blocks(w: dict) -> list:
+    if not w or not isinstance(w.get("steps"), list):
+        return []
+    summary = []
+    for step_index, step in enumerate(w.get("steps", [])):
+        blocks = step.get("blocks") if isinstance(step.get("blocks"), list) else []
+        for block_index, block in enumerate(blocks):
+            if not isinstance(block, dict):
+                continue
+            block_type = block.get("type")
+            if block_type not in {"text", "heading"}:
+                continue
+            data = block.get("data")
+            content = data.get("content") if isinstance(data, dict) else None
+            content_type = type(content).__name__ if content is not None else None
+            content_len = None
+            if isinstance(content, str):
+                content_len = len(content)
+            elif isinstance(content, dict):
+                content_len = len(content.keys())
+            summary.append({
+                "step_index": step_index,
+                "block_index": block_index,
+                "block_id": block.get("id"),
+                "block_type": block_type,
+                "data_keys": list(data.keys()) if isinstance(data, dict) else [],
+                "content_type": content_type,
+                "content_len": content_len
+            })
+    return summary
+
+
 def _preserve_text_block_data(raw: dict, sanitized: dict) -> None:
     if not raw or not sanitized:
         return
@@ -5474,6 +5506,20 @@ async def get_public_walkthrough(slug: str, walkthrough_id: str):
     
     # Include workspace contact info for "Get Support" button blocks
     walkthrough_with_workspace = sanitize_public_walkthrough(walkthrough)
+    if os.environ.get("PORTAL_TEXT_DEBUG") == "1":
+        raw_summary = _summarize_text_blocks(walkthrough)
+        sanitized_summary = _summarize_text_blocks(walkthrough_with_workspace)
+        logging.warning(
+            "[portal][debug] Text/heading block summary",
+            extra={
+                "walkthrough_id": walkthrough_id,
+                "workspace_slug": slug,
+                "raw_summary": raw_summary,
+                "sanitized_summary": sanitized_summary,
+                "raw_walkthrough": walkthrough,
+                "sanitized_walkthrough": walkthrough_with_workspace
+            }
+        )
     walkthrough_with_workspace["workspace"] = {
         "contact_whatsapp": workspace.get("contact_whatsapp"),
         "contact_phone": workspace.get("contact_phone"),
@@ -5522,6 +5568,20 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
     
     # Include workspace contact info for "Get Support" button blocks
     walkthrough_with_workspace = sanitize_public_walkthrough(walkthrough)
+    if os.environ.get("PORTAL_TEXT_DEBUG") == "1":
+        raw_summary = _summarize_text_blocks(walkthrough)
+        sanitized_summary = _summarize_text_blocks(walkthrough_with_workspace)
+        logging.warning(
+            "[portal][debug] Text/heading block summary (password)",
+            extra={
+                "walkthrough_id": walkthrough_id,
+                "workspace_slug": slug,
+                "raw_summary": raw_summary,
+                "sanitized_summary": sanitized_summary,
+                "raw_walkthrough": walkthrough,
+                "sanitized_walkthrough": walkthrough_with_workspace
+            }
+        )
     walkthrough_with_workspace["workspace"] = {
         "contact_whatsapp": workspace.get("contact_whatsapp"),
         "contact_phone": workspace.get("contact_phone"),
