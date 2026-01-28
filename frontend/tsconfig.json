@@ -12,6 +12,11 @@
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
+    "baseUrl": "src",
+    "paths": {
+      "shared-http": ["shared/http"],
+      "shared-http/*": ["shared/http/*"]
+    },
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
