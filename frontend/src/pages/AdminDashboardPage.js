@@ -20,7 +20,7 @@ import DashboardLayout from '../components/DashboardLayout';
 
 const AdminDashboardPage = () => {
   const { t } = useTranslation();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, loading } = useAuth();
   const navigate = useNavigate();
   
   // Users tab
@@ -85,13 +85,14 @@ const AdminDashboardPage = () => {
 
   useEffect(() => {
     // Check if user is admin (role field from backend)
+    if (loading) return;
     if (!user || user.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
     fetchUsers();
     fetchStats();
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     fetchUsers();

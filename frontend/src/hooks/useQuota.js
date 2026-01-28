@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useQuota = (workspaceId = null) => {
+  const { user } = useAuth();
   const [quotaData, setQuotaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     fetchQuotaData();
-  }, [workspaceId]);
+  }, [workspaceId, user?.id]);
 
   const fetchQuotaData = async () => {
     try {

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy, Settings, Upload, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../lib/api';
+import { api, getBackendUrl } from '../lib/api';
 import { normalizeImageUrlsInObject, normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import { useQuota } from '../hooks/useQuota';
@@ -677,13 +677,6 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
   const { t } = useTranslation();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   // Use backend URL for sharing (WhatsApp crawlers need backend route)
-  const getBackendUrl = () => {
-    const apiUrl = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL;
-    if (apiUrl) {
-      return apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
-    }
-    return 'https://guide2026-backend.onrender.com';
-  };
   // Use slug if available, otherwise fall back to ID
   const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
   const walkthroughUrl = `${getBackendUrl()}/portal/${workspaceSlug}/${walkthroughIdentifier}`;

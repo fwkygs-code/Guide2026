@@ -20,8 +20,8 @@ const OnboardingController = () => {
   const [stepIndex, setStepIndex] = useState(session?.stepIndex || 0);
   const [domCheckTrigger, setDomCheckTrigger] = useState(0);
 
-  const isDismissed = status?.has_dismissed_onboarding === true;
-  const isCompleted = status?.has_completed_onboarding === true;
+  const hasDismissed = (user?.has_dismissed_onboarding === true) || (status?.has_dismissed_onboarding === true);
+  const hasCompleted = (user?.has_completed_onboarding === true) || (status?.has_completed_onboarding === true);
   const step = ONBOARDING_STEPS[stepIndex];
   const targetSelector = useMemo(() => {
     if (!step?.target) return null;
@@ -29,38 +29,6 @@ const OnboardingController = () => {
   }, [step?.id, step?.target, session?.workspaceId, session?.categoryId, session?.walkthroughId, session?.step8, location.pathname]);
 
   const { rect, isReady } = useTargetRect(targetSelector, active);
-
-  // Use ref to store latest setStep function to avoid circular dependencies
-  const setStepRef = useRef(null);
-
-  const setStep = useCallback((nextIndex, updates = {}) => {
-    if (isDismissed || isCompleted) {
-      return;
-    }
-    if (nextIndex < 0 || nextIndex >= ONBOARDING_STEPS.length) {
-      if (nextIndex >= ONBOARDING_STEPS.length) {
-        markCompleted();
-      } else {
-        clearOnboardingSession();
-        setActive(false);
-      }
-      return;
-    }
-    const nextSession = updateOnboardingSession({
-      active: true,
-      stepIndex: nextIndex,
-      userId: user?.id || null,
-      ...updates
-    });
-    setSession(nextSession);
-    setStepIndex(nextIndex);
-    setActive(true);
-  }, [user?.id, isDismissed, isCompleted, markCompleted]);
-
-  // Update ref whenever setStep changes
-  useEffect(() => {
-    setStepRef.current = setStep;
-  }, [setStep]);
 
   const markDismissed = useCallback(async () => {
     try {
@@ -81,6 +49,38 @@ const OnboardingController = () => {
       setActive(false);
     }
   }, []);
+
+  // Use ref to store latest setStep function to avoid circular dependencies
+  const setStepRef = useRef(null);
+
+  const setStep = useCallback((nextIndex, updates = {}) => {
+    if (hasDismissed || hasCompleted) {
+      return;
+    }
+    if (nextIndex < 0 || nextIndex >= ONBOARDING_STEPS.length) {
+      if (nextIndex >= ONBOARDING_STEPS.length) {
+        markCompleted();
+      } else {
+        clearOnboardingSession();
+        setActive(false);
+      }
+      return;
+    }
+    const nextSession = updateOnboardingSession({
+      active: true,
+      stepIndex: nextIndex,
+      userId: user?.id || null,
+      ...updates
+    });
+    setSession(nextSession);
+    setStepIndex(nextIndex);
+    setActive(true);
+  }, [user?.id, hasDismissed, hasCompleted, markCompleted]);
+
+  // Update ref whenever setStep changes
+  useEffect(() => {
+    setStepRef.current = setStep;
+  }, [setStep]);
 
   // Event handlers moved outside useEffect to avoid circular dependencies
   const handleCreateWorkspace = useCallback(() => {
@@ -126,27 +126,31 @@ const OnboardingController = () => {
   }, [stepIndex]);
 
   const handleStepAdded = useCallback(() => {
+    if (hasDismissed || hasCompleted) return;
     if (stepIndex === 8) {
       const nextSession = updateOnboardingSession({ step8: { hasStep: true } });
       setSession(nextSession);
     }
-  }, [stepIndex]);
+  }, [stepIndex, hasDismissed, hasCompleted]);
 
   const handleStepTitleUpdated = useCallback((event) => {
+    if (hasDismissed || hasCompleted) return;
     if (stepIndex === 8 && event.detail?.title?.trim()) {
       const nextSession = updateOnboardingSession({ step8: { hasTitle: true } });
       setSession(nextSession);
     }
-  }, [stepIndex]);
+  }, [stepIndex, hasDismissed, hasCompleted]);
 
   const handleBlockAdded = useCallback(() => {
+    if (hasDismissed || hasCompleted) return;
     if (stepIndex === 8) {
       const nextSession = updateOnboardingSession({ step8: { hasBlock: true } });
       setSession(nextSession);
     }
-  }, [stepIndex]);
+  }, [stepIndex, hasDismissed, hasCompleted]);
 
   const handleDialogClosed = useCallback(() => {
+    if (hasDismissed || hasCompleted) return;
     if (stepIndex === 2 && setStepRef.current) {
       setStepRef.current(1);
     } else if (stepIndex === 5 && setStepRef.current) {
@@ -162,7 +166,7 @@ const OnboardingController = () => {
     setTimeout(() => {
       setDomCheckTrigger(prev => prev + 1);
     }, 100);
-  }, [stepIndex]);
+  }, [stepIndex, hasDismissed, hasCompleted]);
 
   useEffect(() => {
     if (!user?.id || loading) {
@@ -190,21 +194,19 @@ const OnboardingController = () => {
   }, [user?.id, loading]);
 
   useEffect(() => {
-    if (!status) return;
-    if (isDismissed || isCompleted) {
+    if (hasDismissed || hasCompleted) {
       clearOnboardingSession();
       setActive(false);
       setStepIndex(0);
     }
-  }, [status, isDismissed, isCompleted]);
+  }, [hasDismissed, hasCompleted]);
 
   useEffect(() => {
     if (!user?.id || loading) {
       setActive(false);
       return;
     }
-    if (!status) return;
-    if (isDismissed || isCompleted) {
+    if (hasDismissed || hasCompleted) {
       clearOnboardingSession();
       setActive(false);
       return;
@@ -228,7 +230,7 @@ const OnboardingController = () => {
       setStepIndex(0);
       setActive(true);
     }
-  }, [status, isDismissed, isCompleted, user?.id, loading, location.pathname]);
+  }, [hasDismissed, hasCompleted, user?.id, loading, location.pathname]);
 
   useEffect(() => {
     if (!active) return;
@@ -356,7 +358,7 @@ const OnboardingController = () => {
     }
   }, [active, stepIndex, session]);
 
-  if (!active || !step || isDismissed || isCompleted) return null;
+  if (!active || !step || hasDismissed || hasCompleted) return null;
 
   return (
     <OnboardingOverlay

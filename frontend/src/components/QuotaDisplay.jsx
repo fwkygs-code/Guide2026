@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { api } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const formatBytes = (bytes, t) => {
   const safeT = t || ((key) => key);
@@ -27,13 +28,18 @@ const formatNumber = (num, t) => {
 
 const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = null }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [quotaData, setQuotaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     fetchQuotaData();
-  }, [workspaceId]);
+  }, [workspaceId, user?.id]);
 
   const fetchQuotaData = async () => {
     try {

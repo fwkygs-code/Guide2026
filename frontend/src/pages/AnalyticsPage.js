@@ -8,6 +8,7 @@ import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
+import { useAuth } from '../contexts/AuthContext';
 
 const AnalyticsPage = () => {
   const { t } = useTranslation();
@@ -15,6 +16,7 @@ const AnalyticsPage = () => {
   const navigate = useNavigate();
   const [walkthroughs, setWalkthroughs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   
   // Resolve workspace slug to ID
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -36,7 +38,7 @@ const AnalyticsPage = () => {
       }
     };
 
-    if (workspaceId) {
+    if (workspaceId && user?.id) {
       acquireLock();
     }
 
@@ -48,11 +50,12 @@ const AnalyticsPage = () => {
         });
       }
     };
-  }, [workspaceId, workspaceSlug, navigate]);
+  }, [workspaceId, workspaceSlug, navigate, user?.id]);
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchData();
-  }, [workspaceId]);
+  }, [workspaceId, user?.id]);
 
   const fetchData = async () => {
     if (!workspaceId) return; // Wait for workspace ID to be resolved

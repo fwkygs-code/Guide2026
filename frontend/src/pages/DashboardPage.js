@@ -39,8 +39,9 @@ const DashboardPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchWorkspaces();
-  }, []);
+  }, [user?.id]);
 
   const fetchWorkspaces = async () => {
     try {

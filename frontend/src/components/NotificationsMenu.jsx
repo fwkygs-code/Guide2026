@@ -12,6 +12,7 @@ import { api } from '../lib/api';
 import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
 
 const NotificationsMenu = () => {
   const { t } = useTranslation();
@@ -19,6 +20,7 @@ const NotificationsMenu = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const fetchNotifications = async () => {
     try {
@@ -51,11 +53,15 @@ const NotificationsMenu = () => {
   };
 
   useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     fetchNotifications();
     // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.id]);
 
   // Check for FORCED_DISCONNECT notifications and handle them
   useEffect(() => {

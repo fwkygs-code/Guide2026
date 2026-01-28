@@ -8,18 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { apiClient, API_BASE } from '../lib/api';
+import { apiClient, getBackendUrl } from '../lib/api';
 import { normalizeImageUrl } from '../lib/utils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
 import { AppShell } from '../components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 
-
-// Get backend URL for sharing (WhatsApp previews need backend route)
-const getBackendUrl = () => {
-  return API_BASE.replace(/\/api$/, '').replace(/\/$/, '') || 'https://guide2026-backend.onrender.com';
-};
 
 const PortalPage = ({ isEmbedded = false }) => {
   const { t, i18n } = useTranslation();
