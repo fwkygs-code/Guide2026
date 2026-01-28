@@ -6174,11 +6174,10 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
         {"_id": 0}
     )
     
-    # If subscription exists, reconcile with PayPal
+    # If subscription exists, derive access from stored PayPal fields (read-only)
     if subscription_doc:
-        # FORENSIC LOG: What's in DB before reconciliation
         logging.critical(
-            f"📖 [GET_PLAN] DB STATE BEFORE RECONCILIATION for user {current_user.id}:\n"
+            f"📖 [GET_PLAN] DB STATE (READ-ONLY) for user {current_user.id}:\n"
             f"  subscription_id={subscription_doc.get('id')}\n"
             f"  status={subscription_doc.get('status')}\n"
             f"  paypal_verified_status={subscription_doc.get('paypal_verified_status')}\n"
@@ -6186,79 +6185,53 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
             f"  next_billing_time={subscription_doc.get('next_billing_time')}\n"
             f"  final_payment_time={subscription_doc.get('final_payment_time')}"
         )
-        
-        # ALWAYS force reconciliation for legacy users (no PayPal billing timestamps)
-        # ONLY check PayPal API fields (PayPal is single source of truth)
-        has_billing_timestamps = bool(
-            subscription_doc.get('next_billing_time') or 
-            subscription_doc.get('final_payment_time') or 
-            subscription_doc.get('last_payment_time')
+
+        paypal_status = (subscription_doc.get("paypal_verified_status") or "").upper()
+        next_billing_time = subscription_doc.get("next_billing_time")
+        final_payment_time = subscription_doc.get("final_payment_time")
+        last_payment_time = subscription_doc.get("last_payment_time")
+
+        next_billing_dt = None
+        final_payment_dt = None
+        if next_billing_time:
+            try:
+                next_billing_dt = datetime.fromisoformat(next_billing_time.replace('Z', '+00:00'))
+            except Exception as e:
+                logging.error(f"[GET_PLAN] Invalid next_billing_time format: {next_billing_time}, error: {e}")
+        if final_payment_time:
+            try:
+                final_payment_dt = datetime.fromisoformat(final_payment_time.replace('Z', '+00:00'))
+            except Exception as e:
+                logging.error(f"[GET_PLAN] Invalid final_payment_time format: {final_payment_time}, error: {e}")
+
+        access_granted = (
+            (next_billing_dt is not None and next_billing_dt > datetime.now(timezone.utc)) or
+            (final_payment_dt is not None and final_payment_dt > datetime.now(timezone.utc))
         )
-        force = not has_billing_timestamps
-        
+
+        if not access_granted and not next_billing_dt and not final_payment_dt and last_payment_time:
+            access_granted = True
+            logging.info("[GET_PLAN] Access granted via last_payment_time fallback (read-only)")
+
+        if access_granted:
+            plan_name = "pro"
+            if next_billing_time:
+                access_until = next_billing_time
+            elif final_payment_time:
+                access_until = final_payment_time
+            is_recurring = (paypal_status == "ACTIVE" and not final_payment_time)
+
+        provider = "PAYPAL"
+        provider_subscription_id = subscription_doc.get('provider_subscription_id')
+        if provider_subscription_id:
+            management_url = f"https://www.paypal.com/myaccount/autopay/connect/{provider_subscription_id}"
+
         logging.info(
-            f"[GET_PLAN] Reconciling with force={force} "
-            f"(has_timestamps={has_billing_timestamps})"
+            f"[GET_PLAN] Read-only PayPal state: "
+            f"access_granted={access_granted}, "
+            f"plan={plan_name}, "
+            f"access_until={access_until}"
         )
-        
-        # Reconcile subscription with PayPal
-        reconcile_result = await reconcile_subscription_with_paypal(
-            subscription_id=subscription_doc['id'],
-            force=force
-        )
-        
-        # Process reconciliation result
-        if reconcile_result.get("success"):
-            # FORENSIC LOG: What reconciliation returned
-            logging.critical(
-                f"📊 [GET_PLAN] RECONCILIATION RETURNED for user {current_user.id}:\n"
-                f"  success={reconcile_result.get('success')}\n"
-                f"  access_granted={reconcile_result.get('access_granted')}\n"
-                f"  paypal_status={reconcile_result.get('paypal_status')}\n"
-                f"  billing_info={reconcile_result.get('billing_info')}"
-            )
-            
-            # Extract canonical fields from reconciliation
-            access_granted = bool(reconcile_result.get("access_granted", False))
-            
-            # Extract billing timestamps
-            billing_info = reconcile_result.get("billing_info", {})
-            next_billing_time = billing_info.get("next_billing_time")
-            final_payment_time = billing_info.get("final_payment_time")
-            paypal_status = reconcile_result.get("paypal_status", "")
-            
-            # Derive plan name from access
-            if access_granted:
-                plan_name = "pro"  # STRING
-                
-                # access_until = when paid access expires
-                if next_billing_time:
-                    access_until = next_billing_time
-                elif final_payment_time:
-                    access_until = final_payment_time
-                
-                # is_recurring = subscription auto-renews
-                is_recurring = (paypal_status == "ACTIVE" and not final_payment_time)
-            
-            # Management URL (for all PayPal subscriptions)
-            provider = "PAYPAL"
-            provider_subscription_id = subscription_doc.get('provider_subscription_id')
-            if provider_subscription_id:
-                management_url = f"https://www.paypal.com/myaccount/autopay/connect/{provider_subscription_id}"
-            
-            logging.info(
-                f"[GET_PLAN] Reconciliation success: "
-                f"access_granted={access_granted}, "
-                f"plan={plan_name}, "
-                f"access_until={access_until}"
-            )
-        else:
-            # Reconciliation failed - log but continue with Free plan
-            error = reconcile_result.get("error", "unknown")
-            logging.warning(
-                f"[GET_PLAN] Reconciliation failed for user {current_user.email}: {error}"
-            )
-            # State remains: plan=free, access_granted=False
     else:
         logging.info(f"[GET_PLAN] No PayPal subscription found for {current_user.email}")
 
@@ -6287,8 +6260,8 @@ async def get_user_plan_endpoint(current_user: User = Depends(get_current_user))
                     f"[GET_PLAN] Manual subscription override: plan={plan_name}, access_granted={access_granted}"
                 )
 
-    # Fallback: Stored plan_id should only apply when no PayPal subscription exists
-    if plan_name == "free" and not access_granted and not subscription_doc:
+    # Fallback: Stored plan_id applies when PayPal access is not granted
+    if plan_name == "free" and not access_granted:
         user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0, "plan_id": 1})
         stored_plan_id = user_doc.get("plan_id") if user_doc else None
         if stored_plan_id:
@@ -9444,9 +9417,26 @@ async def admin_update_user_plan(
                 {"_id": 0}
             )
 
+        manual_subscription = await db.subscriptions.find_one(
+            {
+                "user_id": user_id,
+                "provider": {"$ne": "paypal"}
+            },
+            {"_id": 0}
+        )
+
         if existing_subscription and existing_subscription.get("provider") != "paypal":
             await db.subscriptions.update_one(
                 {"id": subscription_id},
+                {"$set": {
+                    "plan_id": plan["id"],
+                    "status": SubscriptionStatus.ACTIVE.value,
+                    "updated_at": now.isoformat()
+                }}
+            )
+        elif manual_subscription:
+            await db.subscriptions.update_one(
+                {"id": manual_subscription["id"]},
                 {"$set": {
                     "plan_id": plan["id"],
                     "status": SubscriptionStatus.ACTIVE.value,
@@ -9467,11 +9457,12 @@ async def admin_update_user_plan(
             sub_dict['created_at'] = sub_dict['created_at'].isoformat()
             sub_dict['updated_at'] = sub_dict['updated_at'].isoformat()
             await db.subscriptions.insert_one(sub_dict)
-
-            await db.users.update_one(
-                {"id": user_id},
-                {"$set": {"subscription_id": subscription_id}}
-            )
+            # Only attach manual subscription if no PayPal subscription is linked
+            if not existing_subscription or existing_subscription.get("provider") != "paypal":
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"subscription_id": subscription_id}}
+                )
 
         await db.workspace_members.update_many(
             {
@@ -10208,6 +10199,20 @@ async def force_downgrade_to_free(
                 "updated_at": now.isoformat()
             }}
         )
+
+    # Deactivate all non-PayPal subscriptions for this user
+    await db.subscriptions.update_many(
+        {
+            "user_id": user_id,
+            "provider": {"$ne": "paypal"},
+            "status": {"$ne": SubscriptionStatus.CANCELLED.value}
+        },
+        {"$set": {
+            "status": SubscriptionStatus.CANCELLED.value,
+            "cancelled_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }}
+    )
     
     logging.info(
         f"[ADMIN] User {current_user.id} force downgraded user {user_id} to Free plan. "
