@@ -1,4 +1,5 @@
 # Force Render rebuild - 2026-01-21 23:45 - CRITICAL CACHE PURGE v4
+# Deploy marker: restore original Render services
 # Local file compiles perfectly - Render cache is corrupted
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Response, Header, Query, Form, Body, BackgroundTasks
 from fastapi.exceptions import RequestValidationError
