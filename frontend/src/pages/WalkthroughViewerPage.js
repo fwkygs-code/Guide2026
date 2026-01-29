@@ -73,8 +73,17 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
     const shareableUrl = `${getPublicPortalUrl()}/portal/${slug}/${walkthroughIdentifier}#step=${currentStep + 1}`;
     const primaryCategoryId = walkthrough?.category_ids?.[0];
-    const categoryName =
-      (primaryCategoryId && categoriesById[primaryCategoryId]?.name) || t('stuck.categoryFallback');
+    const primaryCategory = primaryCategoryId ? categoriesById[primaryCategoryId] : null;
+    let categoryName = t('stuck.categoryFallback');
+    if (primaryCategory) {
+      if (primaryCategory.parent_id && categoriesById[primaryCategory.parent_id]) {
+        const parentName = categoriesById[primaryCategory.parent_id].name;
+        const childName = primaryCategory.name;
+        categoryName = `${parentName} - ${childName}`;
+      } else {
+        categoryName = primaryCategory.name || categoryName;
+      }
+    }
     const guideTitle = walkthrough.title || t('stuck.guideFallback');
     const stepTitle = step.title || t('stuck.stepFallback');
 
