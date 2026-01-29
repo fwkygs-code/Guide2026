@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +36,7 @@ const DashboardPage = () => {
   const [pendingWorkspace, setPendingWorkspace] = useState(null);
   const [lockedBy, setLockedBy] = useState('');
   const { user } = useAuth();
-  const { quotaData, isLoading: quotaLoading } = useQuota();
+  const { quotaData, isLoading: quotaLoading, error: quotaError } = useQuota();
   const navigate = useNavigate();
   const location = useLocation();
   const [showLoginOverlay, setShowLoginOverlay] = useState(!!location.state?.loginTransition);
@@ -48,6 +48,37 @@ const DashboardPage = () => {
   }, [user?.id]);
 
   const isDashboardReady = quotaDisplayReady;
+
+  const sharedQuotaData = useMemo(() => {
+    if (!quotaData) return null;
+    return {
+      planName: quotaData.plan || 'free',
+      access_granted: quotaData.access_granted || false,
+      access_until: quotaData.access_until || null,
+      is_recurring: quotaData.is_recurring || false,
+      management_url: quotaData.management_url || null,
+      provider: quotaData.provider || null,
+      quota: {
+        storage_used: quotaData.quota?.storage_used || 0,
+        storage_allowed: quotaData.quota?.storage_allowed || 0,
+        max_file_size: quotaData.quota?.max_file_size || 0,
+        workspaces_used: quotaData.quota?.workspaces_used || 0,
+        workspaces_limit: quotaData.quota?.workspaces_limit,
+        walkthroughs_used: quotaData.quota?.walkthroughs_used || 0,
+        walkthroughs_limit: quotaData.quota?.walkthroughs_limit,
+        categories_used: quotaData.quota?.categories_used || 0,
+        categories_limit: quotaData.quota?.categories_limit
+      },
+      workspaceQuota: quotaData.workspaceQuota
+        ? {
+            walkthroughs_used: quotaData.workspaceQuota.walkthroughs_used || 0,
+            walkthroughs_limit: quotaData.workspaceQuota.walkthroughs_limit,
+            categories_used: quotaData.workspaceQuota.categories_used || 0,
+            categories_limit: quotaData.workspaceQuota.categories_limit
+          }
+        : null
+    };
+  }, [quotaData]);
 
   const fetchWorkspaces = async () => {
     try {
@@ -545,6 +576,9 @@ const DashboardPage = () => {
               showWarnings={true}
               onUpgrade={() => setUpgradePromptOpen(true)}
               onReadyChange={setQuotaDisplayReady}
+              sharedQuotaData={sharedQuotaData}
+              sharedLoading={quotaLoading}
+              sharedError={quotaError}
             />
             <BillingInfo />
           </div>

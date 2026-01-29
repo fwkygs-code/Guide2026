@@ -26,25 +26,38 @@ const formatNumber = (num, t) => {
   return num.toLocaleString();
 };
 
-const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = null, onReadyChange = null }) => {
+const QuotaDisplay = ({
+  workspaceId = null,
+  showWarnings = true,
+  onUpgrade = null,
+  onReadyChange = null,
+  sharedQuotaData = undefined,
+  sharedLoading = undefined,
+  sharedError = undefined
+}) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [quotaData, setQuotaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const usingShared = sharedLoading !== undefined || sharedQuotaData !== undefined || sharedError !== undefined;
+  const resolvedLoading = usingShared ? !!sharedLoading : loading;
+  const resolvedError = usingShared ? sharedError : error;
+  const resolvedQuotaData = usingShared ? sharedQuotaData : quotaData;
 
   useEffect(() => {
+    if (usingShared) return;
     if (!user?.id) {
       setLoading(false);
       return;
     }
     fetchQuotaData();
-  }, [workspaceId, user?.id]);
+  }, [workspaceId, user?.id, usingShared]);
 
   useEffect(() => {
     if (!onReadyChange) return;
-    onReadyChange(!loading && !!quotaData && !error);
-  }, [loading, quotaData, error, onReadyChange]);
+    onReadyChange(!resolvedLoading && !!resolvedQuotaData && !resolvedError);
+  }, [resolvedLoading, resolvedQuotaData, resolvedError, onReadyChange]);
 
   const fetchQuotaData = async () => {
     try {
@@ -112,7 +125,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     }
   };
 
-  if (loading) {
+  if (resolvedLoading) {
     return (
       <Card interactive={true}>
         <CardHeader>
@@ -128,7 +141,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     );
   }
 
-  if (error || !quotaData) {
+  if (resolvedError || !resolvedQuotaData) {
     return (
       <Card interactive={true}>
         <CardHeader>
@@ -141,7 +154,7 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     );
   }
 
-  const { planName, quota, workspaceQuota, access_until, is_recurring, access_granted } = quotaData;
+  const { planName, quota, workspaceQuota, access_until, is_recurring, access_granted } = resolvedQuotaData;
   
   // Calculate time until access expires
   const formatTimeUntil = (dateString) => {
