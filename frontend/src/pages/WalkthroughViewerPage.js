@@ -77,7 +77,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       stepTitle,
       link: shareableUrl
     });
-    const url = `${baseUrl}?text=${encodeURIComponent(message)}`;
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const url = `${baseUrl}${separator}text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 

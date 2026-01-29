@@ -123,7 +123,7 @@
     "copyIntegrationLink": "Copy integration link",
     "copyShareableLink": "Copy shareable link",
     "implementation": "Implementation",
-    "implementationDescription": "Copy canonical step links for integrations and SDKs.",
+    "implementationDescription": "Copy integration links for SDKs and automation.",
     "uncategorized": "Uncategorized",
     "noGuidesInCategory": "No guides in this category yet."
   },
