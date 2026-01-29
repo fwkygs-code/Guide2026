@@ -9,6 +9,8 @@ import { apiClient } from '../../lib/api';
 import { DocumentationSystem } from './model';
 import { getPublishedDocumentationSystems } from './service';
 
+const ANIMATIONX_URL = 'https://res.cloudinary.com/ds1dgifj8/video/upload/q_auto,f_auto/interguide-static/animationx';
+
 export function DocumentationPortalRoot() {
   const { slug } = useParams();
   const [system, setSystem] = useState<DocumentationSystem | null>(null);
@@ -59,9 +61,22 @@ export function DocumentationPortalRoot() {
   }, [system]);
 
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-      <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-2 border-purple-400 border-t-transparent rounded-full" />
-    </div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
+        <video
+          width={160}
+          height={160}
+          style={{ width: 160, height: 160 }}
+          className="object-contain"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src={ANIMATIONX_URL} />
+        </video>
+      </div>
+    );
   }
 
   if (!system) {

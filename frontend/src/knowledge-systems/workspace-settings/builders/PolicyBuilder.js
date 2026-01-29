@@ -18,6 +18,7 @@ import { useParams } from 'react-router-dom';
 import { useWorkspaceSlug } from '../../../hooks/useWorkspaceSlug';
 import { getPolicySystem, updatePolicySystem, publishPolicySystemEntry } from '../../models/PolicyService';
 import PolicyRichTextEditor from '../../../components/canvas-builder/PolicyRichTextEditor';
+import WorkspaceLoader from '../../../components/WorkspaceLoader';
 
 /**
  * Policy Builder Interface - Isolated Draft/Publish System
@@ -136,11 +137,7 @@ function PolicyBuilder({ onClose }) {
   if (workspaceLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-2 border-amber-400 border-t-transparent rounded-full"
-        />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

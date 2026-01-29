@@ -17,6 +17,7 @@ import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
+import WorkspaceLoader from '../../components/WorkspaceLoader';
 
 /**
  * Policy Portal Page - Authoritative Display
@@ -75,11 +76,7 @@ function PolicyPortalPage({ slug: slugProp, backHref, backLabel }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-2 border-amber-400 border-t-transparent rounded-full"
-        />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

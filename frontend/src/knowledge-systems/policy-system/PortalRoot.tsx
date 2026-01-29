@@ -14,14 +14,6 @@ export function PolicyPortalRoot({ id }: { id: string }) {
     throw new Error(`Policy system ${id} not found or not published`);
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-2 border-amber-400 border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
   const publishedContent = system.publishedContent!;
 
   return (

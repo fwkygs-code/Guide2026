@@ -12,6 +12,8 @@ import { useWorkspaceSlug } from '../../../hooks/useWorkspaceSlug';
 import { ProcedureSystem, createProcedureSystem, ProcedureContent } from './model';
 import { getProcedureSystem, updateProcedureSystem, createProcedureSystemEntry, publishProcedureSystemEntry } from './service';
 
+const ANIMATIONX_URL = 'https://res.cloudinary.com/ds1dgifj8/video/upload/q_auto,f_auto/interguide-static/animationx';
+
 function ProcedureRichTextEditor({ content, onChange, placeholder }: {
   content: string;
   onChange: (content: string) => void;
@@ -222,7 +224,18 @@ export function ProcedureEditorRoot() {
   if (workspaceLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-2 border-cyan-400 border-t-transparent rounded-full" />
+        <video
+          width={160}
+          height={160}
+          style={{ width: 160, height: 160 }}
+          className="object-contain"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src={ANIMATIONX_URL} />
+        </video>
       </div>
     );
   }

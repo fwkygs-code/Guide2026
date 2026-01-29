@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import DashboardLayout from '../../components/DashboardLayout';
+import WorkspaceLoader from '../../components/WorkspaceLoader';
 import { PageHeader, PageSurface } from '../../components/ui/design-system';
 import { useWorkspaceSlug } from '../../hooks/useWorkspaceSlug';
 import { POLICY_ROUTES } from '../../policy-system/routes';
@@ -128,11 +129,7 @@ function KnowledgeSystemsPage() {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full"
-          />
+          <WorkspaceLoader size={160} />
         </div>
       </DashboardLayout>
     );
