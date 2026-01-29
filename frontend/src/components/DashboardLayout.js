@@ -10,6 +10,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import NotificationsMenu from './NotificationsMenu';
 import QuotaDisplay from './QuotaDisplay';
 import { AppShell, Surface, Button } from './ui/design-system';
+import { INTERGUIDE_LOGO_MAIN_280_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) => {
   const { t } = useTranslation();
@@ -103,8 +104,8 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
               />
             ) : (
               <img 
-                src="/logo-main.png" 
-                alt="InterGuide" 
+                src={INTERGUIDE_LOGO_MAIN_280_URL} 
+                alt={INTERGUIDE_LOGO_ALT} 
                 className="h-14 w-auto object-contain"
               />
             )}

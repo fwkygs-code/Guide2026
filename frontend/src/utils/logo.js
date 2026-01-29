@@ -5,8 +5,16 @@
  * and used consistently across the application.
  */
 
-export const INTERGUIDE_LOGO_PATH = '/NewLogo.png';
+const CLOUDINARY_BASE = 'https://res.cloudinary.com/ds1dgifj8';
+
 export const INTERGUIDE_LOGO_ALT = 'InterGuide';
+export const INTERGUIDE_LOGO_MAIN_280_URL = `${CLOUDINARY_BASE}/image/upload/w_280,q_auto,f_auto/interguide-static/logo-main`;
+export const INTERGUIDE_LOGO_MAIN_640_URL = `${CLOUDINARY_BASE}/image/upload/w_640,q_auto,f_auto/interguide-static/logo-main`;
+export const INTERGUIDE_NEW_LOGO_280_URL = `${CLOUDINARY_BASE}/image/upload/w_280,q_auto,f_auto/interguide-static/new-logo`;
+export const INTERGUIDE_NEW_LOGO_640_URL = `${CLOUDINARY_BASE}/image/upload/w_640,q_auto,f_auto/interguide-static/new-logo`;
+export const INTERGUIDE_OG_IMAGE_URL = `${CLOUDINARY_BASE}/image/upload/w_1200,h_630,c_fill,g_center,q_auto,f_auto/interguide-static/og-image`;
+export const INTERGUIDE_ANIMATION_URL = `${CLOUDINARY_BASE}/video/upload/q_auto,f_auto/interguide-static/animation`;
+export const INTERGUIDE_ANIMATIONX_URL = `${CLOUDINARY_BASE}/video/upload/q_auto,f_auto/interguide-static/animationx`;
 
 /**
  * Logo component props for consistent sizing

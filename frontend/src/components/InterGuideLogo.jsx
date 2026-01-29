@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen } from 'lucide-react';
-import { INTERGUIDE_LOGO_PATH, INTERGUIDE_LOGO_ALT } from '../utils/logo';
+import { INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 /**
  * InterGuide Logo Component
@@ -16,7 +16,7 @@ const InterGuideLogo = ({ className = "w-8 h-8", showText = false }) => {
 
   return (
     <img 
-      src={INTERGUIDE_LOGO_PATH} 
+      src={INTERGUIDE_NEW_LOGO_280_URL} 
       alt={INTERGUIDE_LOGO_ALT}
       className={`${className} object-contain`}
       onError={() => setImageError(true)}

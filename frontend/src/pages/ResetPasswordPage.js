@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import WorkspaceLoader from '../components/WorkspaceLoader';
+import { INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_LOGO_MAIN_280_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 const ResetPasswordPage = () => {
   const { t } = useTranslation();
@@ -127,8 +128,8 @@ const ResetPasswordPage = () => {
           <div className="text-center mb-8">
             <Link to="/" className="inline-flex items-center gap-2 mb-4">
               <img
-                src="/NewLogo.png"
-                alt="InterGuide"
+                src={INTERGUIDE_NEW_LOGO_280_URL}
+                alt={INTERGUIDE_LOGO_ALT}
                 className="h-10 w-auto object-contain"
               />
             </Link>
@@ -183,8 +184,8 @@ const ResetPasswordPage = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <img
-              src="/logo-main.png"
-              alt="InterGuide"
+              src={INTERGUIDE_LOGO_MAIN_280_URL}
+              alt={INTERGUIDE_LOGO_ALT}
               className="h-10 w-auto object-contain"
             />
           </Link>

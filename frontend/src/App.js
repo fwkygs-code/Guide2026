@@ -58,6 +58,7 @@ import { DecisionTreePortalRoot } from './decision-tree-system/PortalRoot';
 // Mandatory surface component - guarantees no white backgrounds
 import { AppSurface } from './components/ui/design-system/AppSurface';
 import OnboardingController from './onboarding/OnboardingController';
+import { INTERGUIDE_ANIMATION_URL, INTERGUIDE_ANIMATIONX_URL } from './utils/logo';
 
 const FullscreenLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -253,8 +254,8 @@ const preloadVideo = (src) => {
 
 const VideoPreloader = () => {
   useEffect(() => {
-    preloadVideo('/Animation.mp4');
-    preloadVideo('/AnimationX.mp4');
+    preloadVideo(INTERGUIDE_ANIMATION_URL);
+    preloadVideo(INTERGUIDE_ANIMATIONX_URL);
   }, []);
   return null;
 };

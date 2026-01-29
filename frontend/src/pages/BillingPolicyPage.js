@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import sanitizeHtml from '../lib/sanitizeHtml';
+import { INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 const BillingPolicyPage = () => {
   const { t } = useTranslation();
@@ -21,8 +22,8 @@ const BillingPolicyPage = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
             <img 
-              src="/NewLogo.png" 
-              alt="InterGuide" 
+              src={INTERGUIDE_NEW_LOGO_280_URL} 
+              alt={INTERGUIDE_LOGO_ALT} 
               className="h-10 w-auto object-contain"
             />
           </Link>

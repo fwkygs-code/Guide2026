@@ -195,6 +195,7 @@ RESEND_API_URL = "https://api.resend.com/emails"
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://www.interguide.app')
 # Main domain for email verification links (should always be the production domain)
 MAIN_DOMAIN = 'https://www.interguide.app'
+STATIC_OG_IMAGE_URL = 'https://res.cloudinary.com/ds1dgifj8/image/upload/w_1200,h_630,c_fill,g_center,q_auto,f_auto/interguide-static/og-image'
 FB_APP_ID = os.environ.get('FB_APP_ID')
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
 # IMPORTANT: Sandbox vs Production behavior differences:
@@ -8886,7 +8887,7 @@ def _render_portal_og_html(workspace: dict | None, share_url: str, status_code: 
         workspace_logo = (workspace or {}).get("logo")
         og_image_url = _get_workspace_og_image_url(workspace_logo)
         if not og_image_url:
-            og_image_url = f"{MAIN_DOMAIN}/og-image.jpg"
+            og_image_url = STATIC_OG_IMAGE_URL
         base_html = _load_spa_index_html()
         if not base_html:
             fallback_html = f"""<!DOCTYPE html>
@@ -8930,14 +8931,14 @@ def _render_portal_og_html(workspace: dict | None, share_url: str, status_code: 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="InterGuide" />
     <meta property="og:description" content="Knowledge base" />
-    <meta property="og:image" content="{html_module.escape(MAIN_DOMAIN + '/og-image.jpg')}" />
+    <meta property="og:image" content="{html_module.escape(STATIC_OG_IMAGE_URL)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="InterGuide" />
     <meta name="twitter:description" content="Knowledge base" />
-    <meta name="twitter:image" content="{html_module.escape(MAIN_DOMAIN + '/og-image.jpg')}" />
+    <meta name="twitter:image" content="{html_module.escape(STATIC_OG_IMAGE_URL)}" />
     <title>InterGuide</title>
     <meta name="description" content="Knowledge base" />
 </head>
@@ -8954,7 +8955,7 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
         workspace_logo = (workspace or {}).get("logo")
         og_image_url = _get_workspace_og_image_url(workspace_logo)
         if not og_image_url:
-            og_image_url = f"{MAIN_DOMAIN}/og-image.jpg"
+            og_image_url = STATIC_OG_IMAGE_URL
         og_image_type = "image/jpeg"
         og_title = workspace_name
         og_description = "Knowledge base"
@@ -9008,7 +9009,7 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
 </html>"""
         return HTMLResponse(content=html_content)
     except Exception:
-        fallback_image = f"{MAIN_DOMAIN}/og-image.jpg"
+        fallback_image = STATIC_OG_IMAGE_URL
         fb_meta = (
             f'<meta property="fb:app_id" content="{html_module.escape(FB_APP_ID, quote=True)}">'
             if FB_APP_ID else ""

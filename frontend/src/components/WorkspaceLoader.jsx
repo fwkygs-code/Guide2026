@@ -1,4 +1,5 @@
 import React from 'react';
+import { INTERGUIDE_ANIMATIONX_URL } from '../utils/logo';
 
 const WorkspaceLoader = ({ size = 160, className = '' }) => {
   return (
@@ -12,7 +13,7 @@ const WorkspaceLoader = ({ size = 160, className = '' }) => {
       playsInline
       preload="auto"
     >
-      <source src="/AnimationX.mp4" type="video/mp4" />
+      <source src={INTERGUIDE_ANIMATIONX_URL} />
     </video>
   );
 };

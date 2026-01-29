@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { INTERGUIDE_LOGO_MAIN_280_URL, INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_NEW_LOGO_640_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 const LandingPage = () => {
   const { t } = useTranslation();
@@ -49,8 +50,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <img 
-              src="/logo-main.png" 
-              alt="InterGuide" 
+              src={INTERGUIDE_LOGO_MAIN_280_URL} 
+              alt={INTERGUIDE_LOGO_ALT} 
               className="h-14 w-auto object-contain"
             />
           </div>
@@ -77,8 +78,8 @@ const LandingPage = () => {
           >
             <div className="flex justify-center mb-8">
               <img 
-                src="/NewLogo.png" 
-                alt="InterGuide" 
+                src={INTERGUIDE_NEW_LOGO_640_URL} 
+                alt={INTERGUIDE_LOGO_ALT} 
                 className="h-64 md:h-80 lg:h-96 w-auto object-contain"
               />
             </div>
@@ -169,8 +170,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center gap-2 mb-6">
             <img 
-              src="/NewLogo.png" 
-              alt="InterGuide" 
+              src={INTERGUIDE_NEW_LOGO_280_URL} 
+              alt={INTERGUIDE_LOGO_ALT} 
               className="h-8 w-auto object-contain"
             />
           </div>
