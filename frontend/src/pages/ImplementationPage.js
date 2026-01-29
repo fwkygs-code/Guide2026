@@ -82,15 +82,37 @@ const ImplementationPage = () => {
     setExpandedWalkthroughId((current) => (current === walkthroughKey ? null : walkthroughKey));
   };
 
-  const portalUrl = `${getPublicPortalUrl()}/portal/${workspaceSlug}`;
+  const portalUrl = `${getPublicPortalUrl()}/embed/portal/${workspaceSlug}?embed=1`;
 
-  const normalizedDrawerWidth = /^\d+$/.test(embedWidth) ? `${embedWidth}px` : embedWidth;
-  const normalizedDrawerHeight = /^\d+$/.test(embedHeight) ? `${embedHeight}px` : embedHeight;
+  const normalizeDimension = (value, defaultValue) => {
+    const raw = (value || '').trim();
+    if (!raw) {
+      return { value: defaultValue, error: null };
+    }
+    if (/^\d+$/.test(raw)) {
+      return { value: `${raw}px`, error: Number(raw) > 0 ? null : t('workspace.embedInvalidDimension') };
+    }
+    if (/^\d+%$/.test(raw)) {
+      return { value: raw, error: parseInt(raw, 10) > 0 ? null : t('workspace.embedInvalidDimension') };
+    }
+    if (/^\d+px$/.test(raw)) {
+      return { value: raw, error: parseInt(raw, 10) > 0 ? null : t('workspace.embedInvalidDimension') };
+    }
+    return { value: null, error: t('workspace.embedInvalidDimension') };
+  };
+
+  const inlineWidthConfig = normalizeDimension(embedWidth, '100%');
+  const inlineHeightConfig = normalizeDimension(embedHeight, '600px');
+  const floatingWidthConfig = normalizeDimension(embedWidth, '100%');
+  const floatingHeightConfig = normalizeDimension(embedHeight, '70vh');
+
+  const normalizedDrawerWidth = floatingWidthConfig.value || '100%';
+  const normalizedDrawerHeight = floatingHeightConfig.value || '70vh';
 
   const inlineEmbedSnippet = `<iframe
   src="${portalUrl}"
-  width="${embedWidth}"
-  height="${embedHeight}"
+  width="${inlineWidthConfig.value}"
+  height="${inlineHeightConfig.value}"
   style="border:0;border-radius:12px"
   loading="lazy"
   sandbox="allow-scripts allow-same-origin allow-popups"
@@ -362,6 +384,9 @@ const ImplementationPage = () => {
                           value={embedWidth}
                           onChange={(event) => setEmbedWidth(event.target.value)}
                         />
+                        {inlineWidthConfig.error && (
+                          <p className="text-xs text-destructive">{inlineWidthConfig.error}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="embed-height">{t('workspace.embedHeight')}</Label>
@@ -370,12 +395,19 @@ const ImplementationPage = () => {
                           value={embedHeight}
                           onChange={(event) => setEmbedHeight(event.target.value)}
                         />
+                        {inlineHeightConfig.error && (
+                          <p className="text-xs text-destructive">{inlineHeightConfig.error}</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>{t('workspace.embedSnippet')}</Label>
                       <Textarea value={inlineEmbedSnippet} readOnly rows={6} className="font-mono text-xs" />
-                      <Button variant="outline" onClick={() => handleCopyLink(inlineEmbedSnippet)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleCopyLink(inlineEmbedSnippet)}
+                        disabled={!!inlineWidthConfig.error || !!inlineHeightConfig.error}
+                      >
                         <Copy className="w-4 h-4 mr-2" />
                         {t('workspace.copyEmbedCode')}
                       </Button>
@@ -390,6 +422,9 @@ const ImplementationPage = () => {
                           value={embedWidth}
                           onChange={(event) => setEmbedWidth(event.target.value)}
                         />
+                        {floatingWidthConfig.error && (
+                          <p className="text-xs text-destructive">{floatingWidthConfig.error}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="floating-height">{t('workspace.embedHeight')}</Label>
@@ -398,12 +433,19 @@ const ImplementationPage = () => {
                           value={embedHeight}
                           onChange={(event) => setEmbedHeight(event.target.value)}
                         />
+                        {floatingHeightConfig.error && (
+                          <p className="text-xs text-destructive">{floatingHeightConfig.error}</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>{t('workspace.embedSnippet')}</Label>
                       <Textarea value={floatingEmbedSnippet} readOnly rows={10} className="font-mono text-xs" />
-                      <Button variant="outline" onClick={() => handleCopyLink(floatingEmbedSnippet)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleCopyLink(floatingEmbedSnippet)}
+                        disabled={!!floatingWidthConfig.error || !!floatingHeightConfig.error}
+                      >
                         <Copy className="w-4 h-4 mr-2" />
                         {t('workspace.copyEmbedCode')}
                       </Button>

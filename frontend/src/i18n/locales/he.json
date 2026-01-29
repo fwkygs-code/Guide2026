@@ -132,6 +132,7 @@
     "embedHeight": "גובה",
     "embedSnippet": "קוד הטמעה",
     "copyEmbedCode": "העתק קוד הטמעה",
+    "embedInvalidDimension": "יש להזין ערך תקין (% או px או מספר).",
     "implementation": "יישום",
     "implementationDescription": "העתק קישורי אינטגרציה ל-SDK ולאוטומציה.",
     "uncategorized": "ללא קטגוריה",

@@ -131,6 +131,7 @@
     "embedHeight": "Height",
     "embedSnippet": "Embed code",
     "copyEmbedCode": "Copy embed code",
+    "embedInvalidDimension": "Enter a valid value (%, px, or number).",
     "implementation": "Implementation",
     "implementationDescription": "Copy integration links for SDKs and automation.",
     "uncategorized": "Uncategorized",
