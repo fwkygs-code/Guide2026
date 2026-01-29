@@ -16,17 +16,24 @@ import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 /**
  * Policy Portal Page - Authoritative Display
  */
-function PolicyPortalPage() {
-  const { slug } = useParams();
+function PolicyPortalPage({ slug: slugProp, backHref, backLabel }) {
+  const { slug: slugParam, workspaceSlug } = useParams();
+  const slug = slugProp || slugParam || workspaceSlug;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedPolicies, setPublishedPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!slug) {
+      setPublishedPolicies([]);
+      setLoading(false);
+      return;
+    }
     loadSystem();
   }, [slug]);
 
@@ -44,6 +51,7 @@ function PolicyPortalPage() {
     setLoading(true);
     try {
       console.log('[PolicyPortal] Loading policies for slug:', slug);
+      if (!slug) return;
       const policies = await portalKnowledgeSystemsService.getAllByType(slug, 'policy');
       console.log('[PolicyPortal] Raw response:', policies);
       console.log('[PolicyPortal] Type:', typeof policies);
@@ -95,12 +103,15 @@ function PolicyPortalPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <Link to={`/portal/${slug}`}>
-              <Button variant="ghost" className="text-amber-200/80 hover:text-amber-100 hover:bg-amber-500/10 mb-6">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('portal.backToPortal')}
-              </Button>
-            </Link>
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
+                <Button variant="ghost" className="text-amber-200/80 hover:text-amber-100 hover:bg-amber-500/10">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {backLabel || t('portal.backToPortal')}
+                </Button>
+              </Link>
+              <LanguageSwitcher />
+            </div>
           </motion.div>
 
           <motion.div

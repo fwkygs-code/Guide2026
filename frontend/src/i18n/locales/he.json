@@ -1361,6 +1361,7 @@
   "knowledgeSystems": {
     "title": "מערכות ידע",
     "description": "נהל מאגרי ידע מבודדים עם עורכים ייחודיים ופורטלים",
+    "backToSystems": "חזרה למערכות הידע",
     "backToSettings": "חזרה להגדרות",
     "types": {
       "policies": {
@@ -1403,7 +1404,39 @@
       "officialDescription": "מדיניות ומסמכים רשמיים והתאמה",
       "protectedDocument": "מסמך מוגן",
       "noPolicies": "אין מדיניות מפורסמת",
-      "noPoliciesDescription": "תוכן מדיניות עדיין לא פורסם. בדוק שוב מאוחר יותר לתיעוד רשמי."
+      "noPoliciesDescription": "תוכן מדיניות עדיין לא פורסם. בדוק שוב מאוחר יותר לתיעוד רשמי.",
+      "editor": {
+        "bold": "מודגש",
+        "italic": "נטוי",
+        "heading": "כותרת",
+        "numbered": "ממוספר",
+        "bullets": "תבליטים",
+        "publishSuccess": "המדיניות פורסמה בהצלחה.",
+        "publishError": "נכשל בפרסום המדיניות.",
+        "untitled": "מדיניות ללא שם",
+        "subtitle": "עורך מדיניות רשמי",
+        "policyTitle": "כותרת מדיניות",
+        "policyTitlePlaceholder": "הזן כותרת מדיניות",
+        "description": "תיאור",
+        "descriptionPlaceholder": "תאר את היקף המדיניות והמטרה",
+        "effectiveDate": "תאריך כניסה לתוקף",
+        "jurisdiction": "תחום שיפוט",
+        "jurisdictionPlaceholder": "הזן תחום שיפוט",
+        "sections": "סעיפים",
+        "sectionsDescription": "ארגן את המדיניות לפי סעיפים",
+        "section": "סעיף",
+        "title": "כותרת",
+        "removeSection": "הסר סעיף",
+        "category": "קטגוריה",
+        "contentPlaceholder": "כתוב את תוכן הסעיף...",
+        "versionHistory": "היסטוריית גרסאות",
+        "created": "נוצר",
+        "lastUpdated": "עודכן לאחרונה",
+        "published": "פורסם",
+        "notPublished": "לא פורסם",
+        "publishCheck": "בדיקת פרסום",
+        "publishCheckDescription": "פרסום מעתיק את הטיוטה לפורטל הרשמי ונועל את תגית הגרסה."
+      }
     },
     "procedure": {
       "title": "נהלים",

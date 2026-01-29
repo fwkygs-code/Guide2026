@@ -1175,6 +1175,7 @@
   "knowledgeSystems": {
     "title": "Knowledge Systems",
     "description": "Manage isolated knowledge systems with dedicated editors and portals.",
+    "backToSystems": "Back to Knowledge Systems",
     "backToSettings": "Back to Settings",
     "types": {
       "policies": {
@@ -1217,7 +1218,39 @@
       "officialDescription": "These policies establish official guidelines and requirements. All personnel are required to comply with these policies as applicable to their roles and responsibilities. This documentation carries full legal authority.",
       "protectedDocument": "Protected Document",
       "noPolicies": "No Policies Published",
-      "noPoliciesDescription": "Policy content has not been published yet. Check back later for official documentation."
+      "noPoliciesDescription": "Policy content has not been published yet. Check back later for official documentation.",
+      "editor": {
+        "bold": "Bold",
+        "italic": "Italic",
+        "heading": "Heading",
+        "numbered": "Numbered",
+        "bullets": "Bullets",
+        "publishSuccess": "Policy published successfully.",
+        "publishError": "Failed to publish policy.",
+        "untitled": "Untitled Policy",
+        "subtitle": "Official policy editor",
+        "policyTitle": "Policy Title",
+        "policyTitlePlaceholder": "Enter policy title",
+        "description": "Description",
+        "descriptionPlaceholder": "Describe the policy scope and purpose",
+        "effectiveDate": "Effective Date",
+        "jurisdiction": "Jurisdiction",
+        "jurisdictionPlaceholder": "Enter jurisdiction",
+        "sections": "Sections",
+        "sectionsDescription": "Organize the policy into sections",
+        "section": "Section",
+        "title": "Title",
+        "removeSection": "Remove Section",
+        "category": "Category",
+        "contentPlaceholder": "Write section content...",
+        "versionHistory": "Version History",
+        "created": "Created",
+        "lastUpdated": "Last Updated",
+        "published": "Published",
+        "notPublished": "Not published",
+        "publishCheck": "Publish Check",
+        "publishCheckDescription": "Publishing copies the draft into the official portal and locks the version badge."
+      }
     },
     "procedure": {
       "title": "Procedures",

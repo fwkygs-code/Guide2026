@@ -8,12 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 /**
  * Decision Tree Portal Page - Interactive Guidance
  */
-function DecisionTreePortalPage() {
-  const { slug } = useParams();
+function DecisionTreePortalPage({ slug: slugProp, backHref, backLabel }) {
+  const { slug: slugParam, workspaceSlug } = useParams();
+  const slug = slugProp || slugParam || workspaceSlug;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedTrees, setPublishedTrees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,12 +25,22 @@ function DecisionTreePortalPage() {
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
+    if (!slug) {
+      setPublishedTrees([]);
+      setCurrentTree(null);
+      setCurrentNode(null);
+      setDecisionPath([]);
+      setIsComplete(false);
+      setLoading(false);
+      return;
+    }
     loadSystem();
   }, [slug]);
 
   const loadSystem = async () => {
     setLoading(true);
     try {
+      if (!slug) return;
       const trees = await portalKnowledgeSystemsService.getAllByType(slug, 'decision_tree');
       setPublishedTrees(trees);
       // Auto-select first tree if available
@@ -103,7 +115,7 @@ function DecisionTreePortalPage() {
     );
   }
 
-  if (!system) {
+  if (!currentTree) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-8">
         <motion.div
@@ -122,10 +134,10 @@ function DecisionTreePortalPage() {
             <p className="text-indigo-100/80 leading-relaxed mb-6">
               {t('knowledgeSystems.decisionTree.noDecisionsDescription')}
             </p>
-            <Link to={`/portal/${slug}`}>
+            <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
               <Button className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('portal.backToPortal')}
+                {backLabel || t('portal.backToPortal')}
               </Button>
             </Link>
           </Surface>
@@ -153,12 +165,15 @@ function DecisionTreePortalPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <Link to={`/portal/${slug}`}>
-              <Button variant="ghost" className="text-indigo-200/80 hover:text-indigo-100 hover:bg-indigo-500/10 mb-6">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('portal.backToPortal')}
-              </Button>
-            </Link>
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
+                <Button variant="ghost" className="text-indigo-200/80 hover:text-indigo-100 hover:bg-indigo-500/10">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {backLabel || t('portal.backToPortal')}
+                </Button>
+              </Link>
+              <LanguageSwitcher />
+            </div>
           </motion.div>
 
           <motion.div

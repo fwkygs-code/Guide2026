@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import PolicyPortalPage from './PolicyPortalPage';
 import ProcedurePortalPage from './ProcedurePortalPage';
 import DocumentationPortalPage from './DocumentationPortalPage';
@@ -20,20 +21,30 @@ import DecisionTreePortalPage from './DecisionTreePortalPage';
  * Each content type has its own unique, futuristic interface design.
  */
 function KnowledgeSystemPortalPage({ systemType }) {
-  const { slug } = useParams();
+  const { t } = useTranslation(['knowledgeSystems', 'portal']);
+  const { slug, workspaceSlug } = useParams();
+  const resolvedSlug = slug || workspaceSlug;
+  const backHref = workspaceSlug
+    ? `/workspace/${workspaceSlug}/knowledge-systems`
+    : resolvedSlug
+      ? `/portal/${resolvedSlug}`
+      : '/';
+  const backLabel = workspaceSlug
+    ? t('knowledgeSystems.backToSystems')
+    : t('portal.backToPortal');
 
   // Route to appropriate specialized portal page
   switch (systemType) {
     case 'policy':
-      return <PolicyPortalPage />;
+      return <PolicyPortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
     case 'procedure':
-      return <ProcedurePortalPage />;
+      return <ProcedurePortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
     case 'documentation':
-      return <DocumentationPortalPage />;
+      return <DocumentationPortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
     case 'faq':
-      return <FAQPortalPage />;
+      return <FAQPortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
     case 'decision_tree':
-      return <DecisionTreePortalPage />;
+      return <DecisionTreePortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
     default:
       // Fallback to a generic message for unknown types
       return (

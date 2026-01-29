@@ -8,12 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 /**
  * Documentation Portal Page - Knowledge Repository
  */
-function DocumentationPortalPage() {
-  const { slug } = useParams();
+function DocumentationPortalPage({ slug: slugProp, backHref, backLabel }) {
+  const { slug: slugParam, workspaceSlug } = useParams();
+  const slug = slugProp || slugParam || workspaceSlug;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedDocumentation, setPublishedDocumentation] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,12 +24,18 @@ function DocumentationPortalPage() {
   const contentRef = useRef(null);
 
   useEffect(() => {
+    if (!slug) {
+      setPublishedDocumentation([]);
+      setLoading(false);
+      return;
+    }
     loadSystem();
   }, [slug]);
 
   const loadSystem = async () => {
     setLoading(true);
     try {
+      if (!slug) return;
       const documentation = await portalKnowledgeSystemsService.getAllByType(slug, 'documentation');
       setPublishedDocumentation(documentation);
     } catch (error) {
@@ -46,6 +54,8 @@ function DocumentationPortalPage() {
   };
 
   // Track scroll position to highlight active section
+  const system = publishedDocumentation[0];
+
   useEffect(() => {
     const handleScroll = () => {
       if (!contentRef.current) return;
@@ -101,10 +111,10 @@ function DocumentationPortalPage() {
             <p className="text-purple-100/80 leading-relaxed mb-6">
               {t('knowledgeSystems.documentation.noDocsDescription')}
             </p>
-            <Link to={`/portal/${slug}`}>
+            <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
               <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('portal.backToPortal')}
+                {backLabel || t('portal.backToPortal')}
               </Button>
             </Link>
           </Surface>
@@ -132,12 +142,15 @@ function DocumentationPortalPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <Link to={`/portal/${slug}`}>
-              <Button variant="ghost" className="text-purple-200/80 hover:text-purple-100 hover:bg-purple-500/10 mb-6">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('portal.backToPortal')}
-              </Button>
-            </Link>
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
+                <Button variant="ghost" className="text-purple-200/80 hover:text-purple-100 hover:bg-purple-500/10">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {backLabel || t('portal.backToPortal')}
+                </Button>
+              </Link>
+              <LanguageSwitcher />
+            </div>
           </motion.div>
 
           <motion.div

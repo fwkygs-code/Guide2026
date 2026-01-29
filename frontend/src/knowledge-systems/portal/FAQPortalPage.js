@@ -10,12 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Surface } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
 import sanitizeHtml from '../../lib/sanitizeHtml';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 /**
  * FAQ Portal Page - User-Friendly Help
  */
-function FAQPortalPage() {
-  const { slug } = useParams();
+function FAQPortalPage({ slug: slugProp, backHref, backLabel }) {
+  const { slug: slugParam, workspaceSlug } = useParams();
+  const slug = slugProp || slugParam || workspaceSlug;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedFAQs, setPublishedFAQs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,12 +26,18 @@ function FAQPortalPage() {
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   useEffect(() => {
+    if (!slug) {
+      setPublishedFAQs([]);
+      setLoading(false);
+      return;
+    }
     loadSystem();
   }, [slug]);
 
   const loadSystem = async () => {
     setLoading(true);
     try {
+      if (!slug) return;
       const faqs = await portalKnowledgeSystemsService.getAllByType(slug, 'faq');
       setPublishedFAQs(faqs);
     } catch (error) {
@@ -41,6 +49,7 @@ function FAQPortalPage() {
 
   // Get all FAQs
   const allFaqs = publishedFAQs;
+  const system = publishedFAQs[0];
 
   // Get unique categories
   const categories = ['all', ...new Set(allFaqs.map(faq => faq.content?.category).filter(Boolean))];
@@ -85,10 +94,10 @@ function FAQPortalPage() {
             <p className="text-emerald-100/80 leading-relaxed mb-6">
               {t('knowledgeSystems.faq.noFAQsDescription')}
             </p>
-            <Link to={`/portal/${slug}`}>
+            <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
               <Button className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('portal.backToPortal')}
+                {backLabel || t('portal.backToPortal')}
               </Button>
             </Link>
           </Surface>
@@ -116,12 +125,15 @@ function FAQPortalPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <Link to={`/portal/${slug}`}>
-              <Button variant="ghost" className="text-emerald-200/80 hover:text-emerald-100 hover:bg-emerald-500/10 mb-6">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('portal.backToPortal')}
-              </Button>
-            </Link>
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
+                <Button variant="ghost" className="text-emerald-200/80 hover:text-emerald-100 hover:bg-emerald-500/10">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {backLabel || t('portal.backToPortal')}
+                </Button>
+              </Link>
+              <LanguageSwitcher />
+            </div>
           </motion.div>
 
           <motion.div
