@@ -138,6 +138,38 @@ code {
   }
 }
 
+[data-theme="accessibility-light"] {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --app-surface-bg: 0 0% 100%;
+  --app-surface-overlay: 0 0% 100%;
+  --app-surface-overlay-opacity: 0;
+}
+
+[data-theme="accessibility-light"] body {
+  background: hsl(var(--background));
+}
+
+[data-theme="accessibility-light"] [data-app-surface="true"] {
+  background: hsl(var(--app-surface-bg)) !important;
+}
+
+[data-theme="accessibility-light"] [data-app-surface="true"]::before,
+[data-theme="accessibility-light"] [data-app-surface="true"]::after {
+  background: hsl(var(--app-surface-overlay)) !important;
+  opacity: var(--app-surface-overlay-opacity) !important;
+}
+
 @layer base {
   * {
     @apply border-border;
