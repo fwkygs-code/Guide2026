@@ -46,7 +46,7 @@ const DashboardPage = () => {
     fetchWorkspaces();
   }, [user?.id]);
 
-  const isDashboardReady = !quotaLoading;
+  const isDashboardReady = !quotaLoading && !!quotaData;
 
   const fetchWorkspaces = async () => {
     try {

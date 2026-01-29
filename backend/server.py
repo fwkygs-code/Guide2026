@@ -183,6 +183,7 @@ RESEND_API_URL = "https://api.resend.com/emails"
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://www.interguide.app')
 # Main domain for email verification links (should always be the production domain)
 MAIN_DOMAIN = 'https://www.interguide.app'
+FB_APP_ID = os.environ.get('FB_APP_ID')
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
 # IMPORTANT: Sandbox vs Production behavior differences:
 # - Sandbox may NOT open PayPal UI on cancellation (PayPal sandbox limitation)
@@ -8793,31 +8794,10 @@ def _get_workspace_og_image_url(logo_url: str | None) -> str | None:
     cloud_name, public_id = _parse_cloudinary_public_id(logo_url)
     if not cloud_name or not public_id:
         return None
-    ext_match = re.search(r"\.(jpg|jpeg|png|webp)(?:\?|$)", logo_url, re.IGNORECASE)
-    url_format = ext_match.group(1).lower() if ext_match else ""
-    try:
-        resource = cloudinary.api.resource(public_id, resource_type="image")
-        width = resource.get("width")
-        height = resource.get("height")
-        byte_size = resource.get("bytes")
-        fmt = (resource.get("format") or url_format or "").lower()
-        if not width or not height or width < 300 or height < 300:
-            return None
-        if byte_size and byte_size > 10 * 1024 * 1024:
-            return None
-        if fmt not in {"jpg", "jpeg", "png", "webp"}:
-            return None
-        return (
-            f"https://res.cloudinary.com/{cloud_name}/image/upload/"
-            f"c_fill,g_center,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
-        )
-    except Exception:
-        if url_format not in {"jpg", "jpeg", "png", "webp"}:
-            return None
-        return (
-            f"https://res.cloudinary.com/{cloud_name}/image/upload/"
-            f"c_fill,g_center,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
-        )
+    return (
+        f"https://res.cloudinary.com/{cloud_name}/image/upload/"
+        f"c_fill,g_center,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
+    )
 
 def _get_og_image_type(url: str) -> str:
     if url.lower().endswith(".png"):
@@ -8884,6 +8864,8 @@ def _inject_portal_og(html: str, title: str, description: str, image_url: str, s
     html = _replace_meta_tag(html, "twitter:description", description, "name")
     html = _replace_meta_tag(html, "twitter:image", image_url, "name")
     html = _replace_meta_tag(html, "twitter:url", share_url, "name")
+    if FB_APP_ID:
+        html = _replace_meta_tag(html, "fb:app_id", FB_APP_ID, "property")
     return html
 
 def _render_portal_og_html(workspace: dict | None, share_url: str, status_code: int = 200) -> HTMLResponse:
@@ -8964,6 +8946,10 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
         og_image_type = "image/jpeg"
         og_title = workspace_name
         og_description = "Knowledge base"
+        fb_meta = (
+            f'<meta property="fb:app_id" content="{html_module.escape(FB_APP_ID, quote=True)}">'
+            if FB_APP_ID else ""
+        )
         og_title_escaped = html_module.escape(og_title)
         og_description_escaped = html_module.escape(og_description)
         og_image_url_escaped = html_module.escape(og_image_url)
@@ -8987,6 +8973,7 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{share_url_escaped}">
+    {fb_meta}
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
@@ -9010,6 +8997,10 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
         return HTMLResponse(content=html_content)
     except Exception:
         fallback_image = f"{MAIN_DOMAIN}/og-image.jpg"
+        fb_meta = (
+            f'<meta property="fb:app_id" content="{html_module.escape(FB_APP_ID, quote=True)}">'
+            if FB_APP_ID else ""
+        )
         fallback_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9023,6 +9014,7 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">
+    {fb_meta}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="InterGuide">
     <meta name="twitter:description" content="Knowledge base">
