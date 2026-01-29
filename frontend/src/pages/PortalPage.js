@@ -15,7 +15,7 @@ import { usePortal } from '../contexts/PortalContext';
 
 
 const PortalPage = () => {
-  const { t } = useTranslation('portal');
+  const { t, ready } = useTranslation(['portal', 'common', 'translation']);
   const { portal, workspace, slug, portalIdNormalized, portalDetails, primaryColor, inIframe } = usePortal();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -105,11 +105,11 @@ const PortalPage = () => {
   const knowledgeSystemsMenu = useMemo(() => {
     if (!slug) return [];
     const systems = [
-      { key: 'policy', label: t('knowledgeSystems.labels.policies', { defaultValue: 'Policies' }), path: `/portal/${slug}/knowledge/policies`, count: knowledgeSystemCounts.policy || 0 },
-      { key: 'procedure', label: t('knowledgeSystems.labels.procedures', { defaultValue: 'Procedures' }), path: `/portal/${slug}/knowledge/procedures`, count: knowledgeSystemCounts.procedure || 0 },
-      { key: 'documentation', label: t('knowledgeSystems.labels.documentation', { defaultValue: 'Documentation' }), path: `/portal/${slug}/knowledge/documentation`, count: knowledgeSystemCounts.documentation || 0 },
-      { key: 'faq', label: t('knowledgeSystems.labels.faqs', { defaultValue: 'FAQs' }), path: `/portal/${slug}/knowledge/faqs`, count: knowledgeSystemCounts.faq || 0 },
-      { key: 'decision-tree', label: t('knowledgeSystems.labels.decisions', { defaultValue: 'Decision Trees' }), path: `/portal/${slug}/knowledge/decisions`, count: knowledgeSystemCounts['decision-tree'] || 0 }
+      { key: 'policy', label: t('portal:knowledgeSystems.labels.policies', { defaultValue: 'Policies' }), path: `/portal/${slug}/knowledge/policies`, count: knowledgeSystemCounts.policy || 0 },
+      { key: 'procedure', label: t('portal:knowledgeSystems.labels.procedures', { defaultValue: 'Procedures' }), path: `/portal/${slug}/knowledge/procedures`, count: knowledgeSystemCounts.procedure || 0 },
+      { key: 'documentation', label: t('portal:knowledgeSystems.labels.documentation', { defaultValue: 'Documentation' }), path: `/portal/${slug}/knowledge/documentation`, count: knowledgeSystemCounts.documentation || 0 },
+      { key: 'faq', label: t('portal:knowledgeSystems.labels.faqs', { defaultValue: 'FAQs' }), path: `/portal/${slug}/knowledge/faqs`, count: knowledgeSystemCounts.faq || 0 },
+      { key: 'decision-tree', label: t('portal:knowledgeSystems.labels.decisions', { defaultValue: 'Decision Trees' }), path: `/portal/${slug}/knowledge/decisions`, count: knowledgeSystemCounts['decision-tree'] || 0 }
     ];
     return systems.filter(system => system.count > 0);
   }, [slug, t, knowledgeSystemCounts]);
@@ -129,15 +129,15 @@ const PortalPage = () => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-center">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.admin.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.admin.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
                     <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Badge variant="secondary">{t('headers.admin.badgeSystemHealth')}</Badge>
-                      <Badge variant="secondary">{t('headers.admin.badgeAuditReady')}</Badge>
-                      <Badge variant="secondary">{t('headers.admin.badgeIntegrationControl')}</Badge>
+                      <Badge variant="secondary">{t('portal:headers.admin.badgeSystemHealth')}</Badge>
+                      <Badge variant="secondary">{t('portal:headers.admin.badgeAuditReady')}</Badge>
+                      <Badge variant="secondary">{t('portal:headers.admin.badgeIntegrationControl')}</Badge>
                     </div>
                   </div>
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
@@ -160,7 +160,7 @@ const PortalPage = () => {
                     <img src={portalDetails.headerImage} alt="Guided journey checklist" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.tenant.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.tenant.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
@@ -170,7 +170,7 @@ const PortalPage = () => {
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={t('searchPlaceholder')}
+                        placeholder={t('portal:searchPlaceholder')}
                         className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
                         data-testid="portal-search-input"
                       />
@@ -190,7 +190,7 @@ const PortalPage = () => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] items-center">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.knowledge.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.knowledge.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
@@ -200,7 +200,7 @@ const PortalPage = () => {
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={t('searchPlaceholder')}
+                        placeholder={t('portal:searchPlaceholder')}
                         className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
                         data-testid="portal-search-input"
                       />
@@ -226,15 +226,15 @@ const PortalPage = () => {
                     <img src={portalDetails.headerImage} alt="Connected apps and automation flows" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.integrations.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.integrations.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
                     <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Badge variant="secondary">{t('headers.integrations.badgeApiReady')}</Badge>
-                      <Badge variant="secondary">{t('headers.integrations.badgeWorkflowAutomation')}</Badge>
-                      <Badge variant="secondary">{t('headers.integrations.badgeSyncHealth')}</Badge>
+                      <Badge variant="secondary">{t('portal:headers.integrations.badgeApiReady')}</Badge>
+                      <Badge variant="secondary">{t('portal:headers.integrations.badgeWorkflowAutomation')}</Badge>
+                      <Badge variant="secondary">{t('portal:headers.integrations.badgeSyncHealth')}</Badge>
                     </div>
                   </div>
                 </div>
@@ -258,7 +258,7 @@ const PortalPage = () => {
                 data-testid="category-all"
                 style={selectedCategory === null ? { backgroundColor: primaryColor, borderColor: primaryColor, color: 'white' } : { color: primaryColor }}
               >
-                {t('common.all')}
+                {t('common:all')}
               </Badge>
               {categoryTree.map((category) => (
                 <Badge
@@ -361,7 +361,7 @@ const PortalPage = () => {
                                     {walkthrough.title}
                                   </h3>
                                   <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {walkthrough.description || t('walkthrough.noDescription')}
+                                    {walkthrough.description || t('translation:walkthrough.noDescription')}
                                   </p>
                                 </div>
                               </div>
@@ -426,7 +426,7 @@ const PortalPage = () => {
                               {walkthrough.title}
                             </h3>
                             <p className="text-sm text-muted-foreground line-clamp-2">
-                              {walkthrough.description || t('walkthrough.noDescription')}
+                              {walkthrough.description || t('translation:walkthrough.noDescription')}
                             </p>
                           </div>
                         </div>
@@ -469,15 +469,15 @@ const PortalPage = () => {
             <div className="glass rounded-2xl border border-border px-6 py-6">
               <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-heading font-semibold text-foreground">{t('knowledgeSystems.title', { defaultValue: 'Knowledge Systems' })}</h3>
-                  <p className="text-sm text-muted-foreground">{t('knowledgeSystems.description', { defaultValue: 'Browse published policies, procedures, docs, FAQs, and decisions.' })}</p>
+                  <h3 className="text-lg font-heading font-semibold text-foreground">{t('portal:knowledgeSystems.title', { defaultValue: 'Knowledge Systems' })}</h3>
+                  <p className="text-sm text-muted-foreground">{t('portal:knowledgeSystems.description', { defaultValue: 'Browse published policies, procedures, docs, FAQs, and decisions.' })}</p>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {t('knowledgeSystems.available', { defaultValue: '{{count}} available', count: knowledgeSystemsMenu.length })}
+                  {t('portal:knowledgeSystems.available', { defaultValue: '{{count}} available', count: knowledgeSystemsMenu.length })}
                 </div>
               </div>
               {knowledgeSystemsMenu.length === 0 ? (
-                <div className="text-sm text-muted-foreground">{t('knowledgeSystems.none', { defaultValue: 'No knowledge systems published yet.' })}</div>
+                <div className="text-sm text-muted-foreground">{t('portal:knowledgeSystems.none', { defaultValue: 'No knowledge systems published yet.' })}</div>
               ) : (
                 <div className="flex flex-wrap gap-3">
                   {knowledgeSystemsMenu.map(system => (
@@ -538,7 +538,7 @@ const PortalPage = () => {
             style={{ backgroundColor: primaryColor }}
           >
             <HelpCircle className="w-5 h-5" />
-            <span>{t('needHelp')}</span>
+            <span>{t('portal:needHelp')}</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -547,7 +547,7 @@ const PortalPage = () => {
       <Dialog open={categorySelectOpen} onOpenChange={setCategorySelectOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('selectCategory')}</DialogTitle>
+            <DialogTitle>{t('portal:selectCategory')}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
             {portal?.categories?.filter(c => c.notebooklm_url).map((category) => (
@@ -607,7 +607,7 @@ const PortalPage = () => {
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5" />
               <div>
-                  <div className="font-semibold">{t('chatOpened')}</div>
+                  <div className="font-semibold">{t('portal:chatOpened')}</div>
                 <div className="text-xs opacity-90">{selectedCategoryForChat.name}</div>
               </div>
             </div>
@@ -629,7 +629,7 @@ const PortalPage = () => {
           </div>
           <div className="glass p-4 border-t border-border">
             <p className="text-sm text-muted-foreground mb-3">
-              {t('chatWindowInstructions')}
+              {t('portal:chatWindowInstructions')}
             </p>
             <Button
               variant="outline"
@@ -641,7 +641,7 @@ const PortalPage = () => {
                 }
               }}
             >
-              {t('openChatTab')}
+              {t('portal:openChatTab')}
             </Button>
           </div>
         </motion.div>
@@ -655,14 +655,14 @@ const PortalPage = () => {
         <footer className="glass border-t border-border py-6 px-6">
           <div className="max-w-7xl mx-auto text-center">
             <p className="text-sm text-muted-foreground mb-2">
-              {t('poweredBy')}
+              {t('portal:poweredBy')}
             </p>
             <p className="text-sm text-muted-foreground mb-3">
-              {t('wantKnowledgeBase')}
+              {t('portal:wantKnowledgeBase')}
             </p>
             <Link to="/signup">
               <Button variant="secondary" size="sm">
-                {t('getStarted')}
+                {t('portal:getStarted')}
               </Button>
             </Link>
           </div>

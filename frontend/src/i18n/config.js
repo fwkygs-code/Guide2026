@@ -19,10 +19,14 @@ i18n
       en: {
         translation: enTranslations,
         knowledgeSystems: enTranslations.knowledgeSystems,
+        portal: enTranslations.portal,
+        common: enTranslations.common,
       },
       he: {
         translation: heTranslations,
         knowledgeSystems: heTranslations.knowledgeSystems,
+        portal: heTranslations.portal,
+        common: heTranslations.common,
       },
     },
     lng: getSavedLanguage(),

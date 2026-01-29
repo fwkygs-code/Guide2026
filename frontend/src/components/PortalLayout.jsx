@@ -13,7 +13,7 @@ import { PortalProvider } from '../contexts/PortalContext';
 import { KnowledgeRouteProvider } from '../knowledge-systems/KnowledgeRouteContext';
 
 const PortalLayout = ({ isEmbedded = false }) => {
-  const { t, ready } = useTranslation('portal');
+  const { t, ready } = useTranslation(['portal', 'common']);
   const { slug } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -176,8 +176,8 @@ const PortalLayout = ({ isEmbedded = false }) => {
 
   const portalConfig = {
     admin: {
-      title: t('headers.admin.title'),
-      description: t('headers.admin.description'),
+      title: t('portal:headers.admin.title'),
+      description: t('portal:headers.admin.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0f172a"/>
@@ -195,8 +195,8 @@ const PortalLayout = ({ isEmbedded = false }) => {
       )}`
     },
     tenant: {
-      title: t('headers.tenant.title'),
-      description: t('headers.tenant.description'),
+      title: t('portal:headers.tenant.title'),
+      description: t('portal:headers.tenant.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0b1324"/>
@@ -214,8 +214,8 @@ const PortalLayout = ({ isEmbedded = false }) => {
       )}`
     },
     knowledge: {
-      title: t('headers.knowledge.title'),
-      description: t('headers.knowledge.description'),
+      title: t('portal:headers.knowledge.title'),
+      description: t('portal:headers.knowledge.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0b1120"/>
@@ -235,8 +235,8 @@ const PortalLayout = ({ isEmbedded = false }) => {
       )}`
     },
     integrations: {
-      title: t('headers.integrations.title'),
-      description: t('headers.integrations.description'),
+      title: t('portal:headers.integrations.title'),
+      description: t('portal:headers.integrations.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0f172a"/>
@@ -308,7 +308,7 @@ const PortalLayout = ({ isEmbedded = false }) => {
                         onClick={() => navigate(`/portal/${slug}`)}
                         className="text-xs sm:text-sm"
                       >
-                        {t('backToPortal')}
+                        {t('portal:backToPortal')}
                       </Button>
                     )}
                     {workspace.logo ? (
@@ -405,7 +405,7 @@ const PortalLayout = ({ isEmbedded = false }) => {
                           rel="noopener noreferrer"
                           className="hover:text-foreground transition-colors truncate"
                         >
-                          {t('whatsapp')}
+                          {t('portal:whatsapp')}
                         </a>
                       </div>
                     )}
@@ -420,18 +420,18 @@ const PortalLayout = ({ isEmbedded = false }) => {
           <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>{t('adminDialog.title')}</DialogTitle>
+                <DialogTitle>{t('portal:adminDialog.title')}</DialogTitle>
               </DialogHeader>
               <div className="py-4 space-y-4">
                 <p className="text-sm text-slate-300">
-                  {t('adminDialog.message')}
+                  {t('portal:adminDialog.message')}
                 </p>
                 <div className="flex gap-3 justify-end">
                   <Button
                     variant="outline"
                     onClick={() => setAdminDialogOpen(false)}
                   >
-                    {t('adminDialog.stayInPortal')}
+                    {t('portal:adminDialog.stayInPortal')}
                   </Button>
                   <Button
                     onClick={() => {
@@ -439,7 +439,7 @@ const PortalLayout = ({ isEmbedded = false }) => {
                       navigate('/dashboard');
                     }}
                   >
-                    {t('adminDialog.goToDashboard')}
+                    {t('portal:adminDialog.goToDashboard')}
                   </Button>
                 </div>
               </div>
