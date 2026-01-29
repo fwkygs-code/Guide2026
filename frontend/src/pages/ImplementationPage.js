@@ -72,8 +72,8 @@ const ImplementationPage = () => {
     toast.success(t('settings.copiedToClipboard'));
   };
 
-  const toggleWalkthrough = (walkthroughId) => {
-    setExpandedWalkthroughId((current) => (current === walkthroughId ? null : walkthroughId));
+  const toggleWalkthrough = (walkthroughKey) => {
+    setExpandedWalkthroughId((current) => (current === walkthroughKey ? null : walkthroughKey));
   };
 
   if (loading || workspaceLoading || !workspaceId) {
@@ -126,17 +126,19 @@ const ImplementationPage = () => {
                         {t('workspace.noGuidesInCategory')}
                       </div>
                     )}
-                    {group.walkthroughs.map((walkthrough) => {
-                      const isExpanded = expandedWalkthroughId === walkthrough.id;
+                    {group.walkthroughs.map((walkthrough, walkthroughIndex) => {
+                      const walkthroughKey =
+                        walkthrough.id || walkthrough.slug || `walkthrough-${group.id}-${walkthroughIndex}`;
+                      const isExpanded = expandedWalkthroughId === walkthroughKey;
                       const steps = walkthrough.steps || [];
                       const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
                       const walkthroughUrl = `${getBackendUrl()}/portal/${workspaceSlug}/${walkthroughIdentifier}`;
 
                       return (
-                        <div key={walkthrough.id} className="rounded-xl border border-border/60 bg-background/40">
+                        <div key={walkthroughKey} className="rounded-xl border border-border/60 bg-background/40">
                           <button
                             type="button"
-                            onClick={() => toggleWalkthrough(walkthrough.id)}
+                            onClick={() => toggleWalkthrough(walkthroughKey)}
                             className="w-full text-left px-4 py-3 flex flex-wrap items-center justify-between gap-2"
                           >
                             <div className="flex items-center gap-3 min-w-0">
