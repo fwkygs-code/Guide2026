@@ -26,7 +26,7 @@ const formatNumber = (num, t) => {
   return num.toLocaleString();
 };
 
-const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = null }) => {
+const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = null, onReadyChange = null }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [quotaData, setQuotaData] = useState(null);
@@ -40,6 +40,11 @@ const QuotaDisplay = ({ workspaceId = null, showWarnings = true, onUpgrade = nul
     }
     fetchQuotaData();
   }, [workspaceId, user?.id]);
+
+  useEffect(() => {
+    if (!onReadyChange) return;
+    onReadyChange(!loading && !!quotaData && !error);
+  }, [loading, quotaData, error, onReadyChange]);
 
   const fetchQuotaData = async () => {
     try {

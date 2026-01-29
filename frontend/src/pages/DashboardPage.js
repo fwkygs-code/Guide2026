@@ -40,13 +40,14 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showLoginOverlay, setShowLoginOverlay] = useState(!!location.state?.loginTransition);
+  const [quotaDisplayReady, setQuotaDisplayReady] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
     fetchWorkspaces();
   }, [user?.id]);
 
-  const isDashboardReady = !quotaLoading && !!quotaData;
+  const isDashboardReady = quotaDisplayReady;
 
   const fetchWorkspaces = async () => {
     try {
@@ -540,7 +541,11 @@ const DashboardPage = () => {
 
           {/* Quota Sidebar */}
         <div className="lg:col-span-1 space-y-6">
-            <QuotaDisplay showWarnings={true} onUpgrade={() => setUpgradePromptOpen(true)} />
+            <QuotaDisplay
+              showWarnings={true}
+              onUpgrade={() => setUpgradePromptOpen(true)}
+              onReadyChange={setQuotaDisplayReady}
+            />
             <BillingInfo />
           </div>
       </PageSurface>
