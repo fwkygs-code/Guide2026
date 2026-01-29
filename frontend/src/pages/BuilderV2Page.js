@@ -841,9 +841,9 @@ const BuilderV2Page = () => {
             size="sm"
             onClick={toggleAccessibilityLight}
             data-testid="accessibility-light-toggle"
+            className="rounded-full h-9 w-9 p-0"
           >
-            <Sun className="w-4 h-4 mr-2" />
-            {t('settings.accessibility.lightMode', { defaultValue: 'Light mode' })}
+            <Sun className="w-4 h-4" />
           </Button>
           <div className="h-6 w-px bg-slate-200" />
           <Button variant="secondary" size="sm" disabled title={t('builder.buttons.undo')}>
