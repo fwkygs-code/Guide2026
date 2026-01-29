@@ -8805,7 +8805,7 @@ def _get_workspace_og_image_url(logo_url: str | None) -> str | None:
             return None
         return (
             f"https://res.cloudinary.com/{cloud_name}/image/upload/"
-            f"c_fill,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
+            f"c_fill,g_center,w_1200,h_630,q_auto:eco,f_jpg/{public_id}.jpg"
         )
     except Exception:
         return None
@@ -8815,178 +8815,24 @@ def _get_og_image_type(url: str) -> str:
         return "image/png"
     return "image/jpeg"
 
-# Open Graph preview route for workspace sharing
-@app.get("/share/workspace/{slug}", response_class=HTMLResponse)
-async def share_workspace(slug: str, request: Request):
-    """
-    Generate Open Graph HTML preview for workspace sharing.
-    This route is used by social media crawlers (WhatsApp, Facebook, etc.) to display
-    rich previews when workspace links are shared.
-    
-    CRITICAL: Uses workspace.logo exactly as stored in database - no transformations.
-    """
+def _render_workspace_og_html(workspace: dict | None, request: Request, redirect_url: str, share_url: str) -> HTMLResponse:
     import html as html_module
-    
-    # Look up workspace by slug (public route, no auth required)
-    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
-    
-    if not workspace:
-        # Return 404 HTML if workspace not found
-        return HTMLResponse(
-            content="<html><head><title>Workspace Not Found</title></head><body><h1>Workspace Not Found</h1></body></html>",
-            status_code=404
-        )
-    
-    workspace_name = workspace.get("name", "Untitled Workspace")
-    workspace_logo = workspace.get("logo")
-    
-    # Log the exact logo value for debugging
-    logging.info(f"[share_workspace] Workspace '{slug}': logo value from DB = {repr(workspace_logo)}")
-    
-    # Build URLs
-    workspace_url = f"{FRONTEND_URL}/workspace/{slug}/walkthroughs"
-    share_url = f"{request.url.scheme}://{request.url.netloc}/share/workspace/{slug}"
-    
-    og_image_url = _get_workspace_og_image_url(workspace_logo)
-    if not og_image_url:
-        og_image_url = f"{MAIN_DOMAIN}/og-image.png"
-        logging.info(f"[share_workspace] Using fallback OG image: {og_image_url}")
-    else:
-        logging.info(f"[share_workspace] Using derived OG image: {og_image_url}")
-    og_image_type = _get_og_image_type(og_image_url)
-    
-    # Build Open Graph HTML with proper escaping
-    og_title = workspace_name
-    og_description = "Knowledge base"
-    
-    # Escape HTML entities for safety
-    og_title_escaped = html_module.escape(og_title)
-    og_description_escaped = html_module.escape(og_description)
-    og_image_url_escaped = html_module.escape(og_image_url)
-    share_url_escaped = html_module.escape(share_url)
-    workspace_url_escaped = html_module.escape(workspace_url)
-    workspace_name_escaped = html_module.escape(workspace_name)
-    
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="{og_title_escaped}">
-    <meta property="og:description" content="{og_description_escaped}">
-    <meta property="og:image" content="{og_image_url_escaped}">
-    <meta property="og:image:secure_url" content="{og_image_url_escaped}">
-    <meta property="og:image:type" content="{og_image_type}">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{share_url_escaped}">
-    
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{og_title_escaped}">
-    <meta name="twitter:description" content="{og_description_escaped}">
-    <meta name="twitter:image" content="{og_image_url_escaped}">
-    
-    <!-- Standard Meta Tags -->
-    <title>{og_title_escaped}</title>
-    <meta name="description" content="{og_description_escaped}">
-    
-    <!-- Redirect real users to the SPA workspace URL -->
-    <!-- Crawlers will read meta tags before redirect executes -->
-    <meta http-equiv="refresh" content="0;url={workspace_url_escaped}">
-    <script>
-        // Immediate redirect for browsers (crawlers will read meta tags first)
-        window.location.replace("{workspace_url_escaped}");
-    </script>
-</head>
-<body>
-    <p>Redirecting to <a href="{workspace_url_escaped}">{workspace_name_escaped}</a>...</p>
-</body>
-</html>"""
-    
-    logging.info(f"[share_workspace] Generated OG HTML for '{slug}' with image: {og_image_url}")
-    return HTMLResponse(content=html_content)
+    try:
+        workspace_name = (workspace or {}).get("name") or "InterGuide"
+        workspace_logo = (workspace or {}).get("logo")
+        og_image_url = _get_workspace_og_image_url(workspace_logo)
+        if not og_image_url:
+            og_image_url = f"{MAIN_DOMAIN}/og-image.png"
+        og_image_type = "image/jpeg"
+        og_title = workspace_name
+        og_description = "Knowledge base"
+        og_title_escaped = html_module.escape(og_title)
+        og_description_escaped = html_module.escape(og_description)
+        og_image_url_escaped = html_module.escape(og_image_url)
+        share_url_escaped = html_module.escape(share_url)
+        redirect_url_escaped = html_module.escape(redirect_url)
+        workspace_name_escaped = html_module.escape(workspace_name)
 
-# Open Graph preview route for portal sharing
-# WhatsApp and other crawlers access /portal/{slug} directly, so we need to handle it here
-@app.get("/portal/{slug}", response_class=HTMLResponse)
-async def share_portal(slug: str, request: Request):
-    """
-    Generate Open Graph HTML preview for portal sharing.
-    This route handles both:
-    1. Social media crawlers (WhatsApp, Facebook, etc.) - returns HTML with OG tags
-    2. Real users - redirects to the SPA portal page
-    
-    CRITICAL: Uses workspace.logo exactly as stored in database - no transformations.
-    """
-    import html as html_module
-    
-    # Check User-Agent to detect crawlers
-    # WhatsApp uses: WhatsApp/2.x, WhatsApp/1.x, or WhatsAppBot
-    # Facebook uses: facebookexternalhit, Facebot
-    user_agent = request.headers.get("user-agent", "").lower()
-    is_crawler = any(bot in user_agent for bot in [
-        "whatsapp",  # WhatsApp/2.x, WhatsApp/1.x, WhatsAppBot
-        "facebookexternalhit",  # Facebook crawler
-        "facebot",  # Facebook crawler
-        "facebook",  # Generic Facebook
-        "twitterbot",  # Twitter
-        "linkedinbot",  # LinkedIn
-        "slackbot",  # Slack
-        "discordbot",  # Discord
-        "telegrambot",  # Telegram
-        "crawler",  # Generic crawler
-        "spider",  # Generic spider
-        "bot",  # Generic bot
-        "googlebot",  # Google
-        "bingbot",  # Bing
-    ])
-    
-    # Look up workspace by slug (public route, no auth required)
-    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
-    
-    if not workspace:
-        # Return 404 HTML if workspace not found
-        return HTMLResponse(
-            content="<html><head><title>Portal Not Found</title></head><body><h1>Portal Not Found</h1></body></html>",
-            status_code=404
-        )
-    
-    workspace_name = workspace.get("name", "Untitled Workspace")
-    workspace_logo = workspace.get("logo")
-    
-    # Log the exact logo value for debugging
-    logging.info(f"[share_portal] Portal '{slug}': logo value from DB = {repr(workspace_logo)}, is_crawler = {is_crawler}")
-    
-    # Build URLs
-    portal_url = f"{FRONTEND_URL}/portal/{slug}"
-    share_url = f"{request.url.scheme}://{request.url.netloc}/portal/{slug}"
-    
-    og_image_url = _get_workspace_og_image_url(workspace_logo)
-    if not og_image_url:
-        og_image_url = f"{MAIN_DOMAIN}/og-image.png"
-        logging.info(f"[share_portal] Using fallback OG image: {og_image_url}")
-    else:
-        logging.info(f"[share_portal] Using derived OG image: {og_image_url}")
-    og_image_type = _get_og_image_type(og_image_url)
-    
-    # Build Open Graph HTML with proper escaping
-    og_title = workspace_name
-    og_description = "Knowledge base"
-    
-    # Escape HTML entities for safety
-    og_title_escaped = html_module.escape(og_title)
-    og_description_escaped = html_module.escape(og_description)
-    og_image_url_escaped = html_module.escape(og_image_url)
-    share_url_escaped = html_module.escape(share_url)
-    portal_url_escaped = html_module.escape(portal_url)
-    workspace_name_escaped = html_module.escape(workspace_name)
-    
-    # If it's a crawler, return HTML with OG tags
-    if is_crawler:
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9003,7 +8849,6 @@ async def share_portal(slug: str, request: Request):
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{share_url_escaped}">
-    <meta property="og:site_name" content="InterGuide">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
@@ -9014,19 +8859,110 @@ async def share_portal(slug: str, request: Request):
     <!-- Standard Meta Tags -->
     <title>{og_title_escaped}</title>
     <meta name="description" content="{og_description_escaped}">
+    
+    <meta http-equiv="refresh" content="0;url={redirect_url_escaped}">
+    <script>
+        window.location.replace("{redirect_url_escaped}");
+    </script>
 </head>
 <body>
-    <h1>{og_title_escaped}</h1>
-    <p>{og_description_escaped}</p>
+    <p>Redirecting to <a href="{redirect_url_escaped}">{workspace_name_escaped}</a>...</p>
 </body>
 </html>"""
-        
-        logging.info(f"[share_portal] Returning OG HTML for crawler '{slug}' with image: {og_image_url}")
         return HTMLResponse(content=html_content)
+    except Exception:
+        fallback_image = f"{MAIN_DOMAIN}/og-image.png"
+        fallback_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="InterGuide">
+    <meta property="og:description" content="Knowledge base">
+    <meta property="og:image" content="{html_module.escape(fallback_image)}">
+    <meta property="og:image:secure_url" content="{html_module.escape(fallback_image)}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="InterGuide">
+    <meta name="twitter:description" content="Knowledge base">
+    <meta name="twitter:image" content="{html_module.escape(fallback_image)}">
+    <title>InterGuide</title>
+    <meta name="description" content="Knowledge base">
+    <meta http-equiv="refresh" content="0;url={html_module.escape(redirect_url)}">
+    <script>window.location.replace("{html_module.escape(redirect_url)}");</script>
+</head>
+<body></body>
+</html>"""
+        return HTMLResponse(content=fallback_html)
+
+# Open Graph preview route for workspace sharing
+@app.get("/share/workspace/{slug}", response_class=HTMLResponse)
+async def share_workspace(slug: str, request: Request):
+    """
+    Generate Open Graph HTML preview for workspace sharing.
+    This route is used by social media crawlers (WhatsApp, Facebook, etc.) to display
+    rich previews when workspace links are shared.
     
-    # If it's a real user, redirect to the SPA portal page
-    logging.info(f"[share_portal] Redirecting real user to portal: {portal_url}")
-    return RedirectResponse(url=portal_url, status_code=302)
+    CRITICAL: Uses workspace.logo exactly as stored in database - no transformations.
+    """
+    # Look up workspace by slug (public route, no auth required)
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
+    
+    if not workspace:
+        # Return 404 HTML if workspace not found
+        return HTMLResponse(
+            content="<html><head><title>Workspace Not Found</title></head><body><h1>Workspace Not Found</h1></body></html>",
+            status_code=404
+        )
+    
+    workspace_url = f"{FRONTEND_URL}/workspace/{slug}/walkthroughs"
+    share_url = f"{request.url.scheme}://{request.url.netloc}/share/workspace/{slug}"
+    return _render_workspace_og_html(workspace, request, workspace_url, share_url)
+
+# Open Graph preview route for portal sharing
+# WhatsApp and other crawlers access /portal/{slug} directly, so we need to handle it here
+@app.get("/portal/{slug}", response_class=HTMLResponse)
+async def share_portal(slug: str, request: Request):
+    """
+    Generate Open Graph HTML preview for portal sharing.
+    This route handles both:
+    1. Social media crawlers (WhatsApp, Facebook, etc.) - returns HTML with OG tags
+    2. Real users - redirects to the SPA portal page
+    
+    CRITICAL: Uses workspace.logo exactly as stored in database - no transformations.
+    """
+    # Look up workspace by slug (public route, no auth required)
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
+    
+    portal_url = f"{FRONTEND_URL}/portal/{slug}"
+    share_url = f"{request.url.scheme}://{request.url.netloc}/portal/{slug}"
+    if not workspace:
+        return _render_workspace_og_html(None, request, portal_url, share_url)
+    return _render_workspace_og_html(workspace, request, portal_url, share_url)
+
+@app.get("/portal/{slug}/{path:path}", response_class=HTMLResponse)
+async def share_portal_path(slug: str, path: str, request: Request):
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
+    redirect_url = f"{FRONTEND_URL}/portal/{slug}/{path}"
+    share_url = f"{request.url.scheme}://{request.url.netloc}/portal/{slug}/{path}"
+    return _render_workspace_og_html(workspace, request, redirect_url, share_url)
+
+@app.get("/embed/portal/{slug}", response_class=HTMLResponse)
+async def share_embed_portal(slug: str, request: Request):
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
+    redirect_url = f"{FRONTEND_URL}/embed/portal/{slug}"
+    share_url = f"{request.url.scheme}://{request.url.netloc}/embed/portal/{slug}"
+    return _render_workspace_og_html(workspace, request, redirect_url, share_url)
+
+@app.get("/embed/portal/{slug}/{path:path}", response_class=HTMLResponse)
+async def share_embed_portal_path(slug: str, path: str, request: Request):
+    workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
+    redirect_url = f"{FRONTEND_URL}/embed/portal/{slug}/{path}"
+    share_url = f"{request.url.scheme}://{request.url.netloc}/embed/portal/{slug}/{path}"
+    return _render_workspace_og_html(workspace, request, redirect_url, share_url)
 
 # Router will be included at the end of the file, after all routes are defined
 
