@@ -20,6 +20,7 @@ import BillingInfo from '../components/BillingInfo';
 import WorkspaceLockModal from '../components/WorkspaceLockModal';
 import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge, CardContent } from '../components/ui/design-system';
 import LoginLoadingOverlay from '../components/LoginLoadingOverlay';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -183,7 +184,7 @@ const DashboardPage = () => {
           onFinish={() => setShowLoginOverlay(false)}
         />
         <Surface variant="glass" className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <WorkspaceLoader size={160} />
         </Surface>
       </>
     );

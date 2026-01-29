@@ -26,6 +26,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useQuota } from '../hooks/useQuota';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { getOnboardingSession } from '../onboarding/onboardingSession';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 /**
  * Builder V2 - Clean, stable, creation-first walkthrough builder
@@ -646,7 +647,7 @@ const BuilderV2Page = () => {
   if (loading || workspaceLoading || !workspaceId) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-secondary dark:bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

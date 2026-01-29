@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { apiClient, API_BASE, getPublicPortalUrl } from '../lib/api';
 import { detectRTL } from '../utils/blockUtils';
 import sanitizeHtml from '../lib/sanitizeHtml';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 
 const WalkthroughViewerPage = ({ isEmbedded = false }) => {
@@ -624,7 +625,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-card">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

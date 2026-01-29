@@ -7,6 +7,7 @@ import {
   getDecisionTreeErrors
 } from './model';
 import { createDecisionTreeEntry, loadDecisionTreeDraft, loadDecisionTreeMeta, publishDecisionTree, saveDecisionTreeDraft } from './service';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 type DecisionTreeEditorRootProps = {
   workspaceId?: string;
@@ -304,7 +305,7 @@ export const DecisionTreeEditorRoot = ({ workspaceId, itemId, closeHref }: Decis
   if (loading || !draft || !meta) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

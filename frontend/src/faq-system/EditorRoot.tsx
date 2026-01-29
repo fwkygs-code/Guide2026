@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FAQDraft, FAQItem, FAQMeta } from './model';
 import { createFAQEntry, loadFAQDraft, loadFAQMeta, publishFAQ, saveFAQDraft } from './service';
 import sanitizeHtml from './sanitizeHtml';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 type FAQEditorRootProps = {
   workspaceId?: string;
@@ -161,7 +162,7 @@ export const FAQEditorRoot = ({ workspaceId, itemId, closeHref }: FAQEditorRootP
   if (loading || !draft || !meta) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

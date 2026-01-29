@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { apiClient } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 
 const VerifyEmailPage = () => {
@@ -127,7 +128,7 @@ const VerifyEmailPage = () => {
         <CardHeader className="text-center">
           {status === 'verifying' && (
             <>
-              <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
+              <WorkspaceLoader size={160} />
               <CardTitle>Verifying Email</CardTitle>
               <CardDescription>Please wait while we verify your email address...</CardDescription>
             </>

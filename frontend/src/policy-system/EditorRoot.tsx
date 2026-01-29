@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PolicyDraft, PolicySection, PolicyMeta, POLICY_MODEL_VERSION } from './model';
 import { createPolicyEntry, loadPolicyDraft, loadPolicyMeta, publishPolicy, savePolicyDraft } from './service';
 import { policyApiClient, PolicySystem } from './api-client';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 type PolicyEditorRootProps = {
   workspaceId?: string;
@@ -270,7 +271,7 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
   if (loading || !draft || !meta) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

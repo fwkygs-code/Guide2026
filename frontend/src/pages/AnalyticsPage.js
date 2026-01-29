@@ -6,6 +6,7 @@ import { BarChart3, Eye, Play, CheckCircle, TrendingUp, RotateCcw } from 'lucide
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { PageHeader, PageSurface, Card } from '../components/ui/design-system';
 import { useAuth } from '../contexts/AuthContext';
@@ -133,7 +134,7 @@ const AnalyticsPage = () => {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <WorkspaceLoader size={160} />
         </div>
       </DashboardLayout>
     );

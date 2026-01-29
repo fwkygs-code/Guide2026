@@ -6,6 +6,7 @@ import { TextSizeProvider } from './contexts/TextSizeContext';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
+import WorkspaceLoader from './components/WorkspaceLoader';
 import { toast } from 'sonner';
 import './i18n/config'; // Initialize i18n
 import { useTranslationEnforcement } from './hooks/useTranslationEnforcement';
@@ -58,11 +59,17 @@ import { DecisionTreePortalRoot } from './decision-tree-system/PortalRoot';
 import { AppSurface } from './components/ui/design-system/AppSurface';
 import OnboardingController from './onboarding/OnboardingController';
 
+const FullscreenLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <WorkspaceLoader size={160} />
+  </div>
+);
+
 const PrivateRoute = ({ children }) => {
   const { user, loading, isBlocked } = useAuth();
   
   if (loading) {
-    return children;
+    return <FullscreenLoader />;
   }
   
   // Show blocked page if account is disabled/deleted
@@ -89,7 +96,7 @@ const WorkspaceRouteGuard = ({ children }) => {
   const { workspace, loading, error } = useWorkspace();
 
   if (loading) {
-    return children;
+    return <FullscreenLoader />;
   }
 
   if (error?.status === 403) {
@@ -132,27 +139,10 @@ const AuthSessionListener = () => {
   return null;
 };
 
-const WorkspaceLoader = ({ accent = 'cyan' }) => {
-  const accentClass = accent === 'amber'
-    ? 'border-amber-400'
-    : accent === 'purple'
-      ? 'border-purple-400'
-      : accent === 'emerald'
-        ? 'border-emerald-400'
-        : accent === 'indigo'
-          ? 'border-indigo-400'
-          : 'border-cyan-400';
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className={`h-10 w-10 rounded-full border-2 ${accentClass} border-t-transparent animate-spin`} />
-    </div>
-  );
-};
-
 const PolicyEditorRoute = () => {
   const { workspaceSlug, itemId } = useParams();
   const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
-  if (loading) return <WorkspaceLoader accent="amber" />;
+  if (loading) return <FullscreenLoader />;
   return (
     <PolicyEditorRoot
       workspaceId={workspaceId || undefined}
@@ -165,7 +155,7 @@ const PolicyEditorRoute = () => {
 const PolicyListRoute = () => {
   const { workspaceSlug } = useParams();
   const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
-  if (loading) return <WorkspaceLoader accent="amber" />;
+  if (loading) return <FullscreenLoader />;
   return (
     <PolicyListPage
       workspaceId={workspaceId || ''}
@@ -177,7 +167,7 @@ const PolicyListRoute = () => {
 const ProcedureEditorRoute = () => {
   const { workspaceSlug, itemId } = useParams();
   const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
-  if (loading) return <WorkspaceLoader accent="cyan" />;
+  if (loading) return <FullscreenLoader />;
   return (
     <ProcedureEditorRoot
       workspaceId={workspaceId || undefined}
@@ -190,7 +180,7 @@ const ProcedureEditorRoute = () => {
 const DocumentationEditorRoute = () => {
   const { workspaceSlug, itemId } = useParams();
   const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
-  if (loading) return <WorkspaceLoader accent="purple" />;
+  if (loading) return <FullscreenLoader />;
   return (
     <DocumentationEditorRoot
       workspaceId={workspaceId || undefined}
@@ -203,7 +193,7 @@ const DocumentationEditorRoute = () => {
 const FAQEditorRoute = () => {
   const { workspaceSlug, itemId } = useParams();
   const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
-  if (loading) return <WorkspaceLoader accent="emerald" />;
+  if (loading) return <FullscreenLoader />;
   return (
     <FAQEditorRoot
       workspaceId={workspaceId || undefined}
@@ -216,7 +206,7 @@ const FAQEditorRoute = () => {
 const DecisionTreeEditorRoute = () => {
   const { workspaceSlug, itemId } = useParams();
   const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
-  if (loading) return <WorkspaceLoader accent="indigo" />;
+  if (loading) return <FullscreenLoader />;
   return (
     <DecisionTreeEditorRoot
       workspaceId={workspaceId || undefined}

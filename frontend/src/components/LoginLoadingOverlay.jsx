@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import WorkspaceLoader from './WorkspaceLoader';
 
 const MIN_DISPLAY_MS = 1200;
 const MAX_DISPLAY_MS = 8000;
@@ -90,23 +91,10 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
       }}
       aria-hidden="true"
     >
-      {reducedMotion ? (
-        <div className="flex flex-col items-center gap-4 text-center px-6">
-          <div className="h-12 w-12 rounded-full border-2 border-primary/60 border-t-transparent animate-spin" />
-          <p className="text-sm text-muted-foreground">Loading your dashboard...</p>
-        </div>
-      ) : (
-        <video
-          className="absolute inset-0 w-full h-full object-cover"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          onEnded={requestClose}
-        >
-          <source src="/Animation.mp4" type="video/mp4" />
-        </video>
-      )}
+      <div className="flex flex-col items-center gap-4 text-center px-6">
+        <WorkspaceLoader size={160} />
+        <p className="text-sm text-muted-foreground">Loading your dashboard...</p>
+      </div>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Eye, FileText } from 'lucide-react';
 import { api } from '../lib/api';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 type PolicyListPageProps = {
   workspaceId: string;
@@ -55,7 +56,7 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

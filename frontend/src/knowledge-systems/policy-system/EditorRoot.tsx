@@ -6,6 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Badge, FadeIn } from './ui';
 import { PolicySystem, createPolicySystem, PolicyContent } from './model';
 import { loadDraft, saveDraft, createPolicySystemEntry, updateDraft, publish } from './service';
+import WorkspaceLoader from '../../components/WorkspaceLoader';
 
 // Policy-specific Rich Text Editor - No shared editors
 function PolicyRichTextEditor({ content, onChange, placeholder }: {
@@ -158,7 +159,7 @@ export function PolicyEditorRoot() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="w-12 h-12 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

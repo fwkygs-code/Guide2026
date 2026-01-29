@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { apiClient } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 
 const EmailVerificationRequiredPage = () => {
@@ -32,7 +33,7 @@ const EmailVerificationRequiredPage = () => {
   if (checking || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-black dark:to-slate-900">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

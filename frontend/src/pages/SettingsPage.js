@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { api, getBackendUrl } from '../lib/api';
 import { useTextSize } from '../contexts/TextSizeContext';
 import DashboardLayout from '../components/DashboardLayout';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 import QuotaDisplay from '../components/QuotaDisplay';
 import UpgradePrompt from '../components/UpgradePrompt';
 import PlanSelectionModal from '../components/PlanSelectionModal';
@@ -299,7 +300,7 @@ const SettingsPage = () => {
     return (
       <DashboardLayout>
         <Surface variant="glass" className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <WorkspaceLoader size={160} />
         </Surface>
       </DashboardLayout>
     );

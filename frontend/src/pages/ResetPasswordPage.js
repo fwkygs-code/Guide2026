@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 const ResetPasswordPage = () => {
   const { t } = useTranslation();
@@ -88,7 +89,7 @@ const ResetPasswordPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-slate-400" />
+          <WorkspaceLoader size={160} />
           <p className="text-slate-600">Validating reset link...</p>
         </div>
       </div>

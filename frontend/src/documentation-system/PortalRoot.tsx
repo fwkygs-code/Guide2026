@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { documentationPortalApiClient } from './portal-api-client';
 import sanitizeHtml from './sanitizeHtml';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 type DocumentationPortalRootProps = {
   portalSlug?: string;
@@ -48,7 +49,7 @@ export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootP
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

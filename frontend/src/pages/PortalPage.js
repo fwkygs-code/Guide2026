@@ -13,6 +13,7 @@ import { normalizeImageUrl } from '../lib/utils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
 import { AppShell } from '../components/ui/design-system';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 
 
@@ -253,7 +254,7 @@ const PortalPage = ({ isEmbedded = false }) => {
     return (
       <AppShell>
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <WorkspaceLoader size={160} />
         </div>
       </AppShell>
     );

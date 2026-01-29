@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { decisionTreePortalApiClient } from './portal-api-client';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 type DecisionTreePortalRootProps = {
   portalSlug?: string;
@@ -97,7 +98,7 @@ export const DecisionTreePortalRoot = ({ portalSlug }: DecisionTreePortalRootPro
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+        <WorkspaceLoader size={160} />
       </div>
     );
   }

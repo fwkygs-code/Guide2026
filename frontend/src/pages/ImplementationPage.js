@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Copy, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import DashboardLayout from '../components/DashboardLayout';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
 import { api, getBackendUrl, getPublicPortalUrl } from '../lib/api';
 import {
@@ -338,7 +339,7 @@ const ImplementationPage = () => {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <WorkspaceLoader size={160} />
         </div>
       </DashboardLayout>
     );
