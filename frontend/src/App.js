@@ -74,7 +74,7 @@ const PrivateRoute = ({ children }) => {
   }
   
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   // Block unverified users from accessing dashboard

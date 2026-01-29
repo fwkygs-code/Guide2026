@@ -269,11 +269,11 @@ const WalkthroughsPage = () => {
 
   if (loading || !workspaceId) {
     return (
-      <DashboardLayout>
-        <Surface variant="glass" className="min-h-screen flex items-center justify-center">
+      <AppShell>
+        <div className="flex items-center justify-center py-16">
           <WorkspaceLoader />
-        </Surface>
-      </DashboardLayout>
+        </div>
+      </AppShell>
     );
   }
 

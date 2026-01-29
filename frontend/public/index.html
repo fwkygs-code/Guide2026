@@ -6,6 +6,15 @@
         <meta name="theme-color" content="#4f46e5" />
         <link rel="preload" as="video" href="/Animation.mp4" type="video/mp4" />
         <link rel="preload" as="video" href="/AnimationX.mp4" type="video/mp4" />
+        <script>
+          (function () {
+            var path = window.location.pathname;
+            if (/[A-Z]/.test(path)) {
+              var next = path.toLowerCase() + window.location.search + window.location.hash;
+              window.location.replace(next);
+            }
+          })();
+        </script>
         
         <!-- Primary Meta Tags -->
         <title>InterGuide</title>
