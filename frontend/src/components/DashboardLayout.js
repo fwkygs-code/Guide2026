@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { api } from '../lib/api';
 import LanguageSwitcher from './LanguageSwitcher';
-import DarkModeToggle from './DarkModeToggle';
 import NotificationsMenu from './NotificationsMenu';
 import QuotaDisplay from './QuotaDisplay';
 import { AppShell, Surface, Button } from './ui/design-system';
@@ -170,7 +169,6 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
             )}
             <LanguageSwitcher />
             <NotificationsMenu />
-            <DarkModeToggle />
             <Button
               variant="ghost"
               size="sm"
