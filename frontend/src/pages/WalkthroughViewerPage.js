@@ -304,25 +304,56 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     const params = new URLSearchParams(hash);
     const stepParam = params.get('step');
 
+    let resolvedIndex = 0;
     if (!stepParam) {
-      setCurrentStep(0);
-      return;
-    }
-
+      resolvedIndex = 0;
+    } else {
     const isNumeric = /^\d+$/.test(stepParam);
     if (!isNumeric) {
       const stepIndex = walkthrough.steps.findIndex((step) => step.step_id === stepParam);
-      setCurrentStep(stepIndex >= 0 ? stepIndex : 0);
-      return;
+      resolvedIndex = stepIndex >= 0 ? stepIndex : 0;
+    } else {
+      const stepNumber = Number(stepParam);
+      if (!Number.isInteger(stepNumber) || stepNumber < 1 || stepNumber > walkthrough.steps.length) {
+        resolvedIndex = 0;
+      } else {
+        resolvedIndex = stepNumber - 1;
+      }
     }
+    }
+    if (resolvedIndex !== currentStep) {
+      setCurrentStep(resolvedIndex);
+    }
+  }, [walkthrough, currentStep]);
 
-    const stepNumber = Number(stepParam);
-    if (!Number.isInteger(stepNumber) || stepNumber < 1 || stepNumber > walkthrough.steps.length) {
-      setCurrentStep(0);
-      return;
+  const getHashPreference = useCallback(() => {
+    const hash = window.location.hash?.replace(/^#/, '') || '';
+    const params = new URLSearchParams(hash);
+    const stepParam = params.get('step');
+    if (!stepParam) return 'canonical';
+    return /^\d+$/.test(stepParam) ? 'numeric' : 'canonical';
+  }, []);
+
+  const getStepHashValue = useCallback((stepIndex) => {
+    if (!walkthrough?.steps?.length) return null;
+    const step = walkthrough.steps[stepIndex];
+    if (!step) return null;
+    const preference = getHashPreference();
+    if (preference === 'numeric' || !step.step_id) {
+      return String(stepIndex + 1);
     }
-    setCurrentStep(stepNumber - 1);
-  }, [walkthrough]);
+    return step.step_id;
+  }, [walkthrough, getHashPreference]);
+
+  const setHashForStepIndex = useCallback((stepIndex) => {
+    const hashValue = getStepHashValue(stepIndex);
+    if (!hashValue) return;
+    const nextHash = `#step=${hashValue}`;
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash;
+    }
+    resolveStepFromHash();
+  }, [getStepHashValue, resolveStepFromHash]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -469,7 +500,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
         trackEvent('step_complete', currentStepObj.step_id, currentStep + 1);
         setCompletedSteps(new Set([...completedSteps, currentStep]));
       }
-      setCurrentStep(currentStep + 1);
+      setHashForStepIndex(currentStep + 1);
     } else {
       handleComplete();
     }
@@ -477,7 +508,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setHashForStepIndex(currentStep - 1);
     }
   };
 
@@ -950,7 +981,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 const targetIndex = walkthrough.steps.findIndex(s => s.id === block.data.targetStepId);
                                 console.log('[Go to Step]', { targetStepId: block.data.targetStepId, targetIndex });
                                 if (targetIndex !== -1) {
-                                  setCurrentStep(targetIndex);
+                                  setHashForStepIndex(targetIndex);
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 } else {
                                   console.error('[Go to Step] Target step not found');
@@ -975,7 +1006,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             case 'restart':
                               console.log('[Restart Walkthrough]');
                               if (window.confirm(t('dialogs.confirm.restartWalkthrough'))) {
-                                setCurrentStep(0);
+                                setHashForStepIndex(0);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }
                               break;

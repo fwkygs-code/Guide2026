@@ -245,10 +245,10 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 variant={location.pathname.includes('/implementation') ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => navigate(`/workspace/${workspaceSlug || workspaceId}/implementation`)}
-                data-testid="nav-workspace-implementation"
+                data-testid="nav-workspace-integrate"
               >
                 <Link2 className="w-4 h-4 mr-2" />
-                {t('workspace.implementation')}
+                {t('workspace.integrate')}
               </Button>
               {isOwner && (
                 <Button
