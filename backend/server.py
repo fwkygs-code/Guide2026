@@ -32,6 +32,7 @@ import base64
 import aiohttp
 import secrets
 import requests
+import re
 import sys
 import inspect
 
@@ -8748,6 +8749,72 @@ async def log_cors_config():
         "allow_headers=Content-Type,Authorization,Accept,Origin,X-Requested-With"
     )
 
+def _parse_cloudinary_public_id(url: str) -> tuple[str, str] | tuple[None, None]:
+    if not url or "res.cloudinary.com" not in url or "/image/upload/" not in url:
+        return None, None
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        path = parsed.path or ""
+        parts = [p for p in path.split("/") if p]
+        if len(parts) < 3:
+            return None, None
+        cloud_name = parts[0]
+        marker_index = path.find("/image/upload/")
+        if marker_index == -1:
+            return None, None
+        remainder = path[marker_index + len("/image/upload/"):]
+        segments = [seg for seg in remainder.split("/") if seg]
+        if not segments:
+            return None, None
+        def is_transform_segment(seg: str) -> bool:
+            if seg.startswith("v") and seg[1:].isdigit():
+                return True
+            if ":" in seg:
+                return True
+            if re.search(r"(?:^|,)(c_|w_|h_|q_|f_|g_|ar_|b_|e_|d_)", seg):
+                return True
+            return False
+        while segments and is_transform_segment(segments[0]):
+            segments.pop(0)
+        if not segments:
+            return None, None
+        public_with_ext = "/".join(segments)
+        public_id = public_with_ext.rsplit(".", 1)[0]
+        return cloud_name, public_id
+    except Exception:
+        return None, None
+
+def _get_workspace_og_image_url(logo_url: str | None) -> str | None:
+    if not logo_url:
+        return None
+    cloud_name, public_id = _parse_cloudinary_public_id(logo_url)
+    if not cloud_name or not public_id:
+        return None
+    try:
+        resource = cloudinary.api.resource(public_id, resource_type="image")
+        width = resource.get("width")
+        height = resource.get("height")
+        byte_size = resource.get("bytes")
+        fmt = (resource.get("format") or "").lower()
+        if not width or not height or width < 300 or height < 300:
+            return None
+        if byte_size and byte_size > 10 * 1024 * 1024:
+            return None
+        if fmt not in {"jpg", "jpeg", "png", "webp"}:
+            return None
+        return (
+            f"https://res.cloudinary.com/{cloud_name}/image/upload/"
+            f"c_fill,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
+        )
+    except Exception:
+        return None
+
+def _get_og_image_type(url: str) -> str:
+    if url.lower().endswith(".png"):
+        return "image/png"
+    return "image/jpeg"
+
 # Open Graph preview route for workspace sharing
 @app.get("/share/workspace/{slug}", response_class=HTMLResponse)
 async def share_workspace(slug: str, request: Request):
@@ -8771,7 +8838,6 @@ async def share_workspace(slug: str, request: Request):
         )
     
     workspace_name = workspace.get("name", "Untitled Workspace")
-    # CRITICAL: Get logo exactly as stored - no modifications
     workspace_logo = workspace.get("logo")
     
     # Log the exact logo value for debugging
@@ -8781,20 +8847,17 @@ async def share_workspace(slug: str, request: Request):
     workspace_url = f"{FRONTEND_URL}/workspace/{slug}/walkthroughs"
     share_url = f"{request.url.scheme}://{request.url.netloc}/share/workspace/{slug}"
     
-    # CRITICAL: Use logo exactly as stored, or fallback to site OG image
-    # Do NOT transform, modify, or rebuild the URL
-    if workspace_logo:
-        # Use the exact stored URL - Cloudinary URLs are already HTTPS secure_url
-        og_image_url = workspace_logo.strip() if isinstance(workspace_logo, str) else workspace_logo
-        logging.info(f"[share_workspace] Using workspace logo: {og_image_url}")
-    else:
-        # Fallback to site OG image
+    og_image_url = _get_workspace_og_image_url(workspace_logo)
+    if not og_image_url:
         og_image_url = f"{MAIN_DOMAIN}/og-image.png"
-        logging.info(f"[share_workspace] No workspace logo, using fallback: {og_image_url}")
+        logging.info(f"[share_workspace] Using fallback OG image: {og_image_url}")
+    else:
+        logging.info(f"[share_workspace] Using derived OG image: {og_image_url}")
+    og_image_type = _get_og_image_type(og_image_url)
     
     # Build Open Graph HTML with proper escaping
-    og_title = f"InterGuide ╬ô├ç├┤ {workspace_name}"
-    og_description = f"InterGuide ╬ô├ç├┤ {workspace_name}"
+    og_title = workspace_name
+    og_description = "Knowledge base"
     
     # Escape HTML entities for safety
     og_title_escaped = html_module.escape(og_title)
@@ -8815,7 +8878,7 @@ async def share_workspace(slug: str, request: Request):
     <meta property="og:description" content="{og_description_escaped}">
     <meta property="og:image" content="{og_image_url_escaped}">
     <meta property="og:image:secure_url" content="{og_image_url_escaped}">
-    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:type" content="{og_image_type}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">
@@ -8893,7 +8956,6 @@ async def share_portal(slug: str, request: Request):
         )
     
     workspace_name = workspace.get("name", "Untitled Workspace")
-    # CRITICAL: Get logo exactly as stored - no modifications
     workspace_logo = workspace.get("logo")
     
     # Log the exact logo value for debugging
@@ -8903,20 +8965,17 @@ async def share_portal(slug: str, request: Request):
     portal_url = f"{FRONTEND_URL}/portal/{slug}"
     share_url = f"{request.url.scheme}://{request.url.netloc}/portal/{slug}"
     
-    # CRITICAL: Use logo exactly as stored, or fallback to site OG image
-    # Do NOT transform, modify, or rebuild the URL
-    if workspace_logo:
-        # Use the exact stored URL - Cloudinary URLs are already HTTPS secure_url
-        og_image_url = workspace_logo.strip() if isinstance(workspace_logo, str) else workspace_logo
-        logging.info(f"[share_portal] Using workspace logo: {og_image_url}")
-    else:
-        # Fallback to site OG image
+    og_image_url = _get_workspace_og_image_url(workspace_logo)
+    if not og_image_url:
         og_image_url = f"{MAIN_DOMAIN}/og-image.png"
-        logging.info(f"[share_portal] No workspace logo, using fallback: {og_image_url}")
+        logging.info(f"[share_portal] Using fallback OG image: {og_image_url}")
+    else:
+        logging.info(f"[share_portal] Using derived OG image: {og_image_url}")
+    og_image_type = _get_og_image_type(og_image_url)
     
     # Build Open Graph HTML with proper escaping
-    og_title = f"InterGuide ╬ô├ç├┤ {workspace_name}"
-    og_description = f"InterGuide ╬ô├ç├┤ {workspace_name}"
+    og_title = workspace_name
+    og_description = "Knowledge base"
     
     # Escape HTML entities for safety
     og_title_escaped = html_module.escape(og_title)
@@ -8939,7 +8998,7 @@ async def share_portal(slug: str, request: Request):
     <meta property="og:description" content="{og_description_escaped}">
     <meta property="og:image" content="{og_image_url_escaped}">
     <meta property="og:image:secure_url" content="{og_image_url_escaped}">
-    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:type" content="{og_image_type}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">

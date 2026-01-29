@@ -18,6 +18,9 @@ import {
   Button
 } from '../components/ui/design-system';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
 
 const ImplementationPage = () => {
   const { t } = useTranslation();
@@ -27,6 +30,9 @@ const ImplementationPage = () => {
   const [walkthroughs, setWalkthroughs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedWalkthroughId, setExpandedWalkthroughId] = useState(null);
+  const [embedType, setEmbedType] = useState('inline');
+  const [embedWidth, setEmbedWidth] = useState('100%');
+  const [embedHeight, setEmbedHeight] = useState('600');
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -76,6 +82,103 @@ const ImplementationPage = () => {
     setExpandedWalkthroughId((current) => (current === walkthroughKey ? null : walkthroughKey));
   };
 
+  const portalUrl = `${getPublicPortalUrl()}/portal/${workspaceSlug}`;
+
+  const normalizedDrawerWidth = /^\d+$/.test(embedWidth) ? `${embedWidth}px` : embedWidth;
+  const normalizedDrawerHeight = /^\d+$/.test(embedHeight) ? `${embedHeight}px` : embedHeight;
+
+  const inlineEmbedSnippet = `<iframe
+  src="${portalUrl}"
+  width="${embedWidth}"
+  height="${embedHeight}"
+  style="border:0;border-radius:12px"
+  loading="lazy"
+  sandbox="allow-scripts allow-same-origin allow-popups"
+></iframe>`;
+
+  const floatingEmbedSnippet = `<style>
+#ig-help-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: 600 14px/1.2 system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+  z-index: 2147483647;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+}
+#ig-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  z-index: 2147483646;
+}
+#ig-help-drawer {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(${normalizedDrawerWidth}, 720px);
+  max-width: 96vw;
+  height: ${normalizedDrawerHeight};
+  background: #0b1220;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  display: none;
+  z-index: 2147483647;
+  box-shadow: 0 -12px 32px rgba(0,0,0,0.25);
+}
+#ig-help-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  z-index: 2;
+}
+</style>
+<button id="ig-help-button">Need help?</button>
+<div id="ig-help-overlay"></div>
+<div id="ig-help-drawer">
+  <button id="ig-help-close">Close</button>
+  <iframe
+    src="${portalUrl}"
+    width="100%"
+    height="100%"
+    style="border:0"
+    loading="lazy"
+    sandbox="allow-scripts allow-same-origin allow-popups"
+  ></iframe>
+</div>
+<script>
+(function () {
+  var button = document.getElementById('ig-help-button');
+  var overlay = document.getElementById('ig-help-overlay');
+  var drawer = document.getElementById('ig-help-drawer');
+  var close = document.getElementById('ig-help-close');
+  var open = function () {
+    overlay.style.display = 'block';
+    drawer.style.display = 'block';
+  };
+  var shut = function () {
+    overlay.style.display = 'none';
+    drawer.style.display = 'none';
+  };
+  button.addEventListener('click', open);
+  overlay.addEventListener('click', shut);
+  close.addEventListener('click', shut);
+})();
+</script>`;
+
   if (loading || workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
@@ -97,10 +200,10 @@ const ImplementationPage = () => {
         <Tabs defaultValue="links" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="links">{t('workspace.integrateLinksTab')}</TabsTrigger>
-            <TabsTrigger value="webhooks" disabled>
+            <TabsTrigger value="webhooks">
               {t('workspace.integrateWebhooksTab')}
             </TabsTrigger>
-            <TabsTrigger value="embeds" disabled>
+            <TabsTrigger value="embeds">
               {t('workspace.integrateEmbedsTab')}
             </TabsTrigger>
           </TabsList>
@@ -228,6 +331,87 @@ const ImplementationPage = () => {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+          <TabsContent value="webhooks" className="space-y-6">
+            <Card className="border border-border/60 bg-card/60">
+              <CardContent className="py-6 text-sm text-muted-foreground">
+                {t('workspace.integrateWebhooksDescription')}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="embeds" className="space-y-6">
+            <div className="text-sm text-muted-foreground">
+              {t('workspace.integrateEmbedsDescription')}
+            </div>
+            <Card className="border border-border/60 bg-card/60">
+              <CardHeader>
+                <CardTitle>{t('workspace.embedOptionsTitle')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Tabs value={embedType} onValueChange={setEmbedType} className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2 max-w-sm">
+                    <TabsTrigger value="inline">{t('workspace.embedInlineOption')}</TabsTrigger>
+                    <TabsTrigger value="floating">{t('workspace.embedFloatingOption')}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="inline" className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="embed-width">{t('workspace.embedWidth')}</Label>
+                        <Input
+                          id="embed-width"
+                          value={embedWidth}
+                          onChange={(event) => setEmbedWidth(event.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="embed-height">{t('workspace.embedHeight')}</Label>
+                        <Input
+                          id="embed-height"
+                          value={embedHeight}
+                          onChange={(event) => setEmbedHeight(event.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t('workspace.embedSnippet')}</Label>
+                      <Textarea value={inlineEmbedSnippet} readOnly rows={6} className="font-mono text-xs" />
+                      <Button variant="outline" onClick={() => handleCopyLink(inlineEmbedSnippet)}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        {t('workspace.copyEmbedCode')}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="floating" className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="floating-width">{t('workspace.embedWidth')}</Label>
+                        <Input
+                          id="floating-width"
+                          value={embedWidth}
+                          onChange={(event) => setEmbedWidth(event.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="floating-height">{t('workspace.embedHeight')}</Label>
+                        <Input
+                          id="floating-height"
+                          value={embedHeight}
+                          onChange={(event) => setEmbedHeight(event.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t('workspace.embedSnippet')}</Label>
+                      <Textarea value={floatingEmbedSnippet} readOnly rows={10} className="font-mono text-xs" />
+                      <Button variant="outline" onClick={() => handleCopyLink(floatingEmbedSnippet)}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        {t('workspace.copyEmbedCode')}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </PageSurface>
