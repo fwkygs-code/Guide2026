@@ -8792,12 +8792,14 @@ def _get_workspace_og_image_url(logo_url: str | None) -> str | None:
     cloud_name, public_id = _parse_cloudinary_public_id(logo_url)
     if not cloud_name or not public_id:
         return None
+    ext_match = re.search(r"\.(jpg|jpeg|png|webp)(?:\?|$)", logo_url, re.IGNORECASE)
+    url_format = ext_match.group(1).lower() if ext_match else ""
     try:
         resource = cloudinary.api.resource(public_id, resource_type="image")
         width = resource.get("width")
         height = resource.get("height")
         byte_size = resource.get("bytes")
-        fmt = (resource.get("format") or "").lower()
+        fmt = (resource.get("format") or url_format or "").lower()
         if not width or not height or width < 300 or height < 300:
             return None
         if byte_size and byte_size > 10 * 1024 * 1024:
@@ -8809,7 +8811,12 @@ def _get_workspace_og_image_url(logo_url: str | None) -> str | None:
             f"c_fill,g_center,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
         )
     except Exception:
-        return None
+        if url_format not in {"jpg", "jpeg", "png", "webp"}:
+            return None
+        return (
+            f"https://res.cloudinary.com/{cloud_name}/image/upload/"
+            f"c_fill,g_center,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
+        )
 
 def _get_og_image_type(url: str) -> str:
     if url.lower().endswith(".png"):
