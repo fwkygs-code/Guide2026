@@ -10,6 +10,7 @@ const API_ROOT = `${API_BASE.replace(/\/$/, '')}/api`;
 
 let cachedClient = null;
 let authExpired = false;
+let sessionActive = false;
 
 const isAuthRoute = (url?: string) => {
   if (!url) return false;
@@ -34,6 +35,12 @@ export const getApiRoot = () => API_ROOT;
 export const resetAuthExpiredFlag = () => {
   authExpired = false;
 };
+export const setAuthSessionActive = (isActive: boolean) => {
+  sessionActive = isActive;
+  if (!isActive) {
+    authExpired = false;
+  }
+};
 
 export const getApiClient = () => {
   if (cachedClient) {
@@ -57,13 +64,13 @@ export const getApiClient = () => {
   });
   cachedClient.interceptors.response.use(
     (response) => {
-      if (response.status === 401) {
+      if (response.status === 401 && sessionActive) {
         notifyAuthExpired();
       }
       return response;
     },
     (error) => {
-      if (error?.response?.status === 401) {
+      if (error?.response?.status === 401 && sessionActive) {
         notifyAuthExpired();
       }
       return Promise.reject(error);

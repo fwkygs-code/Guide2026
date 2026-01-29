@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { apiClient, API, API_BASE } from '../lib/api';
-import { resetAuthExpiredFlag } from '../shared/http';
+import { resetAuthExpiredFlag, setAuthSessionActive } from '../shared/http';
 
 const AuthContext = createContext();
 
@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const hadAuthenticatedRef = useRef(false);
 
   useEffect(() => {
     // Only fetch user if we don't already have it (e.g., on page refresh)
@@ -25,10 +26,14 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const handleAuthExpired = () => {
+      if (!hadAuthenticatedRef.current) {
+        return;
+      }
       setUser(null);
       setIsBlocked(false);
       setSessionExpired(true);
       setLoading(false);
+      setAuthSessionActive(false);
     };
     window.addEventListener('ig:auth-expired', handleAuthExpired);
     return () => {
@@ -54,13 +59,16 @@ export const AuthProvider = ({ children }) => {
         setUser(response.data);
         setSessionExpired(false);
         resetAuthExpiredFlag();
+        setAuthSessionActive(true);
+        hadAuthenticatedRef.current = true;
         setLoading(false);
         return;
       }
       if (response.status === 401) {
         setUser(null);
         setIsBlocked(false);
-        setSessionExpired(true);
+        setSessionExpired(false);
+        setAuthSessionActive(false);
         setLoading(false);
         return;
       }
@@ -78,7 +86,12 @@ export const AuthProvider = ({ children }) => {
       if (error.response?.status === 401) {
         setUser(null);
         setIsBlocked(false);
-        setSessionExpired(true);
+        if (hadAuthenticatedRef.current) {
+          setSessionExpired(true);
+        } else {
+          setSessionExpired(false);
+        }
+        setAuthSessionActive(false);
       }
       setLoading(false);
       // For timeouts or network errors, just clear loading state
@@ -165,6 +178,8 @@ export const AuthProvider = ({ children }) => {
           setUser(user);
           setSessionExpired(false);
           resetAuthExpiredFlag();
+          setAuthSessionActive(true);
+          hadAuthenticatedRef.current = true;
           setLoading(false);
           return user;
         } catch (error) {
@@ -234,6 +249,8 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       setSessionExpired(false);
       resetAuthExpiredFlag();
+      setAuthSessionActive(true);
+      hadAuthenticatedRef.current = true;
       setLoading(false);
       return { user, email_verification_sent };
     } catch (error) {
@@ -255,6 +272,8 @@ export const AuthProvider = ({ children }) => {
       setIsBlocked(false);
       setSessionExpired(false);
       resetAuthExpiredFlag();
+      setAuthSessionActive(false);
+      hadAuthenticatedRef.current = false;
     }
   };
 
