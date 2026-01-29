@@ -15,7 +15,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Badge,
   Button
 } from '../components/ui/design-system';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -375,9 +374,9 @@ const ImplementationPage = () => {
                       <Link2 className="w-4 h-4 text-primary" />
                       <span>{group.name}</span>
                     </CardTitle>
-                    <Badge variant="outline">
+                    <span className="text-sm text-muted-foreground">
                       {group.walkthroughs.length} {t('workspace.guides')}
-                    </Badge>
+                    </span>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {group.walkthroughs.length === 0 && (
@@ -416,9 +415,9 @@ const ImplementationPage = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary">
+                              <span className="text-xs text-muted-foreground">
                                 {walkthrough.status || t('workspace.draft')}
-                              </Badge>
+                              </span>
                               <ChevronDown
                                 className={`w-4 h-4 text-muted-foreground transition-transform ${
                                   isExpanded ? 'rotate-180' : ''
