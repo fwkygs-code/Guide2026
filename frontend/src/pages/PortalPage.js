@@ -279,10 +279,11 @@ const PortalPage = ({ isEmbedded = false }) => {
   const portalIdRaw = new URLSearchParams(location.search).get('portalId')
     || new URLSearchParams(location.search).get('portal')
     || workspace?.portal_id
-    || workspace?.portalId;
-  const portalIdNormalized = (portalIdRaw || '').toLowerCase() === 'integration'
+    || workspace?.portalId
+    || 'tenant';
+  const portalIdNormalized = portalIdRaw.toLowerCase() === 'integration'
     ? 'integrations'
-    : (portalIdRaw || '').toLowerCase();
+    : portalIdRaw.toLowerCase();
 
   const portalConfig = {
     admin: {
@@ -364,20 +365,7 @@ const PortalPage = ({ isEmbedded = false }) => {
     }
   };
 
-  const portalDetails = portalConfig[portalIdNormalized];
-  if (!portalDetails) {
-    return (
-      <AppShell>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center">
-            <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-heading font-bold text-foreground mb-2">Portal Configuration Missing</h1>
-            <p className="text-muted-foreground">A valid portalId is required for this portal surface.</p>
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
+  const portalDetails = portalConfig[portalIdNormalized] || portalConfig.tenant;
 
   // Get portal styling from workspace
   const portalPalette = workspace.portal_palette || {};
