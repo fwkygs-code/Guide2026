@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy, Settings, Upload, Image as ImageIcon, ArrowLeft } from 'lucide-react';
@@ -15,13 +15,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge, CardContent } from '../components/ui/design-system';
-import WorkspaceLoadingOverlay from '../components/WorkspaceLoadingOverlay';
+import WorkspaceLoader from '../components/WorkspaceLoader';
 
 const WalkthroughsPage = () => {
   const { t } = useTranslation();
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [walkthroughs, setWalkthroughs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +38,6 @@ const WalkthroughsPage = () => {
     enable_stuck_button: false
   });
   const [uploadingIcon, setUploadingIcon] = useState(false);
-  const [showWorkspaceOverlay, setShowWorkspaceOverlay] = useState(!!location.state?.workspaceTransition);
 
   useEffect(() => {
     fetchData();
@@ -269,33 +267,18 @@ const WalkthroughsPage = () => {
     }
   };
 
-  const workspaceReady = !loading && !!workspaceId;
-
   if (loading || !workspaceId) {
     return (
-      <>
-        <WorkspaceLoadingOverlay
-          active={showWorkspaceOverlay}
-          ready={workspaceReady}
-          onFinish={() => setShowWorkspaceOverlay(false)}
-        />
-        <DashboardLayout>
-          <Surface variant="glass" className="min-h-screen flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </Surface>
-        </DashboardLayout>
-      </>
+      <DashboardLayout>
+        <Surface variant="glass" className="min-h-screen flex items-center justify-center">
+          <WorkspaceLoader />
+        </Surface>
+      </DashboardLayout>
     );
   }
 
   return (
-    <>
-      <WorkspaceLoadingOverlay
-        active={showWorkspaceOverlay}
-        ready={workspaceReady}
-        onFinish={() => setShowWorkspaceOverlay(false)}
-      />
-      <DashboardLayout>
+    <DashboardLayout>
       <PageHeader
         title={`${workspace?.name} - ${t('workspace.walkthroughs')}`}
         description={t('walkthrough.createAndManage')}
@@ -708,8 +691,7 @@ const WalkthroughsPage = () => {
           </DialogContent>
         </Dialog>
       </PageSurface>
-      </DashboardLayout>
-    </>
+    </DashboardLayout>
   );
 };
 
