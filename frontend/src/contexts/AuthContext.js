@@ -40,19 +40,21 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return;
       }
-      // Block initialization until /auth/me succeeds
+      setLoading(false);
       return;
     } catch (error) {
       console.error('Failed to fetch user:', error);
       // Check if account is disabled or deleted (403)
       if (error.response?.status === 403) {
         setIsBlocked(true);
+        setLoading(false);
         return;
       }
       // Only logout on actual auth errors (401), not timeouts or network errors
       if (error.response?.status === 401) {
         logout();
       }
+      setLoading(false);
       // For timeouts or network errors, just clear loading state
       // Don't logout - user might still have valid token, just slow connection
       // This prevents the "Failed to fetch user" error from blocking the app

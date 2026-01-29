@@ -238,6 +238,14 @@ const AppContent = () => {
     document.documentElement.setAttribute('lang', i18n.language);
   }, [i18n.language]);
 
+  useEffect(() => {
+    const { pathname, search, hash } = window.location;
+    if (/[A-Z]/.test(pathname)) {
+      const nextPath = pathname.toLowerCase();
+      window.location.replace(`${nextPath}${search}${hash}`);
+    }
+  }, []);
+
   return (
     <ThemeProvider>
       <VideoPreloader />

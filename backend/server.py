@@ -74,6 +74,18 @@ else:
 
 # Create the main app
 app = FastAPI()
+
+class LowercaseRedirectMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        if any(ch.isupper() for ch in path):
+            lower_path = path.lower()
+            query = request.url.query
+            target = f"{lower_path}?{query}" if query else lower_path
+            return RedirectResponse(url=target, status_code=301)
+        return await call_next(request)
+
+app.add_middleware(LowercaseRedirectMiddleware)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
