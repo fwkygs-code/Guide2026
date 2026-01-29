@@ -15,6 +15,7 @@ export const useWorkspace = () => {
       backgroundUrl: null,
       logoUrl: null,
       loading: false,
+      error: null,
     };
   }
   return context;
@@ -25,6 +26,7 @@ export const WorkspaceProvider = ({ children }) => {
   const [workspace, setWorkspace] = useState(null);
   const [workspaceId, setWorkspaceId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Extract workspaceId from URL path
   useEffect(() => {
@@ -41,6 +43,7 @@ export const WorkspaceProvider = ({ children }) => {
   useEffect(() => {
     if (!workspaceId) {
       setWorkspace(null);
+      setError(null);
       return;
     }
 
@@ -52,11 +55,16 @@ export const WorkspaceProvider = ({ children }) => {
         const response = await api.getWorkspace(workspaceId);
         if (isMounted) {
           setWorkspace(response.data);
+          setError(null);
         }
       } catch (error) {
         console.error('Failed to fetch workspace:', error);
         if (isMounted) {
           setWorkspace(null);
+          setError({
+            status: error.response?.status,
+            message: error.response?.data?.detail || error.message
+          });
         }
       } finally {
         if (isMounted) {
@@ -87,6 +95,7 @@ export const WorkspaceProvider = ({ children }) => {
     backgroundUrl,
     logoUrl,
     loading,
+    error,
   };
 
   return (

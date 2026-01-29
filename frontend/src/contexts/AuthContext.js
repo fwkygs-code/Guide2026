@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiClient, API, API_BASE } from '../lib/api';
+import { resetAuthExpiredFlag } from '../shared/http';
 
 const AuthContext = createContext();
 
@@ -7,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     // Only fetch user if we don't already have it (e.g., on page refresh)
@@ -19,6 +21,19 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setUser(null);
+      setIsBlocked(false);
+      setSessionExpired(true);
+      setLoading(false);
+    };
+    window.addEventListener('ig:auth-expired', handleAuthExpired);
+    return () => {
+      window.removeEventListener('ig:auth-expired', handleAuthExpired);
+    };
   }, []);
 
   const fetchUser = async () => {
@@ -37,6 +52,15 @@ export const AuthProvider = ({ children }) => {
       ]);
       if (response.status === 200) {
         setUser(response.data);
+        setSessionExpired(false);
+        resetAuthExpiredFlag();
+        setLoading(false);
+        return;
+      }
+      if (response.status === 401) {
+        setUser(null);
+        setIsBlocked(false);
+        setSessionExpired(true);
         setLoading(false);
         return;
       }
@@ -52,7 +76,9 @@ export const AuthProvider = ({ children }) => {
       }
       // Only logout on actual auth errors (401), not timeouts or network errors
       if (error.response?.status === 401) {
-        logout();
+        setUser(null);
+        setIsBlocked(false);
+        setSessionExpired(true);
       }
       setLoading(false);
       // For timeouts or network errors, just clear loading state
@@ -137,6 +163,8 @@ export const AuthProvider = ({ children }) => {
           }
           const user = meResponse.data;
           setUser(user);
+          setSessionExpired(false);
+          resetAuthExpiredFlag();
           setLoading(false);
           return user;
         } catch (error) {
@@ -204,6 +232,8 @@ export const AuthProvider = ({ children }) => {
       }
       const user = meResponse.data;
       setUser(user);
+      setSessionExpired(false);
+      resetAuthExpiredFlag();
       setLoading(false);
       return { user, email_verification_sent };
     } catch (error) {
@@ -223,7 +253,13 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setIsBlocked(false);
+      setSessionExpired(false);
+      resetAuthExpiredFlag();
     }
+  };
+
+  const clearSessionExpired = () => {
+    setSessionExpired(false);
   };
 
   const refreshUser = async () => {
@@ -231,7 +267,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser, isBlocked }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser, isBlocked, sessionExpired, clearSessionExpired }}>
       {children}
     </AuthContext.Provider>
   );

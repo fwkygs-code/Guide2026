@@ -270,9 +270,7 @@ const WalkthroughsPage = () => {
   if (loading || !workspaceId) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center py-16">
-          <WorkspaceLoader />
-        </div>
+        <WorkspaceLoader className="min-h-[320px]" size={96} />
       </AppShell>
     );
   }

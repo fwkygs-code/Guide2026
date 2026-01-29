@@ -89,7 +89,13 @@
     "initializingSystem": "Initializing system...",
     "connectionUnavailable": "Connection unavailable",
     "pleaseWait": "Please wait",
-    "systemPreparing": "The system is preparing your environment. This may take a moment."
+    "systemPreparing": "The system is preparing your environment. This may take a moment.",
+    "sessionExpiredTitle": "Session expired",
+    "sessionExpiredBody": "Please log in again to continue.",
+    "noAccessTitle": "No access",
+    "noAccessBody": "You do not have access to this workspace.",
+    "workspaceNotFoundTitle": "Workspace not found",
+    "workspaceNotFoundBody": "This workspace does not exist or is unavailable."
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",

@@ -90,7 +90,13 @@
     "initializingSystem": "מאתחל מערכת...",
     "connectionUnavailable": "החיבור לא זמין",
     "pleaseWait": "אנא המתן",
-    "systemPreparing": "המערכת מכינה את הסביבה שלך. זה עשוי לקחת רגע."
+    "systemPreparing": "המערכת מכינה את הסביבה שלך. זה עשוי לקחת רגע.",
+    "sessionExpiredTitle": "ההתחברות פגה",
+    "sessionExpiredBody": "אנא התחבר מחדש כדי להמשיך.",
+    "noAccessTitle": "אין גישה",
+    "noAccessBody": "אין לך הרשאה לגשת לאזור עבודה זה.",
+    "workspaceNotFoundTitle": "אזור העבודה לא נמצא",
+    "workspaceNotFoundBody": "אזור העבודה אינו קיים או שאינו זמין."
   },
   "dashboard": {
     "welcome": "ברוך הבא, {{name}}",

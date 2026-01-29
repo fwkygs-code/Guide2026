@@ -1,12 +1,13 @@
 import React from 'react';
 
-const WorkspaceLoader = () => {
+const WorkspaceLoader = ({ size = 96, className = '' }) => {
   return (
-    <div className="w-full h-full flex items-center justify-center py-16">
+    <div className={`w-full flex items-center justify-center ${className}`}>
       <video
-        width="80"
-        height="80"
-        className="w-20 h-20 object-contain"
+        width={size}
+        height={size}
+        style={{ width: size, height: size }}
+        className="object-contain"
         autoPlay
         muted
         playsInline

@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TextSizeProvider } from './contexts/TextSizeContext';
-import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import './i18n/config'; // Initialize i18n
 import { useTranslationEnforcement } from './hooks/useTranslationEnforcement';
 import LandingPage from './pages/LandingPage';
@@ -85,6 +86,58 @@ const PrivateRoute = ({ children }) => {
   }
   
   return children;
+};
+
+const WorkspaceRouteGuard = ({ children }) => {
+  const { t } = useTranslation();
+  const { workspace, loading, error } = useWorkspace();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error?.status === 403) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 text-center">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground">{t('auth.noAccessTitle')}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t('auth.noAccessBody')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error?.status === 404 || (error && !workspace)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 text-center">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground">{t('auth.workspaceNotFoundTitle')}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t('auth.workspaceNotFoundBody')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+};
+
+const AuthSessionListener = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { sessionExpired, clearSessionExpired } = useAuth();
+
+  useEffect(() => {
+    if (!sessionExpired) return;
+    toast.error(t('auth.sessionExpiredTitle'), { description: t('auth.sessionExpiredBody') });
+    clearSessionExpired();
+    navigate('/login', { replace: true });
+  }, [sessionExpired, clearSessionExpired, navigate, t]);
+
+  return null;
 };
 
 const WorkspaceLoader = ({ accent = 'cyan' }) => {
@@ -254,6 +307,7 @@ const AppContent = () => {
           <BrowserRouter>
           <WorkspaceProvider>
           <AppSurface>
+          <AuthSessionListener />
           <OnboardingController />
           <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -277,33 +331,33 @@ const AppContent = () => {
           
           <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute><AdminRoute><AdminDashboardPage /></AdminRoute></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/walkthroughs" element={<PrivateRoute><WalkthroughsPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/walkthroughs/new" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/walkthroughs/:walkthroughId/edit" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/categories" element={<PrivateRoute><CategoriesPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/implementation" element={<PrivateRoute><ImplementationPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><KnowledgeSystemsPage /></PrivateRoute>} />
-          <Route path={POLICY_ROUTES.list} element={<PrivateRoute><PolicyListRoute /></PrivateRoute>} />
-          <Route path={POLICY_ROUTES.create} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
-          <Route path={POLICY_ROUTES.edit} element={<PrivateRoute><PolicyEditorRoute /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/walkthroughs" element={<PrivateRoute><WorkspaceRouteGuard><WalkthroughsPage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/archive" element={<PrivateRoute><WorkspaceRouteGuard><ArchivePage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/walkthroughs/new" element={<PrivateRoute><WorkspaceRouteGuard><BuilderV2Page /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/walkthroughs/:walkthroughId/edit" element={<PrivateRoute><WorkspaceRouteGuard><BuilderV2Page /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/categories" element={<PrivateRoute><WorkspaceRouteGuard><CategoriesPage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><WorkspaceRouteGuard><AnalyticsPage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/implementation" element={<PrivateRoute><WorkspaceRouteGuard><ImplementationPage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><WorkspaceRouteGuard><SettingsPage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemsPage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={POLICY_ROUTES.list} element={<PrivateRoute><WorkspaceRouteGuard><PolicyListRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={POLICY_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={POLICY_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           
           {/* Knowledge System Portal Routes */}
-          <Route path="/workspace/:workspaceSlug/knowledge/policy" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="policy" /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/procedure" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="procedure" /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/documentation" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="documentation" /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/faq" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="faq" /></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/decision_tree" element={<PrivateRoute><KnowledgeSystemPortalPage systemType="decision_tree" /></PrivateRoute>} />
-          <Route path={PROCEDURE_ROUTES.create} element={<PrivateRoute><ProcedureEditorRoute /></PrivateRoute>} />
-          <Route path={PROCEDURE_ROUTES.edit} element={<PrivateRoute><ProcedureEditorRoute /></PrivateRoute>} />
-          <Route path={DOCUMENTATION_ROUTES.create} element={<PrivateRoute><DocumentationEditorRoute /></PrivateRoute>} />
-          <Route path={DOCUMENTATION_ROUTES.edit} element={<PrivateRoute><DocumentationEditorRoute /></PrivateRoute>} />
-          <Route path={FAQ_ROUTES.create} element={<PrivateRoute><FAQEditorRoute /></PrivateRoute>} />
-          <Route path={FAQ_ROUTES.edit} element={<PrivateRoute><FAQEditorRoute /></PrivateRoute>} />
-          <Route path={DECISION_TREE_ROUTES.create} element={<PrivateRoute><DecisionTreeEditorRoute /></PrivateRoute>} />
-          <Route path={DECISION_TREE_ROUTES.edit} element={<PrivateRoute><DecisionTreeEditorRoute /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/policy" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="policy" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/procedure" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="procedure" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/documentation" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="documentation" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/faq" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="faq" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge/decision_tree" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="decision_tree" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={PROCEDURE_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={PROCEDURE_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={DOCUMENTATION_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={DOCUMENTATION_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={FAQ_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={FAQ_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={DECISION_TREE_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><DecisionTreeEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path={DECISION_TREE_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><DecisionTreeEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           </Routes>
           </AppSurface>
           </WorkspaceProvider>
