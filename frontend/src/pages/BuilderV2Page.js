@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon, ChevronLeft, ChevronRight, AlignLeft, AlignCenter, AlignRight, Type, Trash2, FileText, Download } from 'lucide-react';
+import { Save, Eye, Clock, Check, ArrowLeft, Undo2, Redo2, Plus, X, GripVertical, Upload, Image as ImageIcon, ChevronLeft, ChevronRight, AlignLeft, AlignCenter, AlignRight, Type, Trash2, FileText, Download, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,6 +72,7 @@ const BuilderV2Page = () => {
   const [loading, setLoading] = useState(isEditing);
   const [blockPickerOpen, setBlockPickerOpen] = useState(null); // Track which "+" button opened it
   const [activeBlockId, setActiveBlockId] = useState(null);
+  const [isAccessibilityLight, setIsAccessibilityLight] = useState(false);
   
   // Setup form state for new walkthroughs
   const [setupComplete, setSetupComplete] = useState(isEditing); // If editing, setup is already complete
@@ -91,6 +92,29 @@ const BuilderV2Page = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    const stored = localStorage.getItem('accessibilityLightMode');
+    const enabled = stored === 'true';
+    setIsAccessibilityLight(enabled);
+    if (enabled) {
+      document.documentElement.setAttribute('data-theme', 'accessibility-light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, []);
+
+  const toggleAccessibilityLight = () => {
+    const next = !isAccessibilityLight;
+    setIsAccessibilityLight(next);
+    if (next) {
+      document.documentElement.setAttribute('data-theme', 'accessibility-light');
+      localStorage.setItem('accessibilityLightMode', 'true');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('accessibilityLightMode', 'false');
+    }
+  };
 
   // Fetch workspace data for contact info
   useEffect(() => {
@@ -812,6 +836,15 @@ const BuilderV2Page = () => {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={toggleAccessibilityLight}
+            data-testid="accessibility-light-toggle"
+          >
+            <Sun className="w-4 h-4 mr-2" />
+            {t('settings.accessibility.lightMode', { defaultValue: 'Light mode' })}
+          </Button>
           <div className="h-6 w-px bg-slate-200" />
           <Button variant="secondary" size="sm" disabled title={t('builder.buttons.undo')}>
             <Undo2 className="w-4 h-4" />
