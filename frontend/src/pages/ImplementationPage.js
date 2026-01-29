@@ -175,9 +175,10 @@ const ImplementationPage = () => {
                               >
                                 <div className="px-4 py-3 space-y-2">
                                   {steps.map((step, index) => {
-                                    const canonicalUrl = step.step_id
+                                    const integrationUrl = step.step_id
                                       ? `${walkthroughUrl}#step=${step.step_id}`
                                       : null;
+                                    const shareableUrl = `${walkthroughUrl}#step=${index + 1}`;
                                     return (
                                       <div
                                         key={step.id || `${walkthrough.id}-step-${index}`}
@@ -191,15 +192,25 @@ const ImplementationPage = () => {
                                             {step.title || t('common.untitled')}
                                           </span>
                                         </div>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => canonicalUrl && handleCopyLink(canonicalUrl)}
-                                          disabled={!canonicalUrl}
-                                        >
-                                          <Copy className="w-3.5 h-3.5 mr-2" />
-                                          {t('common.copy')}
-                                        </Button>
+                                        <div className="flex flex-wrap gap-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => integrationUrl && handleCopyLink(integrationUrl)}
+                                            disabled={!integrationUrl}
+                                          >
+                                            <Copy className="w-3.5 h-3.5 mr-2" />
+                                            {t('workspace.copyIntegrationLink')}
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleCopyLink(shareableUrl)}
+                                          >
+                                            <Copy className="w-3.5 h-3.5 mr-2" />
+                                            {t('workspace.copyShareableLink')}
+                                          </Button>
+                                        </div>
                                       </div>
                                     );
                                   })}

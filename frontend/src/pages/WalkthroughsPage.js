@@ -33,7 +33,8 @@ const WalkthroughsPage = () => {
     slug: '',
     description: '',
     icon_url: '',
-    category_ids: []
+    category_ids: [],
+    enable_stuck_button: false
   });
   const [uploadingIcon, setUploadingIcon] = useState(false);
 
@@ -177,7 +178,8 @@ const WalkthroughsPage = () => {
       slug: walkthrough.slug || '',
       description: walkthrough.description || '',
       icon_url: walkthrough.icon_url || '',
-      category_ids: walkthrough.category_ids || []
+      category_ids: walkthrough.category_ids || [],
+      enable_stuck_button: !!walkthrough.enable_stuck_button
     });
     setSettingsDialogOpen(true);
   };
@@ -194,6 +196,7 @@ const WalkthroughsPage = () => {
         description: editSettings.description || '',
         category_ids: editSettings.category_ids || [],
         icon_url: editSettings.icon_url || null,
+        enable_stuck_button: !!editSettings.enable_stuck_button,
         status: editingWalkthrough.status  // Preserve the current status
       };
       
@@ -552,6 +555,25 @@ const WalkthroughsPage = () => {
                     rows={3}
                     className="w-full text-white"
                   />
+                </div>
+
+                {/* Stuck Button */}
+                <div className="flex items-start gap-3 rounded-xl border border-slate-700/60 bg-slate-900/40 p-4">
+                  <Checkbox
+                    id="edit-stuck-button"
+                    checked={editSettings.enable_stuck_button}
+                    onCheckedChange={(checked) =>
+                      setEditSettings(prev => ({ ...prev, enable_stuck_button: checked === true }))
+                    }
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-stuck-button" className="text-sm font-medium text-white">
+                      {t('walkthrough.stuckButtonLabel')}
+                    </Label>
+                    <p className="text-xs text-slate-400">
+                      {t('walkthrough.stuckButtonDescription')}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Icon/Photo */}

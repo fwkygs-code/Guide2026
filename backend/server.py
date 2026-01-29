@@ -441,6 +441,7 @@ class WalkthroughCreate(BaseModel):
     navigation_type: NavigationType = NavigationType.NEXT_PREV
     navigation_placement: NavigationPlacement = NavigationPlacement.BOTTOM
     slug: Optional[str] = None  # Custom URL slug for walkthrough
+    enable_stuck_button: Optional[bool] = None
 
 class Walkthrough(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -460,6 +461,7 @@ class Walkthrough(BaseModel):
     navigation_placement: NavigationPlacement = NavigationPlacement.BOTTOM
     steps: List[Step] = []
     step_id_version: Optional[int] = None
+    enable_stuck_button: bool = False
     version: int = 1
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -4139,6 +4141,7 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
         status=walkthrough_data.status or WalkthroughStatus.DRAFT,
         navigation_type=walkthrough_data.navigation_type,
         navigation_placement=walkthrough_data.navigation_placement,
+        enable_stuck_button=bool(walkthrough_data.enable_stuck_button) if walkthrough_data.enable_stuck_button is not None else False,
         created_by=current_user.id
     )
     

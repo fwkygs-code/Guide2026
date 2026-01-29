@@ -117,9 +117,11 @@
     "integrate": "Integrate",
     "integrateDescription": "Discover integration-ready links and upcoming surfaces.",
     "integrateLinksTab": "Links",
-    "integrateLinksDescription": "Canonical step links for integrations and SDKs.",
+    "integrateLinksDescription": "Integration and shareable step links for SDKs and support.",
     "integrateWebhooksTab": "Webhooks",
     "integrateEmbedsTab": "Embeds",
+    "copyIntegrationLink": "Copy integration link",
+    "copyShareableLink": "Copy shareable link",
     "implementation": "Implementation",
     "implementationDescription": "Copy canonical step links for integrations and SDKs.",
     "uncategorized": "Uncategorized",
@@ -516,7 +518,16 @@
     "currentUrl": "Current URL",
     "archiveWalkthrough": "Archive Walkthrough",
     "saveSettings": "Save Settings",
+    "stuckButtonLabel": "Enable “I’m stuck” button",
+    "stuckButtonDescription": "Show a WhatsApp help button in the public viewer for this guide.",
     "publish": "Publish"
+  },
+  "stuck": {
+    "buttonLabel": "I'm stuck",
+    "categoryFallback": "Uncategorized",
+    "guideFallback": "Untitled guide",
+    "stepFallback": "Untitled step",
+    "message": "Hi, I'm stuck in a guide.\n\nCategory: {{category}}\nGuide: {{guide}}\nStep {{stepNumber}}: {{stepTitle}}\n\nLink:\n{{link}}"
   },
   "archive": {
     "title": "Archive",

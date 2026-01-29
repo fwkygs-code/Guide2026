@@ -118,9 +118,11 @@
     "integrate": "אינטגרציה",
     "integrateDescription": "קישורים מוכנים לאינטגרציה ומשטחים עתידיים.",
     "integrateLinksTab": "קישורים",
-    "integrateLinksDescription": "קישורי שלבים קנוניים לאינטגרציות ול-SDK.",
+    "integrateLinksDescription": "קישורי שלבים לאינטגרציות ולשיתוף לצוותי תמיכה.",
     "integrateWebhooksTab": "וובהוקים",
     "integrateEmbedsTab": "הטמעות",
+    "copyIntegrationLink": "העתק קישור אינטגרציה",
+    "copyShareableLink": "העתק קישור לשיתוף",
     "implementation": "יישום",
     "implementationDescription": "העתק קישורי שלבים קנוניים לאינטגרציות ול-SDK.",
     "uncategorized": "ללא קטגוריה",
@@ -687,6 +689,8 @@
     "currentUrl": "כתובת URL נוכחית",
     "archiveWalkthrough": "העבר לארכיון",
     "saveSettings": "שמור הגדרות",
+    "stuckButtonLabel": "אפשר כפתור \"אני תקוע\"",
+    "stuckButtonDescription": "הצג כפתור עזרה ב-WhatsApp לצופים במדריך הזה.",
     "publish": "פרסם",
     "createNew": "צור מדריך חדש",
     "setupBeforeSteps": "הגדר את המדריך שלך לפני הוספת שלבים",
@@ -700,6 +704,13 @@
     "noCategories": "אין קטגוריות זמינות. צור קטגוריות בעמוד הקטגוריות.",
     "updateNameDescription": "עדכן שם מדריך, תיאור, אייקון וקטגוריות",
     "cancel": "ביטול"
+  },
+  "stuck": {
+    "buttonLabel": "אני תקוע",
+    "categoryFallback": "ללא קטגוריה",
+    "guideFallback": "מדריך ללא שם",
+    "stepFallback": "שלב ללא שם",
+    "message": "היי, אני תקוע במדריך.\n\nקטגוריה: {{category}}\nמדריך: {{guide}}\nשלב {{stepNumber}}: {{stepTitle}}\n\nקישור:\n{{link}}"
   },
   "archive": {
     "title": "ארכיון",

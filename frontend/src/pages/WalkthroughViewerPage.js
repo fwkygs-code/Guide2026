@@ -46,6 +46,41 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [showSupportDialog, setShowSupportDialog] = useState(false);
   const [supportContactInfo, setSupportContactInfo] = useState(null);
 
+  const getWhatsAppBaseUrl = (whatsappUrl) => {
+    if (!whatsappUrl) return null;
+    if (/^https?:\/\//i.test(whatsappUrl)) return whatsappUrl;
+    const digits = whatsappUrl.replace(/[^0-9]/g, '');
+    if (!digits) return null;
+    return `https://wa.me/${digits}`;
+  };
+
+  const handleStuckClick = () => {
+    if (!walkthrough || !walkthrough.steps?.length) return;
+    const step = walkthrough.steps[currentStep];
+    if (!step) return;
+    const baseUrl = getWhatsAppBaseUrl(walkthrough?.workspace?.contact_whatsapp);
+    if (!baseUrl) return;
+
+    const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
+    const shareableUrl = `${window.location.origin}/portal/${slug}/${walkthroughIdentifier}#step=${currentStep + 1}`;
+    const categoryName =
+      walkthrough.category_name ||
+      (Array.isArray(walkthrough.category_names) ? walkthrough.category_names[0] : null) ||
+      t('stuck.categoryFallback');
+    const guideTitle = walkthrough.title || t('stuck.guideFallback');
+    const stepTitle = step.title || t('stuck.stepFallback');
+
+    const message = t('stuck.message', {
+      category: categoryName,
+      guide: guideTitle,
+      stepNumber: currentStep + 1,
+      stepTitle,
+      link: shareableUrl
+    });
+    const url = `${baseUrl}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
   const normalizePortalWalkthrough = (data) => {
     if (!data || !Array.isArray(data.steps)) return data;
     const steps = data.steps.map((step) => {
@@ -559,6 +594,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const stepCount = walkthrough.steps.length;
   const progress = stepCount > 0 ? ((currentStep + 1) / stepCount) * 100 : 0;
   const step = walkthrough.steps[currentStep];
+  const showStuckButton = !!walkthrough.enable_stuck_button && !!getWhatsAppBaseUrl(walkthrough?.workspace?.contact_whatsapp);
 
   return (
     <div className={`min-h-screen bg-card ${inIframe ? 'iframe-mode' : ''}`}>
@@ -1315,50 +1351,61 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     {canProceedNext() ? t('common.done') : t('common.markAsDone')}
                   </button>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 0}
-                  data-testid="previous-button"
-                >
-                  {i18n.language === 'he' ? (
-                    <>
-                      <ChevronRight className="w-4 h-4 ml-2" />
-                      {t('common.previous')}
-                    </>
-                  ) : (
-                    <>
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      {t('common.previous')}
-                    </>
+                <div className="flex flex-wrap items-center gap-3">
+                  {showStuckButton && (
+                    <Button
+                      variant="outline"
+                      onClick={handleStuckClick}
+                      data-testid="stuck-button"
+                    >
+                      {t('stuck.buttonLabel')}
+                    </Button>
                   )}
-                </Button>
-                <Button
-                  onClick={handleNext}
-                  disabled={!canProceedNext()}
-                  data-testid="next-button"
-                >
-                  {currentStep === walkthrough.steps.length - 1 ? (
-                    <>
-                      <Check className="w-4 h-4 mr-2" />
-                      {t('common.complete')}
-                    </>
-                  ) : (
-                    <>
-                      {i18n.language === 'he' ? (
-                        <>
-                          {t('common.next')}
-                          <ChevronLeft className="w-4 h-4 ml-2" />
-                        </>
-                      ) : (
-                        <>
-                          {t('common.next')}
-                          <ChevronRight className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </>
-                  )}
-                </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 0}
+                    data-testid="previous-button"
+                  >
+                    {i18n.language === 'he' ? (
+                      <>
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                        {t('common.previous')}
+                      </>
+                    ) : (
+                      <>
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                        {t('common.previous')}
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canProceedNext()}
+                    data-testid="next-button"
+                  >
+                    {currentStep === walkthrough.steps.length - 1 ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        {t('common.complete')}
+                      </>
+                    ) : (
+                      <>
+                        {i18n.language === 'he' ? (
+                          <>
+                            {t('common.next')}
+                            <ChevronLeft className="w-4 h-4 ml-2" />
+                          </>
+                        ) : (
+                          <>
+                            {t('common.next')}
+                            <ChevronRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </motion.div>
           ) : (
