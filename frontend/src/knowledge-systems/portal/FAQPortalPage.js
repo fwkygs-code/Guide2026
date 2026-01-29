@@ -16,8 +16,8 @@ import LanguageSwitcher from '../../components/LanguageSwitcher';
  * FAQ Portal Page - User-Friendly Help
  */
 function FAQPortalPage({ slug: slugProp, backHref, backLabel }) {
-  const { slug: slugParam, workspaceSlug } = useParams();
-  const slug = slugProp || slugParam || workspaceSlug;
+  const { slug: slugParam } = useParams();
+  const slug = slugProp || slugParam;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedFAQs, setPublishedFAQs] = useState([]);
   const [loading, setLoading] = useState(true);

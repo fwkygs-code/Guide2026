@@ -22,8 +22,8 @@ import LanguageSwitcher from '../../components/LanguageSwitcher';
  * Policy Portal Page - Authoritative Display
  */
 function PolicyPortalPage({ slug: slugProp, backHref, backLabel }) {
-  const { slug: slugParam, workspaceSlug } = useParams();
-  const slug = slugProp || slugParam || workspaceSlug;
+  const { slug: slugParam } = useParams();
+  const slug = slugProp || slugParam;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedPolicies, setPublishedPolicies] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -14,8 +14,8 @@ import LanguageSwitcher from '../../components/LanguageSwitcher';
  * Decision Tree Portal Page - Interactive Guidance
  */
 function DecisionTreePortalPage({ slug: slugProp, backHref, backLabel }) {
-  const { slug: slugParam, workspaceSlug } = useParams();
-  const slug = slugProp || slugParam || workspaceSlug;
+  const { slug: slugParam } = useParams();
+  const slug = slugProp || slugParam;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedTrees, setPublishedTrees] = useState([]);
   const [loading, setLoading] = useState(true);

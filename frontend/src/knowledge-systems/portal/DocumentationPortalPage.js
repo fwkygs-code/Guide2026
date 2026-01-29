@@ -14,8 +14,8 @@ import LanguageSwitcher from '../../components/LanguageSwitcher';
  * Documentation Portal Page - Knowledge Repository
  */
 function DocumentationPortalPage({ slug: slugProp, backHref, backLabel }) {
-  const { slug: slugParam, workspaceSlug } = useParams();
-  const slug = slugProp || slugParam || workspaceSlug;
+  const { slug: slugParam } = useParams();
+  const slug = slugProp || slugParam;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedDocumentation, setPublishedDocumentation] = useState([]);
   const [loading, setLoading] = useState(true);

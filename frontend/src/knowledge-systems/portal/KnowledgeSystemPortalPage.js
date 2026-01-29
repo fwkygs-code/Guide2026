@@ -23,15 +23,32 @@ import DecisionTreePortalPage from './DecisionTreePortalPage';
 function KnowledgeSystemPortalPage({ systemType }) {
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const { slug, workspaceSlug } = useParams();
-  const resolvedSlug = slug || workspaceSlug;
-  const backHref = workspaceSlug
+  const isWorkspaceContext = !!workspaceSlug && !slug;
+  const isPortalContext = !!slug;
+  const resolvedSlug = isPortalContext ? slug : isWorkspaceContext ? workspaceSlug : undefined;
+  const backHref = isWorkspaceContext
     ? `/workspace/${workspaceSlug}/knowledge-systems`
     : resolvedSlug
       ? `/portal/${resolvedSlug}`
       : '/';
-  const backLabel = workspaceSlug
+  const backLabel = isWorkspaceContext
     ? t('knowledgeSystems.backToSystems')
     : t('portal.backToPortal');
+
+  if (!resolvedSlug) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-8">
+        <div className="text-center space-y-4 max-w-md">
+          <h1 className="text-2xl font-semibold text-slate-100">
+            {t('knowledgeSystems.title')}
+          </h1>
+          <p className="text-slate-300">
+            {t('portal.notFound', { defaultValue: 'Portal not found.' })}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Route to appropriate specialized portal page
   switch (systemType) {

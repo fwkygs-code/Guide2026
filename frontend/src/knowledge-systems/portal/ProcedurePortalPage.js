@@ -15,8 +15,8 @@ import LanguageSwitcher from '../../components/LanguageSwitcher';
  * Procedure Portal Page - Systematic Display
  */
 function ProcedurePortalPage({ slug: slugProp, backHref, backLabel }) {
-  const { slug: slugParam, workspaceSlug } = useParams();
-  const slug = slugProp || slugParam || workspaceSlug;
+  const { slug: slugParam } = useParams();
+  const slug = slugProp || slugParam;
   const { t } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedProcedures, setPublishedProcedures] = useState([]);
   const [loading, setLoading] = useState(true);
