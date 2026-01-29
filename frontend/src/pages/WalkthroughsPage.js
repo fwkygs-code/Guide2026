@@ -270,7 +270,7 @@ const WalkthroughsPage = () => {
   if (loading || !workspaceId) {
     return (
       <AppShell>
-        <WorkspaceLoader className="min-h-[320px]" size={96} />
+        <WorkspaceLoader className="min-h-[320px]" size={140} />
       </AppShell>
     );
   }

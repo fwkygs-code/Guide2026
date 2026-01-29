@@ -1,6 +1,6 @@
 import React from 'react';
 
-const WorkspaceLoader = ({ size = 96, className = '' }) => {
+const WorkspaceLoader = ({ size = 140, className = '' }) => {
   return (
     <div className={`w-full flex items-center justify-center ${className}`}>
       <video
