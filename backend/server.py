@@ -8878,7 +8878,7 @@ def _inject_portal_og(html: str, title: str, description: str, image_url: str, s
     html = _replace_meta_tag(html, "twitter:url", share_url, "name")
     return html
 
-def _render_portal_og_html(workspace: dict | None, share_url: str) -> HTMLResponse:
+def _render_portal_og_html(workspace: dict | None, share_url: str, status_code: int = 200) -> HTMLResponse:
     try:
         workspace_name = (workspace or {}).get("name") or "InterGuide"
         workspace_logo = (workspace or {}).get("logo")
@@ -8910,7 +8910,7 @@ def _render_portal_og_html(workspace: dict | None, share_url: str) -> HTMLRespon
     <div id="root"></div>
 </body>
 </html>"""
-            return HTMLResponse(content=fallback_html)
+            return HTMLResponse(content=fallback_html, status_code=status_code)
         injected = _inject_portal_og(
             base_html,
             workspace_name,
@@ -8918,7 +8918,7 @@ def _render_portal_og_html(workspace: dict | None, share_url: str) -> HTMLRespon
             og_image_url,
             share_url,
         )
-        return HTMLResponse(content=injected)
+        return HTMLResponse(content=injected, status_code=status_code)
     except Exception:
         fallback_html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -8943,7 +8943,7 @@ def _render_portal_og_html(workspace: dict | None, share_url: str) -> HTMLRespon
     <div id="root"></div>
 </body>
 </html>"""
-        return HTMLResponse(content=fallback_html)
+        return HTMLResponse(content=fallback_html, status_code=status_code)
 
 def _render_workspace_og_html(workspace: dict | None, request: Request, redirect_url: str, share_url: str) -> HTMLResponse:
     import html as html_module
@@ -9068,12 +9068,16 @@ async def share_portal(slug: str, request: Request):
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     
     share_url = f"{MAIN_DOMAIN}/portal/{slug}"
+    if not workspace:
+        return _render_portal_og_html(None, share_url, status_code=404)
     return _render_portal_og_html(workspace, share_url)
 
 @app.get("/portal/{slug}/{path:path}", response_class=HTMLResponse)
 async def share_portal_path(slug: str, path: str, request: Request):
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     share_url = f"{MAIN_DOMAIN}/portal/{slug}/{path}"
+    if not workspace:
+        return _render_portal_og_html(None, share_url, status_code=404)
     return _render_portal_og_html(workspace, share_url)
 
 @app.get("/embed/portal/{slug}", response_class=HTMLResponse)
