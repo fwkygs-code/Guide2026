@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ProcedureDraft, ProcedureMeta, ProcedureStep } from './model';
 import { createProcedureEntry, loadProcedureDraft, loadProcedureMeta, publishProcedure, saveProcedureDraft } from './service';
-import WorkspaceLoader from '../components/WorkspaceLoader';
+
+const ANIMATIONX_URL = 'https://res.cloudinary.com/ds1dgifj8/video/upload/q_auto,f_auto/interguide-static/animationx';
 
 type ProcedureEditorRootProps = {
   workspaceId?: string;
@@ -154,7 +155,18 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
   if (loading || !draft || !meta) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <WorkspaceLoader size={160} />
+        <video
+          width={160}
+          height={160}
+          style={{ width: 160, height: 160 }}
+          className="object-contain"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src={ANIMATIONX_URL} />
+        </video>
       </div>
     );
   }

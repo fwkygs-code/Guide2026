@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { PolicyDraft, PolicySection, PolicyMeta, POLICY_MODEL_VERSION } from './model';
 import { createPolicyEntry, loadPolicyDraft, loadPolicyMeta, publishPolicy, savePolicyDraft } from './service';
 import { policyApiClient, PolicySystem } from './api-client';
-import WorkspaceLoader from '../components/WorkspaceLoader';
+
+const ANIMATIONX_URL = 'https://res.cloudinary.com/ds1dgifj8/video/upload/q_auto,f_auto/interguide-static/animationx';
 
 type PolicyEditorRootProps = {
   workspaceId?: string;
@@ -271,7 +272,18 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
   if (loading || !draft || !meta) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
-        <WorkspaceLoader size={160} />
+        <video
+          width={160}
+          height={160}
+          style={{ width: 160, height: 160 }}
+          className="object-contain"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src={ANIMATIONX_URL} />
+        </video>
       </div>
     );
   }
