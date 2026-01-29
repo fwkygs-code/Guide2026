@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import WorkspaceLoader from './WorkspaceLoader';
+import { INTERGUIDE_ANIMATION_URL, INTERGUIDE_LOGO_MAIN_280_URL } from '../utils/logo';
 
 const MIN_DISPLAY_MS = 1200;
 const MAX_DISPLAY_MS = 8000;
@@ -83,7 +83,7 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-background"
+      className="fixed inset-0 z-[9999] bg-background"
       style={{
         backgroundColor: 'rgb(15, 23, 42)',
         opacity: fading ? 0 : 1,
@@ -91,9 +91,26 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
       }}
       aria-hidden="true"
     >
-      <div className="flex flex-col items-center gap-4 text-center px-6">
-        <WorkspaceLoader size={160} />
-        <p className="text-sm text-muted-foreground">Loading your dashboard...</p>
+      <div className="relative w-full h-full flex items-center justify-center">
+        {reducedMotion ? (
+          <img
+            src={INTERGUIDE_LOGO_MAIN_280_URL}
+            alt="InterGuide"
+            className="w-24 h-24 object-contain"
+            loading="eager"
+          />
+        ) : (
+          <video
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+          >
+            <source src={INTERGUIDE_ANIMATION_URL} />
+          </video>
+        )}
+        <p className="relative z-10 text-sm text-slate-200">Loading your dashboard...</p>
       </div>
     </div>
   );
