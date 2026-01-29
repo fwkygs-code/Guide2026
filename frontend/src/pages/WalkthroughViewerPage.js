@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Check, X, Smile, Meh, Frown, LogIn, UserPlus, MessageCircle, Phone, Clock } from 'lucide-react';
@@ -20,8 +20,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const { slug, walkthroughId } = useParams();
   const { t, i18n } = useTranslation();
   
+  const location = useLocation();
+  const isEmbedParam = new URLSearchParams(location.search).get('embed') === '1';
   // Detect if we're in an iframe
-  const inIframe = isEmbedded || window.self !== window.top;
+  const inIframe = isEmbedded || isEmbedParam || window.self !== window.top;
   const navigate = useNavigate();
   const [walkthrough, setWalkthrough] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -422,6 +424,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     checkAuth();
     fetchWalkthrough();
   }, [slug, walkthroughId]);
+
+  useEffect(() => {
+    if (!isEmbedParam) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isEmbedParam]);
 
   useEffect(() => {
     if (!slug) return;

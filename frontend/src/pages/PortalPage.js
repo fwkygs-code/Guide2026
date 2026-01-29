@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, FolderOpen, Search, Lock, ChevronRight, Phone, Clock, MessageCircle, HelpCircle, X } from 'lucide-react';
@@ -31,12 +31,23 @@ const PortalPage = ({ isEmbedded = false }) => {
   const [knowledgeSystemCounts, setKnowledgeSystemCounts] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
+  const location = useLocation();
+  const isEmbedParam = new URLSearchParams(location.search).get('embed') === '1';
   // Detect if we're in an iframe
-  const inIframe = isEmbedded || window.self !== window.top;
+  const inIframe = isEmbedded || isEmbedParam || window.self !== window.top;
 
   useEffect(() => {
     fetchPortal();
   }, [slug]);
+
+  useEffect(() => {
+    if (!isEmbedParam) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isEmbedParam]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -829,7 +840,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       )}
 
       {/* Knowledge Systems Navigation Bar */}
-      <KnowledgeSystemsNavigationBar workspaceId={portal?.workspace?.id} />
+      {!inIframe && <KnowledgeSystemsNavigationBar workspaceId={portal?.workspace?.id} />}
 
       {/* Footer - Powered by InterGuide */}
       {!inIframe && (

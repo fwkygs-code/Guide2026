@@ -106,13 +106,26 @@ const ImplementationPage = () => {
   const floatingWidthConfig = normalizeDimension(embedWidth, '100%');
   const floatingHeightConfig = normalizeDimension(embedHeight, '70vh');
 
+  const clampInlineHeight = (value) => {
+    if (!value || value.endsWith('%')) return value;
+    if (value.endsWith('px')) {
+      const numeric = parseInt(value, 10);
+      if (Number.isNaN(numeric)) return value;
+      const clamped = Math.min(2000, Math.max(320, numeric));
+      return `${clamped}px`;
+    }
+    return value;
+  };
+
   const normalizedDrawerWidth = floatingWidthConfig.value || '100%';
   const normalizedDrawerHeight = floatingHeightConfig.value || '70vh';
+  const inlineWidthValue = inlineWidthConfig.value || '100%';
+  const inlineHeightValue = clampInlineHeight(inlineHeightConfig.value || '600px');
 
   const inlineEmbedSnippet = `<iframe
   src="${portalUrl}"
-  width="${inlineWidthConfig.value}"
-  height="${inlineHeightConfig.value}"
+  width="${inlineWidthValue}"
+  height="${inlineHeightValue}"
   style="border:0;border-radius:12px"
   loading="lazy"
   sandbox="allow-scripts allow-same-origin allow-popups"
@@ -168,10 +181,10 @@ const ImplementationPage = () => {
   z-index: 2;
 }
 </style>
-<button id="ig-help-button">Need help?</button>
+<button id="ig-help-button" aria-label="Open help">Need help?</button>
 <div id="ig-help-overlay"></div>
 <div id="ig-help-drawer">
-  <button id="ig-help-close">Close</button>
+  <button id="ig-help-close" aria-label="Close help">Close</button>
   <iframe
     src="${portalUrl}"
     width="100%"
@@ -187,9 +200,37 @@ const ImplementationPage = () => {
   var overlay = document.getElementById('ig-help-overlay');
   var drawer = document.getElementById('ig-help-drawer');
   var close = document.getElementById('ig-help-close');
+  var widthValue = "${normalizedDrawerWidth}";
+  var heightValue = "${normalizedDrawerHeight}";
+  var applySizing = function () {
+    var isMobile = window.innerWidth < 640;
+    if (isMobile) {
+      drawer.style.width = '100%';
+      drawer.style.height = '85vh';
+      return;
+    }
+    drawer.style.width = 'min(' + widthValue + ', 720px)';
+    var desired;
+    if (/^\\d+%$/.test(heightValue)) {
+      desired = (parseInt(heightValue, 10) / 100) * window.innerHeight;
+    } else if (/^\\d+px$/.test(heightValue)) {
+      desired = parseInt(heightValue, 10);
+    } else if (/^\\d+$/.test(heightValue)) {
+      desired = parseInt(heightValue, 10);
+    } else if (/^\\d+vh$/.test(heightValue)) {
+      desired = (parseInt(heightValue, 10) / 100) * window.innerHeight;
+    } else {
+      desired = 0.7 * window.innerHeight;
+    }
+    var minHeight = 0.4 * window.innerHeight;
+    var maxHeight = 0.9 * window.innerHeight;
+    var clamped = Math.min(maxHeight, Math.max(minHeight, desired));
+    drawer.style.height = clamped + 'px';
+  };
   var open = function () {
     overlay.style.display = 'block';
     drawer.style.display = 'block';
+    applySizing();
   };
   var shut = function () {
     overlay.style.display = 'none';
@@ -198,6 +239,16 @@ const ImplementationPage = () => {
   button.addEventListener('click', open);
   overlay.addEventListener('click', shut);
   close.addEventListener('click', shut);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      shut();
+    }
+  });
+  window.addEventListener('resize', function () {
+    if (drawer.style.display === 'block') {
+      applySizing();
+    }
+  });
 })();
 </script>`;
 
