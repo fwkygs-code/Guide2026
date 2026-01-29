@@ -54,11 +54,19 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     return `https://wa.me/${digits}`;
   };
 
+  const getWorkspaceWhatsAppUrl = () => {
+    return (
+      walkthrough?.workspace?.portal_whatsapp ||
+      walkthrough?.workspace?.contact_whatsapp ||
+      null
+    );
+  };
+
   const handleStuckClick = () => {
     if (!walkthrough || !walkthrough.steps?.length) return;
     const step = walkthrough.steps[currentStep];
     if (!step) return;
-    const baseUrl = getWhatsAppBaseUrl(walkthrough?.workspace?.contact_whatsapp);
+    const baseUrl = getWhatsAppBaseUrl(getWorkspaceWhatsAppUrl());
     if (!baseUrl) return;
 
     const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
@@ -595,7 +603,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const stepCount = walkthrough.steps.length;
   const progress = stepCount > 0 ? ((currentStep + 1) / stepCount) * 100 : 0;
   const step = walkthrough.steps[currentStep];
-  const showStuckButton = !!walkthrough.enable_stuck_button && !!getWhatsAppBaseUrl(walkthrough?.workspace?.contact_whatsapp);
+  const showStuckButton = !!walkthrough.enable_stuck_button && !!getWhatsAppBaseUrl(getWorkspaceWhatsAppUrl());
 
   return (
     <div className={`min-h-screen bg-card ${inIframe ? 'iframe-mode' : ''}`}>

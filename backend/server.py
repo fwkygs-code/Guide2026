@@ -5586,7 +5586,8 @@ async def get_public_walkthrough(slug: str, walkthrough_id: str):
     walkthrough_with_workspace["workspace"] = {
         "contact_whatsapp": workspace.get("contact_whatsapp"),
         "contact_phone": workspace.get("contact_phone"),
-        "contact_hours": workspace.get("contact_hours")
+        "contact_hours": workspace.get("contact_hours"),
+        "portal_whatsapp": workspace.get("portal_whatsapp")
     }
 
     return walkthrough_with_workspace
@@ -5653,7 +5654,8 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
     walkthrough_with_workspace["workspace"] = {
         "contact_whatsapp": workspace.get("contact_whatsapp"),
         "contact_phone": workspace.get("contact_phone"),
-        "contact_hours": workspace.get("contact_hours")
+        "contact_hours": workspace.get("contact_hours"),
+        "portal_whatsapp": workspace.get("portal_whatsapp")
     }
 
     return walkthrough_with_workspace
