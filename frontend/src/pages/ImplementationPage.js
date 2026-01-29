@@ -127,8 +127,10 @@ const ImplementationPage = () => {
                       </div>
                     )}
                     {group.walkthroughs.map((walkthrough, walkthroughIndex) => {
-                      const walkthroughKey =
-                        walkthrough.id || walkthrough.slug || `walkthrough-${group.id}-${walkthroughIndex}`;
+                      const categoryKey = group.id || `category-${walkthroughIndex}`;
+                      const walkthroughKey = walkthrough.id
+                        ? `${categoryKey}:${walkthrough.id}`
+                        : `${categoryKey}:${walkthroughIndex}`;
                       const isExpanded = expandedWalkthroughId === walkthroughKey;
                       const steps = walkthrough.steps || [];
                       const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
