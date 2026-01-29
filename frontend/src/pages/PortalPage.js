@@ -113,7 +113,6 @@ const PortalPage = () => {
     return systems.filter(system => system.count > 0);
   }, [slug, t, knowledgeSystemCounts]);
 
-  const workspace = portal.workspace;
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
   return (
       <>
