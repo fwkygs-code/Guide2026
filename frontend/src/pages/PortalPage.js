@@ -287,8 +287,8 @@ const PortalPage = ({ isEmbedded = false }) => {
 
   const portalConfig = {
     admin: {
-      title: 'Admin Control Center',
-      description: 'Configure systems, manage data, and control platform integrations.',
+      title: t('portal.headers.admin.title'),
+      description: t('portal.headers.admin.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0f172a"/>
@@ -306,8 +306,8 @@ const PortalPage = ({ isEmbedded = false }) => {
       )}`
     },
     tenant: {
-      title: 'Your Guided Experience',
-      description: 'Step-by-step instructions tailored to your journey.',
+      title: t('portal.headers.tenant.title'),
+      description: t('portal.headers.tenant.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0b1324"/>
@@ -325,8 +325,8 @@ const PortalPage = ({ isEmbedded = false }) => {
       )}`
     },
     knowledge: {
-      title: 'Knowledge Base',
-      description: 'Clear documentation, answers, and system knowledge.',
+      title: t('portal.headers.knowledge.title'),
+      description: t('portal.headers.knowledge.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0b1120"/>
@@ -346,8 +346,8 @@ const PortalPage = ({ isEmbedded = false }) => {
       )}`
     },
     integrations: {
-      title: 'Integrations',
-      description: 'Connect tools, automate workflows, and sync systems.',
+      title: t('portal.headers.integrations.title'),
+      description: t('portal.headers.integrations.description'),
       headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
           <rect width="720" height="420" fill="#0f172a"/>
@@ -510,15 +510,15 @@ const PortalPage = ({ isEmbedded = false }) => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-center">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Admin Portal</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.admin.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
                     <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Badge variant="secondary">System Health</Badge>
-                      <Badge variant="secondary">Audit Ready</Badge>
-                      <Badge variant="secondary">Integration Control</Badge>
+                      <Badge variant="secondary">{t('portal.headers.admin.badgeSystemHealth')}</Badge>
+                      <Badge variant="secondary">{t('portal.headers.admin.badgeAuditReady')}</Badge>
+                      <Badge variant="secondary">{t('portal.headers.admin.badgeIntegrationControl')}</Badge>
                     </div>
                   </div>
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
@@ -541,7 +541,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                     <img src={portalDetails.headerImage} alt="Guided journey checklist" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Tenant Portal</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.tenant.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
@@ -571,7 +571,7 @@ const PortalPage = ({ isEmbedded = false }) => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] items-center">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Knowledge Portal</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.knowledge.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
@@ -607,15 +607,15 @@ const PortalPage = ({ isEmbedded = false }) => {
                     <img src={portalDetails.headerImage} alt="Connected apps and automation flows" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Integration Portal</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.integrations.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
                     <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Badge variant="secondary">API Ready</Badge>
-                      <Badge variant="secondary">Workflow Automation</Badge>
-                      <Badge variant="secondary">Sync Health</Badge>
+                      <Badge variant="secondary">{t('portal.headers.integrations.badgeApiReady')}</Badge>
+                      <Badge variant="secondary">{t('portal.headers.integrations.badgeWorkflowAutomation')}</Badge>
+                      <Badge variant="secondary">{t('portal.headers.integrations.badgeSyncHealth')}</Badge>
                     </div>
                   </div>
                 </div>

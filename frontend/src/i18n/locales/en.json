@@ -146,6 +146,34 @@
     "noGuidesInCategory": "No guides in this category yet."
   },
   "portal": {
+    "headers": {
+      "admin": {
+        "label": "Admin Portal",
+        "title": "Admin Control Center",
+        "description": "Configure systems, manage data, and control platform integrations.",
+        "badgeSystemHealth": "System Health",
+        "badgeAuditReady": "Audit Ready",
+        "badgeIntegrationControl": "Integration Control"
+      },
+      "tenant": {
+        "label": "Tenant Portal",
+        "title": "Your Guided Experience",
+        "description": "Step-by-step instructions tailored to your journey."
+      },
+      "knowledge": {
+        "label": "Knowledge Portal",
+        "title": "Knowledge Base",
+        "description": "Clear documentation, answers, and system knowledge."
+      },
+      "integrations": {
+        "label": "Integration Portal",
+        "title": "Integrations",
+        "description": "Connect tools, automate workflows, and sync systems.",
+        "badgeApiReady": "API Ready",
+        "badgeWorkflowAutomation": "Workflow Automation",
+        "badgeSyncHealth": "Sync Health"
+      }
+    },
     "needHelp": "Need Help?",
     "chatOpened": "Chat Opened",
     "selectCategory": "Select a Category for Help",

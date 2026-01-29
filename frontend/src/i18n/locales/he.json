@@ -204,6 +204,34 @@
     "brandColor": "צבע מותג"
   },
   "portal": {
+    "headers": {
+      "admin": {
+        "label": "פורטל ניהול",
+        "title": "מרכז שליטה לניהול",
+        "description": "הגדרת מערכות, ניהול נתונים ושליטה באינטגרציות.",
+        "badgeSystemHealth": "מצב מערכת",
+        "badgeAuditReady": "מוכן לביקורת",
+        "badgeIntegrationControl": "שליטה באינטגרציות"
+      },
+      "tenant": {
+        "label": "פורטל משתמשים",
+        "title": "החוויה המודרכת שלך",
+        "description": "הנחיות שלב אחר שלב מותאמות למסע שלך."
+      },
+      "knowledge": {
+        "label": "פורטל ידע",
+        "title": "מאגר ידע",
+        "description": "תיעוד ברור, תשובות וידע מערכת."
+      },
+      "integrations": {
+        "label": "פורטל אינטגרציות",
+        "title": "אינטגרציות",
+        "description": "חיבור כלים, אוטומציות וסנכרון מערכות.",
+        "badgeApiReady": "מוכן ל‑API",
+        "badgeWorkflowAutomation": "אוטומציות תהליך",
+        "badgeSyncHealth": "מצב סנכרון"
+      }
+    },
     "needHelp": "צריך עזרה?",
     "chatOpened": "צ'אט נפתח",
     "selectCategory": "בחר קטגוריה לעזרה",
