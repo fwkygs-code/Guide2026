@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink, Database, Shield } from 'lucide-react';
+import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink, Database, Shield, Link2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -241,6 +241,15 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                   {t('knowledgeSystems.title')}
                 </Button>
               )}
+              <Button
+                variant={location.pathname.includes('/implementation') ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => navigate(`/workspace/${workspaceSlug || workspaceId}/implementation`)}
+                data-testid="nav-workspace-implementation"
+              >
+                <Link2 className="w-4 h-4 mr-2" />
+                {t('workspace.implementation')}
+              </Button>
               {isOwner && (
                 <Button
                   variant={location.pathname.includes('/settings') ? 'default' : 'outline'}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -298,6 +298,32 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     };
   }, [currentStep, walkthrough]);
 
+  const resolveStepFromHash = useCallback(() => {
+    if (!walkthrough?.steps?.length) return;
+    const hash = window.location.hash?.replace(/^#/, '') || '';
+    const params = new URLSearchParams(hash);
+    const stepParam = params.get('step');
+
+    if (!stepParam) {
+      setCurrentStep(0);
+      return;
+    }
+
+    const isNumeric = /^\d+$/.test(stepParam);
+    if (!isNumeric) {
+      const stepIndex = walkthrough.steps.findIndex((step) => step.step_id === stepParam);
+      setCurrentStep(stepIndex >= 0 ? stepIndex : 0);
+      return;
+    }
+
+    const stepNumber = Number(stepParam);
+    if (!Number.isInteger(stepNumber) || stepNumber < 1 || stepNumber > walkthrough.steps.length) {
+      setCurrentStep(0);
+      return;
+    }
+    setCurrentStep(stepNumber - 1);
+  }, [walkthrough]);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -314,6 +340,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   }, [slug, walkthroughId]);
 
   useEffect(() => {
+    if (!walkthrough?.steps?.length) return;
+    const handleHashChange = () => resolveStepFromHash();
+    resolveStepFromHash();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [resolveStepFromHash, walkthrough]);
+
+  useEffect(() => {
     if (walkthrough) {
       trackEvent('view');
       trackEvent('start');
@@ -321,10 +355,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   }, [walkthrough]);
 
   useEffect(() => {
-    if (walkthrough && currentStep >= 0) {
-      trackEvent('step_view', walkthrough.steps[currentStep]?.id);
+    if (!walkthrough?.steps?.length || currentStep < 0) {
+      return;
     }
-  }, [currentStep]);
+    const step = walkthrough.steps[currentStep];
+    if (step?.step_id) {
+      trackEvent('step_view', step.step_id, currentStep + 1);
+    }
+  }, [currentStep, walkthrough?.steps?.length]);
 
   // Send height to parent if in iframe (for auto-height)
   useEffect(() => {
@@ -372,12 +410,13 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     }
   };
 
-  const trackEvent = async (eventType, stepId = null) => {
+  const trackEvent = async (eventType, stepId = null, stepPosition = null) => {
     try {
       await apiClient.post(`/analytics/event`, {
         walkthrough_id: walkthroughId,
         event_type: eventType,
         step_id: stepId,
+        step_position: stepPosition,
         session_id: sessionId
       });
     } catch (error) {
@@ -426,8 +465,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     if (!canProceedNext()) return;
     if (currentStep < walkthrough.steps.length - 1) {
       const currentStepObj = walkthrough.steps[currentStep];
-      if (currentStepObj) {
-        trackEvent('step_complete', currentStepObj.id);
+      if (currentStepObj?.step_id) {
+        trackEvent('step_complete', currentStepObj.step_id, currentStep + 1);
         setCompletedSteps(new Set([...completedSteps, currentStep]));
       }
       setCurrentStep(currentStep + 1);
@@ -486,7 +525,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     );
   }
 
-  const progress = ((currentStep + 1) / walkthrough.steps.length) * 100;
+  const stepCount = walkthrough.steps.length;
+  const progress = stepCount > 0 ? ((currentStep + 1) / stepCount) * 100 : 0;
   const step = walkthrough.steps[currentStep];
 
   return (

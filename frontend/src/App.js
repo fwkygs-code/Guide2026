@@ -17,6 +17,7 @@ import BuilderV2Page from './pages/BuilderV2Page';
 import CategoriesPage from './pages/CategoriesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import ImplementationPage from './pages/ImplementationPage';
 import PortalPage from './pages/PortalPage';
 import WalkthroughViewerPage from './pages/WalkthroughViewerPage';
 import ArchivePage from './pages/ArchivePage';
@@ -255,6 +256,7 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/walkthroughs/:walkthroughId/edit" element={<PrivateRoute><BuilderV2Page /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/categories" element={<PrivateRoute><CategoriesPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/implementation" element={<PrivateRoute><ImplementationPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><KnowledgeSystemsPage /></PrivateRoute>} />
           <Route path={POLICY_ROUTES.list} element={<PrivateRoute><PolicyListRoute /></PrivateRoute>} />

@@ -35,7 +35,9 @@
     "note": "Note",
     "settings": "Settings",
     "description": "Description",
-    "categories": "Categories"
+    "categories": "Categories",
+    "copy": "Copy",
+    "untitled": "Untitled"
   },
   "auth": {
     "loginTitle": "Login to your account",
@@ -111,7 +113,11 @@
     "draft": "Draft",
     "archived": "Archived",
     "steps": "Steps",
-    "subCategories": "Sub-categories"
+    "subCategories": "Sub-categories",
+    "implementation": "Implementation",
+    "implementationDescription": "Copy canonical step links for integrations and SDKs.",
+    "uncategorized": "Uncategorized",
+    "noGuidesInCategory": "No guides in this category yet."
   },
   "portal": {
     "needHelp": "Need Help?",

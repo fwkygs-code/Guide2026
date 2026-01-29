@@ -36,7 +36,9 @@
     "note": "הערה",
     "settings": "הגדרות",
     "description": "תיאור",
-    "categories": "קטגוריות"
+    "categories": "קטגוריות",
+    "copy": "העתק",
+    "untitled": "ללא כותרת"
   },
   "auth": {
     "loginTitle": "התחבר לחשבון שלך",
@@ -113,6 +115,10 @@
     "archived": "ארכיון",
     "steps": "שלבים",
     "subCategories": "תת-קטגוריות",
+    "implementation": "יישום",
+    "implementationDescription": "העתק קישורי שלבים קנוניים לאינטגרציות ול-SDK.",
+    "uncategorized": "ללא קטגוריה",
+    "noGuidesInCategory": "אין מדריכים בקטגוריה זו עדיין.",
     "createWorkspace": "צור אזור עבודה",
     "portalBackgroundImage": "תמונת רקע פורטל",
     "customBackground": "רקע מותאם אישית לפורטל שלך",

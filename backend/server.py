@@ -420,6 +420,7 @@ class CommonProblem(BaseModel):
 
 class Step(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    step_id: Optional[str] = None
     title: str
     content: str
     media_url: Optional[str] = None
@@ -458,6 +459,7 @@ class Walkthrough(BaseModel):
     navigation_type: NavigationType = NavigationType.NEXT_PREV
     navigation_placement: NavigationPlacement = NavigationPlacement.BOTTOM
     steps: List[Step] = []
+    step_id_version: Optional[int] = None
     version: int = 1
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -480,6 +482,7 @@ class AnalyticsEvent(BaseModel):
     workspace_id: Optional[str] = None
     event_type: str
     step_id: Optional[str] = None
+    step_position: Optional[int] = None
     problem_id: Optional[str] = None
     user_id: Optional[str] = None
     session_id: str
@@ -1114,6 +1117,48 @@ def sanitize_public_walkthrough(w: dict) -> dict:
     _preserve_text_block_data(raw_walkthrough, w)
     _log_text_block_diff(raw_walkthrough, w)
     return w
+
+STEP_ID_SCHEMA_VERSION = 1
+STEP_ID_LENGTH = 6
+
+def _generate_step_id(existing_ids: set) -> str:
+    alphabet = "abcdefghijklmnopqrstuvwxyz"
+    while True:
+        candidate = "".join(secrets.choice(alphabet) for _ in range(STEP_ID_LENGTH))
+        if candidate not in existing_ids:
+            return candidate
+
+async def ensure_walkthrough_step_ids(walkthrough: dict) -> dict:
+    if not walkthrough or not isinstance(walkthrough.get("steps"), list):
+        return walkthrough
+    if walkthrough.get("step_id_version") == STEP_ID_SCHEMA_VERSION:
+        return walkthrough
+
+    steps = walkthrough.get("steps", [])
+    existing_ids = {step.get("step_id") for step in steps if step.get("step_id")}
+    changed = False
+
+    for step in steps:
+        if not step.get("step_id"):
+            step["step_id"] = _generate_step_id(existing_ids)
+            existing_ids.add(step["step_id"])
+            changed = True
+
+    if changed or walkthrough.get("step_id_version") != STEP_ID_SCHEMA_VERSION:
+        walkthrough["step_id_version"] = STEP_ID_SCHEMA_VERSION
+        result = await db.walkthroughs.update_one(
+            {"id": walkthrough.get("id"), "step_id_version": {"$ne": STEP_ID_SCHEMA_VERSION}},
+            {"$set": {
+                "steps": steps,
+                "step_id_version": STEP_ID_SCHEMA_VERSION,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        if result.modified_count == 0:
+            refreshed = await db.walkthroughs.find_one({"id": walkthrough.get("id")}, {"_id": 0})
+            return refreshed or walkthrough
+
+    return walkthrough
 
 def create_token(user_id: str) -> str:
     payload = {
@@ -4098,6 +4143,7 @@ async def create_walkthrough(workspace_id: str, walkthrough_data: WalkthroughCre
     )
     
     walkthrough_dict = walkthrough.model_dump()
+    walkthrough_dict["step_id_version"] = STEP_ID_SCHEMA_VERSION
     if password_hash:
         walkthrough_dict["password_hash"] = password_hash
     walkthrough_dict['created_at'] = walkthrough_dict['created_at'].isoformat()
@@ -4149,7 +4195,7 @@ async def get_walkthroughs(workspace_id: str, current_user: User = Depends(requi
     ).to_list(1000)
     
     # CRITICAL: Ensure all walkthroughs have proper data structure
-    for w in walkthroughs:
+    for idx, w in enumerate(walkthroughs):
         # Ensure icon_url exists
         if "icon_url" not in w:
             w["icon_url"] = None
@@ -4171,6 +4217,7 @@ async def get_walkthroughs(workspace_id: str, current_user: User = Depends(requi
                             block["type"] = "text"
                         if "id" not in block:
                             block["id"] = str(uuid.uuid4())
+        walkthroughs[idx] = await ensure_walkthrough_step_ids(w) or w
     
     return [Walkthrough(**w) for w in walkthroughs]
 
@@ -4209,6 +4256,7 @@ async def get_walkthrough(workspace_id: str, walkthrough_id: str, current_user: 
                         block["type"] = "text"
                     if "id" not in block:
                         block["id"] = str(uuid.uuid4())
+    walkthrough = await ensure_walkthrough_step_ids(walkthrough)
     
     return Walkthrough(**walkthrough)
 
@@ -4222,6 +4270,7 @@ async def update_walkthrough(workspace_id: str, walkthrough_id: str, walkthrough
     existing = await db.walkthroughs.find_one({"id": walkthrough_id, "workspace_id": workspace_id, "archived": {"$ne": True}}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Walkthrough not found")
+    existing = await ensure_walkthrough_step_ids(existing)
 
     update_data = walkthrough_data.model_dump(exclude_none=True)
     
@@ -4368,6 +4417,8 @@ async def get_archived_walkthroughs(workspace_id: str, current_user: User = Depe
         {"workspace_id": workspace_id, "archived": True},
         {"_id": 0}
     ).to_list(1000)
+    for idx, w in enumerate(walkthroughs):
+        walkthroughs[idx] = await ensure_walkthrough_step_ids(w) or w
     return [Walkthrough(**w) for w in walkthroughs]
 
 @api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/archive")
@@ -5085,6 +5136,7 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
                 )
     
     steps = walkthrough.get('steps', [])
+    existing_step_ids = {s.get("step_id") for s in steps if s.get("step_id")}
     insert_at = step_data.order if step_data.order is not None else len(steps)
     try:
         insert_at = int(insert_at)
@@ -5123,7 +5175,8 @@ async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate
         navigation_type=step_data.navigation_type,
         common_problems=step_data.common_problems,
         blocks=validated_blocks,  # Always a list with proper structure
-        order=insert_at
+        order=insert_at,
+        step_id=_generate_step_id(existing_step_ids)
     )
 
     steps.insert(insert_at, step.model_dump())
@@ -5441,13 +5494,14 @@ async def get_portal(slug: str):
     ).to_list(1000)
     
     # CRITICAL: Ensure all walkthroughs have proper structure for embedding
-    for w in walkthroughs:
+    for idx, w in enumerate(walkthroughs):
         if "steps" in w and isinstance(w["steps"], list):
             for step in w["steps"]:
                 if "blocks" not in step or step["blocks"] is None:
                     step["blocks"] = []
                 if not isinstance(step.get("blocks"), list):
                     step["blocks"] = []
+        walkthroughs[idx] = await ensure_walkthrough_step_ids(w) or w
     
     return {
         "workspace": workspace,
@@ -5571,6 +5625,8 @@ async def access_password_walkthrough(slug: str, walkthrough_id: str, body: Walk
     password_hash = walkthrough.get("password_hash")
     if not password_hash or not verify_password(body.password, password_hash):
         raise HTTPException(status_code=401, detail="Invalid password")
+
+    walkthrough = await ensure_walkthrough_step_ids(walkthrough)
     
     # Include workspace contact info for "Get Support" button blocks
     walkthrough_with_workspace = sanitize_public_walkthrough(walkthrough)
