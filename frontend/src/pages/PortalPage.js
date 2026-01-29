@@ -276,6 +276,109 @@ const PortalPage = ({ isEmbedded = false }) => {
   const workspace = portal.workspace;
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
 
+  const portalIdRaw = new URLSearchParams(location.search).get('portalId')
+    || new URLSearchParams(location.search).get('portal')
+    || workspace?.portal_id
+    || workspace?.portalId;
+  const portalIdNormalized = (portalIdRaw || '').toLowerCase() === 'integration'
+    ? 'integrations'
+    : (portalIdRaw || '').toLowerCase();
+
+  const portalConfig = {
+    admin: {
+      title: 'Admin Control Center',
+      description: 'Configure systems, manage data, and control platform integrations.',
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0f172a"/>
+          <rect x="48" y="48" width="624" height="324" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
+          <rect x="80" y="92" width="180" height="96" rx="12" fill="#1f2937"/>
+          <rect x="280" y="92" width="160" height="140" rx="12" fill="#1f2937"/>
+          <rect x="460" y="92" width="200" height="220" rx="12" fill="#1f2937"/>
+          <circle cx="170" cy="280" r="40" fill="#0ea5e9"/>
+          <circle cx="330" cy="300" r="18" fill="#22c55e"/>
+          <circle cx="380" cy="300" r="18" fill="#f97316"/>
+          <path d="M170 240 L330 300 L380 300" stroke="#38bdf8" stroke-width="4" fill="none"/>
+          <path d="M330 300 L560 200" stroke="#38bdf8" stroke-width="4" fill="none"/>
+          <circle cx="560" cy="200" r="24" fill="#38bdf8"/>
+        </svg>`
+      )}`
+    },
+    tenant: {
+      title: 'Your Guided Experience',
+      description: 'Step-by-step instructions tailored to your journey.',
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0b1324"/>
+          <rect x="60" y="60" width="600" height="300" rx="28" fill="#111827"/>
+          <rect x="100" y="110" width="520" height="52" rx="12" fill="#1f2937"/>
+          <rect x="100" y="182" width="420" height="52" rx="12" fill="#1f2937"/>
+          <rect x="100" y="254" width="320" height="52" rx="12" fill="#1f2937"/>
+          <circle cx="130" cy="136" r="14" fill="#22c55e"/>
+          <circle cx="130" cy="208" r="14" fill="#38bdf8"/>
+          <circle cx="130" cy="280" r="14" fill="#f59e0b"/>
+          <path d="M160 136 H590" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+          <path d="M160 208 H490" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+          <path d="M160 280 H390" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+        </svg>`
+      )}`
+    },
+    knowledge: {
+      title: 'Knowledge Base',
+      description: 'Clear documentation, answers, and system knowledge.',
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0b1120"/>
+          <rect x="80" y="84" width="220" height="252" rx="16" fill="#1e293b"/>
+          <rect x="250" y="84" width="220" height="252" rx="16" fill="#1f2937"/>
+          <rect x="420" y="84" width="220" height="252" rx="16" fill="#111827"/>
+          <path d="M110 130 H280" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M110 170 H260" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M280 130 H450" stroke="#a855f7" stroke-width="6" stroke-linecap="round"/>
+          <path d="M280 170 H430" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M450 130 H620" stroke="#f97316" stroke-width="6" stroke-linecap="round"/>
+          <path d="M450 170 H600" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="190" cy="260" r="26" fill="#38bdf8"/>
+          <circle cx="360" cy="260" r="26" fill="#a855f7"/>
+          <circle cx="530" cy="260" r="26" fill="#f97316"/>
+        </svg>`
+      )}`
+    },
+    integrations: {
+      title: 'Integrations',
+      description: 'Connect tools, automate workflows, and sync systems.',
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0f172a"/>
+          <rect x="60" y="60" width="600" height="300" rx="28" fill="#0b1220" stroke="#1f2937" stroke-width="2"/>
+          <circle cx="160" cy="210" r="50" fill="#22c55e"/>
+          <circle cx="360" cy="140" r="44" fill="#38bdf8"/>
+          <circle cx="560" cy="250" r="58" fill="#f97316"/>
+          <path d="M210 210 L316 156" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M404 156 L512 228" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M220 240 L520 264" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <rect x="330" y="250" width="70" height="40" rx="10" fill="#1f2937"/>
+          <rect x="320" y="102" width="80" height="36" rx="10" fill="#1f2937"/>
+        </svg>`
+      )}`
+    }
+  };
+
+  const portalDetails = portalConfig[portalIdNormalized];
+  if (!portalDetails) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h1 className="text-2xl font-heading font-bold text-foreground mb-2">Portal Configuration Missing</h1>
+            <p className="text-muted-foreground">A valid portalId is required for this portal surface.</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
   // Get portal styling from workspace
   const portalPalette = workspace.portal_palette || {};
   const primaryColor = portalPalette.primary || workspace.brand_color || '#4f46e5';
@@ -325,7 +428,7 @@ const PortalPage = ({ isEmbedded = false }) => {
               )}
               <div className="min-w-0 flex-shrink">
                 <h1 className="text-base sm:text-xl font-heading font-bold text-foreground truncate">{workspace.name}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">Knowledge Base</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{portalDetails.title}</p>
               </div>
             </div>
 
@@ -407,32 +510,130 @@ const PortalPage = ({ isEmbedded = false }) => {
       </header>
       )}
 
-      {/* Hero Section - Compact in iframe */}
+      {/* Portal-Specific Header */}
       <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 relative`}>
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative"
-          >
-            {/* 3D Glass Bubble Container */}
-            <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
-              <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4 drop-shadow-sm">
-                {t('portal.howCanWeHelp')}
-              </h1>
-              <p className="text-lg text-muted-foreground mb-8 font-medium">{t('portal.searchKnowledgeBase')}</p>
-              <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('portal.searchPlaceholder')}
-                  className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
-                  data-testid="portal-search-input"
-                />
+        <div className="max-w-6xl mx-auto">
+          {portalIdNormalized === 'admin' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative"
+            >
+              <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
+                <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-center">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Admin Portal</p>
+                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
+                      {portalDetails.title}
+                    </h1>
+                    <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <Badge variant="secondary">System Health</Badge>
+                      <Badge variant="secondary">Audit Ready</Badge>
+                      <Badge variant="secondary">Integration Control</Badge>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
+                    <img src={portalDetails.headerImage} alt="Admin control center overview" className="w-full h-full object-cover" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
+
+          {portalIdNormalized === 'tenant' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative"
+            >
+              <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
+                <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] items-center">
+                  <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
+                    <img src={portalDetails.headerImage} alt="Guided journey checklist" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Tenant Portal</p>
+                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
+                      {portalDetails.title}
+                    </h1>
+                    <p className="text-lg text-muted-foreground mb-8">{portalDetails.description}</p>
+                    <div className="relative max-w-2xl">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
+                      <Input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t('portal.searchPlaceholder')}
+                        className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
+                        data-testid="portal-search-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {portalIdNormalized === 'knowledge' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative"
+            >
+              <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
+                <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] items-center">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Knowledge Portal</p>
+                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
+                      {portalDetails.title}
+                    </h1>
+                    <p className="text-lg text-muted-foreground mb-8">{portalDetails.description}</p>
+                    <div className="relative max-w-2xl">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
+                      <Input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t('portal.searchPlaceholder')}
+                        className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
+                        data-testid="portal-search-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
+                    <img src={portalDetails.headerImage} alt="Knowledge maps and layered documents" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {portalIdNormalized === 'integrations' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative"
+            >
+              <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
+                <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] items-center">
+                  <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
+                    <img src={portalDetails.headerImage} alt="Connected apps and automation flows" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Integration Portal</p>
+                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
+                      {portalDetails.title}
+                    </h1>
+                    <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <Badge variant="secondary">API Ready</Badge>
+                      <Badge variant="secondary">Workflow Automation</Badge>
+                      <Badge variant="secondary">Sync Health</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </section>
 

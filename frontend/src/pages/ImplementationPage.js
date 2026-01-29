@@ -31,8 +31,12 @@ const ImplementationPage = () => {
   const [loading, setLoading] = useState(true);
   const [expandedWalkthroughId, setExpandedWalkthroughId] = useState(null);
   const [embedType, setEmbedType] = useState('inline');
-  const [embedWidth, setEmbedWidth] = useState('100%');
-  const [embedHeight, setEmbedHeight] = useState('600');
+  const [inlineWidth, setInlineWidth] = useState('100%');
+  const [inlineHeight, setInlineHeight] = useState('600px');
+  const [floatingWidth, setFloatingWidth] = useState('100%');
+  const [floatingHeight, setFloatingHeight] = useState('70vh');
+  const [activeInlinePreset, setActiveInlinePreset] = useState('content');
+  const [activeFloatingPreset, setActiveFloatingPreset] = useState('default');
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -84,43 +88,121 @@ const ImplementationPage = () => {
 
   const portalUrl = `${getPublicPortalUrl()}/embed/portal/${workspaceSlug}?embed=1`;
 
-  const normalizeDimension = (value, defaultValue) => {
+  const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const normalizeInlineDimension = (value, defaultValue, { allowVh = false } = {}) => {
     const raw = (value || '').trim();
     if (!raw) {
-      return { value: defaultValue, error: null };
+      return { value: defaultValue, normalizedValue: defaultValue, error: null };
     }
     if (/^\d+$/.test(raw)) {
-      return { value: `${raw}px`, error: Number(raw) > 0 ? null : t('workspace.embedInvalidDimension') };
+      const numeric = parseInt(raw, 10);
+      const clamped = clampNumber(numeric, 240, 2000);
+      return { value: `${clamped}px`, normalizedValue: `${clamped}px`, error: null };
     }
     if (/^\d+%$/.test(raw)) {
-      return { value: raw, error: parseInt(raw, 10) > 0 ? null : t('workspace.embedInvalidDimension') };
+      const numeric = parseInt(raw, 10);
+      const clamped = clampNumber(numeric, 10, 100);
+      return { value: `${clamped}%`, normalizedValue: `${clamped}%`, error: null };
     }
     if (/^\d+px$/.test(raw)) {
-      return { value: raw, error: parseInt(raw, 10) > 0 ? null : t('workspace.embedInvalidDimension') };
+      const numeric = parseInt(raw, 10);
+      const clamped = clampNumber(numeric, 240, 2000);
+      return { value: `${clamped}px`, normalizedValue: `${clamped}px`, error: null };
     }
-    return { value: null, error: t('workspace.embedInvalidDimension') };
+    if (allowVh && /^\d+vh$/.test(raw)) {
+      const numeric = parseInt(raw, 10);
+      const clamped = clampNumber(numeric, 10, 100);
+      return { value: `${clamped}vh`, normalizedValue: `${clamped}vh`, error: null };
+    }
+    return { value: null, normalizedValue: null, error: t('workspace.embedInvalidDimension') };
   };
 
-  const inlineWidthConfig = normalizeDimension(embedWidth, '100%');
-  const inlineHeightConfig = normalizeDimension(embedHeight, '600px');
-  const floatingWidthConfig = normalizeDimension(embedWidth, '100%');
-  const floatingHeightConfig = normalizeDimension(embedHeight, '70vh');
-
-  const clampInlineHeight = (value) => {
-    if (!value || value.endsWith('%')) return value;
-    if (value.endsWith('px')) {
-      const numeric = parseInt(value, 10);
-      if (Number.isNaN(numeric)) return value;
-      const clamped = Math.min(2000, Math.max(320, numeric));
-      return `${clamped}px`;
+  const normalizeFloatingHeight = (value, defaultValue) => {
+    const raw = (value || '').trim();
+    if (!raw) {
+      return { value: defaultValue, normalizedValue: defaultValue, error: null };
     }
-    return value;
+    if (/^\d+%$/.test(raw)) {
+      return { value: null, normalizedValue: null, error: t('workspace.embedInvalidDimension') };
+    }
+    if (/^\d+vh$/.test(raw)) {
+      const numeric = parseInt(raw, 10);
+      const clamped = clampNumber(numeric, 40, 90);
+      return { value: `${clamped}vh`, normalizedValue: `${clamped}vh`, error: null };
+    }
+    if (/^\d+$/.test(raw) || /^\d+px$/.test(raw)) {
+      const numeric = parseInt(raw, 10);
+      const viewportHeight = typeof window !== 'undefined' && window.innerHeight ? window.innerHeight : 900;
+      const maxPx = Math.max(320, Math.round(viewportHeight * 0.9));
+      const clamped = clampNumber(numeric, 320, maxPx);
+      return { value: `${clamped}px`, normalizedValue: `${clamped}px`, error: null };
+    }
+    return { value: null, normalizedValue: null, error: t('workspace.embedInvalidDimension') };
   };
+
+  const inlineWidthConfig = normalizeInlineDimension(inlineWidth, '100%');
+  const inlineHeightConfig = normalizeInlineDimension(inlineHeight, '600px', { allowVh: true });
+  const floatingWidthConfig = normalizeInlineDimension(floatingWidth, '100%');
+  const floatingHeightConfig = normalizeFloatingHeight(floatingHeight, '70vh');
 
   const normalizedDrawerWidth = floatingWidthConfig.value || '100%';
   const normalizedDrawerHeight = floatingHeightConfig.value || '70vh';
   const inlineWidthValue = inlineWidthConfig.value || '100%';
-  const inlineHeightValue = clampInlineHeight(inlineHeightConfig.value || '600px');
+  const inlineHeightValue = inlineHeightConfig.value || '600px';
+
+  const inlinePresets = [
+    { id: 'full', label: t('workspace.embedPresetFullPage'), width: '100%', height: '100vh' },
+    { id: 'content', label: t('workspace.embedPresetContent'), width: '100%', height: '600px' },
+    { id: 'sidebar', label: t('workspace.embedPresetSidebar'), width: '420px', height: '100vh' },
+    { id: 'small', label: t('workspace.embedPresetSmall'), width: '360px', height: '480px' }
+  ];
+
+  const floatingPresets = [
+    { id: 'default', label: t('workspace.embedPresetDefault'), width: '100%', height: '70vh' },
+    { id: 'mobile', label: t('workspace.embedPresetMobile'), width: '100%', height: '85vh' },
+    { id: 'compact', label: t('workspace.embedPresetCompact'), width: '420px', height: '60vh' }
+  ];
+
+  const applyInlinePreset = (preset) => {
+    setActiveInlinePreset(preset.id);
+    setInlineWidth(preset.width);
+    setInlineHeight(preset.height);
+  };
+
+  const applyFloatingPreset = (preset) => {
+    setActiveFloatingPreset(preset.id);
+    setFloatingWidth(preset.width);
+    setFloatingHeight(preset.height);
+  };
+
+  const handleInlineWidthBlur = () => {
+    const normalized = normalizeInlineDimension(inlineWidth, '100%');
+    if (normalized.normalizedValue && normalized.normalizedValue !== inlineWidth) {
+      setInlineWidth(normalized.normalizedValue);
+    }
+  };
+
+  const handleInlineHeightBlur = () => {
+    const normalized = normalizeInlineDimension(inlineHeight, '600px', { allowVh: true });
+    if (normalized.normalizedValue && normalized.normalizedValue !== inlineHeight) {
+      setInlineHeight(normalized.normalizedValue);
+    }
+  };
+
+  const handleFloatingWidthBlur = () => {
+    const normalized = normalizeInlineDimension(floatingWidth, '100%');
+    if (normalized.normalizedValue && normalized.normalizedValue !== floatingWidth) {
+      setFloatingWidth(normalized.normalizedValue);
+    }
+  };
+
+  const handleFloatingHeightBlur = () => {
+    const normalized = normalizeFloatingHeight(floatingHeight, '70vh');
+    if (normalized.normalizedValue && normalized.normalizedValue !== floatingHeight) {
+      setFloatingHeight(normalized.normalizedValue);
+    }
+  };
 
   const inlineEmbedSnippet = `<iframe
   src="${portalUrl}"
@@ -427,13 +509,33 @@ const ImplementationPage = () => {
                     <TabsTrigger value="floating">{t('workspace.embedFloatingOption')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="inline" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t('workspace.embedPresetsTitle')}</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {inlinePresets.map((preset) => (
+                          <Button
+                            key={preset.id}
+                            type="button"
+                            size="sm"
+                            variant={activeInlinePreset === preset.id ? 'default' : 'outline'}
+                            onClick={() => applyInlinePreset(preset)}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="embed-width">{t('workspace.embedWidth')}</Label>
                         <Input
                           id="embed-width"
-                          value={embedWidth}
-                          onChange={(event) => setEmbedWidth(event.target.value)}
+                          value={inlineWidth}
+                          onChange={(event) => {
+                            setActiveInlinePreset(null);
+                            setInlineWidth(event.target.value);
+                          }}
+                          onBlur={handleInlineWidthBlur}
                         />
                         {inlineWidthConfig.error && (
                           <p className="text-xs text-destructive">{inlineWidthConfig.error}</p>
@@ -443,8 +545,12 @@ const ImplementationPage = () => {
                         <Label htmlFor="embed-height">{t('workspace.embedHeight')}</Label>
                         <Input
                           id="embed-height"
-                          value={embedHeight}
-                          onChange={(event) => setEmbedHeight(event.target.value)}
+                          value={inlineHeight}
+                          onChange={(event) => {
+                            setActiveInlinePreset(null);
+                            setInlineHeight(event.target.value);
+                          }}
+                          onBlur={handleInlineHeightBlur}
                         />
                         {inlineHeightConfig.error && (
                           <p className="text-xs text-destructive">{inlineHeightConfig.error}</p>
@@ -465,13 +571,33 @@ const ImplementationPage = () => {
                     </div>
                   </TabsContent>
                   <TabsContent value="floating" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t('workspace.embedPresetsTitle')}</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {floatingPresets.map((preset) => (
+                          <Button
+                            key={preset.id}
+                            type="button"
+                            size="sm"
+                            variant={activeFloatingPreset === preset.id ? 'default' : 'outline'}
+                            onClick={() => applyFloatingPreset(preset)}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="floating-width">{t('workspace.embedWidth')}</Label>
                         <Input
                           id="floating-width"
-                          value={embedWidth}
-                          onChange={(event) => setEmbedWidth(event.target.value)}
+                          value={floatingWidth}
+                          onChange={(event) => {
+                            setActiveFloatingPreset(null);
+                            setFloatingWidth(event.target.value);
+                          }}
+                          onBlur={handleFloatingWidthBlur}
                         />
                         {floatingWidthConfig.error && (
                           <p className="text-xs text-destructive">{floatingWidthConfig.error}</p>
@@ -481,8 +607,12 @@ const ImplementationPage = () => {
                         <Label htmlFor="floating-height">{t('workspace.embedHeight')}</Label>
                         <Input
                           id="floating-height"
-                          value={embedHeight}
-                          onChange={(event) => setEmbedHeight(event.target.value)}
+                          value={floatingHeight}
+                          onChange={(event) => {
+                            setActiveFloatingPreset(null);
+                            setFloatingHeight(event.target.value);
+                          }}
+                          onBlur={handleFloatingHeightBlur}
                         />
                         {floatingHeightConfig.error && (
                           <p className="text-xs text-destructive">{floatingHeightConfig.error}</p>

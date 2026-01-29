@@ -35,6 +35,7 @@ import requests
 import re
 import sys
 import inspect
+import html as html_module
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -8805,7 +8806,7 @@ def _get_workspace_og_image_url(logo_url: str | None) -> str | None:
             return None
         return (
             f"https://res.cloudinary.com/{cloud_name}/image/upload/"
-            f"c_fill,g_center,w_1200,h_630,q_auto:eco,f_jpg/{public_id}.jpg"
+            f"c_fill,g_center,w_1200,h_630,q_auto,f_jpg/{public_id}.jpg"
         )
     except Exception:
         return None
@@ -8815,6 +8816,135 @@ def _get_og_image_type(url: str) -> str:
         return "image/png"
     return "image/jpeg"
 
+_SPA_INDEX_CACHE = {"html": None, "loaded_at": 0.0}
+
+def _load_spa_index_html() -> str | None:
+    cached = _SPA_INDEX_CACHE.get("html")
+    loaded_at = _SPA_INDEX_CACHE.get("loaded_at", 0.0)
+    if cached and (time.time() - loaded_at) < 300:
+        return cached
+    try:
+        build_index = ROOT_DIR.parent / "frontend" / "build" / "index.html"
+        if build_index.exists():
+            html = build_index.read_text(encoding="utf-8")
+            _SPA_INDEX_CACHE["html"] = html
+            _SPA_INDEX_CACHE["loaded_at"] = time.time()
+            return html
+    except Exception:
+        pass
+    try:
+        response = requests.get(FRONTEND_URL, timeout=5)
+        if response.status_code == 200 and "<head" in response.text:
+            _SPA_INDEX_CACHE["html"] = response.text
+            _SPA_INDEX_CACHE["loaded_at"] = time.time()
+            return response.text
+    except Exception:
+        return None
+    return None
+
+def _replace_meta_tag(html: str, key: str, value: str, attr: str) -> str:
+    escaped_value = html_module.escape(value, quote=True)
+    pattern = rf'<meta\s+[^>]*{attr}="{re.escape(key)}"[^>]*>'
+    replacement = f'<meta {attr}="{key}" content="{escaped_value}">'
+    if re.search(pattern, html, flags=re.IGNORECASE):
+        return re.sub(pattern, replacement, html, count=1, flags=re.IGNORECASE)
+    return html.replace("</head>", f"    {replacement}\n</head>", 1)
+
+def _inject_portal_og(html: str, title: str, description: str, image_url: str, share_url: str) -> str:
+    escaped_title = html_module.escape(title, quote=True)
+    escaped_description = html_module.escape(description, quote=True)
+    escaped_image = html_module.escape(image_url, quote=True)
+    escaped_url = html_module.escape(share_url, quote=True)
+    html = re.sub(
+        r"<title>.*?</title>",
+        f"<title>{escaped_title}</title>",
+        html,
+        count=1,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    html = _replace_meta_tag(html, "description", description, "name")
+    html = _replace_meta_tag(html, "og:type", "website", "property")
+    html = _replace_meta_tag(html, "og:title", title, "property")
+    html = _replace_meta_tag(html, "og:description", description, "property")
+    html = _replace_meta_tag(html, "og:image", image_url, "property")
+    html = _replace_meta_tag(html, "og:image:width", "1200", "property")
+    html = _replace_meta_tag(html, "og:image:height", "630", "property")
+    html = _replace_meta_tag(html, "og:image:type", "image/jpeg", "property")
+    html = _replace_meta_tag(html, "og:url", share_url, "property")
+    html = _replace_meta_tag(html, "twitter:card", "summary_large_image", "name")
+    html = _replace_meta_tag(html, "twitter:title", title, "name")
+    html = _replace_meta_tag(html, "twitter:description", description, "name")
+    html = _replace_meta_tag(html, "twitter:image", image_url, "name")
+    html = _replace_meta_tag(html, "twitter:url", share_url, "name")
+    return html
+
+def _render_portal_og_html(workspace: dict | None, share_url: str) -> HTMLResponse:
+    try:
+        workspace_name = (workspace or {}).get("name") or "InterGuide"
+        workspace_logo = (workspace or {}).get("logo")
+        og_image_url = _get_workspace_og_image_url(workspace_logo)
+        if not og_image_url:
+            og_image_url = f"{MAIN_DOMAIN}/og-image.jpg"
+        base_html = _load_spa_index_html()
+        if not base_html:
+            fallback_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{html_module.escape(workspace_name)}" />
+    <meta property="og:description" content="Knowledge base" />
+    <meta property="og:image" content="{html_module.escape(og_image_url)}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{html_module.escape(workspace_name)}" />
+    <meta name="twitter:description" content="Knowledge base" />
+    <meta name="twitter:image" content="{html_module.escape(og_image_url)}" />
+    <title>{html_module.escape(workspace_name)}</title>
+    <meta name="description" content="Knowledge base" />
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>"""
+            return HTMLResponse(content=fallback_html)
+        injected = _inject_portal_og(
+            base_html,
+            workspace_name,
+            "Knowledge base",
+            og_image_url,
+            share_url,
+        )
+        return HTMLResponse(content=injected)
+    except Exception:
+        fallback_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="InterGuide" />
+    <meta property="og:description" content="Knowledge base" />
+    <meta property="og:image" content="{html_module.escape(MAIN_DOMAIN + '/og-image.jpg')}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="InterGuide" />
+    <meta name="twitter:description" content="Knowledge base" />
+    <meta name="twitter:image" content="{html_module.escape(MAIN_DOMAIN + '/og-image.jpg')}" />
+    <title>InterGuide</title>
+    <meta name="description" content="Knowledge base" />
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>"""
+        return HTMLResponse(content=fallback_html)
+
 def _render_workspace_og_html(workspace: dict | None, request: Request, redirect_url: str, share_url: str) -> HTMLResponse:
     import html as html_module
     try:
@@ -8822,7 +8952,7 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
         workspace_logo = (workspace or {}).get("logo")
         og_image_url = _get_workspace_og_image_url(workspace_logo)
         if not og_image_url:
-            og_image_url = f"{MAIN_DOMAIN}/og-image.png"
+            og_image_url = f"{MAIN_DOMAIN}/og-image.jpg"
         og_image_type = "image/jpeg"
         og_title = workspace_name
         og_description = "Knowledge base"
@@ -8871,7 +9001,7 @@ def _render_workspace_og_html(workspace: dict | None, request: Request, redirect
 </html>"""
         return HTMLResponse(content=html_content)
     except Exception:
-        fallback_image = f"{MAIN_DOMAIN}/og-image.png"
+        fallback_image = f"{MAIN_DOMAIN}/og-image.jpg"
         fallback_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8937,18 +9067,14 @@ async def share_portal(slug: str, request: Request):
     # Look up workspace by slug (public route, no auth required)
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
     
-    portal_url = f"{FRONTEND_URL}/portal/{slug}"
-    share_url = f"{request.url.scheme}://{request.url.netloc}/portal/{slug}"
-    if not workspace:
-        return _render_workspace_og_html(None, request, portal_url, share_url)
-    return _render_workspace_og_html(workspace, request, portal_url, share_url)
+    share_url = f"{MAIN_DOMAIN}/portal/{slug}"
+    return _render_portal_og_html(workspace, share_url)
 
 @app.get("/portal/{slug}/{path:path}", response_class=HTMLResponse)
 async def share_portal_path(slug: str, path: str, request: Request):
     workspace = await db.workspaces.find_one({"slug": slug}, {"_id": 0})
-    redirect_url = f"{FRONTEND_URL}/portal/{slug}/{path}"
-    share_url = f"{request.url.scheme}://{request.url.netloc}/portal/{slug}/{path}"
-    return _render_workspace_og_html(workspace, request, redirect_url, share_url)
+    share_url = f"{MAIN_DOMAIN}/portal/{slug}/{path}"
+    return _render_portal_og_html(workspace, share_url)
 
 @app.get("/embed/portal/{slug}", response_class=HTMLResponse)
 async def share_embed_portal(slug: str, request: Request):
