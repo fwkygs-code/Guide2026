@@ -50,22 +50,19 @@ services:
       # - key: FRONTEND_URL
       #   value: "https://www.interguide.app"
 
-  # Service 2: Frontend (Static Site)
+  # Service 2: Frontend (Node)
   - type: web
     name: guide2026-frontend
-    runtime: static
+    env: node
     rootDir: frontend
     buildCommand: "npm ci --legacy-peer-deps && npm run build"
-    staticPublishPath: build
-    routes:
-      # SPA fallback: allow deep-links like /portal/<slug>
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    startCommand: "node server.js"
     envVars:
       - key: NODE_VERSION
         value: "18.20.4"
       - key: CI
         value: "false"
       - key: REACT_APP_API_URL
+        value: "https://api.interguide.app"
+      - key: PORTAL_OG_BACKEND
         value: "https://api.interguide.app"

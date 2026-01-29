@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Plus, BookOpen, FolderOpen, BarChart3, Settings, Upload, X, Users } from 'lucide-react';
@@ -19,6 +19,7 @@ import UpgradePrompt from '../components/UpgradePrompt';
 import BillingInfo from '../components/BillingInfo';
 import WorkspaceLockModal from '../components/WorkspaceLockModal';
 import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge, CardContent } from '../components/ui/design-system';
+import LoginLoadingOverlay from '../components/LoginLoadingOverlay';
 
 const DashboardPage = () => {
   const { t } = useTranslation();
@@ -35,13 +36,17 @@ const DashboardPage = () => {
   const [pendingWorkspace, setPendingWorkspace] = useState(null);
   const [lockedBy, setLockedBy] = useState('');
   const { user } = useAuth();
-  const { quotaData } = useQuota();
+  const { quotaData, isLoading: quotaLoading } = useQuota();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [showLoginOverlay, setShowLoginOverlay] = useState(!!location.state?.loginTransition);
 
   useEffect(() => {
     if (!user?.id) return;
     fetchWorkspaces();
   }, [user?.id]);
+
+  const isDashboardReady = !loading && !quotaLoading;
 
   const fetchWorkspaces = async () => {
     try {
@@ -148,7 +153,13 @@ const DashboardPage = () => {
     : null;
 
   return (
-    <DashboardLayout backgroundUrl={dashboardBackground}>
+    <>
+      <LoginLoadingOverlay
+        active={showLoginOverlay}
+        ready={isDashboardReady}
+        onFinish={() => setShowLoginOverlay(false)}
+      />
+      <DashboardLayout backgroundUrl={dashboardBackground}>
       <OverQuotaBanner onUpgrade={() => setUpgradePromptOpen(true)} />
       <UpgradePrompt open={upgradePromptOpen} onOpenChange={setUpgradePromptOpen} />
 
@@ -526,7 +537,8 @@ const DashboardPage = () => {
             <BillingInfo />
           </div>
       </PageSurface>
-    </DashboardLayout>
+      </DashboardLayout>
+    </>
   );
 };
 
