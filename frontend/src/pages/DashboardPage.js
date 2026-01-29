@@ -41,6 +41,9 @@ const DashboardPage = () => {
   const location = useLocation();
   const [showLoginOverlay, setShowLoginOverlay] = useState(!!location.state?.loginTransition);
   const [quotaDisplayReady, setQuotaDisplayReady] = useState(false);
+  const navigateToWorkspace = (path) => {
+    navigate(path, { state: { workspaceTransition: true } });
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -386,13 +389,13 @@ const DashboardPage = () => {
                   } else {
                     // Not locked, navigate - workspace page will acquire lock
                     window.dispatchEvent(new CustomEvent('onboarding:workspaceEntered', { detail: { workspaceId: workspace.id, workspaceSlug: workspace.slug } }));
-                    navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                    navigateToWorkspace(`/workspace/${workspace.slug}/walkthroughs`);
                   }
                 } catch (error) {
                   // If lock check fails, still navigate - workspace page will handle it
                   console.error('Lock check failed:', error);
                   window.dispatchEvent(new CustomEvent('onboarding:workspaceEntered', { detail: { workspaceId: workspace.id, workspaceSlug: workspace.slug } }));
-                  navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                  navigateToWorkspace(`/workspace/${workspace.slug}/walkthroughs`);
                 }
               }}
               data-testid={`workspace-card-${workspace.id}`}
@@ -460,12 +463,12 @@ const DashboardPage = () => {
                           setLockModalOpen(true);
                         } else {
                           // Not locked, navigate - workspace page will acquire lock
-                          navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                          navigateToWorkspace(`/workspace/${workspace.slug}/walkthroughs`);
                         }
                       } catch (error) {
                         // If lock check fails, still navigate - workspace page will handle it
                         console.error('Lock check failed:', error);
-                        navigate(`/workspace/${workspace.slug}/walkthroughs`);
+                        navigateToWorkspace(`/workspace/${workspace.slug}/walkthroughs`);
                       }
                     }}
                   >
@@ -487,12 +490,12 @@ const DashboardPage = () => {
                           setLockModalOpen(true);
                         } else {
                           // Not locked, navigate - workspace page will acquire lock
-                          navigate(`/workspace/${workspace.slug}/categories`);
+                          navigateToWorkspace(`/workspace/${workspace.slug}/categories`);
                         }
                       } catch (error) {
                         // If lock check fails, still navigate - workspace page will handle it
                         console.error('Lock check failed:', error);
-                        navigate(`/workspace/${workspace.slug}/categories`);
+                        navigateToWorkspace(`/workspace/${workspace.slug}/categories`);
                       }
                     }}
                   >
@@ -506,7 +509,7 @@ const DashboardPage = () => {
                       className="bg-white/10 hover:bg-white/20 text-white border-white/30 transition-all duration-200"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/workspace/${workspace.slug}/settings`);
+                        navigateToWorkspace(`/workspace/${workspace.slug}/settings`);
                       }}
                     >
                       <Settings className="w-4 h-4" />
@@ -536,7 +539,7 @@ const DashboardPage = () => {
               const lockResult = await api.lockWorkspace(pendingWorkspace.id, true);
               if (lockResult.success) {
                 setLockModalOpen(false);
-                navigate(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
+                navigateToWorkspace(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
                 setPendingWorkspace(null);
                 setLockedBy('');
               } else {
@@ -547,7 +550,7 @@ const DashboardPage = () => {
               // Even if there's an error, try to navigate - workspace page will handle lock acquisition
               toast.error('Error during force takeover. Attempting to enter workspace...');
               setLockModalOpen(false);
-              navigate(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
+              navigateToWorkspace(`/workspace/${pendingWorkspace.slug}/walkthroughs`);
               setPendingWorkspace(null);
               setLockedBy('');
             }

@@ -206,6 +206,24 @@ const DecisionTreePortalRoute = () => {
   return <DecisionTreePortalRoot portalSlug={slug} />;
 };
 
+const preloadVideo = (src) => {
+  if (typeof document === 'undefined') return;
+  const video = document.createElement('video');
+  video.src = src;
+  video.preload = 'auto';
+  video.muted = true;
+  video.playsInline = true;
+  video.load();
+};
+
+const VideoPreloader = () => {
+  useEffect(() => {
+    preloadVideo('/Animation.mp4');
+    preloadVideo('/AnimationX.mp4');
+  }, []);
+  return null;
+};
+
 // Component to handle direction changes
 const AppContent = () => {
   const { i18n } = useTranslation();
@@ -222,6 +240,7 @@ const AppContent = () => {
 
   return (
     <ThemeProvider>
+      <VideoPreloader />
       <TextSizeProvider>
         <AuthProvider>
           <BrowserRouter>
