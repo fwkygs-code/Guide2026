@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, GitBranch, ArrowRight, RotateCcw, CheckCircle, Brain, Target } from 'lucide-react';
+import { GitBranch, ArrowRight, RotateCcw, CheckCircle, Brain, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
 import WorkspaceLoader from '../../components/WorkspaceLoader';
+import { useKnowledgeRoute } from '../KnowledgeRouteContext';
 
 /**
  * Decision Tree Portal Page - Interactive Guidance
  */
-function DecisionTreePortalPage({ slug: slugProp, backHref, backLabel }) {
-  const { slug: slugParam } = useParams();
-  const slug = slugProp || slugParam;
-  const { t } = useTranslation(['knowledgeSystems', 'portal']);
+function DecisionTreePortalPage() {
+  const { slug } = useKnowledgeRoute();
+  const { t, ready } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedTrees, setPublishedTrees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTree, setCurrentTree] = useState(null);
@@ -104,7 +102,7 @@ function DecisionTreePortalPage({ slug: slugProp, backHref, backLabel }) {
     }
   };
 
-  if (loading) {
+  if (!ready || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
         <WorkspaceLoader size={160} />
@@ -126,17 +124,11 @@ function DecisionTreePortalPage({ slug: slugProp, backHref, backLabel }) {
               <GitBranch className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent mb-4">
-              {t('knowledgeSystems.decisionTree.noDecisions')}
+              {t('decisionTree.noDecisions')}
             </h1>
             <p className="text-indigo-100/80 leading-relaxed mb-6">
-              {t('knowledgeSystems.decisionTree.noDecisionsDescription')}
+              {t('decisionTree.noDecisionsDescription')}
             </p>
-            <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
-              <Button className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {backLabel || t('portal.backToPortal')}
-              </Button>
-            </Link>
           </Surface>
         </motion.div>
       </div>
@@ -162,15 +154,7 @@ function DecisionTreePortalPage({ slug: slugProp, backHref, backLabel }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
-                <Button variant="ghost" className="text-indigo-200/80 hover:text-indigo-100 hover:bg-indigo-500/10">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  {backLabel || t('portal.backToPortal')}
-                </Button>
-              </Link>
-              <LanguageSwitcher />
-            </div>
+            <div className="flex items-center justify-between gap-4 mb-6" />
           </motion.div>
 
           <motion.div
@@ -184,9 +168,9 @@ function DecisionTreePortalPage({ slug: slugProp, backHref, backLabel }) {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                {t('knowledgeSystems.decisionTree.title')}
+                {t('decisionTree.title')}
               </h1>
-              <p className="text-indigo-100/80 text-xl leading-relaxed">{t('knowledgeSystems.decisionTree.description')}</p>
+              <p className="text-indigo-100/80 text-xl leading-relaxed">{t('decisionTree.description')}</p>
             </div>
           </motion.div>
 

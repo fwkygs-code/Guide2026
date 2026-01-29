@@ -13,7 +13,7 @@ type PolicyListPageProps = {
 
 export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPageProps) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, ready } = useTranslation();
   const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +53,7 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
     }
   };
 
-  if (loading) {
+  if (!ready || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
         <WorkspaceLoader size={160} />

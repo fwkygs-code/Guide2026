@@ -1,24 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Workflow, CheckCircle, Clock, ArrowRight, Play } from 'lucide-react';
+import { Workflow, CheckCircle, Clock, ArrowRight, Play } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/design-system';
 import { portalKnowledgeSystemsService } from '../api-service';
 import sanitizeHtml from '../../lib/sanitizeHtml';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
 import WorkspaceLoader from '../../components/WorkspaceLoader';
+import { useKnowledgeRoute } from '../KnowledgeRouteContext';
 
 /**
  * Procedure Portal Page - Systematic Display
  */
-function ProcedurePortalPage({ slug: slugProp, backHref, backLabel }) {
-  const { slug: slugParam } = useParams();
-  const slug = slugProp || slugParam;
-  const { t } = useTranslation(['knowledgeSystems', 'portal']);
+function ProcedurePortalPage() {
+  const { slug } = useKnowledgeRoute();
+  const { t, ready } = useTranslation(['knowledgeSystems', 'portal']);
   const [publishedProcedures, setPublishedProcedures] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +41,7 @@ function ProcedurePortalPage({ slug: slugProp, backHref, backLabel }) {
     }
   };
 
-  if (loading) {
+  if (!ready || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
         <WorkspaceLoader size={160} />
@@ -67,22 +64,6 @@ function ProcedurePortalPage({ slug: slugProp, backHref, backLabel }) {
 
         <div className="relative max-w-6xl mx-auto px-6 py-12">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <Link to={backHref || (slug ? `/portal/${slug}` : '/')}>
-                <Button variant="ghost" className="text-cyan-200/80 hover:text-cyan-100 hover:bg-cyan-500/10">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  {backLabel || t('portal.backToPortal')}
-                </Button>
-              </Link>
-              <LanguageSwitcher />
-            </div>
-          </motion.div>
-
-          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
@@ -93,9 +74,9 @@ function ProcedurePortalPage({ slug: slugProp, backHref, backLabel }) {
             </div>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                {t('knowledgeSystems.procedure.title')}
+                {t('procedure.title')}
               </h1>
-              <p className="text-cyan-100/80 text-xl leading-relaxed">{t('knowledgeSystems.procedure.description')}</p>
+              <p className="text-cyan-100/80 text-xl leading-relaxed">{t('procedure.description')}</p>
             </div>
           </motion.div>
 
@@ -131,9 +112,9 @@ function ProcedurePortalPage({ slug: slugProp, backHref, backLabel }) {
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-cyan-100 mb-2 text-lg">{t('knowledgeSystems.procedure.standardTitle')}</h3>
+                  <h3 className="font-bold text-cyan-100 mb-2 text-lg">{t('procedure.standardTitle')}</h3>
                   <p className="text-cyan-200/80 leading-relaxed">
-                    {t('knowledgeSystems.procedure.standardDescription')}
+                    {t('procedure.standardDescription')}
                   </p>
                   <div className="flex items-center gap-2 mt-4">
                     <Play className="w-4 h-4 text-cyan-400" />
@@ -157,9 +138,9 @@ function ProcedurePortalPage({ slug: slugProp, backHref, backLabel }) {
             >
               <Surface variant="glass-secondary" className="p-12 text-center rounded-xl border-dashed border-cyan-500/30">
                 <Workflow className="w-16 h-16 text-cyan-400/50 mx-auto mb-6" />
-                <h3 className="text-xl font-semibold text-cyan-100 mb-4">{t('knowledgeSystems.procedure.noProcedures')}</h3>
+                <h3 className="text-xl font-semibold text-cyan-100 mb-4">{t('procedure.noProcedures')}</h3>
                 <p className="text-cyan-200/70">
-                  {t('knowledgeSystems.procedure.noProceduresDescription')}
+                  {t('procedure.noProceduresDescription')}
                 </p>
               </Surface>
             </motion.div>

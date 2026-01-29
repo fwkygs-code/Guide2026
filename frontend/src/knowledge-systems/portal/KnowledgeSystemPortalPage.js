@@ -6,13 +6,14 @@
  */
 
 import React from 'react';
-import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PolicyPortalPage from './PolicyPortalPage';
 import ProcedurePortalPage from './ProcedurePortalPage';
 import DocumentationPortalPage from './DocumentationPortalPage';
 import FAQPortalPage from './FAQPortalPage';
 import DecisionTreePortalPage from './DecisionTreePortalPage';
+import { useKnowledgeRoute } from '../KnowledgeRouteContext';
+import WorkspaceLoader from '../../components/WorkspaceLoader';
 
 /**
  * Knowledge System Portal Page Router
@@ -21,47 +22,29 @@ import DecisionTreePortalPage from './DecisionTreePortalPage';
  * Each content type has its own unique, futuristic interface design.
  */
 function KnowledgeSystemPortalPage({ systemType }) {
-  const { t } = useTranslation(['knowledgeSystems', 'portal']);
-  const { slug, workspaceSlug } = useParams();
-  const isWorkspaceContext = !!workspaceSlug && !slug;
-  const isPortalContext = !!slug;
-  const resolvedSlug = isPortalContext ? slug : isWorkspaceContext ? workspaceSlug : undefined;
-  const backHref = isWorkspaceContext
-    ? `/workspace/${workspaceSlug}/knowledge-systems`
-    : resolvedSlug
-      ? `/portal/${resolvedSlug}`
-      : '/';
-  const backLabel = isWorkspaceContext
-    ? t('knowledgeSystems.backToSystems')
-    : t('portal.backToPortal');
-
-  if (!resolvedSlug) {
+  const { t, ready } = useTranslation(['knowledgeSystems', 'portal']);
+  const { slug } = useKnowledgeRoute();
+  if (!ready) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-8">
-        <div className="text-center space-y-4 max-w-md">
-          <h1 className="text-2xl font-semibold text-slate-100">
-            {t('knowledgeSystems.title')}
-          </h1>
-          <p className="text-slate-300">
-            {t('portal.notFound', { defaultValue: 'Portal not found.' })}
-          </p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <WorkspaceLoader size={160} />
       </div>
     );
   }
+  if (!slug) return null;
 
   // Route to appropriate specialized portal page
   switch (systemType) {
     case 'policy':
-      return <PolicyPortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
+      return <PolicyPortalPage />;
     case 'procedure':
-      return <ProcedurePortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
+      return <ProcedurePortalPage />;
     case 'documentation':
-      return <DocumentationPortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
+      return <DocumentationPortalPage />;
     case 'faq':
-      return <FAQPortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
+      return <FAQPortalPage />;
     case 'decision_tree':
-      return <DecisionTreePortalPage slug={resolvedSlug} backHref={backHref} backLabel={backLabel} />;
+      return <DecisionTreePortalPage />;
     default:
       // Fallback to a generic message for unknown types
       return (
@@ -71,10 +54,10 @@ function KnowledgeSystemPortalPage({ systemType }) {
               <span className="text-2xl">❓</span>
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-400 to-slate-500 bg-clip-text text-transparent mb-4">
-              {t('knowledgeSystems.unknown.title')}
+              {t('unknown.title')}
             </h1>
             <p className="text-slate-100/80 leading-relaxed">
-              {t('knowledgeSystems.unknown.description')}
+              {t('unknown.description')}
             </p>
           </div>
         </div>

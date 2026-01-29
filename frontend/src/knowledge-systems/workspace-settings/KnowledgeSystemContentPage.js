@@ -23,7 +23,7 @@ import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
  * Knowledge System Content Page
  */
 function KnowledgeSystemContentPage() {
-  const { t } = useTranslation('knowledgeSystems');
+  const { t, ready } = useTranslation('knowledgeSystems');
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -62,7 +62,7 @@ function KnowledgeSystemContentPage() {
     return labels[type] || 'Item';
   };
 
-  if (workspaceLoading || loading) {
+  if (!ready || workspaceLoading || loading) {
     return (
       <DashboardLayout>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -84,7 +84,7 @@ function KnowledgeSystemContentPage() {
                 The knowledge system "{systemType}" is not recognized.
               </p>
               <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}>
-                {t('knowledgeSystems.backToSystems')}
+                {t('backToSystems')}
               </Button>
             </CardContent>
           </Card>
@@ -93,10 +93,12 @@ function KnowledgeSystemContentPage() {
     );
   }
 
+  const displayNameKey = config.displayNameKey?.replace('knowledgeSystems.', '') || config.displayNameKey;
+
   return (
     <DashboardLayout>
       <PageHeader
-        title={t(config.displayNameKey)}
+        title={t(displayNameKey)}
         description="Content Management"
       />
 
@@ -130,7 +132,7 @@ function KnowledgeSystemContentPage() {
             <div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-white text-4xl mx-auto mb-6 ${config.iconBg || 'bg-slate-600'}`}>
               {config.icon}
             </div>
-            <h2 className="text-3xl font-bold text-white mb-4">{t('knowledgeSystems.empty.title', { type: t(config.displayNameKey) })}</h2>
+            <h2 className="text-3xl font-bold text-white mb-4">{t('empty.title', { type: t(displayNameKey) })}</h2>
             <p className="text-slate-400 text-lg mb-8 max-w-md mx-auto">
               Get started by creating your first {getItemTypeLabel(systemType).toLowerCase()}.
               This will help organize and present your knowledge content effectively.
@@ -148,7 +150,7 @@ function KnowledgeSystemContentPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white">
-                {t(config.displayNameKey)} ({contentItems.length})
+                {t(displayNameKey)} ({contentItems.length})
               </h2>
             </div>
 

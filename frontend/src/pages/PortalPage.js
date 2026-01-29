@@ -1,155 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, FolderOpen, Search, Lock, ChevronRight, Phone, Clock, MessageCircle, HelpCircle, X } from 'lucide-react';
+import { BookOpen, FolderOpen, Search, Lock, ChevronRight, HelpCircle, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { apiClient, getBackendUrl } from '../lib/api';
 import { normalizeImageUrl } from '../lib/utils';
-import LanguageSwitcher from '../components/LanguageSwitcher';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
-import { AppShell } from '../components/ui/design-system';
-import WorkspaceLoader from '../components/WorkspaceLoader';
 import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
+import { usePortal } from '../contexts/PortalContext';
 
 
-const PortalPage = ({ isEmbedded = false }) => {
-  const { t, i18n } = useTranslation();
-  const { slug } = useParams();
-  const navigate = useNavigate();
-  const [portal, setPortal] = useState(null);
-  const [loading, setLoading] = useState(true);
+const PortalPage = () => {
+  const { t } = useTranslation('portal');
+  const { portal, workspace, slug, portalIdNormalized, portalDetails, primaryColor, inIframe } = usePortal();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
   const [categorySelectOpen, setCategorySelectOpen] = useState(false);
   const [selectedCategoryForChat, setSelectedCategoryForChat] = useState(null);
-  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [knowledgeSystemCounts, setKnowledgeSystemCounts] = useState({});
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
-  const location = useLocation();
-  const isEmbedParam = new URLSearchParams(location.search).get('embed') === '1';
-  // Detect if we're in an iframe
-  const inIframe = isEmbedded || isEmbedParam || window.self !== window.top;
-
-  useEffect(() => {
-    fetchPortal();
-  }, [slug]);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await apiClient.get(`/auth/me`, {
-          validateStatus: (status) => status < 500
-        });
-        setIsLoggedIn(response.status === 200);
-      } catch (error) {
-        setIsLoggedIn(false);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  // Update page title, favicon, and meta tags when portal data loads
-  useEffect(() => {
-    if (portal?.workspace?.name) {
-      const workspace = portal.workspace;
-      const workspaceName = workspace.name;
-      const logoUrl = workspace.logo ? normalizeImageUrl(workspace.logo) : null;
-      
-      // Update page title
-      document.title = `InterGuide – ${workspaceName}`;
-      
-      // Update favicon to workspace logo (if available)
-      if (logoUrl) {
-        let favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
-        if (!favicon) {
-          favicon = document.createElement('link');
-          favicon.setAttribute('rel', 'icon');
-          document.head.appendChild(favicon);
-        }
-        favicon.setAttribute('href', logoUrl);
-        favicon.setAttribute('type', logoUrl.includes('.svg') ? 'image/svg+xml' : 'image/png');
-        
-        // Also update apple-touch-icon
-        let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-        if (!appleIcon) {
-          appleIcon = document.createElement('link');
-          appleIcon.setAttribute('rel', 'apple-touch-icon');
-          document.head.appendChild(appleIcon);
-        }
-        appleIcon.setAttribute('href', logoUrl);
-      }
-      
-      // Update meta tags for Open Graph (for social sharing)
-      const updateMetaTag = (property, content) => {
-        let meta = document.querySelector(`meta[property="${property}"]`) || 
-                   document.querySelector(`meta[name="${property}"]`);
-        if (!meta) {
-          meta = document.createElement('meta');
-          if (property.startsWith('og:')) {
-            meta.setAttribute('property', property);
-          } else {
-            meta.setAttribute('name', property);
-          }
-          document.head.appendChild(meta);
-        }
-        meta.setAttribute('content', content);
-      };
-      
-      // Use backend URL for sharing (WhatsApp crawlers need backend route)
-      const portalUrl = `${getBackendUrl()}/portal/${slug}`;
-      const ogImageUrl = logoUrl || `${window.location.origin}/og-image.png`;
-      
-      // Update Open Graph tags
-      updateMetaTag('og:title', `InterGuide – ${workspaceName}`);
-      updateMetaTag('og:description', `InterGuide – ${workspaceName}`);
-      updateMetaTag('og:image', ogImageUrl);
-      updateMetaTag('og:image:secure_url', ogImageUrl);
-      updateMetaTag('og:url', portalUrl);
-      
-      // Update Twitter tags
-      updateMetaTag('twitter:title', `InterGuide – ${workspaceName}`);
-      updateMetaTag('twitter:description', `InterGuide – ${workspaceName}`);
-      updateMetaTag('twitter:image', ogImageUrl);
-      
-      // Update standard meta tags
-      updateMetaTag('title', `InterGuide – ${workspaceName}`);
-      const descMeta = document.querySelector('meta[name="description"]');
-      if (descMeta) {
-        descMeta.setAttribute('content', `InterGuide – ${workspaceName}`);
-      }
-    }
-    
-    // Cleanup: reset title and favicon when component unmounts
-    return () => {
-      document.title = 'InterGuide';
-      // Don't reset favicon on unmount - let it persist or reset on next page load
-    };
-  }, [portal, slug]);
-
-  const fetchPortal = async () => {
-    try {
-      const response = await apiClient.get(`/portal/${slug}`);
-      setPortal(response.data);
-      // Debug: Log workspace logo
-      if (response.data?.workspace?.logo) {
-        console.log('Workspace logo URL:', response.data.workspace.logo);
-        console.log('Normalized logo URL:', normalizeImageUrl(response.data.workspace.logo));
-      } else {
-        console.log('No workspace logo found in response');
-      }
-    } catch (error) {
-      toast.error('Portal not found');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Organize categories into parent/children structure
   const categoryTree = useMemo(() => {
@@ -232,276 +104,19 @@ const PortalPage = ({ isEmbedded = false }) => {
   const knowledgeSystemsMenu = useMemo(() => {
     if (!slug) return [];
     const systems = [
-      { key: 'policy', label: t('portal.knowledgeSystems.labels.policies', { defaultValue: 'Policies' }), path: `/portal/${slug}/knowledge/policies`, count: knowledgeSystemCounts.policy || 0 },
-      { key: 'procedure', label: t('portal.knowledgeSystems.labels.procedures', { defaultValue: 'Procedures' }), path: `/portal/${slug}/knowledge/procedures`, count: knowledgeSystemCounts.procedure || 0 },
-      { key: 'documentation', label: t('portal.knowledgeSystems.labels.documentation', { defaultValue: 'Documentation' }), path: `/portal/${slug}/knowledge/documentation`, count: knowledgeSystemCounts.documentation || 0 },
-      { key: 'faq', label: t('portal.knowledgeSystems.labels.faqs', { defaultValue: 'FAQs' }), path: `/portal/${slug}/knowledge/faqs`, count: knowledgeSystemCounts.faq || 0 },
-      { key: 'decision-tree', label: t('portal.knowledgeSystems.labels.decisions', { defaultValue: 'Decision Trees' }), path: `/portal/${slug}/knowledge/decisions`, count: knowledgeSystemCounts['decision-tree'] || 0 }
+      { key: 'policy', label: t('knowledgeSystems.labels.policies', { defaultValue: 'Policies' }), path: `/portal/${slug}/knowledge/policies`, count: knowledgeSystemCounts.policy || 0 },
+      { key: 'procedure', label: t('knowledgeSystems.labels.procedures', { defaultValue: 'Procedures' }), path: `/portal/${slug}/knowledge/procedures`, count: knowledgeSystemCounts.procedure || 0 },
+      { key: 'documentation', label: t('knowledgeSystems.labels.documentation', { defaultValue: 'Documentation' }), path: `/portal/${slug}/knowledge/documentation`, count: knowledgeSystemCounts.documentation || 0 },
+      { key: 'faq', label: t('knowledgeSystems.labels.faqs', { defaultValue: 'FAQs' }), path: `/portal/${slug}/knowledge/faqs`, count: knowledgeSystemCounts.faq || 0 },
+      { key: 'decision-tree', label: t('knowledgeSystems.labels.decisions', { defaultValue: 'Decision Trees' }), path: `/portal/${slug}/knowledge/decisions`, count: knowledgeSystemCounts['decision-tree'] || 0 }
     ];
     return systems.filter(system => system.count > 0);
   }, [slug, t, knowledgeSystemCounts]);
 
-  if (loading) {
-    return (
-      <AppShell>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <WorkspaceLoader size={160} />
-        </div>
-      </AppShell>
-    );
-  }
-
-  if (!portal) {
-    return (
-      <AppShell>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center">
-            <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-heading font-bold text-foreground mb-2">Portal Not Found</h1>
-            <p className="text-muted-foreground">The portal you're looking for doesn't exist.</p>
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
-
   const workspace = portal.workspace;
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
-
-  const portalIdRaw = new URLSearchParams(location.search).get('portalId')
-    || new URLSearchParams(location.search).get('portal')
-    || workspace?.portal_id
-    || workspace?.portalId
-    || 'tenant';
-  const portalIdNormalized = portalIdRaw.toLowerCase() === 'integration'
-    ? 'integrations'
-    : portalIdRaw.toLowerCase();
-
-  const portalConfig = {
-    admin: {
-      title: t('portal.headers.admin.title'),
-      description: t('portal.headers.admin.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0f172a"/>
-          <rect x="48" y="48" width="624" height="324" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
-          <rect x="80" y="92" width="180" height="96" rx="12" fill="#1f2937"/>
-          <rect x="280" y="92" width="160" height="140" rx="12" fill="#1f2937"/>
-          <rect x="460" y="92" width="200" height="220" rx="12" fill="#1f2937"/>
-          <circle cx="170" cy="280" r="40" fill="#0ea5e9"/>
-          <circle cx="330" cy="300" r="18" fill="#22c55e"/>
-          <circle cx="380" cy="300" r="18" fill="#f97316"/>
-          <path d="M170 240 L330 300 L380 300" stroke="#38bdf8" stroke-width="4" fill="none"/>
-          <path d="M330 300 L560 200" stroke="#38bdf8" stroke-width="4" fill="none"/>
-          <circle cx="560" cy="200" r="24" fill="#38bdf8"/>
-        </svg>`
-      )}`
-    },
-    tenant: {
-      title: t('portal.headers.tenant.title'),
-      description: t('portal.headers.tenant.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0b1324"/>
-          <rect x="60" y="60" width="600" height="300" rx="28" fill="#111827"/>
-          <rect x="100" y="110" width="520" height="52" rx="12" fill="#1f2937"/>
-          <rect x="100" y="182" width="420" height="52" rx="12" fill="#1f2937"/>
-          <rect x="100" y="254" width="320" height="52" rx="12" fill="#1f2937"/>
-          <circle cx="130" cy="136" r="14" fill="#22c55e"/>
-          <circle cx="130" cy="208" r="14" fill="#38bdf8"/>
-          <circle cx="130" cy="280" r="14" fill="#f59e0b"/>
-          <path d="M160 136 H590" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
-          <path d="M160 208 H490" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
-          <path d="M160 280 H390" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
-        </svg>`
-      )}`
-    },
-    knowledge: {
-      title: t('portal.headers.knowledge.title'),
-      description: t('portal.headers.knowledge.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0b1120"/>
-          <rect x="80" y="84" width="220" height="252" rx="16" fill="#1e293b"/>
-          <rect x="250" y="84" width="220" height="252" rx="16" fill="#1f2937"/>
-          <rect x="420" y="84" width="220" height="252" rx="16" fill="#111827"/>
-          <path d="M110 130 H280" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M110 170 H260" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M280 130 H450" stroke="#a855f7" stroke-width="6" stroke-linecap="round"/>
-          <path d="M280 170 H430" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M450 130 H620" stroke="#f97316" stroke-width="6" stroke-linecap="round"/>
-          <path d="M450 170 H600" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <circle cx="190" cy="260" r="26" fill="#38bdf8"/>
-          <circle cx="360" cy="260" r="26" fill="#a855f7"/>
-          <circle cx="530" cy="260" r="26" fill="#f97316"/>
-        </svg>`
-      )}`
-    },
-    integrations: {
-      title: t('portal.headers.integrations.title'),
-      description: t('portal.headers.integrations.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0f172a"/>
-          <rect x="60" y="60" width="600" height="300" rx="28" fill="#0b1220" stroke="#1f2937" stroke-width="2"/>
-          <circle cx="160" cy="210" r="50" fill="#22c55e"/>
-          <circle cx="360" cy="140" r="44" fill="#38bdf8"/>
-          <circle cx="560" cy="250" r="58" fill="#f97316"/>
-          <path d="M210 210 L316 156" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M404 156 L512 228" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M220 240 L520 264" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <rect x="330" y="250" width="70" height="40" rx="10" fill="#1f2937"/>
-          <rect x="320" y="102" width="80" height="36" rx="10" fill="#1f2937"/>
-        </svg>`
-      )}`
-    }
-  };
-
-  const portalDetails = portalConfig[portalIdNormalized] || portalConfig.tenant;
-
-  // Get portal styling from workspace
-  const portalPalette = workspace.portal_palette || {};
-  const primaryColor = portalPalette.primary || workspace.brand_color || '#4f46e5';
-  const secondaryColor = portalPalette.secondary || '#8b5cf6';
-  const accentColor = portalPalette.accent || '#10b981';
-  const backgroundStyle = workspace.portal_background_url 
-    ? { backgroundImage: `url(${normalizeImageUrl(workspace.portal_background_url)})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
-    : {};
-
-  const embedScrollStyle = inIframe
-    ? {
-        height: '100%',
-        minHeight: '100%',
-        overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch'
-      }
-    : {};
-
   return (
-      <div
-        className={`${inIframe ? 'bg-background' : 'min-h-screen bg-background'} ${inIframe ? 'iframe-mode' : ''}`}
-        style={{ ...backgroundStyle, ...embedScrollStyle }}
-      >
-      {/* Overlay for background image readability */}
-      {workspace.portal_background_url && (
-        <div className="fixed inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 -z-10" />
-      )}
-      
-      {/* Header - Hide in iframe mode */}
-      {!inIframe && (
-      <header className="glass border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          {/* Top Row: Logo, Name, and Action Buttons */}
-          <div className="flex items-center justify-between gap-3 sm:gap-6 mb-3">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
-              {workspace.logo ? (
-                <img 
-                  src={normalizeImageUrl(workspace.logo)} 
-                  alt={workspace.name} 
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0"
-                  onError={(e) => {
-                    console.error('Failed to load workspace logo:', workspace.logo);
-                    e.target.style.display = 'none';
-                    // Show fallback initial circle
-                    const fallback = e.target.nextElementSibling;
-                    if (fallback) {
-                      fallback.style.display = 'flex';
-                    }
-                  }}
-                />
-              ) : null}
-              {!workspace.logo && (
-                <div
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  {workspace.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0 flex-shrink">
-                <h1 className="text-base sm:text-xl font-heading font-bold text-foreground truncate">{workspace.name}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">{portalDetails.title}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              {/* Language Switcher */}
-              <LanguageSwitcher />
-              
-              {/* Portal External Links - Hide on mobile if too many */}
-              {workspace.portal_links && workspace.portal_links.length > 0 && (
-                <div className="hidden sm:flex items-center gap-2">
-                  {workspace.portal_links.map((link, index) => (
-                    link.label && link.url && (
-                      <a
-                        key={index}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all hover:scale-105 text-white"
-                        style={{
-                          backgroundColor: primaryColor,
-                          textDecoration: 'none'
-                        }}
-                      >
-                        {link.label}
-                      </a>
-                    )
-                  ))}
-                </div>
-              )}
-
-              {isLoggedIn && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setAdminDialogOpen(true)}
-                  data-testid="back-to-dashboard-link"
-                  className="text-xs sm:text-sm px-2 sm:px-3"
-                >
-                  <span className="hidden sm:inline">Admin Dashboard</span>
-                  <span className="sm:hidden">Admin</span>
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Bottom Row: Contact Information - Responsive */}
-          {(workspace.portal_phone || workspace.portal_working_hours || workspace.portal_whatsapp) && (
-            <div className="flex items-center gap-4 sm:gap-6 flex-wrap text-xs sm:text-sm text-muted-foreground border-t border-border pt-3">
-              {workspace.portal_phone && (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
-                  <a href={`tel:${workspace.portal_phone.replace(/\s/g, '')}`} className="hover:text-foreground transition-colors truncate">
-                    {workspace.portal_phone}
-                  </a>
-                </div>
-              )}
-              {workspace.portal_working_hours && (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
-                  <span className="truncate">{workspace.portal_working_hours}</span>
-                </div>
-              )}
-              {workspace.portal_whatsapp && (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: primaryColor }} />
-                  <a 
-                    href={workspace.portal_whatsapp} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="hover:text-foreground transition-colors truncate"
-                  >
-                    {t('portal.whatsapp')}
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-      )}
-
+      <>
       {/* Portal-Specific Header */}
       <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 relative`}>
         <div className="max-w-6xl mx-auto">
@@ -514,15 +129,15 @@ const PortalPage = ({ isEmbedded = false }) => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-center">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.admin.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.admin.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
                     <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Badge variant="secondary">{t('portal.headers.admin.badgeSystemHealth')}</Badge>
-                      <Badge variant="secondary">{t('portal.headers.admin.badgeAuditReady')}</Badge>
-                      <Badge variant="secondary">{t('portal.headers.admin.badgeIntegrationControl')}</Badge>
+                      <Badge variant="secondary">{t('headers.admin.badgeSystemHealth')}</Badge>
+                      <Badge variant="secondary">{t('headers.admin.badgeAuditReady')}</Badge>
+                      <Badge variant="secondary">{t('headers.admin.badgeIntegrationControl')}</Badge>
                     </div>
                   </div>
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
@@ -545,7 +160,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                     <img src={portalDetails.headerImage} alt="Guided journey checklist" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.tenant.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.tenant.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
@@ -555,7 +170,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={t('portal.searchPlaceholder')}
+                        placeholder={t('searchPlaceholder')}
                         className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
                         data-testid="portal-search-input"
                       />
@@ -575,7 +190,7 @@ const PortalPage = ({ isEmbedded = false }) => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] items-center">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.knowledge.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.knowledge.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
@@ -585,7 +200,7 @@ const PortalPage = ({ isEmbedded = false }) => {
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={t('portal.searchPlaceholder')}
+                        placeholder={t('searchPlaceholder')}
                         className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
                         data-testid="portal-search-input"
                       />
@@ -611,15 +226,15 @@ const PortalPage = ({ isEmbedded = false }) => {
                     <img src={portalDetails.headerImage} alt="Connected apps and automation flows" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal.headers.integrations.label')}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('headers.integrations.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
                       {portalDetails.title}
                     </h1>
                     <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Badge variant="secondary">{t('portal.headers.integrations.badgeApiReady')}</Badge>
-                      <Badge variant="secondary">{t('portal.headers.integrations.badgeWorkflowAutomation')}</Badge>
-                      <Badge variant="secondary">{t('portal.headers.integrations.badgeSyncHealth')}</Badge>
+                      <Badge variant="secondary">{t('headers.integrations.badgeApiReady')}</Badge>
+                      <Badge variant="secondary">{t('headers.integrations.badgeWorkflowAutomation')}</Badge>
+                      <Badge variant="secondary">{t('headers.integrations.badgeSyncHealth')}</Badge>
                     </div>
                   </div>
                 </div>
@@ -854,15 +469,15 @@ const PortalPage = ({ isEmbedded = false }) => {
             <div className="glass rounded-2xl border border-border px-6 py-6">
               <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-heading font-semibold text-foreground">{t('portal.knowledgeSystems.title', { defaultValue: 'Knowledge Systems' })}</h3>
-                  <p className="text-sm text-muted-foreground">{t('portal.knowledgeSystems.description', { defaultValue: 'Browse published policies, procedures, docs, FAQs, and decisions.' })}</p>
+                  <h3 className="text-lg font-heading font-semibold text-foreground">{t('knowledgeSystems.title', { defaultValue: 'Knowledge Systems' })}</h3>
+                  <p className="text-sm text-muted-foreground">{t('knowledgeSystems.description', { defaultValue: 'Browse published policies, procedures, docs, FAQs, and decisions.' })}</p>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {t('portal.knowledgeSystems.available', { defaultValue: '{{count}} available', count: knowledgeSystemsMenu.length })}
+                  {t('knowledgeSystems.available', { defaultValue: '{{count}} available', count: knowledgeSystemsMenu.length })}
                 </div>
               </div>
               {knowledgeSystemsMenu.length === 0 ? (
-                <div className="text-sm text-muted-foreground">{t('portal.knowledgeSystems.none', { defaultValue: 'No knowledge systems published yet.' })}</div>
+                <div className="text-sm text-muted-foreground">{t('knowledgeSystems.none', { defaultValue: 'No knowledge systems published yet.' })}</div>
               ) : (
                 <div className="flex flex-wrap gap-3">
                   {knowledgeSystemsMenu.map(system => (
@@ -923,7 +538,7 @@ const PortalPage = ({ isEmbedded = false }) => {
             style={{ backgroundColor: primaryColor }}
           >
             <HelpCircle className="w-5 h-5" />
-            <span>{t('portal.needHelp')}</span>
+            <span>{t('needHelp')}</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -932,7 +547,7 @@ const PortalPage = ({ isEmbedded = false }) => {
       <Dialog open={categorySelectOpen} onOpenChange={setCategorySelectOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('portal.selectCategory')}</DialogTitle>
+            <DialogTitle>{t('selectCategory')}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
             {portal?.categories?.filter(c => c.notebooklm_url).map((category) => (
@@ -992,7 +607,7 @@ const PortalPage = ({ isEmbedded = false }) => {
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5" />
               <div>
-                  <div className="font-semibold">{t('portal.chatOpened')}</div>
+                  <div className="font-semibold">{t('chatOpened')}</div>
                 <div className="text-xs opacity-90">{selectedCategoryForChat.name}</div>
               </div>
             </div>
@@ -1014,7 +629,7 @@ const PortalPage = ({ isEmbedded = false }) => {
           </div>
           <div className="glass p-4 border-t border-border">
             <p className="text-sm text-muted-foreground mb-3">
-              {t('portal.chatWindowInstructions')}
+              {t('chatWindowInstructions')}
             </p>
             <Button
               variant="outline"
@@ -1026,64 +641,35 @@ const PortalPage = ({ isEmbedded = false }) => {
                 }
               }}
             >
-              {t('portal.openChatTab')}
+              {t('openChatTab')}
             </Button>
           </div>
         </motion.div>
       )}
 
       {/* Knowledge Systems Navigation Bar */}
-      {!inIframe && <KnowledgeSystemsNavigationBar workspaceId={portal?.workspace?.id} />}
+      {!inIframe && <KnowledgeSystemsNavigationBar workspaceId={workspace?.id} />}
 
       {/* Footer - Powered by InterGuide */}
       {!inIframe && (
         <footer className="glass border-t border-border py-6 px-6">
           <div className="max-w-7xl mx-auto text-center">
             <p className="text-sm text-muted-foreground mb-2">
-              {t('portal.poweredBy')}
+              {t('poweredBy')}
             </p>
             <p className="text-sm text-muted-foreground mb-3">
-              {t('portal.wantKnowledgeBase')}
+              {t('wantKnowledgeBase')}
             </p>
             <Link to="/signup">
               <Button variant="secondary" size="sm">
-                {t('portal.getStarted')}
+                {t('getStarted')}
               </Button>
             </Link>
           </div>
         </footer>
       )}
 
-      {/* Admin Dashboard Dialog */}
-      <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('portal.adminDialog.title')}</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <p className="text-sm text-slate-300">
-              {t('portal.adminDialog.message')}
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setAdminDialogOpen(false)}
-              >
-                {t('portal.adminDialog.stayInPortal')}
-              </Button>
-              <Button
-                onClick={() => {
-                  setAdminDialogOpen(false);
-                  navigate('/dashboard');
-                }}
-              >
-                {t('portal.adminDialog.goToDashboard')}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </>
   );
 };
 

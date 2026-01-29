@@ -61,7 +61,7 @@ const SYSTEM_DEFINITIONS = [
 ];
 
 function KnowledgeSystemsPage() {
-  const { t } = useTranslation('knowledgeSystems');
+  const { t, ready } = useTranslation('knowledgeSystems');
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -125,7 +125,7 @@ function KnowledgeSystemsPage() {
     navigate(portalPath);
   };
 
-  if (workspaceLoading || loading) {
+  if (!ready || workspaceLoading || loading) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">

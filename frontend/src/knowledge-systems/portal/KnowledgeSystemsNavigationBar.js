@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,10 @@ import { DOCUMENTATION_ROUTES } from '../../documentation-system/routes';
 import { FAQ_ROUTES } from '../../faq-system/routes';
 import { DECISION_TREE_ROUTES } from '../../decision-tree-system/routes';
 import { portalKnowledgeSystemsService } from '../api-service';
+import { useKnowledgeRoute } from '../KnowledgeRouteContext';
 
 function KnowledgeSystemsNavigationBar({ workspaceId }) {
-  const { slug } = useParams();
+  const { slug } = useKnowledgeRoute();
   const navigate = useNavigate();
   const [isMinimized, setIsMinimized] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);

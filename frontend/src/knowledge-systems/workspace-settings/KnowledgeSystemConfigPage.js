@@ -30,7 +30,7 @@ import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
  * Knowledge System Configuration Page
  */
 function KnowledgeSystemConfigPage() {
-  const { t } = useTranslation('knowledgeSystems');
+  const { t, ready } = useTranslation('knowledgeSystems');
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
   const { workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -121,7 +121,7 @@ function KnowledgeSystemConfigPage() {
     }
   };
 
-  if (workspaceLoading || loading) {
+  if (!ready || workspaceLoading || loading) {
     return (
       <DashboardLayout>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -143,7 +143,7 @@ function KnowledgeSystemConfigPage() {
                 The knowledge system "{systemType}" is not recognized.
               </p>
               <Button onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}>
-                {t('knowledgeSystems.backToSystems')}
+                {t('backToSystems')}
               </Button>
             </CardContent>
           </Card>

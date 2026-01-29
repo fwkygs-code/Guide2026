@@ -30,7 +30,7 @@ const PolicyRichTextEditor = ({
   onChange: (next: string) => void;
   placeholder: string;
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('knowledgeSystems');
   const editorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -50,19 +50,19 @@ const PolicyRichTextEditor = ({
     <div className="border border-amber-500/20 bg-slate-900/60 rounded-lg overflow-hidden">
       <div className="flex flex-wrap gap-1 border-b border-amber-500/20 bg-slate-900/80 p-2">
         <button type="button" className="px-2 py-1 text-xs text-amber-200 hover:text-white" onClick={() => exec('bold')}>
-              {t('knowledgeSystems.policy.editor.bold')}
+              {t('policy.editor.bold')}
         </button>
         <button type="button" className="px-2 py-1 text-xs text-amber-200 hover:text-white" onClick={() => exec('italic')}>
-              {t('knowledgeSystems.policy.editor.italic')}
+              {t('policy.editor.italic')}
         </button>
         <button type="button" className="px-2 py-1 text-xs text-amber-200 hover:text-white" onClick={() => exec('formatBlock', 'h3')}>
-          {t('knowledgeSystems.policy.editor.heading')}
+          {t('policy.editor.heading')}
         </button>
         <button type="button" className="px-2 py-1 text-xs text-amber-200 hover:text-white" onClick={() => exec('insertOrderedList')}>
-          {t('knowledgeSystems.policy.editor.numbered')}
+          {t('policy.editor.numbered')}
         </button>
         <button type="button" className="px-2 py-1 text-xs text-amber-200 hover:text-white" onClick={() => exec('insertUnorderedList')}>
-          {t('knowledgeSystems.policy.editor.bullets')}
+          {t('policy.editor.bullets')}
         </button>
       </div>
       <div
@@ -79,7 +79,7 @@ const PolicyRichTextEditor = ({
 };
 
 export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEditorRootProps) => {
-  const { t } = useTranslation();
+  const { t, ready } = useTranslation('knowledgeSystems');
   const [draft, setDraft] = useState<PolicyDraft | null>(null);
   const [meta, setMeta] = useState<PolicyMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -262,14 +262,14 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
       console.log('[Policy] Published successfully:', published);
       
       setMeta({ ...meta, publishedAt: new Date().toISOString() });
-      alert(t('knowledgeSystems.policy.editor.publishSuccess'));
+      alert(t('policy.editor.publishSuccess'));
     } catch (error) {
       console.error('[Policy] Publish failed:', error);
-      setPublishError(t('knowledgeSystems.policy.editor.publishError'));
+      setPublishError(t('policy.editor.publishError'));
     }
   };
 
-  if (loading || !draft || !meta) {
+  if (!ready || loading || !draft || !meta) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
         <video
@@ -288,16 +288,16 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
     );
   }
 
-  const statusLabel = meta.publishedAt ? t('knowledgeSystems.status.published') : t('knowledgeSystems.status.draft');
+  const statusLabel = meta.publishedAt ? t('status.published') : t('status.draft');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-amber-50">
       <header className="sticky top-0 z-20 border-b border-amber-500/20 bg-slate-950/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-amber-300/70">{t('knowledgeSystems.title')}</p>
-            <h1 className="text-3xl font-semibold tracking-wide">{draft.title || t('knowledgeSystems.policy.editor.untitled')}</h1>
-            <p className="text-sm text-amber-200/70">{t('knowledgeSystems.policy.editor.subtitle')}</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-amber-300/70">{t('title')}</p>
+            <h1 className="text-3xl font-semibold tracking-wide">{draft.title || t('policy.editor.untitled')}</h1>
+            <p className="text-sm text-amber-200/70">{t('policy.editor.subtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="px-3 py-1 text-xs uppercase tracking-[0.2em] rounded-full border border-amber-400/40 text-amber-200">
@@ -332,23 +332,23 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
           <div className="space-y-6">
             <div className="border border-amber-500/20 bg-slate-900/60 rounded-2xl p-6 shadow-xl">
               <div className="grid gap-4">
-                <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('knowledgeSystems.policy.editor.policyTitle')}</label>
+                <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('policy.editor.policyTitle')}</label>
                 <input
                   value={draft.title}
                   onChange={(event) => updateDraft({ title: event.target.value })}
                   className="bg-transparent border-b border-amber-400/30 text-2xl font-semibold focus:outline-none focus:border-amber-400"
-                  placeholder={t('knowledgeSystems.policy.editor.policyTitlePlaceholder')}
+                  placeholder={t('policy.editor.policyTitlePlaceholder')}
                 />
-                <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('knowledgeSystems.policy.editor.description')}</label>
+                <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('policy.editor.description')}</label>
                 <textarea
                   value={draft.description}
                   onChange={(event) => updateDraft({ description: event.target.value })}
                   className="min-h-[80px] bg-slate-950/60 border border-amber-500/20 rounded-lg p-3 text-amber-50 focus:outline-none focus:border-amber-400/50"
-                  placeholder={t('knowledgeSystems.policy.editor.descriptionPlaceholder')}
+                  placeholder={t('policy.editor.descriptionPlaceholder')}
                 />
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('knowledgeSystems.policy.editor.effectiveDate')}</label>
+                    <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('policy.editor.effectiveDate')}</label>
                     <input
                       type="date"
                       value={draft.effectiveDate}
@@ -357,12 +357,12 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('knowledgeSystems.policy.editor.jurisdiction')}</label>
+                    <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('policy.editor.jurisdiction')}</label>
                     <input
                       value={draft.jurisdiction}
                       onChange={(event) => updateDraft({ jurisdiction: event.target.value })}
                       className="w-full bg-slate-950/60 border border-amber-500/20 rounded-lg p-2 text-amber-50 focus:outline-none focus:border-amber-400/50"
-                      placeholder={t('knowledgeSystems.policy.editor.jurisdictionPlaceholder')}
+                      placeholder={t('policy.editor.jurisdictionPlaceholder')}
                     />
                   </div>
                 </div>
@@ -371,8 +371,8 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
 
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold">{t('knowledgeSystems.policy.editor.sections')}</h2>
-                <p className="text-sm text-amber-200/70">{t('knowledgeSystems.policy.editor.sectionsDescription')}</p>
+                <h2 className="text-xl font-semibold">{t('policy.editor.sections')}</h2>
+                <p className="text-sm text-amber-200/70">{t('policy.editor.sectionsDescription')}</p>
               </div>
               <button
                 type="button"
@@ -388,12 +388,12 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
                 <div key={section.id} className="border border-amber-500/20 bg-slate-900/70 rounded-2xl p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.25em] text-amber-200/60">{t('knowledgeSystems.policy.editor.section')} {index + 1}</p>
+                      <p className="text-xs uppercase tracking-[0.25em] text-amber-200/60">{t('policy.editor.section')} {index + 1}</p>
                       <input
                         value={section.title}
                         onChange={(event) => updateSection(index, { title: event.target.value })}
                         className="bg-transparent text-xl font-semibold border-b border-amber-400/30 focus:outline-none focus:border-amber-400"
-                        placeholder={t('knowledgeSystems.policy.editor.section') + ' ' + t('knowledgeSystems.policy.editor.title')}
+                        placeholder={t('policy.editor.section') + ' ' + t('policy.editor.title')}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -416,14 +416,14 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
                         onClick={() => removeSection(index)}
                         className="px-3 py-1 text-xs border border-amber-400/30 rounded-full text-amber-200 hover:text-white"
                       >
-                        {t('knowledgeSystems.policy.editor.removeSection')}
+                        {t('policy.editor.removeSection')}
                       </button>
                     </div>
                   </div>
 
                   <div className="mt-4 grid gap-4">
                     <div>
-                      <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('knowledgeSystems.policy.editor.category')}</label>
+                      <label className="text-xs uppercase tracking-[0.25em] text-amber-200/70">{t('policy.editor.category')}</label>
                       <input
                         value={section.category}
                         onChange={(event) => updateSection(index, { category: event.target.value })}
@@ -434,7 +434,7 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
                     <PolicyRichTextEditor
                       value={section.content}
                       onChange={(content) => updateSection(index, { content })}
-                      placeholder={t('knowledgeSystems.policy.editor.contentPlaceholder')}
+                      placeholder={t('policy.editor.contentPlaceholder')}
                     />
                   </div>
                 </div>
@@ -444,27 +444,27 @@ export const PolicyEditorRoot = ({ workspaceId, itemId, closeHref }: PolicyEdito
 
           <aside className="space-y-6">
             <div className="border border-amber-500/20 bg-slate-900/70 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-4">{t('knowledgeSystems.policy.editor.versionHistory') || 'Version History'}</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('policy.editor.versionHistory') || 'Version History'}</h3>
               <div className="space-y-3 text-sm text-amber-200/70">
                 <div>
-                  <p className="uppercase tracking-[0.2em] text-xs text-amber-200/50">{t('knowledgeSystems.policy.editor.created') || 'Created'}</p>
+                  <p className="uppercase tracking-[0.2em] text-xs text-amber-200/50">{t('policy.editor.created') || 'Created'}</p>
                   <p>{new Date(meta.createdAt).toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="uppercase tracking-[0.2em] text-xs text-amber-200/50">{t('knowledgeSystems.policy.editor.lastUpdated') || 'Last Updated'}</p>
+                  <p className="uppercase tracking-[0.2em] text-xs text-amber-200/50">{t('policy.editor.lastUpdated') || 'Last Updated'}</p>
                   <p>{new Date(meta.updatedAt).toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="uppercase tracking-[0.2em] text-xs text-amber-200/50">{t('knowledgeSystems.policy.editor.published') || 'Published'}</p>
-                  <p>{meta.publishedAt ? new Date(meta.publishedAt).toLocaleString() : (t('knowledgeSystems.policy.editor.notPublished') || 'Not published')}</p>
+                  <p className="uppercase tracking-[0.2em] text-xs text-amber-200/50">{t('policy.editor.published') || 'Published'}</p>
+                  <p>{meta.publishedAt ? new Date(meta.publishedAt).toLocaleString() : (t('policy.editor.notPublished') || 'Not published')}</p>
                 </div>
               </div>
             </div>
 
             <div className="border border-amber-500/20 bg-slate-900/70 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-3">{t('knowledgeSystems.policy.editor.publishCheck') || 'Publish Check'}</h3>
+              <h3 className="text-lg font-semibold mb-3">{t('policy.editor.publishCheck') || 'Publish Check'}</h3>
               <p className="text-sm text-amber-200/70 mb-4">
-                {t('knowledgeSystems.policy.editor.publishCheckDescription') || 'Publishing copies the draft into the official portal and locks the version badge.'}
+                {t('policy.editor.publishCheckDescription') || 'Publishing copies the draft into the official portal and locks the version badge.'}
               </p>
               {publishError && (
                 <div className="text-sm text-red-300 border border-red-500/40 rounded-lg p-3 bg-red-500/10">

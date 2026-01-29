@@ -13,13 +13,21 @@ import { ArrowLeft, Clock, Settings, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import WorkspaceLoader from '../../components/WorkspaceLoader';
 import { getKnowledgeSystemConfig } from '../registry/KnowledgeSystemRegistry';
 
 /**
  * Knowledge System Placeholder Page
  */
 function KnowledgeSystemPlaceholderPage() {
-  const { t } = useTranslation('knowledgeSystems');
+  const { t, ready } = useTranslation('knowledgeSystems');
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <WorkspaceLoader size={160} />
+      </div>
+    );
+  }
   const { workspaceSlug, systemType } = useParams();
   const navigate = useNavigate();
 
@@ -206,7 +214,7 @@ function KnowledgeSystemPlaceholderPage() {
               onClick={() => navigate(`/workspace/${workspaceSlug}/knowledge-systems`)}
               className="border-slate-600 text-slate-300"
             >
-              {t('knowledgeSystems.backToSystems')}
+              {t('backToSystems')}
             </Button>
             <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
               <Plus className="w-4 h-4 mr-2" />

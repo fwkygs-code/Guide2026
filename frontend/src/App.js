@@ -33,10 +33,17 @@ import EmailVerificationRequiredPage from './pages/EmailVerificationRequiredPage
 import AccountBlockedPage from './pages/AccountBlockedPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminRoute from './components/AdminRoute';
+import PortalLayout from './components/PortalLayout';
 
 // Knowledge Systems (isolated modules)
 import KnowledgeSystemsPage from './knowledge-systems/workspace-settings/KnowledgeSystemsPage';
 import KnowledgeSystemPortalPage from './knowledge-systems/portal/KnowledgeSystemPortalPage';
+import WorkspaceKnowledgeLayout from './knowledge-systems/WorkspaceKnowledgeLayout';
+import PolicyPortalPage from './knowledge-systems/portal/PolicyPortalPage';
+import ProcedurePortalPage from './knowledge-systems/portal/ProcedurePortalPage';
+import DocumentationPortalPage from './knowledge-systems/portal/DocumentationPortalPage';
+import FAQPortalPage from './knowledge-systems/portal/FAQPortalPage';
+import DecisionTreePortalPage from './knowledge-systems/portal/DecisionTreePortalPage';
 import { useWorkspaceSlug } from './hooks/useWorkspaceSlug';
 import { POLICY_ROUTES } from './policy-system/routes';
 import { PROCEDURE_ROUTES } from './procedure-system/routes';
@@ -49,11 +56,6 @@ import { ProcedureEditorRoot } from './procedure-system/EditorRoot';
 import { DocumentationEditorRoot } from './documentation-system/EditorRoot';
 import { FAQEditorRoot } from './faq-system/EditorRoot';
 import { DecisionTreeEditorRoot } from './decision-tree-system/EditorRoot';
-import { PolicyPortalRoot } from './policy-system/PortalRoot';
-import { ProcedurePortalRoot } from './procedure-system/PortalRoot';
-import { DocumentationPortalRoot } from './documentation-system/PortalRoot';
-import { FAQPortalRoot } from './faq-system/PortalRoot';
-import { DecisionTreePortalRoot } from './decision-tree-system/PortalRoot';
 
 // Mandatory surface component - guarantees no white backgrounds
 import { AppSurface } from './components/ui/design-system/AppSurface';
@@ -217,31 +219,6 @@ const DecisionTreeEditorRoute = () => {
   );
 };
 
-const PolicyPortalRoute = () => {
-  const { slug } = useParams();
-  return <PolicyPortalRoot portalSlug={slug} />;
-};
-
-const ProcedurePortalRoute = () => {
-  const { slug } = useParams();
-  return <ProcedurePortalRoot portalSlug={slug} />;
-};
-
-const DocumentationPortalRoute = () => {
-  const { slug } = useParams();
-  return <DocumentationPortalRoot portalSlug={slug} />;
-};
-
-const FAQPortalRoute = () => {
-  const { slug } = useParams();
-  return <FAQPortalRoot portalSlug={slug} />;
-};
-
-const DecisionTreePortalRoute = () => {
-  const { slug } = useParams();
-  return <DecisionTreePortalRoot portalSlug={slug} />;
-};
-
 const preloadVideo = (src) => {
   if (typeof document === 'undefined') return;
   const video = document.createElement('video');
@@ -302,15 +279,24 @@ const AppContent = () => {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/portal/:slug" element={<PortalPage />} />
-          <Route path="/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage />} />
-          <Route path={POLICY_ROUTES.portal} element={<PolicyPortalRoute />} />
-          <Route path={PROCEDURE_ROUTES.portal} element={<ProcedurePortalRoute />} />
-          <Route path={DOCUMENTATION_ROUTES.portal} element={<DocumentationPortalRoute />} />
-          <Route path={FAQ_ROUTES.portal} element={<FAQPortalRoute />} />
-          <Route path={DECISION_TREE_ROUTES.portal} element={<DecisionTreePortalRoute />} />
-          <Route path="/embed/portal/:slug" element={<PortalPage isEmbedded={true} />} />
-          <Route path="/embed/portal/:slug/:walkthroughId" element={<WalkthroughViewerPage isEmbedded={true} />} />
+          <Route path="/portal/:slug" element={<PortalLayout />}>
+            <Route index element={<PortalPage />} />
+            <Route path="knowledge/policies" element={<PolicyPortalPage />} />
+            <Route path="knowledge/procedures" element={<ProcedurePortalPage />} />
+            <Route path="knowledge/documentation" element={<DocumentationPortalPage />} />
+            <Route path="knowledge/faqs" element={<FAQPortalPage />} />
+            <Route path="knowledge/decisions" element={<DecisionTreePortalPage />} />
+            <Route path=":walkthroughId" element={<WalkthroughViewerPage />} />
+          </Route>
+          <Route path="/embed/portal/:slug" element={<PortalLayout isEmbedded={true} />}>
+            <Route index element={<PortalPage />} />
+            <Route path="knowledge/policies" element={<PolicyPortalPage />} />
+            <Route path="knowledge/procedures" element={<ProcedurePortalPage />} />
+            <Route path="knowledge/documentation" element={<DocumentationPortalPage />} />
+            <Route path="knowledge/faqs" element={<FAQPortalPage />} />
+            <Route path="knowledge/decisions" element={<DecisionTreePortalPage />} />
+            <Route path=":walkthroughId" element={<WalkthroughViewerPage isEmbedded={true} />} />
+          </Route>
           
           <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute><AdminRoute><AdminDashboardPage /></AdminRoute></PrivateRoute>} />
@@ -323,24 +309,23 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/implementation" element={<PrivateRoute><WorkspaceRouteGuard><ImplementationPage /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><WorkspaceRouteGuard><SettingsPage /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemsPage /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={POLICY_ROUTES.list} element={<PrivateRoute><WorkspaceRouteGuard><PolicyListRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={POLICY_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={POLICY_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          
-          {/* Knowledge System Portal Routes */}
-          <Route path="/workspace/:workspaceSlug/knowledge/policy" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="policy" /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/procedure" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="procedure" /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/documentation" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="documentation" /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/faq" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="faq" /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/knowledge/decision_tree" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="decision_tree" /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={PROCEDURE_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={PROCEDURE_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={DOCUMENTATION_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={DOCUMENTATION_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={FAQ_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={FAQ_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={DECISION_TREE_ROUTES.create} element={<PrivateRoute><WorkspaceRouteGuard><DecisionTreeEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path={DECISION_TREE_ROUTES.edit} element={<PrivateRoute><WorkspaceRouteGuard><DecisionTreeEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/knowledge" element={<PrivateRoute><WorkspaceRouteGuard><WorkspaceKnowledgeLayout /></WorkspaceRouteGuard></PrivateRoute>}>
+            <Route path="policy" element={<PolicyListRoute />} />
+            <Route path="policy/new" element={<PolicyEditorRoute />} />
+            <Route path="policy/:itemId" element={<PolicyEditorRoute />} />
+            <Route path="procedure" element={<KnowledgeSystemPortalPage systemType="procedure" />} />
+            <Route path="procedure/new" element={<ProcedureEditorRoute />} />
+            <Route path="procedure/:itemId" element={<ProcedureEditorRoute />} />
+            <Route path="documentation" element={<KnowledgeSystemPortalPage systemType="documentation" />} />
+            <Route path="documentation/new" element={<DocumentationEditorRoute />} />
+            <Route path="documentation/:itemId" element={<DocumentationEditorRoute />} />
+            <Route path="faq" element={<KnowledgeSystemPortalPage systemType="faq" />} />
+            <Route path="faq/new" element={<FAQEditorRoute />} />
+            <Route path="faq/:itemId" element={<FAQEditorRoute />} />
+            <Route path="decision_tree" element={<KnowledgeSystemPortalPage systemType="decision_tree" />} />
+            <Route path="decision_tree/new" element={<DecisionTreeEditorRoute />} />
+            <Route path="decision_tree/:itemId" element={<DecisionTreeEditorRoute />} />
+          </Route>
           </Routes>
           </AppSurface>
           </WorkspaceProvider>
