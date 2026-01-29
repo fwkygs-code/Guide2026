@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { apiClient, API_BASE } from '../lib/api';
+import { apiClient, API_BASE, getPublicPortalUrl } from '../lib/api';
 import { detectRTL } from '../utils/blockUtils';
 import sanitizeHtml from '../lib/sanitizeHtml';
 
@@ -62,7 +62,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     if (!baseUrl) return;
 
     const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
-    const shareableUrl = `${window.location.origin}/portal/${slug}/${walkthroughIdentifier}#step=${currentStep + 1}`;
+    const shareableUrl = `${getPublicPortalUrl()}/portal/${slug}/${walkthroughIdentifier}#step=${currentStep + 1}`;
     const categoryName =
       walkthrough.category_name ||
       (Array.isArray(walkthrough.category_names) ? walkthrough.category_names[0] : null) ||

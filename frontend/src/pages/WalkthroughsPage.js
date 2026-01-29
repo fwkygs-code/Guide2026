@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, Share2, Code, Copy, Settings, Upload, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, getBackendUrl } from '../lib/api';
+import { api, getBackendUrl, getPublicPortalUrl } from '../lib/api';
 import { normalizeImageUrlsInObject, normalizeImageUrl } from '../lib/utils';
 import DashboardLayout from '../components/DashboardLayout';
 import { useQuota } from '../hooks/useQuota';
@@ -701,7 +701,7 @@ const WalkthroughShareButton = ({ walkthrough, workspaceSlug }) => {
   // Use backend URL for sharing (WhatsApp crawlers need backend route)
   // Use slug if available, otherwise fall back to ID
   const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
-  const walkthroughUrl = `${getBackendUrl()}/portal/${workspaceSlug}/${walkthroughIdentifier}`;
+  const walkthroughUrl = `${getPublicPortalUrl()}/portal/${workspaceSlug}/${walkthroughIdentifier}`;
   const embedUrl = `${window.location.origin}/embed/portal/${workspaceSlug}/${walkthrough.id}`;
   const iframeCode = `<iframe src="${embedUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
 

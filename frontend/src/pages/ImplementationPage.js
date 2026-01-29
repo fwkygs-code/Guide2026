@@ -6,7 +6,7 @@ import { ChevronDown, Copy, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import DashboardLayout from '../components/DashboardLayout';
 import { useWorkspaceSlug } from '../hooks/useWorkspaceSlug';
-import { api, getBackendUrl } from '../lib/api';
+import { api, getBackendUrl, getPublicPortalUrl } from '../lib/api';
 import {
   PageHeader,
   PageSurface,
@@ -134,7 +134,10 @@ const ImplementationPage = () => {
                       const isExpanded = expandedWalkthroughId === walkthroughKey;
                       const steps = walkthrough.steps || [];
                       const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
-                      const walkthroughUrl = `${getBackendUrl()}/portal/${workspaceSlug}/${walkthroughIdentifier}`;
+                      const integrationBaseUrl = getBackendUrl();
+                      const shareableBaseUrl = getPublicPortalUrl();
+                      const integrationWalkthroughUrl = `${integrationBaseUrl}/portal/${workspaceSlug}/${walkthroughIdentifier}`;
+                      const shareableWalkthroughUrl = `${shareableBaseUrl}/portal/${workspaceSlug}/${walkthroughIdentifier}`;
 
                       return (
                         <div key={walkthroughKey} className="rounded-xl border border-border/60 bg-background/40">
@@ -176,9 +179,9 @@ const ImplementationPage = () => {
                                 <div className="px-4 py-3 space-y-2">
                                   {steps.map((step, index) => {
                                     const integrationUrl = step.step_id
-                                      ? `${walkthroughUrl}#step=${step.step_id}`
+                                      ? `${integrationWalkthroughUrl}#step=${step.step_id}`
                                       : null;
-                                    const shareableUrl = `${walkthroughUrl}#step=${index + 1}`;
+                                    const shareableUrl = `${shareableWalkthroughUrl}#step=${index + 1}`;
                                     return (
                                       <div
                                         key={step.id || `${walkthrough.id}-step-${index}`}

@@ -3,12 +3,16 @@ import { getApiClient, getApiBase, getApiRoot } from '../shared/http';
 export const API_BASE = getApiBase();
 export const API = getApiRoot();
 export const apiClient = getApiClient();
+export const PUBLIC_PORTAL_BASE_URL = (process.env.REACT_APP_PUBLIC_PORTAL_URL || 'https://www.interguide.app')
+  .replace(/\/$/, '');
 
 // Get backend URL for sharing (WhatsApp previews need backend route)
 export const getBackendUrl = () => {
   // Remove /api suffix if present to get base backend URL
   return API_BASE.replace(/\/api$/, '').replace(/\/$/, '');
 };
+
+export const getPublicPortalUrl = () => PUBLIC_PORTAL_BASE_URL;
 
 export const api = {
   // Workspaces
