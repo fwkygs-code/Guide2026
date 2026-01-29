@@ -42,15 +42,6 @@ const PortalPage = ({ isEmbedded = false }) => {
   }, [slug]);
 
   useEffect(() => {
-    if (!isEmbedParam) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isEmbedParam]);
-
-  useEffect(() => {
     const checkAuth = async () => {
       try {
         const response = await apiClient.get(`/auth/me`, {
@@ -377,8 +368,20 @@ const PortalPage = ({ isEmbedded = false }) => {
     ? { backgroundImage: `url(${normalizeImageUrl(workspace.portal_background_url)})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
     : {};
 
+  const embedScrollStyle = inIframe
+    ? {
+        height: '100%',
+        minHeight: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch'
+      }
+    : {};
+
   return (
-      <div className={`min-h-screen bg-background ${inIframe ? 'iframe-mode' : ''}`} style={backgroundStyle}>
+      <div
+        className={`${inIframe ? 'bg-background' : 'min-h-screen bg-background'} ${inIframe ? 'iframe-mode' : ''}`}
+        style={{ ...backgroundStyle, ...embedScrollStyle }}
+      >
       {/* Overlay for background image readability */}
       {workspace.portal_background_url && (
         <div className="fixed inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 -z-10" />
