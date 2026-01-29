@@ -6,6 +6,7 @@ import { BookOpen, FolderOpen, Search, Lock, ChevronRight, HelpCircle, X } from 
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { normalizeImageUrl } from '../lib/utils';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
