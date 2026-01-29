@@ -269,9 +269,11 @@ const WalkthroughsPage = () => {
 
   if (loading || !workspaceId) {
     return (
-      <AppShell>
-        <WorkspaceLoader className="min-h-[320px]" size={140} />
-      </AppShell>
+      <DashboardLayout>
+        <Surface variant="glass" className="min-h-screen flex items-center justify-center">
+          <WorkspaceLoader size={160} />
+        </Surface>
+      </DashboardLayout>
     );
   }
 

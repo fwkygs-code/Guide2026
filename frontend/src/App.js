@@ -62,11 +62,7 @@ const PrivateRoute = ({ children }) => {
   const { user, loading, isBlocked } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return children;
   }
   
   // Show blocked page if account is disabled/deleted
@@ -93,11 +89,7 @@ const WorkspaceRouteGuard = ({ children }) => {
   const { workspace, loading, error } = useWorkspace();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return children;
   }
 
   if (error?.status === 403) {
