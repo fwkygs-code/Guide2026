@@ -45,6 +45,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [showSupportDialog, setShowSupportDialog] = useState(false);
   const [supportContactInfo, setSupportContactInfo] = useState(null);
+  const [categoriesById, setCategoriesById] = useState({});
 
   const getWhatsAppBaseUrl = (whatsappUrl) => {
     if (!whatsappUrl) return null;
@@ -71,10 +72,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
 
     const walkthroughIdentifier = walkthrough.slug || walkthrough.id;
     const shareableUrl = `${getPublicPortalUrl()}/portal/${slug}/${walkthroughIdentifier}#step=${currentStep + 1}`;
+    const primaryCategoryId = walkthrough?.category_ids?.[0];
     const categoryName =
-      walkthrough.category_name ||
-      (Array.isArray(walkthrough.category_names) ? walkthrough.category_names[0] : null) ||
-      t('stuck.categoryFallback');
+      (primaryCategoryId && categoriesById[primaryCategoryId]?.name) || t('stuck.categoryFallback');
     const guideTitle = walkthrough.title || t('stuck.guideFallback');
     const stepTitle = step.title || t('stuck.stepFallback');
 
@@ -413,6 +413,26 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     checkAuth();
     fetchWalkthrough();
   }, [slug, walkthroughId]);
+
+  useEffect(() => {
+    if (!slug) return;
+    const fetchCategories = async () => {
+      try {
+        const response = await apiClient.get(`/portal/${slug}`);
+        const categories = response.data?.categories || [];
+        const map = {};
+        categories.forEach((category) => {
+          if (category?.id) {
+            map[category.id] = category;
+          }
+        });
+        setCategoriesById(map);
+      } catch (error) {
+        setCategoriesById({});
+      }
+    };
+    fetchCategories();
+  }, [slug]);
 
   useEffect(() => {
     if (!walkthrough?.steps?.length) return;
