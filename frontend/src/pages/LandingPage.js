@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { INTERGUIDE_LOGO_MAIN_280_URL, INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_NEW_LOGO_640_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
+import { INTERGUIDE_LOGO_MAIN_280_URL, INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_NEW_LOGO_640_URL, INTERGUIDE_LOGO_ALT, INTERGUIDE_MAIN_ANIMATION_URL } from '../utils/logo';
 
 const LandingPage = () => {
   const { t } = useTranslation();
@@ -77,10 +77,22 @@ const LandingPage = () => {
             className="text-center max-w-4xl mx-auto"
           >
             <div className="flex justify-center mb-8">
-              <img 
-                src={INTERGUIDE_NEW_LOGO_640_URL} 
-                alt={INTERGUIDE_LOGO_ALT} 
+              <video
+                src={INTERGUIDE_MAIN_ANIMATION_URL}
+                alt={INTERGUIDE_LOGO_ALT}
                 className="h-64 md:h-80 lg:h-96 w-auto object-contain"
+                autoPlay
+                muted
+                loop
+                playsInline
+                onError={(e) => {
+                  // Fallback to the original logo if video fails to load
+                  const fallbackImg = document.createElement('img');
+                  fallbackImg.src = INTERGUIDE_NEW_LOGO_640_URL;
+                  fallbackImg.alt = INTERGUIDE_LOGO_ALT;
+                  fallbackImg.className = 'h-64 md:h-80 lg:h-96 w-auto object-contain';
+                  e.target.parentNode.replaceChild(fallbackImg, e.target);
+                }}
               />
             </div>
             <h1 className="text-5xl lg:text-6xl font-heading font-bold text-foreground mb-6 tracking-tight">

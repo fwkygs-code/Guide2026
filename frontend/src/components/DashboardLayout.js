@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, LogOut, Home, ArrowLeft, BookText, FolderOpen, BarChart3, Settings, Archive, ExternalLink, Database, Shield, Link2 } from 'lucide-react';
@@ -31,25 +31,29 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
   const workspaceMatch = location.pathname.match(/^\/workspace\/([^/]+)/);
   const workspaceId = workspaceMatch?.[1] || contextWorkspaceId;
 
-  // Fetch workspace slug when workspaceId is available (fallback if context doesn't have it)
+  // Stabilize workspace slug fetch to prevent unnecessary re-renders
+  const fetchWorkspaceSlug = useCallback(() => {
+    if (workspaceId && !workspaceSlug && !workspace?.slug) {
+      api.getWorkspace(workspaceId)
+        .then(response => {
+          setWorkspaceSlug(response.data.slug);
+        })
+        .catch(error => {
+          console.error('Failed to fetch workspace:', error);
+          setWorkspaceSlug(null);
+        });
+    }
+  }, [workspaceId, workspaceSlug, workspace?.slug]);
+
   useEffect(() => {
-    if (workspaceId && !workspaceSlug) {
-      if (workspace?.slug) {
-        setWorkspaceSlug(workspace.slug);
-      } else {
-        api.getWorkspace(workspaceId)
-          .then(response => {
-            setWorkspaceSlug(response.data.slug);
-          })
-          .catch(error => {
-            console.error('Failed to fetch workspace:', error);
-            setWorkspaceSlug(null);
-          });
-      }
+    if (workspace?.slug) {
+      setWorkspaceSlug(workspace.slug);
     } else if (!workspaceId) {
       setWorkspaceSlug(null);
+    } else {
+      fetchWorkspaceSlug();
     }
-  }, [workspaceId, workspace, workspaceSlug]);
+  }, [workspace?.slug, workspaceId, fetchWorkspaceSlug]);
 
   const handleLogout = () => {
     logout();

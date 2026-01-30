@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { normalizeImageUrl } from '../lib/utils';
@@ -89,14 +89,14 @@ export const WorkspaceProvider = ({ children }) => {
     ? normalizeImageUrl(workspace.logo)
     : null;
 
-  const value = {
+  const value = useMemo(() => ({
     workspace,
     workspaceId,
     backgroundUrl,
     logoUrl,
     loading,
     error,
-  };
+  }), [workspace, workspaceId, backgroundUrl, logoUrl, loading, error]);
 
   return (
     <WorkspaceContext.Provider value={value}>
