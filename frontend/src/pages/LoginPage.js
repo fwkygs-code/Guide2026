@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
+import { INTERGUIDE_LOGIN_VIDEO_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -206,27 +206,12 @@ const LoginPage = () => {
     <div 
       className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden"
       style={{
-        backgroundImage: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center center',
-        backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed',
+        backgroundColor: '#000000',
         width: '100%',
         height: '100vh',
         minHeight: '100vh'
       }}
     >
-      {/* Dark overlay for better readability - ensures text is always readable */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-800/75 to-slate-900/85"></div>
-      
-      {/* Animated gradient overlay for depth and visual interest */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-primary/10"></div>
-      
-      {/* Subtle animated particles effect */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
       
       <div className="fixed top-6 right-6 z-50">
         <LanguageSwitcher />
@@ -239,14 +224,17 @@ const LoginPage = () => {
       >
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <img
-              src={INTERGUIDE_NEW_LOGO_280_URL}
+            <video
+              src={INTERGUIDE_LOGIN_VIDEO_URL}
               alt={INTERGUIDE_LOGO_ALT}
               className="h-10 w-auto object-contain"
+              autoPlay
+              muted
+              loop
+              playsInline
             />
           </Link>
-          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('common.welcome')}</h1>
-          <p className={`${getSizeClass('base')} text-muted-foreground`}>{t('auth.loginTitle')}</p>
+          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('auth.loginTitle')}</h1>
         </div>
 
         <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
