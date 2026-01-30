@@ -85,7 +85,7 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
     <div
       className="fixed inset-0 z-[9999] bg-background"
       style={{
-        backgroundColor: 'rgb(15, 23, 42)',
+        backgroundColor: 'rgb(0, 0, 0)',
         opacity: fading ? 0 : 1,
         transition: `opacity ${FADE_DURATION_MS}ms ease`
       }}
