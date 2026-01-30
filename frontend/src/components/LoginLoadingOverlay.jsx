@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { INTERGUIDE_ANIMATION_URL, INTERGUIDE_LOGO_MAIN_280_URL } from '../utils/logo';
+import { INTERGUIDE_MAIN_ANIMATION_URL, INTERGUIDE_LOGO_MAIN_280_URL } from '../utils/logo';
 
 const MIN_DISPLAY_MS = 1200;
 const MAX_DISPLAY_MS = 8000;
@@ -107,7 +107,7 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
             playsInline
             preload="auto"
           >
-            <source src={INTERGUIDE_ANIMATION_URL} />
+            <source src={INTERGUIDE_MAIN_ANIMATION_URL} />
           </video>
         )}
         <p className="relative z-10 text-sm text-slate-200">Loading your dashboard...</p>
