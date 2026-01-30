@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { INTERGUIDE_LOGIN_VIDEO_URL, INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
+import { INTERGUIDE_LOGIN_VIDEO_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -220,27 +220,9 @@ const LoginPage = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md relative"
+        className="w-full max-w-md relative z-10"
       >
-        {/* Character Companion */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 -top-16 z-20">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="relative"
-          >
-            <img
-              src={INTERGUIDE_NEW_LOGO_280_URL}
-              alt={INTERGUIDE_LOGO_ALT}
-              className="h-24 w-auto object-contain"
-            />
-            {/* Soft shadow for grounding */}
-            <div className="absolute inset-0 bg-black/20 rounded-full blur-xl transform translate-y-2 scale-75"></div>
-          </motion.div>
-        </div>
-
-        <div className="text-center mb-8 pt-12">
+        <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <video
               src={INTERGUIDE_LOGIN_VIDEO_URL}
