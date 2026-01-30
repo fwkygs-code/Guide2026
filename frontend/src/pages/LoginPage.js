@@ -227,7 +227,7 @@ const LoginPage = () => {
             <video
               src={INTERGUIDE_LOGIN_VIDEO_URL}
               alt={INTERGUIDE_LOGO_ALT}
-              className="h-32 w-auto object-contain"
+              className="h-48 w-auto object-contain"
               autoPlay
               muted
               loop
