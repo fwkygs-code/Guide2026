@@ -227,14 +227,13 @@ const LoginPage = () => {
             <video
               src={INTERGUIDE_LOGIN_VIDEO_URL}
               alt={INTERGUIDE_LOGO_ALT}
-              className="h-10 w-auto object-contain"
+              className="h-32 w-auto object-contain"
               autoPlay
               muted
               loop
               playsInline
             />
           </Link>
-          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('auth.loginTitle')}</h1>
         </div>
 
         <div className="glass rounded-2xl p-8 backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl">
