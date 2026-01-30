@@ -101,7 +101,7 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
           />
         ) : (
           <video
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-contain max-w-[80vw] max-h-[80vh] m-auto"
             autoPlay
             muted
             playsInline
