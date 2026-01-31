@@ -368,121 +368,9 @@ const SettingsPage = () => {
                   )}
                 </div>
               </div>
-              <div>
-                <Label htmlFor="brand-color" className="text-foreground">{t('settings.brandColor')}</Label>
-                <div className="flex flex-col sm:flex-row gap-3 mt-1.5 items-start">
-                  <div className="w-full sm:w-20 h-10 flex-shrink-0">
-                    <Input
-                      id="brand-color"
-                      type="color"
-                      value={brandColor}
-                      onChange={(e) => setBrandColor(e.target.value)}
-                      className="w-full h-full text-foreground"
-                      data-testid="brand-color-input"
-                    />
-                  </div>
-                  <Input
-                    type="text"
-                    value={brandColor}
-                    onChange={(e) => setBrandColor(e.target.value)}
-                    className="flex-1 text-foreground"
-                  />
-                </div>
-              </div>
             </Card.Content>
           </Card>
 
-          {/* Portal Branding */}
-          <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Globe className="w-5 h-5" />
-              {t('settings.portalBranding')}
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="portal-background" className="text-foreground">{t('settings.portalBackgroundImage')}</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">{t('settings.portalBackgroundDescription')}</p>
-                <div className="mt-1.5 space-y-2">
-                  {portalBackgroundUrl && (
-                    <div className="relative">
-                      <img src={portalBackgroundUrl} alt="Background" className="w-full h-32 rounded-lg object-cover border border-border" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPortalBackgroundUrl('')}
-                        className="absolute top-2 right-2 text-destructive bg-card/90 hover:bg-card"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => e.target.files[0] && handleBackgroundUpload(e.target.files[0])}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-foreground">{t('settings.portalColorPalette')}</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">{t('settings.portalColorDescription')}</p>
-                <div className="grid grid-cols-3 gap-3 mt-1.5">
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1">{t('settings.colorPrimary')}</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={portalPalette.primary || '#4f46e5'}
-                        onChange={(e) => setPortalPalette({ ...portalPalette, primary: e.target.value })}
-                        className="w-16 h-10"
-                      />
-                      <Input
-                        type="text"
-                        value={portalPalette.primary || '#4f46e5'}
-                        onChange={(e) => setPortalPalette({ ...portalPalette, primary: e.target.value })}
-                        className="flex-1 text-sm text-foreground"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1">{t('settings.colorSecondary')}</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={portalPalette.secondary || '#8b5cf6'}
-                        onChange={(e) => setPortalPalette({ ...portalPalette, secondary: e.target.value })}
-                        className="w-16 h-10"
-                      />
-                      <Input
-                        type="text"
-                        value={portalPalette.secondary || '#8b5cf6'}
-                        onChange={(e) => setPortalPalette({ ...portalPalette, secondary: e.target.value })}
-                        className="flex-1 text-sm text-foreground"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1">{t('settings.colorAccent')}</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={portalPalette.accent || '#10b981'}
-                        onChange={(e) => setPortalPalette({ ...portalPalette, accent: e.target.value })}
-                        className="w-16 h-10"
-                      />
-                      <Input
-                        type="text"
-                        value={portalPalette.accent || '#10b981'}
-                        onChange={(e) => setPortalPalette({ ...portalPalette, accent: e.target.value })}
-                        className="flex-1 text-sm text-foreground"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Portal Contact Information */}
           <div className="glass rounded-xl p-6">
@@ -698,38 +586,6 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {/* Text Size Settings */}
-          <div className="glass rounded-xl p-6">
-            <h2 className="text-xl font-heading font-semibold text-foreground mb-4">{t('settings.textSize')}</h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="text-size" className="text-foreground">{t('settings.textSizePreference')}</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">{t('settings.textSizeDescription')}</p>
-                <Select value={textSize} onValueChange={setTextSize} className="mt-1.5">
-                  <SelectTrigger id="text-size" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small">{t('settings.textSizeSmall')}</SelectItem>
-                    <SelectItem value="medium">{t('settings.textSizeMedium')}</SelectItem>
-                    <SelectItem value="large">{t('settings.textSizeLarge')}</SelectItem>
-                    <SelectItem value="xl">{t('settings.textSizeXL')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="mt-3 p-3 glass rounded-xl">
-                  <p className="text-xs text-muted-foreground mb-2">{t('settings.preview')}:</p>
-                  <div className="space-y-1">
-                    <p className={`${textSize === 'small' ? 'text-sm' : textSize === 'medium' ? 'text-base' : textSize === 'large' ? 'text-lg' : 'text-xl'}`}>
-                      {t('settings.previewBodyText')}
-                    </p>
-                    <p className={`font-heading font-semibold ${textSize === 'small' ? 'text-base' : textSize === 'medium' ? 'text-lg' : textSize === 'large' ? 'text-xl' : 'text-2xl'}`}>
-                      {t('settings.previewHeadingText')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Workspace Sharing */}
           {workspace && workspaceId && user && isOwner && (
