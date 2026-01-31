@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen, Zap, Users, BarChart3, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { INTERGUIDE_LOGO_MAIN_280_URL, INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_NEW_LOGO_640_URL, INTERGUIDE_LOGO_ALT, INTERGUIDE_MAIN_ANIMATION_URL } from '../utils/logo';
+import { INTERGUIDE_LOGO_MAIN_280_URL, INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_NEW_LOGO_640_URL, INTERGUIDE_LOGO_ALT, INTERGUIDE_NEW_WEBM_URL } from '../utils/logo';
 
 const LandingPage = () => {
   const { t } = useTranslation();
@@ -68,7 +68,7 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6 bg-black">
+      <section className="pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -78,7 +78,7 @@ const LandingPage = () => {
           >
             <div className="flex justify-center mb-8">
               <video
-                src={INTERGUIDE_MAIN_ANIMATION_URL}
+                src={INTERGUIDE_NEW_WEBM_URL}
                 alt={INTERGUIDE_LOGO_ALT}
                 className="h-64 md:h-80 lg:h-96 w-auto object-contain"
                 autoPlay

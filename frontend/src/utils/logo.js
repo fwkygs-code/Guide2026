@@ -17,6 +17,7 @@ export const INTERGUIDE_ANIMATION_URL = `${CLOUDINARY_BASE}/video/upload/q_auto,
 export const INTERGUIDE_ANIMATIONX_URL = `${CLOUDINARY_BASE}/video/upload/q_auto,f_auto/interguide-static/animationx`;
 export const INTERGUIDE_MAIN_ANIMATION_URL = `${CLOUDINARY_BASE}/video/upload/q_auto,f_auto/main-animation`;
 export const INTERGUIDE_LOGIN_VIDEO_URL = `${CLOUDINARY_BASE}/video/upload/v1769775181/Login.mp4`;
+export const INTERGUIDE_NEW_WEBM_URL = `${CLOUDINARY_BASE}/video/upload/v1769839744/InterGuide_Logo.webm`;
 
 /**
  * Logo component props for consistent sizing
