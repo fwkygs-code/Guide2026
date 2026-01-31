@@ -107,10 +107,14 @@ const DashboardLayout = ({ children, backgroundUrl: propBackgroundUrl = null }) 
                 }}
               />
             ) : (
-              <img 
-                src={INTERGUIDE_LOGO_MAIN_280_URL} 
-                alt={INTERGUIDE_LOGO_ALT} 
+              <video
+                src={INTERGUIDE_LOGO_MAIN_280_URL}
+                alt={INTERGUIDE_LOGO_ALT}
                 className="h-14 w-auto object-contain"
+                autoPlay
+                muted
+                loop
+                playsInline
               />
             )}
           </div>

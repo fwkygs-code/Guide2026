@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { INTERGUIDE_NEW_LOGO_280_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
+import { INTERGUIDE_LOGIN_VIDEO_URL, INTERGUIDE_LOGO_ALT } from '../utils/logo';
 
 const SignupPage = () => {
   const { t } = useTranslation();
@@ -243,16 +243,15 @@ const SignupPage = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <video
-              src={INTERGUIDE_NEW_LOGO_280_URL}
+              src={INTERGUIDE_LOGIN_VIDEO_URL}
               alt={INTERGUIDE_LOGO_ALT}
-              className="h-10 w-auto object-contain"
+              className="h-32 w-auto object-contain"
               autoPlay
               muted
               loop
               playsInline
             />
           </Link>
-          <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('auth.getStarted')}</h1>
           <p className={`${getSizeClass('base')} text-muted-foreground`}>{t('auth.createYourAccount')}</p>
         </div>
 
