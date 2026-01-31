@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DocumentationDraft, DocumentationMeta, DocumentationSection } from './model';
 import { createDocumentationEntry, loadDocumentationDraft, loadDocumentationMeta, publishDocumentation, saveDocumentationDraft } from './service';
 import sanitizeHtml from './sanitizeHtml';
@@ -70,25 +71,26 @@ const DocumentationRichTextEditor = ({
   );
 };
 
-const renderPreviewSection = (section: DocumentationSection, depth: number) => (
+const renderPreviewSection = (section: DocumentationSection, depth: number, t: any) => (
   <div key={section.id} className={depth === 0 ? 'mb-8' : 'mb-6'}>
     <h3 className={`font-semibold text-purple-50 ${depth === 0 ? 'text-2xl' : 'text-xl'}`}>
-      {section.title || 'Untitled Section'}
+      {section.title || t('common.untitled')}
     </h3>
     <div
       className="mt-2 text-purple-100/80 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(section.content || '<p>No content provided.</p>') }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(section.content || `<p>${t('documentation.editor.noContent')}</p>`) }}
     />
     {section.codeBlock && (
       <pre className="mt-4 bg-slate-950/80 border border-purple-500/20 rounded-xl p-4 text-sm text-purple-100 overflow-x-auto">
         <code>{section.codeBlock}</code>
       </pre>
     )}
-    {section.children.map((child) => renderPreviewSection(child, depth + 1))}
+    {section.children.map((child) => renderPreviewSection(child, depth + 1, t))}
   </div>
 );
 
 export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: DocumentationEditorRootProps) => {
+  const { t } = useTranslation(['knowledgeSystems', 'common']);
   const [draft, setDraft] = useState<DocumentationDraft | null>(null);
   const [meta, setMeta] = useState<DocumentationMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,7 +203,7 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
       setMeta(result.meta);
       setPublishError('');
     } catch (error) {
-      setPublishError('Publish failed. Fix structure before publishing.');
+      setPublishError(t('documentation.editor.publishError'));
     }
   };
 
@@ -224,16 +226,16 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
     );
   }
 
-  const statusLabel = meta.publishedAt ? 'Published' : 'Draft';
+  const statusLabel = meta.publishedAt ? t('common.published') : t('common.draft');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-purple-50">
       <header className="sticky top-0 z-20 border-b border-purple-500/20 bg-slate-950/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-purple-200/70">Documentation</p>
-            <h1 className="text-3xl font-semibold tracking-wide">{draft.title || 'Untitled Documentation'}</h1>
-            <p className="text-sm text-purple-200/70">Sectioned knowledge base editor</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-purple-200/70">{t('documentation.title')}</p>
+            <h1 className="text-3xl font-semibold tracking-wide">{draft.title || t('common.untitled')}</h1>
+            <p className="text-sm text-purple-200/70">{t('documentation.editor.title')}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="px-3 py-1 text-xs uppercase tracking-[0.2em] rounded-full border border-purple-400/40 text-purple-200">
@@ -244,7 +246,7 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
               className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-400/40 text-purple-50 hover:bg-purple-500/40 transition"
               onClick={handlePublish}
             >
-              Publish
+              {t('documentation.editor.publish')}
             </button>
             <button
               type="button"
@@ -257,7 +259,7 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
                 }
               }}
             >
-              Close
+              {t('common.close')}
             </button>
           </div>
         </div>
@@ -266,33 +268,33 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
       <main className="max-w-6xl mx-auto px-6 py-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-8">
         <section className="space-y-6">
           <div className="border border-purple-500/20 bg-slate-900/60 rounded-2xl p-6 shadow-xl space-y-4">
-            <label className="text-xs uppercase tracking-[0.25em] text-purple-200/70">Documentation Title</label>
+            <label className="text-xs uppercase tracking-[0.25em] text-purple-200/70">{t('documentation.editor.documentTitle')}</label>
             <input
               value={draft.title}
               onChange={(event) => updateDraft({ title: event.target.value })}
               className="bg-transparent border-b border-purple-400/30 text-2xl font-semibold focus:outline-none focus:border-purple-400"
-              placeholder="Documentation Hub Name"
+              placeholder={t('documentation.editor.documentTitlePlaceholder')}
             />
-            <label className="text-xs uppercase tracking-[0.25em] text-purple-200/70">Overview</label>
+            <label className="text-xs uppercase tracking-[0.25em] text-purple-200/70">{t('documentation.editor.summary')}</label>
             <textarea
               value={draft.description}
               onChange={(event) => updateDraft({ description: event.target.value })}
               className="min-h-[80px] bg-slate-950/60 border border-purple-500/20 rounded-lg p-3 text-purple-50 focus:outline-none focus:border-purple-400/50"
-              placeholder="Explain scope and audience"
+              placeholder={t('documentation.editor.summaryPlaceholder')}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Sections</h2>
-              <p className="text-sm text-purple-200/70">Hierarchical structure with code examples</p>
+              <h2 className="text-xl font-semibold">{t('documentation.editor.content')}</h2>
+              <p className="text-sm text-purple-200/70">{t('documentation.editor.tableOfContents')}</p>
             </div>
             <button
               type="button"
               className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-400/40 text-purple-50 hover:bg-purple-500/40 transition"
               onClick={addSection}
             >
-              Add Section
+              {t('documentation.editor.addRelated')}
             </button>
           </div>
 
@@ -301,12 +303,12 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
               <div key={section.id} className="border border-purple-500/20 bg-slate-900/70 rounded-2xl p-6 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-purple-200/60">Section {index + 1}</p>
+                    <p className="text-xs uppercase tracking-[0.25em] text-purple-200/60">{t('documentation.editor.tableOfContents')} {index + 1}</p>
                     <input
                       value={section.title}
                       onChange={(event) => updateSection(index, { title: event.target.value })}
                       className="bg-transparent text-xl font-semibold border-b border-purple-400/30 focus:outline-none focus:border-purple-400"
-                      placeholder="Section Title"
+                      placeholder={t('documentation.editor.tableOfContents')}
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -315,27 +317,27 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
                       onClick={() => addSubsection(index)}
                       className="px-3 py-1 text-xs border border-purple-400/30 rounded-full text-purple-200 hover:text-white"
                     >
-                      Add Subsection
+                      {t('documentation.editor.addRelated')}
                     </button>
                     <button
                       type="button"
                       onClick={() => removeSection(index)}
                       className="px-3 py-1 text-xs border border-purple-400/30 rounded-full text-purple-200 hover:text-white"
                     >
-                      Remove
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>
                 <DocumentationRichTextEditor
                   value={section.content}
                   onChange={(content) => updateSection(index, { content })}
-                  placeholder="Explain concepts, architecture, and usage."
+                  placeholder={t('documentation.editor.contentPlaceholder')}
                 />
                 <textarea
                   value={section.codeBlock}
                   onChange={(event) => updateSection(index, { codeBlock: event.target.value })}
                   className="min-h-[120px] bg-slate-950/80 border border-purple-500/20 rounded-lg p-3 text-purple-100 font-mono text-sm focus:outline-none focus:border-purple-400/50"
-                  placeholder="Code block or API example"
+                  placeholder="Code block or API example (optional)"
                 />
 
                 {section.children.length > 0 && (
@@ -391,7 +393,7 @@ export const DocumentationEditorRoot = ({ workspaceId, itemId, closeHref }: Docu
           <div className="space-y-6">
             <h1 className="text-2xl font-semibold">{draft.title || 'Documentation'}</h1>
             <p className="text-purple-200/70">{draft.description || 'Overview content pending.'}</p>
-            {draft.sections.map((section) => renderPreviewSection(section, 0))}
+            {draft.sections.map((section) => renderPreviewSection(section, 0, t))}
           </div>
         </aside>
       </main>

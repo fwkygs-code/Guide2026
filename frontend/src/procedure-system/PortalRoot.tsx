@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { procedurePortalApiClient } from './portal-api-client';
 import sanitizeHtml from './sanitizeHtml';
 
@@ -9,6 +10,7 @@ type ProcedurePortalRootProps = {
 };
 
 export const ProcedurePortalRoot = ({ portalSlug }: ProcedurePortalRootProps) => {
+  const { t } = useTranslation(['knowledgeSystems', 'common']);
   const [loading, setLoading] = useState(true);
   const [publishedProcedures, setPublishedProcedures] = useState<any[]>([]);
   const [workspaceName, setWorkspaceName] = useState('Workspace');
@@ -69,10 +71,10 @@ export const ProcedurePortalRoot = ({ portalSlug }: ProcedurePortalRootProps) =>
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-cyan-50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center space-y-4 border border-cyan-500/20 bg-slate-900/70 rounded-2xl p-10">
-          <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">Procedures</p>
-          <h1 className="text-3xl font-semibold">No Published Procedures</h1>
+          <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">{t('procedures.title')}</p>
+          <h1 className="text-3xl font-semibold">{t('procedures.portal.title')}</h1>
           <p className="text-cyan-200/70">
-            {workspaceName} has not published operational procedures yet.
+            {t('procedures.portal.description')}
           </p>
         </div>
       </div>
@@ -83,9 +85,9 @@ export const ProcedurePortalRoot = ({ portalSlug }: ProcedurePortalRootProps) =>
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-cyan-50">
       <header className="border-b border-cyan-500/20 bg-slate-950/70 backdrop-blur">
         <div className="max-w-5xl mx-auto px-6 py-10">
-          <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">Operational Procedures</p>
-          <h1 className="text-4xl font-semibold">Procedure Documentation</h1>
-          <p className="text-cyan-200/70 mt-2">{publishedProcedures.length} published {publishedProcedures.length === 1 ? 'procedure' : 'procedures'}</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">{t('procedures.title')}</p>
+          <h1 className="text-4xl font-semibold">{t('procedures.portal.title')}</h1>
+          <p className="text-cyan-200/70 mt-2">{t('portal.available', { count: publishedProcedures.length })}</p>
         </div>
       </header>
 
@@ -112,12 +114,12 @@ export const ProcedurePortalRoot = ({ portalSlug }: ProcedurePortalRootProps) =>
                         <div className="border border-cyan-500/20 bg-slate-900/70 rounded-2xl p-6">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <h3 className="text-2xl font-semibold">{step.title || `Step ${index + 1}`}</h3>
+                              <h3 className="text-2xl font-semibold">{step.title || t('procedures.editor.stepTitle', { number: index + 1 })}</h3>
                             </div>
                           </div>
                           <div
                             className="mt-4 text-cyan-50/90 leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(step.description || '<p>No instructions provided.</p>') }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(step.description || `<p>${t('procedures.editor.noSteps')}</p>`) }}
                           />
                         </div>
                       </div>
@@ -126,7 +128,7 @@ export const ProcedurePortalRoot = ({ portalSlug }: ProcedurePortalRootProps) =>
                 </div>
               ) : (
                 <div className="border border-cyan-500/20 bg-slate-900/70 rounded-2xl p-6">
-                  <p className="text-cyan-200/70">No steps available for this procedure.</p>
+                  <p className="text-cyan-200/70">{t('procedures.editor.noSteps')}</p>
                 </div>
               )}
             </div>

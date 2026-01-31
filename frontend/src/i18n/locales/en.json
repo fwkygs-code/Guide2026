@@ -4,7 +4,7 @@
     "dashboard": "Dashboard",
     "logout": "Logout",
     "login": "Login",
-    "signingIn": "Signing in...",
+    "signingIn": "מתחבר...",
     "signup": "Signup",
     "email": "Email",
     "password": "Password",
@@ -21,7 +21,7 @@
     "previous": "Previous",
     "search": "Search",
     "loading": "Loading...",
-    "creating": "Creating...",
+    "creating": "יוצר...",
     "error": "Error",
     "success": "Success",
     "confirm": "Confirm",
@@ -31,13 +31,16 @@
     "complete": "Complete",
     "done": "Done",
     "markAsDone": "Mark as done",
+    "backToWorkspace": "חזור לאזור עבודה",
     "and": "and",
     "note": "Note",
     "settings": "Settings",
     "description": "Description",
     "categories": "Categories",
-    "copy": "Copy",
-    "untitled": "Untitled"
+    "copy": "העתק",
+    "untitled": "ללא כותרת",
+    "published": "פורסם",
+    "draft": "טיוטה"
   },
   "auth": {
     "loginTitle": "Login to your account",
@@ -50,17 +53,17 @@
     "signIn": "Sign in",
     "getStarted": "Get Started",
     "createYourAccount": "Create your account",
-    "accountCreatedEmailVerification": "Account created! Please check your email to verify your account.",
-    "verificationEmailNotSent": "Email verification email could not be sent. You can resend it from the dashboard.",
-    "emailVerificationRequired": "Email Verification Required",
-    "emailVerificationDescription": "Please verify your email address to access the dashboard.",
-    "verificationEmailSent": "We've sent a verification email to {{email}}. Please check your inbox and click the verification link.",
-    "verificationEmailCheckSpam": "Don't see the email? Check your spam folder or click the button below to resend.",
-    "resendVerificationEmail": "Resend Verification Email",
-    "sending": "Sending",
-    "resendEmail": "Resend Email",
-    "emailVerificationBannerDescription": "Please verify your email address to unlock Pro features and upgrade your plan. Check your inbox for the verification email.",
-    "supportContact": "For support / bug report contact:",
+    "accountCreatedEmailVerification": "החשבון נוצר! אנא בדוק את המייל שלך כדי לאמת את החשבון.",
+    "verificationEmailNotSent": "לא ניתן היה לשלוח מייל אימות. תוכל לשלוח אותו מחדש מלוח הבקרה.",
+    "emailVerificationRequired": "נדרש אימות מייל",
+    "emailVerificationDescription": "אנא אמת את כתובת המייל שלך כדי לגשת ללוח הבקרה.",
+    "verificationEmailSent": "שלחנו מייל אימות ל-{{email}}. אנא בדוק את תיבת הדואר הנכנס שלך ולחץ על קישור האימות.",
+    "verificationEmailCheckSpam": "לא רואים את המייל? בדוק את תיקיית הספאם או לחץ על הכפתור למטה כדי לשלוח מחדש.",
+    "resendVerificationEmail": "שלח מחדש מייל אימות",
+    "sending": "שולח",
+    "resendEmail": "שלח מחדש מייל",
+    "emailVerificationBannerDescription": "אנא אמת את כתובת המייל שלך כדי לשחרר תכונות Pro ולשדרג את התוכנית שלך. בדוק את תיבת הדואר הנכנס שלך למייל האימות.",
+    "supportContact": "לתמיכה / דיווח על באג צור קשר:",
     "fullName": "Full Name",
     "fullNamePlaceholder": "John Doe",
     "emailPlaceholder": "you@company.com",
@@ -90,12 +93,12 @@
     "connectionUnavailable": "Connection unavailable",
     "pleaseWait": "Please wait",
     "systemPreparing": "The system is preparing your environment. This may take a moment.",
-    "sessionExpiredTitle": "Session expired",
-    "sessionExpiredBody": "Please log in again to continue.",
-    "noAccessTitle": "No access",
-    "noAccessBody": "You do not have access to this workspace.",
-    "workspaceNotFoundTitle": "Workspace not found",
-    "workspaceNotFoundBody": "This workspace does not exist or is unavailable."
+    "sessionExpiredTitle": "ההתחברות פגה",
+    "sessionExpiredBody": "אנא התחבר מחדש כדי להמשיך.",
+    "noAccessTitle": "אין גישה",
+    "noAccessBody": "אין לך הרשאה לגשת לאזור עבודה זה.",
+    "workspaceNotFoundTitle": "אזור העבודה לא נמצא",
+    "workspaceNotFoundBody": "אזור העבודה אינו קיים או שאינו זמין."
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
@@ -120,64 +123,118 @@
     "archived": "Archived",
     "steps": "Steps",
     "subCategories": "Sub-categories",
-    "integrate": "Integrate",
-    "integrateDescription": "Discover integration-ready links and upcoming surfaces.",
-    "integrateLinksTab": "Links",
-    "integrateLinksDescription": "Integration and shareable step links for SDKs and support.",
-    "integrateWebhooksTab": "Webhooks",
-    "integrateWebhooksDescription": "Webhooks are coming soon.",
-    "integrateEmbedsTab": "Embeds",
-    "integrateEmbedsDescription": "Embed the portal in your site with an iframe or a floating help button.",
-    "copyIntegrationLink": "Copy integration link",
-    "copyShareableLink": "Copy shareable link",
-    "embedOptionsTitle": "Embed options",
-    "embedInlineOption": "Inline embed",
-    "embedFloatingOption": "Floating help button",
-    "embedWidth": "Width",
-    "embedHeight": "Height",
-    "embedPresetsTitle": "Presets",
-    "embedPresetFullPage": "Full page",
-    "embedPresetContent": "Content section",
-    "embedPresetSidebar": "Sidebar",
-    "embedPresetSmall": "Small embed",
-    "embedPresetDefault": "Default (recommended)",
-    "embedPresetMobile": "Mobile friendly",
-    "embedPresetCompact": "Compact",
-    "embedSnippet": "Embed code",
-    "copyEmbedCode": "Copy embed code",
-    "embedInvalidDimension": "Enter a valid value (%, px, or number).",
-    "implementation": "Implementation",
-    "implementationDescription": "Copy integration links for SDKs and automation.",
-    "uncategorized": "Uncategorized",
-    "noGuidesInCategory": "No guides in this category yet."
+    "integrate": "אינטגרציה",
+    "integrateDescription": "קישורים מוכנים לאינטגרציה ומשטחים עתידיים.",
+    "integrateLinksTab": "קישורים",
+    "integrateLinksDescription": "קישורי שלבים לאינטגרציות ולשיתוף לצוותי תמיכה.",
+    "integrateWebhooksTab": "וובהוקים",
+    "integrateWebhooksDescription": "וובהוקים יתווספו בקרוב.",
+    "integrateEmbedsTab": "הטמעות",
+    "integrateEmbedsDescription": "הטמע את הפורטל באתר עם iframe או כפתור עזרה צף.",
+    "copyIntegrationLink": "העתק קישור אינטגרציה",
+    "copyShareableLink": "העתק קישור לשיתוף",
+    "embedOptionsTitle": "אפשרויות הטמעה",
+    "embedInlineOption": "הטמעה בתוך הדף",
+    "embedFloatingOption": "כפתור עזרה צף",
+    "embedWidth": "רוחב",
+    "embedHeight": "גובה",
+    "embedPresetsTitle": "הגדרות מוכנות",
+    "embedPresetFullPage": "עמוד מלא",
+    "embedPresetContent": "קטע תוכן",
+    "embedPresetSidebar": "סרגל צד",
+    "embedPresetSmall": "הטמעה קטנה",
+    "embedPresetDefault": "ברירת מחדל (מומלץ)",
+    "embedPresetMobile": "מותאם לנייד",
+    "embedPresetCompact": "קומפקטי",
+    "embedSnippet": "קוד הטמעה",
+    "copyEmbedCode": "העתק קוד הטמעה",
+    "embedInvalidDimension": "יש להזין ערך תקין (% או px או מספר).",
+    "implementation": "יישום",
+    "implementationDescription": "העתק קישורי אינטגרציה ל-SDK ולאוטומציה.",
+    "uncategorized": "ללא קטגוריה",
+    "noGuidesInCategory": "אין מדריכים בקטגוריה זו עדיין.",
+    "createWorkspace": "צור אזור עבודה",
+    "portalBackgroundImage": "תמונת רקע פורטל",
+    "customBackground": "רקע מותאם אישית לפורטל שלך",
+    "manageConfiguration": "נהל את תצורת אזור העבודה שלך",
+    "basicInformation": "מידע בסיסי",
+    "portalBranding": "מיתוג פורטל",
+    "portalColorPalette": "פלטת צבעי פורטל",
+    "customizeColors": "התאם אישית צבעים לפורטל שלך",
+    "primary": "ראשי",
+    "secondary": "משני",
+    "accent": "הדגשה",
+    "portalContactInfo": "פרטי יצירת קשר בפורטל",
+    "addContactInfo": "הוסף פרטי יצירת קשר שיופיעו בחלק העליון של הפורטל",
+    "brandColor": "צבע מותג",
+    "workspaceLogo": "לוגו אזור עבודה",
+    "phoneNumber": "מספר טלפון",
+    "phoneExample": "לדוגמה: +972-50-123-4567",
+    "workingHours": "שעות עבודה",
+    "hoursExample": "לדוגמה: א'-ה': 9:00-17:00 IST",
+    "whatsappLink": "קישור WhatsApp",
+    "whatsappExample": "לדוגמה: https://wa.me/972501234567",
+    "whatsappFormat": "פורמט: https://wa.me/[קוד מדינה][מספר טלפון]",
+    "portalExternalLinks": "קישורי פורטל חיצוניים",
+    "addButtons": "הוסף כפתורים עם קישורי חוץ שיופיעו בחלק העליון של הפורטל (למשל קישור לאתר, עמוד תמיכה וכו')",
+    "noLinksAdded": "לא נוספו קישורים עדיין. לחץ על \"הוסף קישור\" כדי להתחיל.",
+    "planManagement": "ניהול תוכנית",
+    "currentPlan": "תוכנית נוכחית",
+    "manageSubscription": "נהל את המנוי והגדרות התוכנית שלך",
+    "changePlan": "שנה תוכנית",
+    "dangerZone": "אזור מסוכן",
+    "deleteWorkspaceConfirm": "האם אתה בטוח שברצונך למחוק את אזור העבודה הזה? פעולה זו לא ניתנת לביטול. פעולה זו תמחק לצמיתות את אזור העבודה, את כל הקטגוריות ואת כל המדריכים שתחתיו.",
+    "textSize": "גודל טקסט",
+    "textSizePreference": "העדפת גודל טקסט",
+    "adjustTextSize": "התאם את גודל הטקסט בכל האפליקציה",
+    "mediumDefault": "בינוני (ברירת מחדל)",
+    "preview": "תצוגה מקדימה",
+    "bodyTextPreview": "כך ייראה טקסט גוף",
+    "headingsPreview": "כך ייראו כותרות",
+    "workspaceSharing": "שיתוף אזור עבודה",
+    "inviteUserByEmail": "הזמן משתמש באימייל",
+    "inviteUsers": "הזמן משתמשים לשתף פעולה באזור העבודה הזה",
+    "invite": "הזמן",
+    "workspaceMembers": "חברי אזור עבודה",
+    "peopleWithAccess": "אנשים שיש להם גישה לאזור העבודה הזה",
+    "owner": "בעלים",
+    "publicPortal": "פורטל ציבורי",
+    "share": "שתף",
+    "embed": "הטמע",
+    "integration": "אינטגרציה",
+    "portalLink": "קישור פורטל",
+    "sharePortalLink": "שתף את הקישור הזה כדי לתת לאחרים גישה לפורטל שלך",
+    "reset": "איפוס",
+    "saveChanges": "שמור שינויים",
+    "workspaceName": "שם אזור עבודה"
   },
   "portal": {
     "headers": {
       "admin": {
-        "label": "Admin Portal",
-        "title": "Admin Control Center",
-        "description": "Configure systems, manage data, and control platform integrations.",
-        "badgeSystemHealth": "System Health",
-        "badgeAuditReady": "Audit Ready",
-        "badgeIntegrationControl": "Integration Control"
+        "label": "פורטל ניהול",
+        "title": "מרכז שליטה לניהול",
+        "description": "הגדרת מערכות, ניהול נתונים ושליטה באינטגרציות.",
+        "badgeSystemHealth": "מצב מערכת",
+        "badgeAuditReady": "מוכן לביקורת",
+        "badgeIntegrationControl": "שליטה באינטגרציות"
       },
       "tenant": {
-        "label": "Tenant Portal",
-        "title": "Your Guided Experience",
-        "description": "Step-by-step instructions tailored to your journey."
+        "label": "פורטל משתמשים",
+        "title": "החוויה המודרכת שלך",
+        "description": "הנחיות שלב אחר שלב מותאמות למסע שלך."
       },
       "knowledge": {
-        "label": "Knowledge Portal",
-        "title": "Knowledge Base",
-        "description": "Clear documentation, answers, and system knowledge."
+        "label": "פורטל ידע",
+        "title": "מאגר ידע",
+        "description": "תיעוד ברור, תשובות וידע מערכת."
       },
       "integrations": {
-        "label": "Integration Portal",
-        "title": "Integrations",
-        "description": "Connect tools, automate workflows, and sync systems.",
-        "badgeApiReady": "API Ready",
-        "badgeWorkflowAutomation": "Workflow Automation",
-        "badgeSyncHealth": "Sync Health"
+        "label": "פורטל אינטגרציות",
+        "title": "אינטגרציות",
+        "description": "חיבור כלים, אוטומציות וסנכרון מערכות.",
+        "badgeApiReady": "מוכן ל‑API",
+        "badgeWorkflowAutomation": "אוטומציות תהליך",
+        "badgeSyncHealth": "מצב סנכרון"
       }
     },
     "needHelp": "Need Help?",
@@ -188,26 +245,29 @@
     "howCanWeHelp": "How can we help you?",
     "searchKnowledgeBase": "Search our knowledge base or browse categories",
     "searchPlaceholder": "Search for guides...",
-      "adminDialog": {
-    "title": "Admin Dashboard",
-    "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
-    "stayInPortal": "Stay in Portal",
-    "goToDashboard": "Go to Dashboard"
-  },
-
-  "knowledgeSystems": {
-    "title": "Knowledge Systems",
-    "description": "Browse published policies, procedures, docs, FAQs, and decisions.",
-    "available": "{{count}} available",
-    "none": "No knowledge systems published yet.",
-    "labels": {
-      "policies": "Policies",
-      "procedures": "Procedures",
-      "documentation": "Documentation",
-      "faqs": "FAQs",
-      "decisions": "Decision Trees"
-    }
-  },
+    "adminDialog": {
+      "title": "Admin Dashboard",
+      "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
+      "stayInPortal": "Stay in Portal",
+      "goToDashboard": "Go to Dashboard"
+    },
+    "knowledgeSystems": {
+      "title": "Knowledge Systems",
+      "description": "Browse published policies, procedures, docs, FAQs, and decisions.",
+      "available": "{{count}} available",
+      "none": "No knowledge systems published yet.",
+      "labels": {
+        "policies": "Policies",
+        "procedures": "Procedures",
+        "documentation": "Documentation",
+        "faqs": "FAQs",
+        "decisions": "Decision Trees"
+      }
+    },
+    "footer": {
+      "copyright": "InterGuide 2025. All rights reserved.",
+      "beta": "Beta — for support, contact: support@interguide.app"
+    },
     "privacy": {
       "title": "Privacy Policy",
       "lastUpdated": "Last updated: January 2026",
@@ -222,20 +282,39 @@
         "youProvide": {
           "title": "2.1 Information You Provide",
           "intro": "We collect information you voluntarily provide, including:",
-          "items": ["Name", "Email address", "Account credentials (encrypted passwords)", "Content you create or upload, including:"],
-          "contentItems": ["Walkthroughs", "Knowledge base entries", "Images, videos, and files"]
+          "items": {
+            "0": "Name",
+            "1": "Email address",
+            "2": "Account credentials (encrypted passwords)",
+            "3": "Content you create or upload, including:"
+          },
+          "contentItems": {
+            "0": "Walkthroughs",
+            "1": "Knowledge base entries",
+            "2": "Images, videos, and files"
+          }
         },
         "automaticallyCollected": {
           "title": "2.2 Automatically Collected Information",
           "intro": "We may automatically collect limited technical data necessary to operate the service, including:",
-          "items": ["IP address", "Device and browser information", "Session and authentication data", "Usage activity within the platform"],
+          "items": {
+            "0": "IP address",
+            "1": "Device and browser information",
+            "2": "Session and authentication data",
+            "3": "Usage activity within the platform"
+          },
           "usage": "This data is used strictly for platform functionality, security, and internal analytics."
         }
       },
       "cookies": {
         "title": "3. Cookies",
         "intro": "InterGuide uses cookies strictly for operational purposes:",
-        "items": ["Authentication and login sessions", "Autosave and workspace functionality", "User interface preferences", "Internal analytics"],
+        "items": {
+          "0": "Authentication and login sessions",
+          "1": "Autosave and workspace functionality",
+          "2": "User interface preferences",
+          "3": "Internal analytics"
+        },
         "noTracking": "We do not use advertising, tracking, or third-party marketing cookies."
       },
       "analytics": {
@@ -250,24 +329,55 @@
       "thirdPartyProviders": {
         "title": "6. Third-Party Service Providers",
         "intro": "We use trusted third-party infrastructure providers to operate the service, including:",
-        "items": ["Cloudflare (security and content delivery)", "Render (application hosting)", "MongoDB (database storage)", "Cloudinary (media storage)", "SAV (infrastructure services)", "Resend (transactional email delivery)"],
+        "items": {
+          "0": "Cloudflare (security and content delivery)",
+          "1": "Render (application hosting)",
+          "2": "MongoDB (database storage)",
+          "3": "Cloudinary (media storage)",
+          "4": "SAV (infrastructure services)",
+          "5": "Resend (transactional email delivery)"
+        },
         "dataProcessing": "These providers process data only as necessary to deliver their services to InterGuide."
       },
       "dataUse": {
         "title": "7. Data Use",
         "intro": "We use collected data to:",
-        "items": ["Create and manage user accounts", "Provide and operate the platform", "Enable collaboration and workspace sharing", "Maintain security and prevent abuse", "Send essential service emails (authentication, password reset)"],
+        "items": {
+          "0": "Create and manage user accounts",
+          "1": "Provide and operate the platform",
+          "2": "Enable collaboration and workspace sharing",
+          "3": "Maintain security and prevent abuse",
+          "4": "Send essential service emails (authentication, password reset)"
+        },
         "noMarketing": "We do not send marketing or promotional emails."
       },
       "dataRetention": {
         "title": "8. Data Retention",
-        "items": ["<strong>Active accounts:</strong> Data is retained while the account is active.", "<strong>Paid subscriptions ended:</strong> Workspace data is retained for up to 90 days after subscription termination.", "<strong>After 90 days,</strong> data may be permanently deleted unless required for legal or operational purposes.", "<strong>Users may request earlier deletion</strong> by contacting support@interguide.app."]
+        "items": {
+          "0": "<strong>Active accounts:</strong> Data is retained while the account is active.",
+          "1": "<strong>Paid subscriptions ended:</strong> Workspace data is retained for up to 90 days after subscription termination.",
+          "2": "<strong>After 90 days,</strong> data may be permanently deleted unless required for legal or operational purposes.",
+          "3": "<strong>Users may request earlier deletion</strong> by contacting support@interguide.app."
+        }
+      },
+      "dataSecurity": {
+        "title": "10. אבטחת נתונים",
+        "intro": "אנו יושמים אמצעי אבטחה סבירים כדי להגן על המידע שלך, כולל:",
+        "measures": {
+          "0": "הצפנה בעת העברה ובמנוחה",
+          "1": "בקרת גישה מבוססת תפקידים",
+          "2": "ביקורות אבטחה סדירות",
+          "3": "פרוטוקולי תגובה לאירועים"
+        }
       },
       "accountDeletion": {
         "title": "9. Account Deletion",
         "intro": "Users cannot self-delete accounts through the platform.",
         "usersMay": "Users may:",
-        "items": ["Delete their own content at any time", "Request full account and data deletion by emailing support@interguide.app"],
+        "items": {
+          "0": "Delete their own content at any time",
+          "1": "Request full account and data deletion by emailing support@interguide.app"
+        },
         "processingTime": "Deletion requests are processed within a reasonable timeframe."
       },
       "internationalDataTransfers": {
@@ -277,7 +387,11 @@
       "security": {
         "title": "11. Security",
         "intro": "We implement reasonable administrative, technical, and organizational safeguards, including:",
-        "items": ["Encrypted credentials", "Access controls", "Secure infrastructure providers"],
+        "items": {
+          "0": "Encrypted credentials",
+          "1": "Access controls",
+          "2": "Secure infrastructure providers"
+        },
         "noGuarantee": "No system is completely secure, and we cannot guarantee absolute security."
       },
       "childrensPrivacy": {
@@ -287,7 +401,12 @@
       "yourRights": {
         "title": "13. Your Rights",
         "intro": "Depending on your jurisdiction, you may have rights to:",
-        "items": ["Access your data", "Correct inaccurate data", "Request deletion", "Object to certain processing"],
+        "items": {
+          "0": "Access your data",
+          "1": "Correct inaccurate data",
+          "2": "Request deletion",
+          "3": "Object to certain processing"
+        },
         "contact": "Requests should be sent to support@interguide.app."
       },
       "changesToPolicy": {
@@ -307,44 +426,79 @@
       "plansAndPricing": {
         "title": "1. Plans and Pricing",
         "intro": "InterGuide offers both free and paid subscription plans.",
-        "items": ["<strong>Free Plan:</strong> Limited access to the platform at no cost.", "<strong>Paid Plan:</strong> $5 USD per month, following a 14-day free trial."],
+        "items": {
+          "0": "<strong>Free Plan:</strong> Limited access to the platform at no cost.",
+          "1": "<strong>Paid Plan:</strong> $5 USD per month, following a 14-day free trial."
+        },
         "changes": "Pricing may change in the future. Any changes will apply only to future billing periods and will be communicated in advance."
       },
       "freeTrial": {
         "title": "2. Free Trial",
-        "items": ["New users may be eligible for a 14-day free trial of paid features.", "No charges are applied during the trial period.", "If a payment method is provided, billing begins automatically at the end of the trial unless canceled before the trial expires."]
+        "items": {
+          "0": "New users may be eligible for a 14-day free trial of paid features.",
+          "1": "No charges are applied during the trial period.",
+          "2": "If a payment method is provided, billing begins automatically at the end of the trial unless canceled before the trial expires."
+        }
       },
       "paymentProcessing": {
         "title": "3. Payment Processing",
-        "items": ["Payments are processed exclusively through PayPal.", "InterGuide does not collect, store, or process payment card or banking information.", "All payment information is handled directly by PayPal under their own terms and privacy policy."]
+        "items": {
+          "0": "Payments are processed exclusively through PayPal.",
+          "1": "InterGuide does not collect, store, or process payment card or banking information.",
+          "2": "All payment information is handled directly by PayPal under their own terms and privacy policy."
+        }
       },
       "billingCycle": {
         "title": "4. Billing Cycle and Renewal",
-        "items": ["Subscriptions are billed on a monthly recurring basis.", "Billing occurs automatically at the beginning of each billing period.", "By subscribing, you authorize PayPal to charge the applicable subscription fee on a recurring basis."]
+        "items": {
+          "0": "Subscriptions are billed on a monthly recurring basis.",
+          "1": "Billing occurs automatically at the beginning of each billing period.",
+          "2": "By subscribing, you authorize PayPal to charge the applicable subscription fee on a recurring basis."
+        }
       },
       "cancellations": {
         "title": "5. Cancellations",
-        "items": ["You may cancel your subscription at any time through PayPal or by contacting support@interguide.app.", "Cancellation prevents future charges but does not refund the current billing period.", "Access to paid features remains available until the end of the active billing cycle."]
+        "items": {
+          "0": "You may cancel your subscription at any time through PayPal or by contacting support@interguide.app.",
+          "1": "Cancellation prevents future charges but does not refund the current billing period.",
+          "2": "Access to paid features remains available until the end of the active billing cycle."
+        }
       },
       "failedPayments": {
         "title": "6. Failed Payments",
-        "items": ["If a payment fails, access to paid features may be temporarily suspended.", "InterGuide reserves the right to restrict or terminate access after repeated payment failures."]
+        "items": {
+          "0": "If a payment fails, access to paid features may be temporarily suspended.",
+          "1": "InterGuide reserves the right to restrict or terminate access after repeated payment failures."
+        }
       },
       "refundPolicy": {
         "title": "7. Refund Policy",
-        "items": ["Subscription fees are non-refundable, except where required by applicable law.", "No partial refunds are provided for unused time."]
+        "items": {
+          "0": "Subscription fees are non-refundable, except where required by applicable law.",
+          "1": "No partial refunds are provided for unused time."
+        }
       },
       "downgrades": {
         "title": "8. Downgrades and Plan Changes",
-        "items": ["Plan changes take effect at the next billing cycle unless otherwise stated.", "No credits are issued for downgrades during an active billing period."]
+        "items": {
+          "0": "Plan changes take effect at the next billing cycle unless otherwise stated.",
+          "1": "No credits are issued for downgrades during an active billing period."
+        }
       },
       "dataRetention": {
         "title": "9. Data Retention After Subscription Ends",
-        "items": ["When a paid subscription ends, access to the workspace and published portals is suspended.", "Workspace data is retained for up to 90 days.", "After 90 days, data may be permanently deleted unless the user reactivates the subscription or requests deletion earlier."]
+        "items": {
+          "0": "When a paid subscription ends, access to the workspace and published portals is suspended.",
+          "1": "Workspace data is retained for up to 90 days.",
+          "2": "After 90 days, data may be permanently deleted unless the user reactivates the subscription or requests deletion earlier."
+        }
       },
       "taxes": {
         "title": "10. Taxes",
-        "items": ["Prices listed do not include applicable taxes unless stated otherwise.", "You are responsible for any taxes imposed by your jurisdiction."]
+        "items": {
+          "0": "Prices listed do not include applicable taxes unless stated otherwise.",
+          "1": "You are responsible for any taxes imposed by your jurisdiction."
+        }
       },
       "changesToPolicy": {
         "title": "11. Changes to This Billing Policy",
@@ -375,14 +529,23 @@
         "title": "3. Accounts",
         "intro": "You must create an account to access most features.",
         "agreeTo": "You agree to:",
-        "items": ["Provide accurate information", "Maintain the security of your credentials", "Be responsible for all activity under your account"],
+        "items": {
+          "0": "Provide accurate information",
+          "1": "Maintain the security of your credentials",
+          "2": "Be responsible for all activity under your account"
+        },
         "termination": "InterGuide may suspend or terminate accounts that violate these Terms."
       },
       "subscriptions": {
         "title": "4. Subscriptions, Trials, and Billing",
         "intro": "Paid features are offered on a subscription basis as described in the Billing Policy, which is incorporated into these Terms.",
         "keyPoints": "Key points:",
-        "items": ["$5 USD/month for the first 12 months, then $10 USD/month", "Pricing may change at any time", "Payments processed exclusively via PayPal", "No refunds except where required by law"]
+        "items": {
+          "0": "14-day free trial (if offered)",
+          "1": "$5 USD monthly subscription",
+          "2": "Payments processed exclusively via PayPal",
+          "3": "No refunds except where required by law"
+        }
       },
       "userContent": {
         "title": "5. User Content",
@@ -403,7 +566,12 @@
       "acceptableUse": {
         "title": "6. Acceptable Use",
         "agreeNotTo": "You agree not to:",
-        "items": ["Upload illegal or infringing content", "Harass, abuse, or harm others", "Interfere with platform security or performance", "Use the service for unlawful purposes"],
+        "items": {
+          "0": "Upload illegal or infringing content",
+          "1": "Harass, abuse, or harm others",
+          "2": "Interfere with platform security or performance",
+          "3": "Use the service for unlawful purposes"
+        },
         "rights": "We reserve the right to remove content or restrict access at our discretion."
       },
       "collaboration": {
@@ -413,14 +581,25 @@
       "suspension": {
         "title": "8. Suspension and Termination",
         "intro": "We may suspend or terminate your access if you:",
-        "items": ["Violate these Terms", "Fail to pay applicable fees", "Create risk or legal exposure"],
+        "items": {
+          "0": "Violate these Terms",
+          "1": "Fail to pay applicable fees",
+          "2": "Create risk or legal exposure"
+        },
         "uponTermination": "Upon termination:",
-        "terminationItems": ["Access to paid features and portals is disabled", "Data retention is handled per the Privacy Policy and Billing Policy"]
+        "terminationItems": {
+          "0": "Access to paid features and portals is disabled",
+          "1": "Data retention is handled per the Privacy Policy and Billing Policy"
+        }
       },
       "dataRetention": {
         "title": "9. Data Retention",
         "intro": "After subscription termination:",
-        "items": ["Workspace data is retained for up to 90 days", "Data may be deleted after this period", "Earlier deletion may be requested via support@interguide.app"]
+        "items": {
+          "0": "Workspace data is retained for up to 90 days",
+          "1": "Data may be deleted after this period",
+          "2": "Earlier deletion may be requested via support@interguide.app"
+        }
       },
       "intellectualProperty": {
         "title": "10. Intellectual Property",
@@ -453,7 +632,10 @@
       "governingLaw": {
         "title": "16. Governing Law",
         "intro": "These Terms are governed by the laws of:",
-        "items": ["The State of California, USA, and", "The State of Israel,"],
+        "items": {
+          "0": "The State of California, USA, and",
+          "1": "The State of Israel,"
+        },
         "conflict": "without regard to conflict-of-law principles."
       },
       "changesToTerms": {
@@ -466,39 +648,16 @@
         "email": "Email: support@interguide.app"
       }
     },
-    "footer": {
-      "copyright": "InterGuide 2025. All rights reserved.",
-      "beta": "Beta — for support, contact: support@interguide.app"
-    },
     "whatsapp": "WhatsApp",
     "poweredBy": "Powered by InterGuide",
     "wantKnowledgeBase": "Want a knowledge base center for yourself?",
     "getStarted": "Get Started",
     "backToPortal": "Back to Portal",
-    "walkthroughComplete": "Walkthrough Complete!",
-    "howWasExperience": "How was your experience?",
-    "additionalComments": "Any additional comments? (optional)",
-    "submitFeedback": "Submit Feedback",
-    "skip": "Skip",
-    "adminDialog": {
-      "title": "Admin Dashboard",
-      "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
-      "stayInPortal": "Stay in Portal",
-      "goToDashboard": "Go to Dashboard"
-    },
-    "knowledgeSystems": {
-      "title": "Knowledge Systems",
-      "description": "Browse published policies, procedures, docs, FAQs, and decisions.",
-      "available": "{{count}} available",
-      "none": "No knowledge systems published yet.",
-      "labels": {
-        "policies": "Policies",
-        "procedures": "Procedures",
-        "documentation": "Documentation",
-        "faqs": "FAQs",
-        "decisions": "Decision Trees"
-      }
-    }
+    "walkthroughComplete": "הדרכה הושלמה!",
+    "howWasExperience": "איך הייתה החוויה שלך?",
+    "additionalComments": "הערות נוספות? (רשות)",
+    "submitFeedback": "שלח משוב",
+    "skip": "דלג"
   },
   "category": {
     "create": "Create Category",
@@ -507,9 +666,15 @@
     "name": "Category Name",
     "description": "Description",
     "icon": "Icon/Photo (Optional)",
+    "iconUrl": "כתובת URL של אייקון/תמונה",
     "parentCategory": "Parent Category (Optional)",
+    "noneTopLevel": "אין (קטגוריה ברמה העליונה)",
+    "selectParentHint": "בחר אב כדי ליצור תת-קטגוריה, או השאר כ\"אין\" לקטגוריה ברמה העליונה",
     "notebooklmUrl": "NotebookLM / Gemini Chat Link (Optional)",
     "notebooklmDescription": "Add a link to a Google NotebookLM or Gemini Chat notebook for this category",
+    "notebooklmExample": "https://notebooklm.google.com/notebook/...",
+    "gettingStarted": "תחילת העבודה",
+    "guidesForNewUsers": "מדריכים למשתמשים חדשים",
     "newCategory": "New Category",
     "createSubcategory": "Create Sub-category",
     "organizeWalkthroughs": "Organize your walkthroughs into categories and sub-categories",
@@ -520,7 +685,11 @@
     "changeToTopLevel": "Change to top-level category"
   },
   "categories": {
-    "addSubCategory": "Add Sub-category"
+    "addSubCategory": "Add Sub-category",
+    "nameRequired": "Category name is required",
+    "updated": "Category updated!",
+    "deleted": "Category deleted. Walkthroughs are now uncategorized.",
+    "subCategories": "Sub-categories"
   },
   "walkthrough": {
     "new": "New Walkthrough",
@@ -570,16 +739,28 @@
     "currentUrl": "Current URL",
     "archiveWalkthrough": "Archive Walkthrough",
     "saveSettings": "Save Settings",
-    "stuckButtonLabel": "Enable “I’m stuck” button",
-    "stuckButtonDescription": "Show a WhatsApp help button in the public viewer for this guide.",
-    "publish": "Publish"
+    "stuckButtonLabel": "אפשר כפתור \"אני תקוע\"",
+    "stuckButtonDescription": "הצג כפתור עזרה ב-WhatsApp לצופים במדריך הזה.",
+    "publish": "Publish",
+    "createNew": "צור מדריך חדש",
+    "setupBeforeSteps": "הגדר את המדריך שלך לפני הוספת שלבים",
+    "nameRequired": "שם מדריך *",
+    "enterName": "הזן שם מדריך",
+    "enterDescription": "הזן תיאור (אופציונלי)",
+    "iconOptional": "אייקון/תמונה (אופציונלי)",
+    "noFileChosen": "לא נבחר קובץ",
+    "or": "או",
+    "enterImageUrl": "הזן כתובת URL של תמונה",
+    "noCategories": "אין קטגוריות זמינות. צור קטגוריות בעמוד הקטגוריות.",
+    "updateNameDescription": "עדכן שם מדריך, תיאור, אייקון וקטגוריות",
+    "cancel": "ביטול"
   },
   "stuck": {
-    "buttonLabel": "I'm stuck",
-    "categoryFallback": "Uncategorized",
-    "guideFallback": "Untitled guide",
-    "stepFallback": "Untitled step",
-    "message": "Hi, I'm stuck in a guide.\n\nCategory: {{category}}\nGuide: {{guide}}\nStep {{stepNumber}}: {{stepTitle}}\n\nLink:\n{{link}}"
+    "buttonLabel": "אני תקוע",
+    "categoryFallback": "ללא קטגוריה",
+    "guideFallback": "מדריך ללא שם",
+    "stepFallback": "שלב ללא שם",
+    "message": "היי, אני תקוע במדריך.\n\nקטגוריה: {{category}}\nמדריך: {{guide}}\nשלב {{stepNumber}}: {{stepTitle}}\n\nקישור:\n{{link}}"
   },
   "archive": {
     "title": "Archive",
@@ -751,25 +932,25 @@
     "categoriesExceeded": "You have reached your category limit. Upgrade for unlimited categories.",
     "genericMessage": "Upgrade your plan to unlock more features and higher limits.",
     "maxMediaCapacity": "Max Media Capacity",
-    "mediaCapacityDetails": "Maximum file sizes and processing limits for this plan:",
-    "contactForMediaCapacity": "Contact sales for custom media capacity limits and processing requirements.",
-    "enterpriseMediaCapacityDesc": "Enterprise plans include custom media processing limits tailored to your needs.",
+    "mediaCapacityDetails": "גדלי קבצים מקסימליים ומגבלות עיבוד עבור תוכנית זו:",
+    "contactForMediaCapacity": "צור קשר עם מכירות למגבלות קיבולת מדיה מותאמות אישית ודרישות עיבוד.",
+    "enterpriseMediaCapacityDesc": "תוכניות ארגוניות כוללות מגבלות עיבוד מדיה מותאמות אישית לצרכים שלך.",
     "overQuotaBanner": {
-      "title": "Storage Quota Exceeded",
-      "description": "You have exceeded your storage quota. You cannot upload new files until you delete some files or upgrade your plan.",
-      "cta": "Upgrade Plan"
+      "title": "מכסת האחסון חרגה",
+      "description": "חרגת ממכסת האחסון שלך. אינך יכול להעלות קבצים חדשים עד שתמחק קבצים או תשדרג את התוכנית שלך.",
+      "cta": "שדרג תוכנית"
     },
-    "enterprisePlanInquirySubject": "Enterprise Plan Inquiry",
-    "enterpriseMediaCapacityInquirySubject": "Enterprise Media Capacity Inquiry",
-    "selectPlanError": "Failed to select plan. Please try again.",
+    "enterprisePlanInquirySubject": "פנייה לגבי תוכנית ארגונית",
+    "enterpriseMediaCapacityInquirySubject": "פנייה לגבי קיבולת מדיה ארגונית",
+    "selectPlanError": "נכשל בבחירת תוכנית. נסה שוב.",
     "mediaCapacity": {
-      "maxImageFileSize": "Max Image File Size",
-      "maxVideoFileSize": "Max Video File Size",
-      "maxRawFileSize": "Max Raw File Size",
-      "maxImageTransformSize": "Max Image Transform Size",
-      "maxVideoTransformSize": "Max Video Transform Size",
-      "maxImageMegapixel": "Max Image Megapixel",
-      "maxMegapixelAllFrames": "Max Megapixel All Frames"
+      "maxImageFileSize": "גודל קובץ תמונה מקסימלי",
+      "maxVideoFileSize": "גודל קובץ וידאו מקסימלי",
+      "maxRawFileSize": "גודל קובץ גולמי מקסימלי",
+      "maxImageTransformSize": "גודל טרנספורמציה תמונה מקסימלי",
+      "maxVideoTransformSize": "גודל טרנספורמציה וידאו מקסימלי",
+      "maxImageMegapixel": "מגה-פיקסל תמונה מקסימלי",
+      "maxMegapixelAllFrames": "מגה-פיקסל כל הפריימים"
     },
     "mediaCapacityValues": {
       "free": {
@@ -805,18 +986,21 @@
     "changePlanDescription": "Select a new plan. Your current usage will be preserved.",
     "popular": "Popular",
     "freeTrial": "Start with a free 14-day trial",
-    "proPeriod": "for first 12 months, then $10/mo. * cancel at any time.",
+    "proPeriod": "ל-12 חודשים הראשונים, אחר כך $10/חודש. * ניתן לבטל בכל עת.",
     "proPrice": "$5",
-    "freePrice": "$0",
-    "forever": "forever",
-    "customPrice": "Custom",
-    "customPricing": "pricing",
+    "freePrice": "0$",
+    "forever": "לנצח",
+    "freeTrialPrice": "ניסיון חינם",
+    "trialDays": "14 ימים",
+    "monthlyPrice": "5$/חודש",
+    "monthlyPriceAfter": "10$/חודש לאחר שנה ראשונה",
+    "customPrice": "מותאם אישית",
     "planNames": {
-      "free": "Free",
-      "pro": "Pro", 
-      "enterprise": "Enterprise"
+      "free": "חינם",
+      "pro": "פרו",
+      "enterprise": "ארגוני"
     },
-    "enterpriseRequiresSetup": "Enterprise plan requires custom setup. Please contact sales for pricing and configuration.",
+    "enterpriseRequiresSetup": "תוכנית ארגונית דורשת התאמה אישית. אנא צור קשר עם מכירות לקבלת מחיר והגדרות.",
     "planValues": {
       "storage": {
         "free": "500 MB",
@@ -910,17 +1094,18 @@
     "noCategoriesAvailable": "No categories available. Create categories in the Categories page.",
     "selectCategoriesForWalkthrough": "Select one or more categories for this walkthrough",
     "noStepsYet": "No steps yet",
-    "selectStepOrCreate": "Select a step or create a new one",
-    "selectStepOrBlock": "Select a step or block to edit",
-    "inspector": "Inspector",
+    "selectStepOrCreate": "בחר שלב או צור חדש",
+    "selectStepOrBlock": "בחר שלב או בלוק לעריכה",
+    "inspector": "מפקח",
+    "preview": "תצוגה מקדימה",
     "buildingTips": "Building Tips",
     "buildingTipsDescription": "Helpful tips for creating effective walkthroughs",
     "learnMore": "Learn more",
     "tips": {
       "recordGifs": "Record GIFs with ScreenToGIF",
       "recordGifsDesc": "Use ScreenToGIF (free Windows app) to record screen captures as animated GIFs. Perfect for step-by-step demonstrations.",
-      "annotatedImage": "Use Annotated Image for callouts",
-      "annotatedImageDesc": "Add an Annotated Image block to place clickable markers and explain details directly on the image.",
+      "annotatedImage": "השתמש בתמונה עם הערות",
+      "annotatedImageDesc": "הוסף בלוק תמונה עם הערות כדי למקם סמנים לחיצים ולהסביר פרטים ישירות על התמונה.",
       "tickWhenFinished": "Set Step to Tick When Finished",
       "tickWhenFinishedDesc": "Change navigation type to 'Check-off Required' to make users confirm completion before advancing. Great for important steps.",
       "commonProblems": "Add Common Problems Block",
@@ -962,10 +1147,10 @@
     },
     "addItem": "Add Item",
     "openInNewTab": "Open in new tab",
-    "problemTitle": "Problem Title",
+    "problemTitle": "Title",
     "problemExplanation": "Explanation",
     "calloutTip": "Tip",
-    "calloutWarning": "Warning", 
+    "calloutWarning": "Warning",
     "calloutImportant": "Important",
     "calloutInfo": "Info",
     "labels": {
@@ -1030,16 +1215,16 @@
       "checklist": "Checklist",
       "callout": "Callout",
       "annotatedImage": "Annotated Image",
-    "annotatedImageInstructions": {
-      "clickImage": "Click image to add markers",
-      "clickAnnotation": "Click annotation to edit below",
-      "dragMarkers": "Drag markers to reposition",
-      "dragCorners": "Drag corners to resize rectangles",
-      "clickImageShort": "Click image",
-      "clickAnnotationShort": "Click annotation",
-      "dragMarkersShort": "Drag markers",
-      "dragCornersShort": "Drag corners"
-    },
+      "annotatedImageInstructions": {
+        "clickImage": "Click image to add markers",
+        "clickAnnotation": "Click annotation to edit below",
+        "dragMarkers": "Drag markers to reposition",
+        "dragCorners": "Drag corners to resize rectangles",
+        "clickImageShort": "Click image",
+        "clickAnnotationShort": "Click annotation",
+        "dragMarkersShort": "Drag markers",
+        "dragCornersShort": "Drag corners"
+      },
       "embed": "Embed",
       "section": "Section",
       "confirmation": "Confirmation",
@@ -1063,7 +1248,6 @@
       "link": "Link",
       "items": "Items",
       "message": "Message",
-      "buttonText": "Button Text",
       "openInNewTab": "Open in New Tab",
       "code": "Code",
       "language": "Language",
@@ -1101,8 +1285,6 @@
     "textFormattingOptions": "Text formatting options",
     "problem": "Problem",
     "commonProblemsAndSolutions": "Common problems and solutions",
-    "problemTitle": "Title",
-    "problemExplanation": "Explanation",
     "addProblem": "Add Problem",
     "removeProblem": "Remove",
     "commonProblems": "Common Problems",
@@ -1113,7 +1295,8 @@
     "bold": "Bold",
     "italic": "Italic",
     "underline": "Underline",
-    "or": "or"
+    "or": "or",
+    "createWorkspace": "צור אזור עבודה"
   },
   "landing": {
     "heroTitle": "Create Interactive Walkthroughs",
@@ -1175,7 +1358,7 @@
   "knowledgeSystems": {
     "title": "Knowledge Systems",
     "description": "Manage isolated knowledge systems with dedicated editors and portals.",
-    "backToSystems": "Back to Knowledge Systems",
+    "backToSystems": "חזרה למערכות הידע",
     "backToSettings": "Back to Settings",
     "types": {
       "policies": {
@@ -1183,7 +1366,7 @@
         "description": "Official policies and procedures with legal authority and compliance standards."
       },
       "procedures": {
-        "name": "Procedures", 
+        "name": "Procedures",
         "description": "Step-by-step operational procedures for consistent execution and compliance."
       },
       "documentation": {
@@ -1220,36 +1403,36 @@
       "noPolicies": "No Policies Published",
       "noPoliciesDescription": "Policy content has not been published yet. Check back later for official documentation.",
       "editor": {
-        "bold": "Bold",
-        "italic": "Italic",
-        "heading": "Heading",
-        "numbered": "Numbered",
-        "bullets": "Bullets",
-        "publishSuccess": "Policy published successfully.",
-        "publishError": "Failed to publish policy.",
-        "untitled": "Untitled Policy",
-        "subtitle": "Official policy editor",
-        "policyTitle": "Policy Title",
-        "policyTitlePlaceholder": "Enter policy title",
-        "description": "Description",
-        "descriptionPlaceholder": "Describe the policy scope and purpose",
-        "effectiveDate": "Effective Date",
-        "jurisdiction": "Jurisdiction",
-        "jurisdictionPlaceholder": "Enter jurisdiction",
-        "sections": "Sections",
-        "sectionsDescription": "Organize the policy into sections",
-        "section": "Section",
-        "title": "Title",
-        "removeSection": "Remove Section",
-        "category": "Category",
-        "contentPlaceholder": "Write section content...",
-        "versionHistory": "Version History",
-        "created": "Created",
-        "lastUpdated": "Last Updated",
-        "published": "Published",
-        "notPublished": "Not published",
-        "publishCheck": "Publish Check",
-        "publishCheckDescription": "Publishing copies the draft into the official portal and locks the version badge."
+        "bold": "מודגש",
+        "italic": "נטוי",
+        "heading": "כותרת",
+        "numbered": "ממוספר",
+        "bullets": "תבליטים",
+        "publishSuccess": "המדיניות פורסמה בהצלחה.",
+        "publishError": "נכשל בפרסום המדיניות.",
+        "untitled": "מדיניות ללא שם",
+        "subtitle": "עורך מדיניות רשמי",
+        "policyTitle": "כותרת מדיניות",
+        "policyTitlePlaceholder": "הזן כותרת מדיניות",
+        "description": "תיאור",
+        "descriptionPlaceholder": "תאר את היקף המדיניות והמטרה",
+        "effectiveDate": "תאריך כניסה לתוקף",
+        "jurisdiction": "תחום שיפוט",
+        "jurisdictionPlaceholder": "הזן תחום שיפוט",
+        "sections": "סעיפים",
+        "sectionsDescription": "ארגן את המדיניות לפי סעיפים",
+        "section": "סעיף",
+        "title": "כותרת",
+        "removeSection": "הסר סעיף",
+        "category": "קטגוריה",
+        "contentPlaceholder": "כתוב את תוכן הסעיף...",
+        "versionHistory": "היסטוריית גרסאות",
+        "created": "נוצר",
+        "lastUpdated": "עודכן לאחרונה",
+        "published": "פורסם",
+        "notPublished": "לא פורסם",
+        "publishCheck": "בדיקת פרסום",
+        "publishCheckDescription": "פרסום מעתיק את הטיוטה לפורטל הרשמי ונועל את תגית הגרסה."
       }
     },
     "procedure": {
@@ -1281,60 +1464,56 @@
       "noDecisionsDescription": "Decision trees have not been published yet. Check back later for decision-making guides."
     }
   },
+  "procedures": {
+    "name": "נהלים",
+    "description": "נהלי תפעול סטנדרטיים ונהלים שלב אחר שלב"
+  },
+  "documentation": {
+    "editor": {
+      "title": "עורך תיעוד",
+      "subtitle": "מדריכים מקיפים וחומרי ייחוס",
+      "untitled": "תיעוד ללא שם",
+      "publish": "פרסם",
+      "close": "סגור",
+      "documentationTitle": "כותרת תיעוד",
+      "documentationTitlePlaceholder": "שם תיעוד ברור ותיאורי",
+      "description": "תיאור",
+      "descriptionPlaceholder": "סקירה כללית ומטרה של תיעוד זה",
+      "content": "תוכן",
+      "contentPlaceholder": "הכנס תוכן תיעוד...",
+      "emptyState": "אין תיעוד עדיין. צור את התיעוד הראשון שלך כדי להתחיל."
+    },
+    "portal": {
+      "title": "תיעוד",
+      "description": "מדריכים מקיפים וחומרי ייחוס",
+      "noDocumentation": "לא פורסם תיעוד",
+      "noDocumentationDescription": "לא פורסם תיעוד עדיין. בדוק מאוחר יותר חומרי ייחוס.",
+      "searchPlaceholder": "חפש תיעוד...",
+      "filterBy": "סנן לפי",
+      "allCategories": "כל הקטגוריות",
+      "sortBy": "מיין לפי",
+      "latestUpdated": "עודכן לאחרונה",
+      "oldestFirst": "הישן קודם",
+      "titleAZ": "כותרת (א-ת)",
+      "titleZA": "כותרת (ת-א)",
+      "metadata": {
+        "lastUpdated": "עודכן לאחרונה"
+      }
+    }
+  },
+  "faqs": {
+    "name": "שאלות נפוצות",
+    "description": "שאלות נפוצות ותשובות"
+  },
+  "decisionTrees": {
+    "name": "עצי החלטה",
+    "description": "מדריכי קבלת החלטות אינטראקטיביים"
+  },
   "blocked": {
     "title": "Account Disabled",
     "message": "Your account has been disabled or deleted.",
     "contactSupport": "Please contact support:",
     "backToLogin": "Back to Login"
-  },
-  "onboardingTour": {
-    "progress": "Step {{current}} of {{total}}",
-    "waiting": "Waiting for element to be ready...",
-    "skip": "Skip onboarding",
-    "finish": "Finish Tour",
-    "welcome": {
-      "title": "Welcome to InterGuide!",
-      "body": "Let's get you started with a quick tour to create your first workspace, category, and walkthrough.",
-      "start": "Start Tour"
-    },
-    "steps": {
-      "createWorkspace": {
-        "title": "Create Your First Workspace",
-        "body": "Click the \"+ New Workspace\" button to create a workspace for organizing your guides."
-      },
-      "workspaceForm": {
-        "title": "Set Up Your Workspace",
-        "body": "Enter a workspace name and brand color. Logo and background are optional and can be added later."
-      },
-      "enterWorkspace": {
-        "title": "Enter Your Workspace",
-        "body": "Great! Now click on your newly created workspace to enter it."
-      },
-      "goCategories": {
-        "title": "Navigate to Categories",
-        "body": "Before creating guides, let's create a category to organize them. Click the \"Categories\" tab."
-      },
-      "createCategory": {
-        "title": "Create Your First Category",
-        "body": "Categories help organize your walkthroughs. Click \"+ New Category\" to create one."
-      },
-      "goGuides": {
-        "title": "Navigate to Guides",
-        "body": "Perfect! Now let's create your first walkthrough. Click the \"Guides\" tab to go back."
-      },
-      "createWalkthrough": {
-        "title": "Create Your First Walkthrough",
-        "body": "Click \"+ New Walkthrough\" to create an interactive guide."
-      },
-      "completeWalkthrough": {
-        "title": "Congratulations! 🎉",
-        "body": "You've successfully created your first walkthrough! You can now add more steps, customize content, and share your guide with others. The onboarding tour is complete."
-      },
-      "addFirstStep": {
-        "title": "Add Content to Your Walkthrough",
-        "body": "Click the \"+\" button to add a step, give it a title, then click \"+\" again to add content blocks."
-      }
-    }
   },
   "toast": {
     "welcomeBack": "Welcome back!",
@@ -1394,7 +1573,7 @@
     "workspaceLocked": "Another user ({{user}}) is currently in this workspace.",
     "failedToLoadWalkthroughs": "Failed to load walkthroughs",
     "uploadNotCompleted": "Upload not completed (status: {{status}}). Please try again.",
-    "uploadNoUrl": "Upload succeeded but no URL returned.",
+    "uploadNoUrl": "Upload succeeded but no URL returned. Please try again.",
     "pleaseFillFields": "Please fill in both fields",
     "nameRequired": "Category name is required",
     "titleRequired": "Please enter a title",
@@ -1402,8 +1581,6 @@
     "quotaExceeded": "Cannot upload file. Quota limit reached.",
     "cannotDeleteLastStep": "Cannot delete the last step",
     "cannotDeleteAllSteps": "Cannot delete all steps",
-    "uploadNotCompleted": "Upload not completed (status: {{status}}). Please try again.",
-    "uploadNoUrl": "Upload succeeded but no URL returned. Please try again.",
     "recoveredBlocks": "Recovered {{count}} image blocks!",
     "failedToRecover": "Failed to recover blocks",
     "passwordResetEmailSent": "If the email is registered, you'll receive a reset link shortly. Check your spam folder.",
@@ -1412,6 +1589,55 @@
     "passwordsDontMatch": "Passwords do not match",
     "invalidResetToken": "Invalid or expired reset token",
     "resetTokenExpired": "Reset token has expired"
+  },
+  "onboardingTour": {
+    "progress": "Step {{current}} of {{total}}",
+    "waiting": "Waiting for element to be ready...",
+    "skip": "Skip onboarding",
+    "finish": "סיים סיור",
+    "welcome": {
+      "title": "Welcome to InterGuide!",
+      "body": "Let's get you started with a quick tour to create your first workspace, category, and walkthrough.",
+      "start": "Start Tour"
+    },
+    "steps": {
+      "createWorkspace": {
+        "title": "Create Your First Workspace",
+        "body": "Click the \"+ New Workspace\" button to create a workspace for organizing your guides."
+      },
+      "workspaceForm": {
+        "title": "Set Up Your Workspace",
+        "body": "Enter a workspace name and brand color. Logo and background are optional and can be added later."
+      },
+      "enterWorkspace": {
+        "title": "Enter Your Workspace",
+        "body": "Great! Now click on your newly created workspace to enter it."
+      },
+      "goCategories": {
+        "title": "Navigate to Categories",
+        "body": "Before creating guides, let's create a category to organize them. Click the \"Categories\" tab."
+      },
+      "createCategory": {
+        "title": "Create Your First Category",
+        "body": "Categories help organize your walkthroughs. Click \"+ New Category\" to create one."
+      },
+      "goGuides": {
+        "title": "Navigate to Guides",
+        "body": "Perfect! Now let's create your first walkthrough. Click the \"Guides\" tab to go back."
+      },
+      "createWalkthrough": {
+        "title": "Create Your First Walkthrough",
+        "body": "Click \"+ New Walkthrough\" to create an interactive guide."
+      },
+      "completeWalkthrough": {
+        "title": "מזל טוב! ",
+        "body": "יצרת בהצלחה את המדריך הראשון שלך! כעת תוכל להוסיף עוד שלבים, להתאים תוכן ולשתף את המדריך שלך עם אחרים. סיור ההדרכה הסתיים."
+      },
+      "addFirstStep": {
+        "title": "Add Content to Your Walkthrough",
+        "body": "Click the \"+\" button to add a step, give it a title, then click \"+\" again to add content blocks."
+      }
+    }
   },
   "billing": {
     "processing": "Processing...",
@@ -1427,6 +1653,7 @@
     "cancellationPending": "Cancellation requested — pending PayPal confirmation",
     "cancellationPendingDesc": "Cancellation request sent. PayPal confirmation pending. Your access remains active until the end of the period. Final billing status is determined by PayPal.",
     "manageViaPayPal": "Manage via PayPal (optional)",
+    "managePlan": "ניהול תוכנית",
     "subscribeToProPlan": "Subscribe to Pro Plan",
     "subscribeDescription": "Complete your subscription to unlock Pro features. Your subscription will be activated automatically.",
     "paymentsProcessedByPayPal": "Payments are processed by PayPal. By subscribing, you agree to our",
@@ -1440,6 +1667,11 @@
     "provider": "Provider",
     "freeTrialActive": "Free Trial Active",
     "trialEndsOn": "Your trial ends on {{date}}",
+    "builder": {
+      "labels": {
+        "description": "תיאור"
+      }
+    },
     "afterTrialBilling": "After the trial, billing will occur at $5/month as determined by PayPal.",
     "currentPeriodEnds": "Current Billing Period Ends",
     "nextBillingDate": "Next Billing Date",
@@ -1461,16 +1693,181 @@
     "subscriptionRemainsActive": "Your subscription will remain active until {{date}}. No further charges will occur after this date unless you re-subscribe. Final billing status is determined by PayPal.",
     "cancelledConfirmedDesc": "PayPal has confirmed the cancellation. No further charges will occur. Final billing status is determined by PayPal.",
     "cancellationPendingConfirmation": "Cancellation pending confirmation",
-    "cancellationProcessingDesc": "PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal.",
-    "status": "Status",
-    "statusActive": "Active",
-    "statusInactive": "Inactive",
-    "accessUntil": "Access until {{date}}",
-    "renewsAutomatically": "Renews automatically unless cancelled in PayPal",
-    "manageSubscriptionInPayPal": "Manage Subscription in PayPal",
-    "managePlan": "Manage Plan",
-    "unableToOpenPayPal": "Unable to open PayPal management",
-    "alreadySubscribed": "You already have an active subscription"
+    "cancellationProcessingDesc": "PayPal is processing the cancellation. Your access remains active until the end of the period. Final billing status is determined by PayPal."
+  },
+  "unknown": {
+    "title": "סוג תוכן לא ידוע",
+    "description": "סוג תוכן זה אינו נתמך כעת בפורטל."
+  },
+  "policy": {
+    "editor": {
+      "title": "עורך מדיניות",
+      "subtitle": "כתיבת מסמכים בסגנון מדיניות",
+      "untitled": "קבוצת מדיניות ללא שם",
+      "publish": "פרסם",
+      "close": "סגור",
+      "policyTitle": "כותרת מדיניות",
+      "policyTitlePlaceholder": "כותרת מדיניות רשמית",
+      "description": "תיאור",
+      "descriptionPlaceholder": "מטרה, היקף והצהרת סמכות",
+      "effectiveDate": "תאריך תוקף",
+      "jurisdiction": "שיפוט",
+      "jurisdictionPlaceholder": "גלובלי, אזור או ישות",
+      "sections": "סעיפי מדיניות",
+      "sectionsDescription": "סעיפים משפטיים מובנים עם היררכיה ברורה",
+      "addSection": "הוסף סעיף",
+      "section": "סעיף",
+      "category": "קטגוריה",
+      "removeSection": "הסר",
+      "bold": "מודגש",
+      "italic": "נטוי",
+      "heading": "כותרת",
+      "numbered": "ממוספר",
+      "bullets": "תבליטים",
+      "contentPlaceholder": "הכנס תוכן מדיניות...",
+      "emptyState": "אין מדיניות עדיין. צור את המדיניות הראשונה שלך כדי להתחיל.",
+      "publishSuccess": "המדיניות פורסמה בהצלחה! היא תופיע עכשיו בפורטל.",
+      "publishError": "הפרסום נכשל. נסה שוב.",
+      "versionHistory": "היסטוריית גרסאות",
+      "created": "נוצר",
+      "lastUpdated": "עודכן לאחרונה",
+      "published": "פורסם",
+      "notPublished": "לא פורסם",
+      "publishCheck": "בדיקת פרסום",
+      "publishCheckDescription": "פרסום מעתיק את הטיוטה לפורטל הרשמי ונועל את תג הגרסה."
+    },
+    "portal": {
+      "title": "מדיניות",
+      "description": "עיין ונהל מדיניות והליכים ארגונציוניים",
+      "officialTitle": "תיעוד רשמי",
+      "officialDescription": "מדיניות ומסמכים רשמיים והתאמה",
+      "protectedDocument": "מסמך מוגן",
+      "noPolicies": "לא פורסמו מדיניות",
+      "noPoliciesDescription": "לא פורסמו מדיניות עדיין. בדוק מאוחר יותר תיעוד רשמי.",
+      "searchPlaceholder": "חפש מדיניות...",
+      "filterBy": "סנן לפי",
+      "allCategories": "כל הקטגוריות",
+      "sortBy": "מיין לפי",
+      "latestUpdated": "עודכן לאחרונה",
+      "oldestFirst": "הישן קודם",
+      "titleAZ": "כותרת (א-ת)",
+      "titleZA": "כותרת (ת-א)",
+      "metadata": {
+        "effectiveDate": "תאריך תוקף",
+        "jurisdiction": "שיפוט",
+        "lastUpdated": "עודכן לאחרונה"
+      }
+    }
+  },
+  "procedure": {
+    "editor": {
+      "title": "עורך הליכים",
+      "subtitle": "תהליכי עבודה פעולתיים שלב אחר שלב",
+      "untitled": "הליך ללא שם",
+      "publish": "פרסם",
+      "close": "סגור",
+      "procedureTitle": "כותרת הליך",
+      "procedureTitlePlaceholder": "שם הליך ברור ותיאורי",
+      "description": "תיאור",
+      "descriptionPlaceholder": "מטרה והיקף של הליך זה",
+      "steps": "שלבים",
+      "stepsDescription": "זרימת עבודה רציפה עם הוראות ברורות",
+      "addStep": "הוסף שלב",
+      "step": "שלב",
+      "bold": "מודגש",
+      "italic": "נטוי",
+      "checklist": "רשימת בדיקה",
+      "contentPlaceholder": "הכנס תוכן שלב...",
+      "emptyState": "אין הליכים עדיין. צור את ההליך הראשון שלך כדי להתחיל."
+    },
+    "portal": {
+      "title": "הליכים",
+      "description": "תהליכים שלב אחר שלב וקווינים תפעולתיים",
+      "noProcedures": "לא פורסמו הליכים",
+      "noProceduresDescription": "לא פורסמו הליכים עדיין. בדוק מאוחר יותר קווינים תפעולתיים.",
+      "searchPlaceholder": "חפש הליכים...",
+      "filterBy": "סנן לפי",
+      "allCategories": "כל הקטגוריות",
+      "sortBy": "מיין לפי",
+      "latestUpdated": "עודכן לאחרונה",
+      "oldestFirst": "הישן קודם",
+      "titleAZ": "כותרת (א-ת)",
+      "titleZA": "כותרת (ת-א)",
+      "metadata": {
+        "stepCount": "מספר שלבים",
+        "lastUpdated": "עודכן לאחרונה"
+      }
+    }
+  },
+  "faq": {
+    "editor": {
+      "title": "עורך שאלות נפוצות",
+      "subtitle": "שאלות נפוצות ותשובות מהירות",
+      "untitled": "שאלות נפוצות ללא שם",
+      "publish": "פרסם",
+      "close": "סגור",
+      "faqTitle": "כותרת שאלה",
+      "faqTitlePlaceholder": "כותרת שאלה ברורה",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הקשר קצר לשאלה זו",
+      "content": "תשובה",
+      "contentPlaceholder": "הכנס את התשובה...",
+      "emptyState": "אין שאלות נפוצות עדיין. צור את השאלה הראשונה שלך כדי להתחיל."
+    },
+    "portal": {
+      "title": "שאלות נפוצות",
+      "description": "שאלות נפוצות ותשובות מהירות",
+      "noFAQs": "לא פורסמו שאלות נפוצות",
+      "noFAQsDescription": "לא פורסמו שאלות נפוצות עדיין. בדוק מאוחר יותר מידע שימושי.",
+      "searchPlaceholder": "חפש שאלות נפוצות...",
+      "filterBy": "סנן לפי",
+      "allCategories": "כל הקטגוריות",
+      "sortBy": "מיין לפי",
+      "latestUpdated": "עודכן לאחרונה",
+      "oldestFirst": "הישן קודם",
+      "titleAZ": "כותרת (א-ת)",
+      "titleZA": "כותרת (ת-א)",
+      "metadata": {
+        "lastUpdated": "עודכן לאחרונה"
+      }
+    }
+  },
+  "decisionTree": {
+    "editor": {
+      "title": "עורך עץ החלטות",
+      "subtitle": "מדריכי קבלת החלטות אינטראקטיביים",
+      "untitled": "עץ החלטות ללא שם",
+      "publish": "פרסם",
+      "close": "סגור",
+      "treeTitle": "כותרת עץ החלטות",
+      "treeTitlePlaceholder": "שם עץ החלטות ברור",
+      "description": "תיאור",
+      "descriptionPlaceholder": "מטרה והיקף של עץ החלטות זה",
+      "nodes": "צמתי החלטה",
+      "nodesDescription": "נקודות החלטה אינטראקטיביות עם נתיבים ברורים",
+      "addNode": "הוסף צומת",
+      "node": "צומת",
+      "contentPlaceholder": "הכנס תוכן צומת...",
+      "emptyState": "אין עצי החלטות עדיין. צור את עץ ההחלטות הראשון שלך כדי להתחיל."
+    },
+    "portal": {
+      "title": "עצי החלטה",
+      "description": "מדריכי קבלת החלטות אינטראקטיביים ותרשימי זרימה",
+      "noDecisionTrees": "לא פורסמו עצי החלטה",
+      "noDecisionTreesDescription": "לא פורסמו עצי החלטה עדיין. בדוק מאוחר יותר מדריכי החלטה.",
+      "searchPlaceholder": "חפש עצי החלטה...",
+      "filterBy": "סנן לפי",
+      "allCategories": "כל הקטגוריות",
+      "sortBy": "מיין לפי",
+      "latestUpdated": "עודכן לאחרונה",
+      "oldestFirst": "הישן קודם",
+      "titleAZ": "כותרת (א-ת)",
+      "titleZA": "כותרת (ת-א)",
+      "metadata": {
+        "nodeCount": "מספר צמתים",
+        "lastUpdated": "עודכן לאחרונה"
+      }
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -1508,13 +1905,6 @@
       "emailMismatch": "Email did not match. Deletion cancelled.",
       "failedToDeletePolicy": "Failed to delete policy"
     }
-  },
-  "categories": {
-    "nameRequired": "Category name is required",
-    "updated": "Category updated!",
-    "deleted": "Category deleted. Walkthroughs are now uncategorized.",
-    "subCategories": "Sub-categories",
-    "addSubCategory": "Add Sub-category"
   },
   "admin": {
     "actions": {

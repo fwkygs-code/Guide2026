@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FAQDraft, FAQItem, FAQMeta } from './model';
 import { createFAQEntry, loadFAQDraft, loadFAQMeta, publishFAQ, saveFAQDraft } from './service';
 import sanitizeHtml from './sanitizeHtml';
@@ -71,6 +72,7 @@ const FAQRichTextEditor = ({
 };
 
 export const FAQEditorRoot = ({ workspaceId, itemId, closeHref }: FAQEditorRootProps) => {
+  const { t } = useTranslation(['knowledgeSystems', 'common']);
   const [draft, setDraft] = useState<FAQDraft | null>(null);
   const [meta, setMeta] = useState<FAQMeta | null>(null);
   const [loading, setLoading] = useState(true);

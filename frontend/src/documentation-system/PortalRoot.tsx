@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { documentationPortalApiClient } from './portal-api-client';
 import sanitizeHtml from './sanitizeHtml';
 
@@ -9,6 +10,7 @@ type DocumentationPortalRootProps = {
 };
 
 export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootProps) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [publishedDocs, setPublishedDocs] = useState<any[]>([]);
   const [workspaceName, setWorkspaceName] = useState('Workspace');
@@ -70,10 +72,10 @@ export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootP
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-purple-50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center space-y-4 border border-purple-500/20 bg-slate-900/70 rounded-2xl p-10">
-          <p className="text-xs uppercase tracking-[0.3em] text-purple-200/70">Documentation</p>
-          <h1 className="text-3xl font-semibold">No Published Documentation</h1>
+          <p className="text-xs uppercase tracking-[0.3em] text-purple-200/70">{t('documentation.title')}</p>
+          <h1 className="text-3xl font-semibold">{t('documentation.portal.title')}</h1>
           <p className="text-purple-200/70">
-            {workspaceName} has not published documentation yet.
+            {t('documentation.portal.description')}
           </p>
         </div>
       </div>
@@ -84,9 +86,9 @@ export const DocumentationPortalRoot = ({ portalSlug }: DocumentationPortalRootP
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-purple-50">
       <header className="border-b border-purple-500/20 bg-slate-950/70 backdrop-blur">
         <div className="max-w-6xl mx-auto px-6 py-10">
-          <p className="text-xs uppercase tracking-[0.3em] text-purple-200/70">Knowledge Base</p>
-          <h1 className="text-4xl font-semibold">Documentation</h1>
-          <p className="text-purple-200/70 mt-2">{publishedDocs.length} published {publishedDocs.length === 1 ? 'document' : 'documents'}</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-purple-200/70">{t('documentation.title')}</p>
+          <h1 className="text-4xl font-semibold">{t('documentation.portal.title')}</h1>
+          <p className="text-purple-200/70 mt-2">{t('portal.available', { count: publishedDocs.length })}</p>
         </div>
       </header>
 

@@ -44,8 +44,8 @@ i18n
         console.error(`[i18n] Missing translation key: "${key}" for languages: ${lngs.join(', ')}`);
       }
     },
-    // Prevent fallback to key name in development
-    returnNull: process.env.NODE_ENV === 'development',
+    // Prevent fallback to key name
+    returnNull: false,
     returnEmptyString: false,
   });
 

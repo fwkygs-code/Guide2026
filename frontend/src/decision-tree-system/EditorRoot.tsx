@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   DecisionAnswer,
   DecisionNode,
@@ -127,6 +128,7 @@ const ensureValidNodes = (nodes: DecisionNode[]): DecisionNode[] => {
 };
 
 export const DecisionTreeEditorRoot = ({ workspaceId, itemId, closeHref }: DecisionTreeEditorRootProps) => {
+  const { t } = useTranslation(['knowledgeSystems', 'common']);
   const [draft, setDraft] = useState<DecisionTreeDraft | null>(null);
   const [meta, setMeta] = useState<DecisionTreeMeta | null>(null);
   const [loading, setLoading] = useState(true);

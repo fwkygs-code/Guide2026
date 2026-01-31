@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ProcedureDraft, ProcedureMeta, ProcedureStep } from './model';
 import { createProcedureEntry, loadProcedureDraft, loadProcedureMeta, publishProcedure, saveProcedureDraft } from './service';
 
@@ -63,6 +64,7 @@ const ProcedureRichTextEditor = ({
 };
 
 export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: ProcedureEditorRootProps) => {
+  const { t } = useTranslation(['knowledgeSystems', 'common']);
   const [draft, setDraft] = useState<ProcedureDraft | null>(null);
   const [meta, setMeta] = useState<ProcedureMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,9 +180,9 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
       <header className="sticky top-0 z-20 border-b border-cyan-500/20 bg-slate-950/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">Procedures</p>
-            <h1 className="text-3xl font-semibold tracking-wide">{draft.title || 'Untitled Procedure'}</h1>
-            <p className="text-sm text-cyan-200/70">Step-by-step execution builder</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">{t('procedures.title')}</p>
+            <h1 className="text-3xl font-semibold tracking-wide">{draft.title || t('common.untitled')}</h1>
+            <p className="text-sm text-cyan-200/70">{t('procedures.editor.title')}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="px-3 py-1 text-xs uppercase tracking-[0.2em] rounded-full border border-cyan-400/40 text-cyan-200">
@@ -191,7 +193,7 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
               className="px-4 py-2 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-50 hover:bg-cyan-500/40 transition"
               onClick={handlePublish}
             >
-              Publish
+              {t('procedures.editor.publish')}
             </button>
             <button
               type="button"
@@ -204,7 +206,7 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
                 }
               }}
             >
-              Close
+              {t('common.close')}
             </button>
           </div>
         </div>
@@ -212,33 +214,33 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
 
       <main className="max-w-6xl mx-auto px-6 py-10 space-y-8">
         <section className="border border-cyan-500/20 bg-slate-900/60 rounded-2xl p-6 shadow-xl space-y-4">
-          <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">Procedure Title</label>
+          <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">{t('procedures.editor.procedureTitle')}</label>
           <input
             value={draft.title}
             onChange={(event) => updateDraft({ title: event.target.value })}
             className="bg-transparent border-b border-cyan-400/30 text-2xl font-semibold focus:outline-none focus:border-cyan-400"
-            placeholder="Procedure Name"
+            placeholder={t('procedures.editor.procedureTitlePlaceholder')}
           />
-          <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">Objective</label>
+          <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">{t('procedures.editor.objective')}</label>
           <textarea
             value={draft.objective}
             onChange={(event) => updateDraft({ objective: event.target.value })}
             className="min-h-[80px] bg-slate-950/60 border border-cyan-500/20 rounded-lg p-3 text-cyan-50 focus:outline-none focus:border-cyan-400/50"
-            placeholder="Describe the outcome this procedure achieves"
+            placeholder={t('procedures.editor.objectivePlaceholder')}
           />
         </section>
 
         <section className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">Execution Steps</h2>
-            <p className="text-sm text-cyan-200/70">Ordered sequence with motion on reorder</p>
+            <h2 className="text-xl font-semibold">{t('procedures.editor.steps')}</h2>
+            <p className="text-sm text-cyan-200/70">{t('procedures.editor.stepProgress', { current: 1, total: draft.steps.length || 1 })}</p>
           </div>
           <button
             type="button"
             className="px-4 py-2 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-50 hover:bg-cyan-500/40 transition"
             onClick={addStep}
           >
-            Add Step
+            {t('procedures.editor.addStep')}
           </button>
         </section>
 
@@ -252,12 +254,12 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
                     {index + 1}
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-cyan-200/60">Step {index + 1}</p>
+                    <p className="text-xs uppercase tracking-[0.25em] text-cyan-200/60">{t('procedures.editor.stepTitle', { number: index + 1 })}</p>
                     <input
                       value={step.title}
                       onChange={(event) => updateStep(index, { title: event.target.value })}
                       className="bg-transparent text-xl font-semibold border-b border-cyan-400/30 focus:outline-none focus:border-cyan-400"
-                      placeholder="Step title"
+                      placeholder={t('procedures.editor.stepTitlePlaceholder')}
                     />
                   </div>
                 </div>
@@ -267,21 +269,21 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
                     onClick={() => moveStep(index, Math.max(0, index - 1))}
                     className="px-3 py-1 text-xs border border-cyan-400/30 rounded-full text-cyan-200 hover:text-white"
                   >
-                    Up
+                    {t('procedures.editor.moveUp')}
                   </button>
                   <button
                     type="button"
                     onClick={() => moveStep(index, Math.min(draft.steps.length - 1, index + 1))}
                     className="px-3 py-1 text-xs border border-cyan-400/30 rounded-full text-cyan-200 hover:text-white"
                   >
-                    Down
+                    {t('procedures.editor.moveDown')}
                   </button>
                   <button
                     type="button"
                     onClick={() => removeStep(index)}
                     className="px-3 py-1 text-xs border border-cyan-400/30 rounded-full text-cyan-200 hover:text-white"
                   >
-                    Remove
+                    {t('procedures.editor.removeStep')}
                   </button>
                 </div>
               </div>
@@ -290,7 +292,7 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
                 <ProcedureRichTextEditor
                   value={step.instruction}
                   onChange={(instruction) => updateStep(index, { instruction })}
-                  placeholder="Describe the exact actions to execute this step."
+                  placeholder={t('procedures.editor.stepDescriptionPlaceholder')}
                 />
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -303,16 +305,16 @@ export const ProcedureEditorRoot = ({ workspaceId, itemId, closeHref }: Procedur
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">Attachment Name</label>
+                    <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">{t('procedures.editor.attachments')}</label>
                     <input
                       value={step.attachmentName}
                       onChange={(event) => updateStep(index, { attachmentName: event.target.value })}
                       className="w-full bg-slate-950/60 border border-cyan-500/20 rounded-lg p-2 text-cyan-50 focus:outline-none focus:border-cyan-400/50"
-                      placeholder="Checklist, form, or SOP"
+                      placeholder={t('procedures.editor.addAttachment')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">Attachment URL</label>
+                    <label className="text-xs uppercase tracking-[0.25em] text-cyan-200/70">{t('procedures.editor.attachments')}</label>
                     <input
                       value={step.attachmentUrl}
                       onChange={(event) => updateStep(index, { attachmentUrl: event.target.value })}
