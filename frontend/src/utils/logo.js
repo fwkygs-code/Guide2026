@@ -16,7 +16,7 @@ export const INTERGUIDE_OG_IMAGE_URL = `${CLOUDINARY_BASE}/video/upload/v1769839
 export const INTERGUIDE_ANIMATION_URL = `${CLOUDINARY_BASE}/video/upload/v1769839744/InterGuide_Logo.webm`;
 export const INTERGUIDE_ANIMATIONX_URL = `${CLOUDINARY_BASE}/video/upload/v1769839744/InterGuide_Logo.webm`;
 export const INTERGUIDE_MAIN_ANIMATION_URL = `${CLOUDINARY_BASE}/video/upload/v1769839744/InterGuide_Logo.webm`;
-export const INTERGUIDE_LOGIN_VIDEO_URL = `${CLOUDINARY_BASE}/video/upload/v1769775181/Login.mp4`;
+export const INTERGUIDE_LOGIN_VIDEO_URL = `${CLOUDINARY_BASE}/video/upload/v1769841354/LoginRegister.webm`;
 export const INTERGUIDE_NEW_WEBM_URL = `${CLOUDINARY_BASE}/video/upload/v1769839744/InterGuide_Logo.webm`;
 
 /**

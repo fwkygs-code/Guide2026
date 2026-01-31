@@ -49,10 +49,14 @@ const LandingPage = () => {
       <nav className="fixed top-0 w-full z-50 glass border-b border-slate-200/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center">
-            <img 
-              src={INTERGUIDE_LOGO_MAIN_280_URL} 
-              alt={INTERGUIDE_LOGO_ALT} 
+            <video
+              src={INTERGUIDE_LOGO_MAIN_280_URL}
+              alt={INTERGUIDE_LOGO_ALT}
               className="h-14 w-auto object-contain"
+              autoPlay
+              muted
+              loop
+              playsInline
             />
           </div>
           <div className="flex items-center gap-3">
@@ -181,10 +185,14 @@ const LandingPage = () => {
       <footer className="bg-slate-900 text-muted-foreground py-12 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center gap-2 mb-6">
-            <img 
-              src={INTERGUIDE_NEW_LOGO_280_URL} 
-              alt={INTERGUIDE_LOGO_ALT} 
+            <video
+              src={INTERGUIDE_NEW_LOGO_280_URL}
+              alt={INTERGUIDE_LOGO_ALT}
               className="h-8 w-auto object-contain"
+              autoPlay
+              muted
+              loop
+              playsInline
             />
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">

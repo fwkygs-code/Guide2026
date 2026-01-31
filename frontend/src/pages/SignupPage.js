@@ -242,10 +242,14 @@ const SignupPage = () => {
       >
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <img 
-              src={INTERGUIDE_NEW_LOGO_280_URL} 
-              alt={INTERGUIDE_LOGO_ALT} 
+            <video
+              src={INTERGUIDE_NEW_LOGO_280_URL}
+              alt={INTERGUIDE_LOGO_ALT}
               className="h-10 w-auto object-contain"
+              autoPlay
+              muted
+              loop
+              playsInline
             />
           </Link>
           <h1 className={`${getSizeClass('2xl')} font-heading font-bold text-white mb-2`}>{t('auth.getStarted')}</h1>
