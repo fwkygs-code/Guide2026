@@ -53,7 +53,7 @@ import { PolicyEditorRoot } from './policy-system/EditorRoot';
 import { PolicyListPage } from './pages/PolicyListPage';
 import { ProcedureEditorRoot } from './procedure-system/EditorRoot';
 import { DocumentationEditorRoot } from './documentation-system/EditorRoot';
-import { FAQEditorRoot } from './faq-system/EditorRoot';
+import { FAQEditorRoot } from './knowledge-systems/faq-system/EditorRoot';
 import { DecisionTreeEditorRoot } from './decision-tree-system/EditorRoot';
 
 // Mandatory surface component - guarantees no white backgrounds
@@ -313,6 +313,9 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/implementation" element={<PrivateRoute><WorkspaceRouteGuard><ImplementationPage /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/settings" element={<PrivateRoute><WorkspaceRouteGuard><SettingsPage /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge-systems" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemsPage /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/faqs" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="faq" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/faqs/new" element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/faqs/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge" element={<PrivateRoute><WorkspaceRouteGuard><WorkspaceKnowledgeLayout /></WorkspaceRouteGuard></PrivateRoute>}>
             <Route path="policy" element={<PolicyListRoute />} />
             <Route path="policy/new" element={<PolicyEditorRoute />} />
@@ -326,9 +329,6 @@ const AppContent = () => {
             <Route path="faq" element={<KnowledgeSystemPortalPage systemType="faq" />} />
             <Route path="faq/new" element={<FAQEditorRoute />} />
             <Route path="faq/:itemId" element={<FAQEditorRoute />} />
-            <Route path="faqs" element={<KnowledgeSystemPortalPage systemType="faq" />} />
-            <Route path="faqs/new" element={<FAQEditorRoute />} />
-            <Route path="faqs/:itemId" element={<FAQEditorRoute />} />
             <Route path="decision_tree" element={<KnowledgeSystemPortalPage systemType="decision_tree" />} />
             <Route path="decision_tree/new" element={<DecisionTreeEditorRoute />} />
             <Route path="decision_tree/:itemId" element={<DecisionTreeEditorRoute />} />
