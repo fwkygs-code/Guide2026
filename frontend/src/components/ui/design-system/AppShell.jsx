@@ -18,7 +18,23 @@ function AppShell({ children, className = '' }) {
     <div className={cn(
       'min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900',
       className
-    )}>
+    )} data-app-shell>
+      {/* TEMP – mobile-only loading screens background test */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          /* Target loading screens: min-h-screen + centering + WorkspaceLoader */
+          [data-app-shell] > div.min-h-screen.flex.items-center.justify-center {
+            background-color: #000 !important;
+            background-image: none !important;
+          }
+          /* Also target Surface loading screens */
+          [data-app-shell] [data-loading-screen="true"] {
+            background-color: #000 !important;
+            background-image: none !important;
+            backdrop-filter: none !important;
+          }
+        }
+      `}</style>
       {children}
     </div>
   );
