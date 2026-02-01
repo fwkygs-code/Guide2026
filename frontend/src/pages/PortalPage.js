@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -35,21 +35,23 @@ const PortalPage = () => {
   }, [portal?.categories]);
 
   // Get all category IDs (including children) when a parent is selected
-  const getCategoryIds = (categoryId) => {
+  const getCategoryIds = useCallback((categoryId) => {
     if (!categoryId) return null;
     const category = portal.categories.find(c => c.id === categoryId);
     if (!category) return [categoryId];
     const children = portal.categories.filter(c => c.parent_id === categoryId).map(c => c.id);
     return [categoryId, ...children];
-  };
+  }, [portal.categories]);
 
-  const filteredWalkthroughs = portal?.walkthroughs?.filter(wt => {
-    const matchesSearch = wt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         wt.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!selectedCategory) return matchesSearch;
-    const categoryIds = getCategoryIds(selectedCategory);
-    return matchesSearch && categoryIds && wt.category_ids?.some(id => categoryIds.includes(id));
-  }) || [];
+  const filteredWalkthroughs = useMemo(() => {
+    return portal?.walkthroughs?.filter(wt => {
+      const matchesSearch = wt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           wt.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!selectedCategory) return matchesSearch;
+      const categoryIds = getCategoryIds(selectedCategory);
+      return matchesSearch && categoryIds && wt.category_ids?.some(id => categoryIds.includes(id));
+    }) || [];
+  }, [portal?.walkthroughs, searchQuery, selectedCategory, getCategoryIds]);
 
   // Group walkthroughs by category
   const walkthroughsByCategory = useMemo(() => {

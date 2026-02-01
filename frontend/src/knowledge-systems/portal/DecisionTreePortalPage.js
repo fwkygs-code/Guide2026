@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GitBranch, ArrowRight, RotateCcw, CheckCircle, Brain, Target } from 'lucide-react';
@@ -23,10 +23,28 @@ function DecisionTreePortalPage() {
   const [decisionPath, setDecisionPath] = useState([]);
   const [isComplete, setIsComplete] = useState(false);
 
+  const loadSystem = useCallback(async () => {
+    setLoading(true);
+    try {
+      const trees = await portalKnowledgeSystemsService.getAllByType(slug, 'decision_tree');
+      setPublishedTrees(trees);
+      if (trees.length > 0) {
+        setCurrentNode(trees[0].rootNode);
+      }
+    } catch (error) {
+      console.error('Failed to load decision tree system:', error);
+      setPublishedTrees([]);
+      setCurrentNode(null);
+      setDecisionPath([]);
+      setIsComplete(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
   useEffect(() => {
     if (!slug) {
       setPublishedTrees([]);
-      setCurrentTree(null);
       setCurrentNode(null);
       setDecisionPath([]);
       setIsComplete(false);
@@ -34,24 +52,7 @@ function DecisionTreePortalPage() {
       return;
     }
     loadSystem();
-  }, [slug]);
-
-  const loadSystem = async () => {
-    setLoading(true);
-    try {
-      if (!slug) return;
-      const trees = await portalKnowledgeSystemsService.getAllByType(slug, 'decision_tree');
-      setPublishedTrees(trees);
-      // Auto-select first tree if available
-      if (trees.length > 0) {
-        selectTree(trees[0]);
-      }
-    } catch (error) {
-      console.error('Failed to load decision tree system:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [slug, loadSystem]);
 
   const selectTree = (treeData) => {
     const tree = treeData.content;

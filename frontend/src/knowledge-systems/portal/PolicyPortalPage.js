@@ -5,7 +5,7 @@
  * Warm amber theming represents legal compliance and institutional trust.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Shield, Calendar, FileText, Clock, Scale, Award, Lock } from 'lucide-react';
@@ -26,6 +26,27 @@ function PolicyPortalPage() {
   const [publishedPolicies, setPublishedPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const loadSystem = useCallback(async () => {
+    setLoading(true);
+    try {
+      console.log('[PolicyPortal] Loading published policies...');
+      const policies = getPublishedPolicies();
+      console.log('[PolicyPortal] Loaded policies:', policies);
+      console.log('[PolicyPortal] Number of policies:', policies.length);
+      
+      // Ensure policies is an array
+      const policiesArray = Array.isArray(policies) ? policies : (policies || []);
+      console.log('[PolicyPortal] Policies array:', policiesArray);
+      
+      setPublishedPolicies(policiesArray);
+    } catch (error) {
+      console.error('Failed to load policy system:', error);
+      setPublishedPolicies([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!slug) {
       setPublishedPolicies([]);
@@ -33,7 +54,7 @@ function PolicyPortalPage() {
       return;
     }
     loadSystem();
-  }, [slug]);
+  }, [slug, loadSystem]);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -44,29 +65,6 @@ function PolicyPortalPage() {
     console.log('[PolicyPortal] publishedPolicies state changed:', publishedPolicies);
     console.log('[PolicyPortal] publishedPolicies length:', publishedPolicies?.length);
   }, [publishedPolicies]);
-
-  const loadSystem = async () => {
-    setLoading(true);
-    try {
-      console.log('[PolicyPortal] Loading published policies...');
-      const policies = getPublishedPolicies();
-      console.log('[PolicyPortal] Raw response:', policies);
-      console.log('[PolicyPortal] Type:', typeof policies);
-      console.log('[PolicyPortal] Is array:', Array.isArray(policies));
-      
-      // Ensure policies is an array
-      const policiesArray = Array.isArray(policies) ? policies : (policies || []);
-      console.log('[PolicyPortal] Number of policies:', policiesArray.length);
-      console.log('[PolicyPortal] Policies array:', policiesArray);
-      
-      setPublishedPolicies(policiesArray);
-    } catch (error) {
-      console.error('Failed to load policy system:', error);
-      setPublishedPolicies([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (!ready || loading) {
     return (

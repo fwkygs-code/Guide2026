@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -46,9 +46,22 @@ const CategoriesPage = () => {
   const [editCategoryNotebooklmUrl, setEditCategoryNotebooklmUrl] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
+  const fetchCategories = useCallback(async () => {
+    if (!workspaceId) return;
+
+    try {
+      const response = await api.getCategories(workspaceId);
+      setCategories(normalizeImageUrlsInObject(response.data));
+    } catch (error) {
+      toast.error('Failed to load categories');
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId]);
+
   useEffect(() => {
     fetchCategories();
-  }, [workspaceId]);
+  }, [fetchCategories]);
 
   // Acquire workspace lock on mount
   useEffect(() => {
@@ -78,18 +91,6 @@ const CategoriesPage = () => {
       }
     };
   }, [workspaceId, navigate]);
-
-  const fetchCategories = async () => {
-    if (!workspaceId) return; // Wait for workspace ID to be resolved
-    try {
-      const response = await api.getCategories(workspaceId);
-      setCategories(normalizeImageUrlsInObject(response.data));
-    } catch (error) {
-      toast.error('Failed to load categories');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Organize categories into tree structure
   const categoryTree = useMemo(() => {

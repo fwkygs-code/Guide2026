@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -22,9 +22,21 @@ const ArchivePage = () => {
   // Resolve workspace slug to ID
   const { workspace, workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
 
+  const fetchData = useCallback(async () => {
+    if (!workspaceId) return; // Wait for workspace ID to be resolved
+    try {
+      const archivedRes = await api.getArchivedWalkthroughs(workspaceId);
+      setArchived(archivedRes.data || []);
+    } catch (e) {
+      toast.error(t('archive.failedToLoad'));
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId, t]);
+
   useEffect(() => {
     fetchData();
-  }, [workspaceId]);
+  }, [fetchData]);
 
   // Acquire workspace lock on mount
   useEffect(() => {
@@ -54,18 +66,6 @@ const ArchivePage = () => {
       }
     };
   }, [workspaceId, workspaceSlug, navigate]);
-
-  const fetchData = async () => {
-    if (!workspaceId) return; // Wait for workspace ID to be resolved
-    try {
-      const archivedRes = await api.getArchivedWalkthroughs(workspaceId);
-      setArchived(archivedRes.data || []);
-    } catch (e) {
-      toast.error(t('archive.failedToLoad'));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRestore = async (walkthroughId) => {
     try {

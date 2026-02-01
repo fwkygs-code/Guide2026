@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -53,45 +53,42 @@ const AnalyticsPage = () => {
     };
   }, [workspaceId, workspaceSlug, navigate, user?.id]);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    fetchData();
-  }, [workspaceId, user?.id]);
+  const fetchData = useCallback(async () => {
+    if (!workspaceId) return;
 
-  const fetchData = async () => {
-    if (!workspaceId) return; // Wait for workspace ID to be resolved
     try {
       const response = await api.getWalkthroughs(workspaceId);
       setWalkthroughs(response.data);
-      
-      // Fetch analytics for each walkthrough
-      const analyticsPromises = response.data.map(wt => 
-        api.getAnalytics(workspaceId, wt.id).catch(() => ({ data: {} }))
-      );
-      const analyticsResults = await Promise.all(analyticsPromises);
-      
-      const analyticsMap = {};
-      response.data.forEach((wt, index) => {
-        analyticsMap[wt.id] = analyticsResults[index]?.data || {};
-      });
-      setAnalyticsData(analyticsMap);
 
-      // Fetch feedback for each walkthrough (published or not)
-      const feedbackPromises = response.data.map(wt =>
-        api.getFeedback(workspaceId, wt.id).catch(() => ({ data: [] }))
-      );
-      const feedbackResults = await Promise.all(feedbackPromises);
+      const analyticsMap = {};
       const feedbackMap = {};
-      response.data.forEach((wt, index) => {
-        feedbackMap[wt.id] = feedbackResults[index]?.data || [];
-      });
+
+      const analyticsPromises = response.data.map(wt =>
+        api.getAnalytics(workspaceId, wt.id)
+          .then(res => { analyticsMap[wt.id] = res.data; })
+          .catch(() => { analyticsMap[wt.id] = {}; })
+      );
+
+      const feedbackPromises = response.data.map(wt =>
+        api.getFeedback(workspaceId, wt.id)
+          .then(res => { feedbackMap[wt.id] = res.data; })
+          .catch(() => { feedbackMap[wt.id] = []; })
+      );
+
+      await Promise.all([...analyticsPromises, ...feedbackPromises]);
+      setAnalyticsData(analyticsMap);
       setFeedbackData(feedbackMap);
     } catch (error) {
       toast.error(t('analytics.failedToLoad'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId, t]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchData();
+  }, [user?.id, fetchData]);
 
   const totalViews = Object.values(analyticsData).reduce((sum, data) => sum + (data.views || 0), 0);
   const totalStarts = Object.values(analyticsData).reduce((sum, data) => sum + (data.starts || 0), 0);

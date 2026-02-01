@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Database, FolderOpen, BookOpen, Tag, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,14 +52,14 @@ const QuotaDisplay = ({
       return;
     }
     fetchQuotaData();
-  }, [workspaceId, user?.id, usingShared]);
+  }, [user?.id, usingShared, fetchQuotaData]);
 
   useEffect(() => {
     if (!onReadyChange) return;
     onReadyChange(!resolvedLoading && !!resolvedQuotaData && !resolvedError);
   }, [resolvedLoading, resolvedQuotaData, resolvedError, onReadyChange]);
 
-  const fetchQuotaData = async () => {
+  const fetchQuotaData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -80,42 +80,36 @@ const QuotaDisplay = ({
         }
       }
       
-      // CANONICAL API: plan is STRING, not object
-      // Validate canonical fields
-      if (typeof planData.plan !== 'string') {
-        console.error('[QuotaDisplay] INVALID: plan must be string', planData);
-      }
-      if (planData.access_granted === undefined) {
-        console.error('[QuotaDisplay] INVALID: access_granted missing', planData);
-      }
-      
-      // Transform canonical API response to component state
       setQuotaData({
-        // Canonical subscription fields
-        planName: planData.plan || 'free',  // STRING: "pro" | "free" | "enterprise"
-        access_granted: planData.access_granted || false,
-        access_until: planData.access_until || null,
-        is_recurring: planData.is_recurring || false,
-        management_url: planData.management_url || null,
-        provider: planData.provider || null,
-        // Quota fields
-        quota: {
-          storage_used: planData.quota.storage_used_bytes || 0,
-          storage_allowed: planData.quota.storage_allowed_bytes || 0,
-          max_file_size: planData.quota.max_file_size_bytes || 0,
-          workspaces_used: planData.quota.workspace_count || 0,
-          workspaces_limit: planData.quota.workspace_limit,
-          walkthroughs_used: planData.quota.walkthroughs_used || 0,
-          walkthroughs_limit: planData.quota.walkthroughs_limit,
-          categories_used: planData.quota.categories_used || 0,
-          categories_limit: planData.quota.categories_limit
-        },
-        workspaceQuota: workspaceQuota ? {
-          walkthroughs_used: workspaceQuota.usage?.walkthrough_count || 0,
-          walkthroughs_limit: workspaceQuota.usage?.walkthrough_limit,
-          categories_used: workspaceQuota.usage?.category_count || 0,
-          categories_limit: workspaceQuota.usage?.category_limit
-        } : null
+        user: {
+          access_granted: planData.access_granted,
+          quota_used: planData.quota_used,
+          quota_limit: planData.quota_limit,
+          plan: planData.plan || 'free',
+          categories_limit: planData.categories_limit,
+          over_quota: planData.over_quota || false,
+          is_recurring: planData.is_recurring || false,
+          management_url: planData.management_url || null,
+          provider: planData.provider || null,
+          // Quota fields
+          quota: {
+            storage_used: planData.quota.storage_used_bytes || 0,
+            storage_allowed: planData.quota.storage_allowed_bytes || 0,
+            max_file_size: planData.quota.max_file_size_bytes || 0,
+            workspaces_used: planData.quota.workspace_count || 0,
+            workspaces_limit: planData.quota.workspace_limit,
+            walkthroughs_used: planData.quota.walkthroughs_used || 0,
+            walkthroughs_limit: planData.quota.walkthroughs_limit,
+            categories_used: planData.quota.categories_used || 0,
+            categories_limit: planData.quota.categories_limit
+          },
+          workspace: workspaceQuota ? {
+            walkthroughs_used: workspaceQuota.usage?.walkthrough_count || 0,
+            walkthroughs_limit: workspaceQuota.usage?.walkthrough_limit,
+            categories_used: workspaceQuota.usage?.category_count || 0,
+            categories_limit: workspaceQuota.usage?.category_limit
+          } : null
+        }
       });
     } catch (err) {
       console.error('Failed to fetch quota data:', err);
@@ -123,7 +117,7 @@ const QuotaDisplay = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId, t]);
 
   if (resolvedLoading) {
     return (

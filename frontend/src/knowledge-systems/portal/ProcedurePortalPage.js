@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Workflow, CheckCircle, Clock, ArrowRight, Play } from 'lucide-react';
@@ -19,6 +19,19 @@ function ProcedurePortalPage() {
   const [publishedProcedures, setPublishedProcedures] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const loadSystem = useCallback(async () => {
+    setLoading(true);
+    try {
+      const procedures = await portalKnowledgeSystemsService.getAllByType(slug, 'procedure');
+      setPublishedProcedures(procedures);
+    } catch (error) {
+      console.error('Failed to load procedure system:', error);
+      setPublishedProcedures([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
   useEffect(() => {
     if (!slug) {
       setPublishedProcedures([]);
@@ -26,20 +39,7 @@ function ProcedurePortalPage() {
       return;
     }
     loadSystem();
-  }, [slug]);
-
-  const loadSystem = async () => {
-    setLoading(true);
-    try {
-      if (!slug) return;
-      const procedures = await portalKnowledgeSystemsService.getAllByType(slug, 'procedure');
-      setPublishedProcedures(procedures);
-    } catch (error) {
-      console.error('Failed to load procedure system:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [slug, loadSystem]);
 
   if (!ready || loading) {
     return (

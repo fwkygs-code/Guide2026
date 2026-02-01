@@ -17,6 +17,7 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
   const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadPolicies();
   }, [workspaceId]);

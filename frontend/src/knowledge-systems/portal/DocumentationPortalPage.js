@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { BookOpen, ChevronRight, Hash, Clock, Layers } from 'lucide-react';
@@ -21,6 +21,19 @@ function DocumentationPortalPage() {
   const [activeSubsection, setActiveSubsection] = useState(null);
   const contentRef = useRef(null);
 
+  const loadSystem = useCallback(async () => {
+    setLoading(true);
+    try {
+      const docs = await portalKnowledgeSystemsService.getAllByType(slug, 'documentation');
+      setPublishedDocumentation(docs);
+    } catch (error) {
+      console.error('Failed to load documentation system:', error);
+      setPublishedDocumentation([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
   useEffect(() => {
     if (!slug) {
       setPublishedDocumentation([]);
@@ -28,20 +41,7 @@ function DocumentationPortalPage() {
       return;
     }
     loadSystem();
-  }, [slug]);
-
-  const loadSystem = async () => {
-    setLoading(true);
-    try {
-      if (!slug) return;
-      const documentation = await portalKnowledgeSystemsService.getAllByType(slug, 'documentation');
-      setPublishedDocumentation(documentation);
-    } catch (error) {
-      console.error('Failed to load documentation system:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [slug, loadSystem]);
 
   // Scroll to section when navigation is clicked
   const scrollToSection = (sectionId) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -14,9 +14,9 @@ export const useQuota = (workspaceId = null) => {
       return;
     }
     fetchQuotaData();
-  }, [workspaceId, user?.id]);
+  }, [user?.id, fetchQuotaData]);
 
-  const fetchQuotaData = async () => {
+  const fetchQuotaData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -27,9 +27,15 @@ export const useQuota = (workspaceId = null) => {
       // HARD INVARIANT: Canonical fields must exist
       if (planData.access_granted === undefined) {
         console.error('[QUOTA] INVALID PLAN PAYLOAD - access_granted missing', planData);
+        throw new Error('Invalid plan data: access_granted field missing');
       }
-      if (typeof planData.plan !== 'string') {
-        console.error('[QUOTA] INVALID PLAN PAYLOAD - plan must be string', planData);
+      if (planData.quota_used === undefined) {
+        console.error('[QUOTA] INVALID PLAN PAYLOAD - quota_used missing', planData);
+        throw new Error('Invalid plan data: quota_used field missing');
+      }
+      if (planData.quota_limit === undefined) {
+        console.error('[QUOTA] INVALID PLAN PAYLOAD - quota_limit missing', planData);
+        throw new Error('Invalid plan data: quota_limit field missing');
       }
       
       let workspaceQuota = null;
@@ -37,42 +43,40 @@ export const useQuota = (workspaceId = null) => {
         try {
           const workspaceResponse = await api.getWorkspaceQuota(workspaceId);
           workspaceQuota = workspaceResponse.data;
-        } catch (err) {
-          console.warn('Workspace quota not available:', err);
+          
+          // Validate workspace quota structure
+          if (workspaceQuota.walkthroughs_used === undefined) {
+            console.error('[QUOTA] INVALID WORKSPACE QUOTA - walkthroughs_used missing', workspaceQuota);
+            throw new Error('Invalid workspace quota: walkthroughs_used field missing');
+          }
+          if (workspaceQuota.walkthroughs_limit === undefined) {
+            console.error('[QUOTA] INVALID WORKSPACE QUOTA - walkthroughs_limit missing', workspaceQuota);
+            throw new Error('Invalid workspace quota: walkthroughs_limit field missing');
+          }
+        } catch (error) {
+          console.warn('[QUOTA] Failed to fetch workspace quota:', error);
+          // Don't throw here - continue with user quota only
         }
       }
       
-      // CANONICAL STATE: Extract new API structure
       setQuotaData({
-        // Canonical subscription fields
-        plan: planData.plan, // Now a string: "pro" | "free" | "enterprise"
-        provider: planData.provider || null, // "PAYPAL" | null
-        access_granted: planData.access_granted || false,
-        access_until: planData.access_until || null,
-        is_recurring: planData.is_recurring || false,
-        management_url: planData.management_url || null,
-        // Quota info
-        quota: {
-          storage_used: planData.quota.storage_used_bytes || 0,
-          storage_allowed: planData.quota.storage_allowed_bytes || 0,
-          max_file_size: planData.quota.max_file_size_bytes || 0,
-          workspaces_used: planData.quota.workspace_count || 0,
-          workspaces_limit: planData.quota.workspace_limit,
-          walkthroughs_used: planData.quota.walkthroughs_used || 0,
-          walkthroughs_limit: planData.quota.walkthroughs_limit,
-          categories_used: planData.quota.categories_used || 0,
+        user: {
+          access_granted: planData.access_granted,
+          quota_used: planData.quota_used,
+          quota_limit: planData.quota_limit,
+          plan: planData.plan || 'free',
           categories_limit: planData.quota.categories_limit,
           over_quota: planData.quota.over_quota || false
         },
-        workspaceQuota: workspaceQuota
+        workspace: workspaceQuota
       });
-    } catch (err) {
-      console.error('Failed to fetch quota data:', err);
-      setError('Failed to load quota information');
+    } catch (error) {
+      console.error('[QUOTA] Failed to fetch quota data:', error);
+      setError(error.message || 'Failed to fetch quota data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId]);
 
   const refreshQuota = () => {
     fetchQuotaData();

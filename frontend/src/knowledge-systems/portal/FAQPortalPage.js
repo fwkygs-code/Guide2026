@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, HelpCircle, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
@@ -23,6 +23,21 @@ function FAQPortalPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedFaq, setExpandedFaq] = useState(null);
 
+  const loadSystem = useCallback(async () => {
+    setLoading(true);
+    try {
+      const faqs = getPublishedFAQs();
+      console.log('[FAQPortal] Loaded FAQs:', faqs);
+      console.log('[FAQPortal] Number of FAQs:', faqs.length);
+      setPublishedFAQs(faqs);
+    } catch (error) {
+      console.error('Failed to load FAQ system:', error);
+      setPublishedFAQs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!slug) {
       setPublishedFAQs([]);
@@ -30,19 +45,7 @@ function FAQPortalPage() {
       return;
     }
     loadSystem();
-  }, [slug]);
-
-  const loadSystem = async () => {
-    setLoading(true);
-    try {
-      const faqs = getPublishedFAQs();
-      setPublishedFAQs(faqs);
-    } catch (error) {
-      console.error('Failed to load FAQ system:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [slug, loadSystem]);
 
   // Get all FAQs
   const allFaqs = publishedFAQs;

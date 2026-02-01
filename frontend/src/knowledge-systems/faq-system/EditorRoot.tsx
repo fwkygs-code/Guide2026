@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Badge } from './ui';
@@ -54,12 +54,7 @@ export function FAQEditorRoot() {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
 
-  useEffect(() => {
-    if (workspaceId && itemId) loadSystem();
-    else if (workspaceId) setLoading(false);
-  }, [workspaceId, itemId]);
-
-  const loadSystem = async () => {
+  const loadSystem = useCallback(async () => {
     try {
       const systemData = getFAQSystem(itemId!);
       if (systemData) setSystem(systemData);
@@ -68,7 +63,12 @@ export function FAQEditorRoot() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemId]);
+
+  useEffect(() => {
+    if (workspaceId && itemId) loadSystem();
+    else if (workspaceId) setLoading(false);
+  }, [workspaceId, itemId, loadSystem]);
 
   const updateDraftContent = (updates: any) => {
     if (!system) return;

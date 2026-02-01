@@ -133,17 +133,23 @@ export function systemExists(systemId: string): boolean {
 export function getPublishedPolicies(): any[] {
   const allPublishedPolicies = [];
   
+  console.log('[Policy Service] Checking localStorage for published policies...');
+  
   // Get all localStorage keys
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
+    console.log('[Policy Service] Found key:', key);
     if (key && key.startsWith('policy:published:')) {
       try {
         const stored = localStorage.getItem(key);
+        console.log('[Policy Service] Raw policy data:', stored);
         if (stored) {
           const system = JSON.parse(stored);
+          console.log('[Policy Service] Parsed system:', system);
           if (validatePolicySystem(system)) {
             // Flatten all policies from this system
             if (system.content && system.content.policies) {
+              console.log('[Policy Service] System has policies:', system.content.policies);
               system.content.policies.forEach((policy: any) => {
                 allPublishedPolicies.push({
                   ...policy,
@@ -151,7 +157,11 @@ export function getPublishedPolicies(): any[] {
                   systemTitle: system.content?.title || 'Policy System'
                 });
               });
+            } else {
+              console.log('[Policy Service] System has no policies');
             }
+          } else {
+            console.log('[Policy Service] System validation failed');
           }
         }
       } catch (error) {
@@ -160,5 +170,6 @@ export function getPublishedPolicies(): any[] {
     }
   }
   
+  console.log('[Policy Service] Final flattened policies:', allPublishedPolicies);
   return allPublishedPolicies;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle, UserPlus, Mail, X, Check } from 'lucide-react';
@@ -72,23 +72,11 @@ const SettingsPage = () => {
       // Use workspace data from hook (only if owner)
       setName(workspace.name || '');
       setBrandColor(workspace.brand_color || '#4f46e5');
-      setLogoUrl(workspace.logo || '');
-      setPortalBackgroundUrl(workspace.portal_background_url || '');
-      setPortalPalette(workspace.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
-      setPortalLinks(workspace.portal_links || []);
-      setPortalPhone(workspace.portal_phone || '');
-      setPortalWorkingHours(workspace.portal_working_hours || '');
-      setPortalWhatsapp(workspace.portal_whatsapp || '');
-      
-      setLoading(false);
-    } else if (workspace && !workspace.owner_id && user && workspaceId) {
-      // Fallback: if owner_id not in workspace object, fetch it
-      checkOwnership();
     } else if (!workspace && workspaceId && user) {
       // If workspace not loaded yet, wait for it
       // Don't redirect until we know the ownership status
     }
-  }, [workspace, user, workspaceId, navigate]);
+  }, [workspace, user, workspaceId, navigate, checkOwnership]);
 
   // Acquire workspace lock on mount
   useEffect(() => {
@@ -124,7 +112,7 @@ const SettingsPage = () => {
     if (workspaceId && user) {
       fetchMembers();
     }
-  }, [workspaceId, user]);
+  }, [workspaceId, user, fetchMembers]);
   
   const fetchWorkspace = async () => {
     // Workspace is already loaded from useWorkspaceSlug hook, this function may not be needed
@@ -179,7 +167,7 @@ const SettingsPage = () => {
     }
   };
 
-  const checkOwnership = async () => {
+  const checkOwnership = useCallback(async () => {
     if (!workspaceId || !user) return;
     try {
       // Fetch workspace to get owner_id
@@ -190,9 +178,9 @@ const SettingsPage = () => {
     } catch (error) {
       console.error('Failed to check ownership:', error);
     }
-  };
+  }, [workspaceId, user]);
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     if (!workspaceId || !user) return;
     setLoadingMembers(true);
     try {
@@ -205,7 +193,7 @@ const SettingsPage = () => {
     } finally {
       setLoadingMembers(false);
     }
-  };
+  }, [workspaceId, user]);
 
   const handleInvite = async () => {
     if (!inviteEmail || !workspaceId) return;

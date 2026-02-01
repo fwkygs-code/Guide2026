@@ -1773,34 +1773,35 @@ const AnnotatedImageViewer = ({ block }) => {
 
   // Get actual rendered image dimensions
   useEffect(() => {
-    if (imageRef.current) {
-      const updateDimensions = () => {
-        if (imageRef.current) {
-          setImageDimensions({
-            width: imageRef.current.offsetWidth || imageRef.current.clientWidth || 400,
-            height: imageRef.current.offsetHeight || imageRef.current.clientHeight || 300
-          });
-        }
-      };
+    const el = imageRef.current;
+    if (!el) return;
 
-      // Update immediately and on resize
-      updateDimensions();
-      window.addEventListener('resize', updateDimensions);
-
-      // Also update when image loads
-      if (imageRef.current.complete) {
-        updateDimensions();
-      } else {
-        imageRef.current.addEventListener('load', updateDimensions);
+    const updateDimensions = () => {
+      if (imageRef.current) {
+        setImageDimensions({
+          width: imageRef.current.offsetWidth || imageRef.current.clientWidth || 400,
+          height: imageRef.current.offsetHeight || imageRef.current.clientHeight || 300
+        });
       }
+    };
 
-      return () => {
-        window.removeEventListener('resize', updateDimensions);
-        if (imageRef.current) {
-          imageRef.current.removeEventListener('load', updateDimensions);
-        }
-      };
+    // Update immediately and on resize
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+
+    // Also update when image loads
+    if (el.complete) {
+      updateDimensions();
+    } else {
+      el.addEventListener('load', updateDimensions);
     }
+
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      if (el) {
+        el.removeEventListener('load', updateDimensions);
+      }
+    };
   }, [imageUrl]);
 
   if (!imageUrl) return null;

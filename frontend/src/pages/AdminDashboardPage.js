@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Users, Database, BarChart3, Edit, Trash2, Crown, HardDrive, FileText, FolderOpen, Ban, CheckCircle, ArrowDown, ArrowUp, Clock, Settings, MoreVertical, RotateCcw, Lock, Calendar, Send, AlertCircle } from 'lucide-react';
@@ -83,28 +83,7 @@ const AdminDashboardPage = () => {
   const [updatingSubscription, setUpdatingSubscription] = useState(false);
   const [sendingPaymentReminder, setSendingPaymentReminder] = useState(false);
 
-  useEffect(() => {
-    // Check if user is admin (role field from backend)
-    if (loading) return;
-    if (!user || user.role !== 'admin') {
-      navigate('/dashboard');
-      return;
-    }
-    fetchUsers();
-    fetchStats();
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [usersPage, usersSearch]);
-
-  const refreshCurrentUserIfNeeded = async (updatedUserId) => {
-    if (user?.id && updatedUserId === user.id) {
-      await refreshUser();
-    }
-  };
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setUsersLoading(true);
       const response = await api.adminListUsers(usersPage, usersLimit, usersSearch || null);
@@ -123,6 +102,27 @@ const AdminDashboardPage = () => {
       }
     } finally {
       setUsersLoading(false);
+    }
+  }, [usersPage, usersLimit, usersSearch]);
+
+  useEffect(() => {
+    // Check if user is admin (role field from backend)
+    if (loading) return;
+    if (!user || user.role !== 'admin') {
+      navigate('/dashboard');
+      return;
+    }
+    fetchUsers();
+    fetchStats();
+  }, [user, loading, navigate, fetchUsers]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const refreshCurrentUserIfNeeded = async (updatedUserId) => {
+    if (user?.id && updatedUserId === user.id) {
+      await refreshUser();
     }
   };
 

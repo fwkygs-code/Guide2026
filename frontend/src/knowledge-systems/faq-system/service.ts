@@ -82,24 +82,47 @@ export function deleteFAQSystem(systemId: string): boolean {
 }
 
 export function getPublishedFAQs(): any[] {
-  const allSystems = loadFromStorage();
-  const publishedSystems = allSystems.filter(system => system.publishedContent !== null);
-  
-  // Flatten all published FAQs from all systems
   const allPublishedFAQs = [];
-  publishedSystems.forEach(system => {
-    if (system.publishedContent && system.publishedContent.faqs) {
-      system.publishedContent.faqs.forEach(faq => {
-        allPublishedFAQs.push({
-          ...faq,
-          systemId: system.id,
-          systemTitle: system.publishedContent?.title || 'FAQ System'
-        });
-      });
-    }
-  });
   
-  return allPublishedFAQs;
+  try {
+    console.log('[FAQ Service] Checking localStorage for published FAQs...');
+    const publishedStored = localStorage.getItem(FAQ_PUBLISHED_KEY);
+    console.log('[FAQ Service] Raw published data:', publishedStored);
+    
+    if (!publishedStored) {
+      console.log('[FAQ Service] No published FAQs found in localStorage');
+      return allPublishedFAQs;
+    }
+    
+    const publishedSystems = JSON.parse(publishedStored);
+    console.log('[FAQ Service] Parsed published systems:', publishedSystems);
+    
+    const validPublishedSystems = publishedSystems.filter((system: FAQSystem) => validateFAQSystem(system));
+    console.log('[FAQ Service] Valid published systems:', validPublishedSystems);
+    
+    // Flatten all published FAQs from all systems
+    validPublishedSystems.forEach(system => {
+      console.log('[FAQ Service] Processing system:', system);
+      if (system.publishedContent && system.publishedContent.faqs) {
+        console.log('[FAQ Service] System has published FAQs:', system.publishedContent.faqs);
+        system.publishedContent.faqs.forEach(faq => {
+          allPublishedFAQs.push({
+            ...faq,
+            systemId: system.id,
+            systemTitle: system.publishedContent?.title || 'FAQ System'
+          });
+        });
+      } else {
+        console.log('[FAQ Service] System has no published FAQs');
+      }
+    });
+    
+    console.log('[FAQ Service] Final flattened FAQs:', allPublishedFAQs);
+    return allPublishedFAQs;
+  } catch (error) {
+    console.warn('Failed to load published FAQs:', error);
+    return [];
+  }
 }
 
 export function initializeWorkspaceFAQSystem(workspaceId: string): void {
