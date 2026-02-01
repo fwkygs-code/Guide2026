@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -38,24 +38,25 @@ const ImplementationPage = () => {
   const [activeInlinePreset, setActiveInlinePreset] = useState('content');
   const [activeFloatingPreset, setActiveFloatingPreset] = useState('default');
 
+  const fetchData = useCallback(async () => {
+    try {
+      const [categoryResponse, walkthroughResponse] = await Promise.all([
+        api.getCategories(workspaceId),
+        api.getWalkthroughs(workspaceId)
+      ]);
+      setCategories(categoryResponse.data || []);
+      setWalkthroughs(walkthroughResponse.data || []);
+    } catch (error) {
+      toast.error(t('settings.failedToLoad'));
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId, t]);
+
   useEffect(() => {
     if (!workspaceId) return;
-    const fetchData = async () => {
-      try {
-        const [categoryResponse, walkthroughResponse] = await Promise.all([
-          api.getCategories(workspaceId),
-          api.getWalkthroughs(workspaceId)
-        ]);
-        setCategories(categoryResponse.data || []);
-        setWalkthroughs(walkthroughResponse.data || []);
-      } catch (error) {
-        toast.error(t('settings.failedToLoad'));
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, [workspaceId, t]);
+  }, [workspaceId, fetchData]);
 
   const categoryGroups = useMemo(() => {
     const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));

@@ -51,6 +51,34 @@ const SettingsPage = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
+  const checkOwnership = useCallback(async () => {
+    if (!workspaceId || !user) return;
+    try {
+      // Fetch workspace to get owner_id
+      const response = await api.getWorkspace(workspaceId);
+      if (response.data?.owner_id) {
+        setIsOwner(response.data.owner_id === user.id);
+      }
+    } catch (error) {
+      console.error('Failed to check ownership:', error);
+    }
+  }, [workspaceId, user]);
+
+  const fetchMembers = useCallback(async () => {
+    if (!workspaceId || !user) return;
+    setLoadingMembers(true);
+    try {
+      const response = await api.getWorkspaceMembers(workspaceId);
+      const membersList = response.data || [];
+      setMembers(membersList);
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+      setMembers([]);
+    } finally {
+      setLoadingMembers(false);
+    }
+  }, [workspaceId, user]);
+
   useEffect(() => {
     if (workspace && user) {
       // Check if user is owner directly from workspace object
@@ -166,34 +194,6 @@ const SettingsPage = () => {
       toast.error('Failed to upload background');
     }
   };
-
-  const checkOwnership = useCallback(async () => {
-    if (!workspaceId || !user) return;
-    try {
-      // Fetch workspace to get owner_id
-      const response = await api.getWorkspace(workspaceId);
-      if (response.data?.owner_id) {
-        setIsOwner(response.data.owner_id === user.id);
-      }
-    } catch (error) {
-      console.error('Failed to check ownership:', error);
-    }
-  }, [workspaceId, user]);
-
-  const fetchMembers = useCallback(async () => {
-    if (!workspaceId || !user) return;
-    setLoadingMembers(true);
-    try {
-      const response = await api.getWorkspaceMembers(workspaceId);
-      const membersList = response.data || [];
-      setMembers(membersList);
-    } catch (error) {
-      console.error('Failed to fetch members:', error);
-      setMembers([]);
-    } finally {
-      setLoadingMembers(false);
-    }
-  }, [workspaceId, user]);
 
   const handleInvite = async () => {
     if (!inviteEmail || !workspaceId) return;

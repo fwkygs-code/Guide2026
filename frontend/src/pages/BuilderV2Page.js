@@ -117,20 +117,19 @@ const BuilderV2Page = () => {
     }
   };
 
-  // Fetch workspace data for contact info
-  useEffect(() => {
-    const fetchWorkspaceData = async () => {
-      if (!workspaceId) return;
-      try {
-        const response = await api.getWorkspace(workspaceId);
-        setWorkspaceData(response.data);
-      } catch (error) {
-        console.error('Failed to fetch workspace data:', error);
-      }
-    };
-
-    fetchWorkspaceData();
+  const fetchWorkspaceData = useCallback(async () => {
+    if (!workspaceId) return;
+    try {
+      const response = await api.getWorkspace(workspaceId);
+      setWorkspaceData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch workspace data:', error);
+    }
   }, [workspaceId]);
+
+  useEffect(() => {
+    fetchWorkspaceData();
+  }, [fetchWorkspaceData]);
 
   // Acquire workspace lock on mount
   useEffect(() => {
@@ -179,70 +178,71 @@ const BuilderV2Page = () => {
     }
   }, [workspaceError, workspaceLoading, navigate]);
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const response = await api.getCategories(workspaceId);
+      setCategories(normalizeImageUrlsInObject(response.data));
+    } catch (error) {
+      console.error('Failed to load categories');
+    }
+  }, [workspaceId]);
+
+  const loadWalkthrough = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.getWalkthrough(workspaceId, walkthroughId);
+      const normalized = normalizeImageUrlsInObject(response.data);
+      
+      console.log('[BuilderV2] Loaded walkthrough:', walkthroughId);
+      console.log('[BuilderV2] Steps count:', normalized.steps?.length || 0);
+      
+      // Ensure blocks array exists and is properly structured
+      if (normalized.steps) {
+        normalized.steps = normalized.steps.map((step, idx) => {
+          const blocks = (step.blocks || []).map(block => ({
+            id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: block.type || 'text',
+            data: block.data || {},
+            settings: block.settings || {}
+          }));
+          
+          console.log(`[BuilderV2] Step ${idx + 1} has ${blocks.length} blocks:`, blocks.map(b => b.type));
+          
+          return {
+            ...step,
+            blocks
+          };
+        });
+      }
+      setWalkthrough(normalized);
+      setSetupData({
+        title: normalized.title || '',
+        description: normalized.description || '',
+        icon_url: normalized.icon_url || '',
+        category_ids: normalized.category_ids || []
+      });
+      if (normalized.steps && normalized.steps.length > 0) {
+        setCurrentStepIndex(0);
+      }
+    } catch (error) {
+      toast.error('Failed to load walkthrough');
+      navigate(`/workspace/${workspaceSlug}/walkthroughs`.replace(/\/+/g, '/'));
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId, walkthroughId, navigate, workspaceSlug]);
+
   // Load categories and walkthrough if editing
   useEffect(() => {
     if (!workspaceId || workspaceLoading) return; // Wait for workspace ID to be resolved
     if (workspaceError) return; // Don't fetch if there was an error
     
-    const loadCategories = async () => {
-      try {
-        const response = await api.getCategories(workspaceId);
-        setCategories(normalizeImageUrlsInObject(response.data));
-      } catch (error) {
-        console.error('Failed to load categories');
-      }
-    };
-    
     loadCategories();
     
     if (isEditing && walkthroughId) {
-      const loadWalkthrough = async () => {
-        try {
-          setLoading(true);
-          const response = await api.getWalkthrough(workspaceId, walkthroughId);
-          const normalized = normalizeImageUrlsInObject(response.data);
-          
-          console.log('[BuilderV2] Loaded walkthrough:', walkthroughId);
-          console.log('[BuilderV2] Steps count:', normalized.steps?.length || 0);
-          
-          // Ensure blocks array exists and is properly structured
-          if (normalized.steps) {
-            normalized.steps = normalized.steps.map((step, idx) => {
-              const blocks = (step.blocks || []).map(block => ({
-                id: block.id || `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                type: block.type || 'text',
-                data: block.data || {},
-                settings: block.settings || {}
-              }));
-              
-              console.log(`[BuilderV2] Step ${idx + 1} has ${blocks.length} blocks:`, blocks.map(b => b.type));
-              
-              return {
-                ...step,
-                blocks
-              };
-            });
-          }
-          setWalkthrough(normalized);
-          setSetupData({
-            title: normalized.title || '',
-            description: normalized.description || '',
-            icon_url: normalized.icon_url || '',
-            category_ids: normalized.category_ids || []
-          });
-          if (normalized.steps && normalized.steps.length > 0) {
-            setCurrentStepIndex(0);
-          }
-        } catch (error) {
-          toast.error('Failed to load walkthrough');
-          navigate(`/workspace/${workspaceSlug}/walkthroughs`.replace(/\/+/g, '/'));
-        } finally {
-          setLoading(false);
-        }
-      };
       loadWalkthrough();
     }
-  }, [isEditing, walkthroughId, workspaceId, navigate, workspaceLoading, workspaceError]);
+  }, [isEditing, walkthroughId, workspaceId, workspaceLoading, workspaceError, loadCategories, loadWalkthrough]);
 
   useEffect(() => {
     if (setupComplete || isEditing) return;

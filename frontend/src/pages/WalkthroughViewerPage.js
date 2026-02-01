@@ -411,6 +411,21 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     resolveStepFromHash();
   }, [getStepHashValue, resolveStepFromHash]);
 
+  const fetchWalkthrough = useCallback(async () => {
+    try {
+      const response = await apiClient.get(`/portal/${slug}/walkthroughs/${walkthroughId}`);
+      setWalkthrough(normalizePortalWalkthrough(response.data));
+    } catch (error) {
+      if (error.response?.status === 401) {
+        setShowPasswordDialog(true);
+      } else {
+        toast.error(t('toast.walkthroughNotFound'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [slug, walkthroughId, t]);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -424,7 +439,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     };
     checkAuth();
     fetchWalkthrough();
-  }, [slug, walkthroughId]);
+  }, [slug, walkthroughId, fetchWalkthrough]);
 
   useEffect(() => {
     if (!isEmbedParam) return;
@@ -463,22 +478,38 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [resolveStepFromHash, walkthrough]);
 
+  const trackEvent = useCallback(async (eventType, stepId = null, stepPosition = null) => {
+    try {
+      await apiClient.post(`/analytics/event`, {
+        walkthrough_id: walkthroughId,
+        event_type: eventType,
+        step_id: stepId,
+        step_position: stepPosition,
+        session_id: sessionId
+      });
+    } catch (error) {
+      console.error('Failed to track event');
+    }
+  }, [walkthroughId, sessionId]);
+
+  const stepsLength = useMemo(() => walkthrough?.steps?.length || 0, [walkthrough?.steps]);
+
   useEffect(() => {
     if (walkthrough) {
       trackEvent('view');
       trackEvent('start');
     }
-  }, [walkthrough]);
+  }, [walkthrough, trackEvent]);
 
   useEffect(() => {
-    if (!walkthrough?.steps?.length || currentStep < 0) {
+    if (!stepsLength || currentStep < 0) {
       return;
     }
     const step = walkthrough.steps[currentStep];
     if (step?.step_id) {
       trackEvent('step_view', step.step_id, currentStep + 1);
     }
-  }, [currentStep, walkthrough?.steps?.length]);
+  }, [currentStep, stepsLength, walkthrough, trackEvent]);
 
   // Send height to parent if in iframe (for auto-height)
   useEffect(() => {
@@ -497,21 +528,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     }
   }, [inIframe, slug, walkthrough, currentStep]);
 
-  const fetchWalkthrough = async () => {
-    try {
-      const response = await apiClient.get(`/portal/${slug}/walkthroughs/${walkthroughId}`);
-      setWalkthrough(normalizePortalWalkthrough(response.data));
-    } catch (error) {
-      if (error.response?.status === 401) {
-        setShowPasswordDialog(true);
-      } else {
-        toast.error(t('toast.walkthroughNotFound'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const submitPortalPassword = async (e) => {
     e.preventDefault();
     try {
@@ -523,20 +539,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       setPortalPassword('');
     } catch (error) {
       toast.error(error.response?.data?.detail || t('toast.invalidPassword'));
-    }
-  };
-
-  const trackEvent = async (eventType, stepId = null, stepPosition = null) => {
-    try {
-      await apiClient.post(`/analytics/event`, {
-        walkthrough_id: walkthroughId,
-        event_type: eventType,
-        step_id: stepId,
-        step_position: stepPosition,
-        session_id: sessionId
-      });
-    } catch (error) {
-      console.error('Failed to track event');
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -39,10 +39,35 @@ const WalkthroughsPage = () => {
   });
   const [uploadingIcon, setUploadingIcon] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fetchData = useCallback(async () => {
+    try {
+      // First get workspace by slug to get the ID
+      const wsResponse = await api.getWorkspace(workspaceSlug);
+      const workspaceData = wsResponse.data;
+      setWorkspace(workspaceData);
+      setWorkspaceId(workspaceData.id);
+      
+      // Now fetch data using the actual workspace ID
+      const [wtResponse, catResponse] = await Promise.all([
+        api.getWalkthroughs(workspaceData.id),
+        api.getCategories(workspaceData.id)
+      ]);
+      // Normalize image URLs
+      setWalkthroughs(normalizeImageUrlsInObject(wtResponse.data));
+      setCategories(normalizeImageUrlsInObject(catResponse.data));
+      // Expand all categories by default
+      const allCategoryIds = new Set(catResponse.data.map(c => c.id));
+      setExpandedCategories(allCategoryIds);
+    } catch (error) {
+      toast.error(t('toast.failedToLoadWalkthroughs'));
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceSlug, t]);
+
   useEffect(() => {
     fetchData();
-  }, [workspaceSlug]);
+  }, [fetchData]);
 
   // Acquire workspace lock on mount
   useEffect(() => {
@@ -73,33 +98,7 @@ const WalkthroughsPage = () => {
         });
       }
     };
-  }, [workspaceId, navigate]);
-
-  const fetchData = async () => {
-    try {
-      // First get workspace by slug to get the ID
-      const wsResponse = await api.getWorkspace(workspaceSlug);
-      const workspaceData = wsResponse.data;
-      setWorkspace(workspaceData);
-      setWorkspaceId(workspaceData.id);
-      
-      // Now fetch data using the actual workspace ID
-      const [wtResponse, catResponse] = await Promise.all([
-        api.getWalkthroughs(workspaceData.id),
-        api.getCategories(workspaceData.id)
-      ]);
-      // Normalize image URLs
-      setWalkthroughs(normalizeImageUrlsInObject(wtResponse.data));
-      setCategories(normalizeImageUrlsInObject(catResponse.data));
-      // Expand all categories by default
-      const allCategoryIds = new Set(catResponse.data.map(c => c.id));
-      setExpandedCategories(allCategoryIds);
-    } catch (error) {
-      toast.error(t('toast.failedToLoadWalkthroughs'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [workspaceId, navigate, t]);
 
   // Organize categories into tree structure
   const categoryTree = useMemo(() => {
