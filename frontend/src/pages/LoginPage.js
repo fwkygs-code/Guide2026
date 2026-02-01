@@ -225,6 +225,10 @@ const LoginPage = () => {
             background-image: none !important;
             min-height: 100vh;
           }
+          [data-auth-container] > div.absolute.inset-0 {
+            background: transparent !important;
+            opacity: 0 !important;
+          }
         }
       `}</style>
       {/* Dark overlay for better readability - ensures text is always readable */}
