@@ -100,6 +100,33 @@ def verify_csrf_token(provided_token: str, expected_hash: Optional[str]) -> bool
 # Create the main app
 app = FastAPI()
 
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://www.interguide.app')
+cors_origins = sorted(
+    {FRONTEND_URL.rstrip('/'), "https://www.interguide.app", "https://interguide.app"}
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_methods=["*"],
+    allow_headers=[
+        "Accept",
+        "Authorization",
+        "Content-Type",
+        "Origin",
+        "X-CSRF-Token",
+        "X-Requested-With",
+    ],
+    expose_headers=["*"],
+)
+
+
+@app.on_event("startup")
+async def log_cors_config():
+    logging.info(f"[CORS] cors_origins={cors_origins}")
+    logging.info("[CORS] allow_credentials=True allow_methods=* allow_headers="
+                 "Accept,Authorization,Content-Type,Origin,X-CSRF-Token,X-Requested-With")
+
 class LowercaseRedirectMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
