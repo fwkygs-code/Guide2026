@@ -54,7 +54,6 @@ import { PolicyListPage } from './pages/PolicyListPage';
 import { ProcedureEditorRoot } from './procedure-system/EditorRoot';
 import { DocumentationEditorRoot } from './documentation-system/EditorRoot';
 import { FAQEditorRoot } from './knowledge-systems/faq-system/EditorRoot';
-import { DecisionTreeEditorRoot } from './decision-tree-system/EditorRoot';
 
 // Mandatory surface component - guarantees no white backgrounds
 import { AppSurface } from './components/ui/design-system/AppSurface';
@@ -213,19 +212,6 @@ const FAQEditorRoute = () => {
   );
 };
 
-const DecisionTreeEditorRoute = () => {
-  const { workspaceSlug, itemId } = useParams();
-  const { workspaceId, loading } = useWorkspaceSlug(workspaceSlug);
-  if (loading) return <FullscreenLoader />;
-  return (
-    <DecisionTreeEditorRoot
-      workspaceId={workspaceId || undefined}
-      itemId={itemId}
-      closeHref={workspaceSlug ? `/workspace/${workspaceSlug}/knowledge-systems` : undefined}
-    />
-  );
-};
-
 const preloadVideo = (src) => {
   if (typeof document === 'undefined') return;
   const video = document.createElement('video');
@@ -316,22 +302,16 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/faqs" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="faq" /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/faqs/new" element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/faqs/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/policies" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="policy" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/policies/new" element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/policies/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/procedures" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="procedure" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/procedures/new" element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/procedures/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/documentation" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="documentation" /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/documentation/new" element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
+          <Route path="/workspace/:workspaceSlug/documentation/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge" element={<PrivateRoute><WorkspaceRouteGuard><WorkspaceKnowledgeLayout /></WorkspaceRouteGuard></PrivateRoute>}>
-            <Route path="policy" element={<PolicyListRoute />} />
-            <Route path="policy/new" element={<PolicyEditorRoute />} />
-            <Route path="policy/:itemId" element={<PolicyEditorRoute />} />
-            <Route path="procedure" element={<KnowledgeSystemPortalPage systemType="procedure" />} />
-            <Route path="procedure/new" element={<ProcedureEditorRoute />} />
-            <Route path="procedure/:itemId" element={<ProcedureEditorRoute />} />
-            <Route path="documentation" element={<KnowledgeSystemPortalPage systemType="documentation" />} />
-            <Route path="documentation/new" element={<DocumentationEditorRoute />} />
-            <Route path="documentation/:itemId" element={<DocumentationEditorRoute />} />
-            <Route path="faq" element={<KnowledgeSystemPortalPage systemType="faq" />} />
-            <Route path="faq/new" element={<FAQEditorRoute />} />
-            <Route path="faq/:itemId" element={<FAQEditorRoute />} />
-            <Route path="decision_tree" element={<KnowledgeSystemPortalPage systemType="decision_tree" />} />
-            <Route path="decision_tree/new" element={<DecisionTreeEditorRoute />} />
-            <Route path="decision_tree/:itemId" element={<DecisionTreeEditorRoute />} />
           </Route>
           </Routes>
           </AppSurface>

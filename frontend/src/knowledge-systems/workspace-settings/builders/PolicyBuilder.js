@@ -7,15 +7,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Badge } from '../../../components/ui';
 import { Shield, FileText, Calendar, Plus, Trash2, Save, Upload } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { useWorkspaceSlug } from '../../../hooks/useWorkspaceSlug';
+import { useWorkspaceSlug } from '../../hooks/useWorkspaceSlug';
 import { getPolicySystem, updatePolicySystem, publishPolicySystemEntry } from '../../models/PolicyService';
 import PolicyRichTextEditor from '../../../components/canvas-builder/PolicyRichTextEditor';
 import WorkspaceLoader from '../../../components/WorkspaceLoader';

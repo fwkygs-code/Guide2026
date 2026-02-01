@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Badge } from './ui';
 import { BookOpen, FileText, Plus, Trash2, Code, Link, ExternalLink } from 'lucide-react';
-import { useWorkspaceSlug } from '../../../hooks/useWorkspaceSlug';
+import { useWorkspaceSlug } from '../../hooks/useWorkspaceSlug';
 import { DocumentationSystem, createDocumentationSystem } from './model';
 import { getDocumentationSystem, updateDocumentationSystem, createDocumentationSystemEntry, publishDocumentationSystemEntry } from './service';
 
