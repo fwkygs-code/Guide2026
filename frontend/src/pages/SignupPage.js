@@ -267,6 +267,7 @@ const SignupPage = () => {
               playsInline
             />
           </Link>
+          <p className="text-lg font-medium text-foreground mb-2">InterGuide.app</p>
           <p className={`${getSizeClass('base')} text-muted-foreground`}>{t('auth.createYourAccount')}</p>
         </div>
 

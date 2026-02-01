@@ -83,7 +83,8 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-background"
+      className="fixed inset-0 z-[9999]"
+      data-login-loading-overlay
       style={{
         backgroundColor: 'rgb(0, 0, 0)',
         opacity: fading ? 0 : 1,
@@ -91,6 +92,15 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
       }}
       aria-hidden="true"
     >
+      {/* TEMP – mobile-only login loading overlay background test */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          [data-login-loading-overlay] {
+            background-color: #000 !important;
+            background: #000 !important;
+          }
+        }
+      `}</style>
       <div className="relative w-full h-full flex items-center justify-center">
         {reducedMotion ? (
           <img

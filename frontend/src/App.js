@@ -62,7 +62,15 @@ import OnboardingController from './onboarding/OnboardingController';
 import { INTERGUIDE_ANIMATION_URL, INTERGUIDE_ANIMATIONX_URL } from './utils/logo';
 
 const FullscreenLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
+  <div className="min-h-screen flex items-center justify-center" data-fullscreen-loader>
+    {/* TEMP – mobile-only fullscreen loader background test */}
+    <style jsx>{`
+      @media (max-width: 768px) {
+        [data-fullscreen-loader] {
+          background-color: #000 !important;
+        }
+      }
+    `}</style>
     <WorkspaceLoader size={160} />
   </div>
 );
