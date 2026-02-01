@@ -9220,19 +9220,21 @@ logger = logging.getLogger(__name__)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Return JSON error response for HTTPException."""
-    return JSONResponse(
+    response = JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail}
     )
+    return _apply_cors_headers(response, request.headers.get("origin"))
 
 # Exception handler for RequestValidationError
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Return JSON error response for validation errors (422)."""
-    return JSONResponse(
+    response = JSONResponse(
         status_code=422,
         content={"detail": exc.errors(), "body": exc.body}
     )
+    return _apply_cors_headers(response, request.headers.get("origin"))
 
 # Exception handler for unhandled exceptions
 @app.exception_handler(Exception)
@@ -9240,10 +9242,11 @@ async def global_exception_handler(request: Request, exc: Exception):
     """Return JSON error response for unhandled exceptions."""
     import traceback
     logging.error(f"Unhandled exception: {exc}", exc_info=True)
-    return JSONResponse(
+    response = JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"}
     )
+    return _apply_cors_headers(response, request.headers.get("origin"))
 
 # Admin-only email diagnostic endpoint
 @api_router.get("/admin/email/config")
