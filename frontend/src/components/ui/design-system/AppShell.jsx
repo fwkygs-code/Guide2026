@@ -23,7 +23,7 @@ function AppShell({ children, className = '' }) {
       <style jsx>{`
         @media (max-width: 768px) {
           /* Target loading screens: min-h-screen + centering + WorkspaceLoader */
-          [data-app-shell] > div.min-h-screen.flex.items-center.justify-center {
+          [data-app-shell] main div.min-h-screen.flex.items-center.justify-center {
             background-color: #000 !important;
             background-image: none !important;
           }

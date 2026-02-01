@@ -326,6 +326,9 @@ const AppContent = () => {
             <Route path="faq" element={<KnowledgeSystemPortalPage systemType="faq" />} />
             <Route path="faq/new" element={<FAQEditorRoute />} />
             <Route path="faq/:itemId" element={<FAQEditorRoute />} />
+            <Route path="faqs" element={<KnowledgeSystemPortalPage systemType="faq" />} />
+            <Route path="faqs/new" element={<FAQEditorRoute />} />
+            <Route path="faqs/:itemId" element={<FAQEditorRoute />} />
             <Route path="decision_tree" element={<KnowledgeSystemPortalPage systemType="decision_tree" />} />
             <Route path="decision_tree/new" element={<DecisionTreeEditorRoute />} />
             <Route path="decision_tree/:itemId" element={<DecisionTreeEditorRoute />} />
