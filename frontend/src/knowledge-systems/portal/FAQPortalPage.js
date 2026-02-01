@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { MessageCircle, HelpCircle, Search, Tag, Clock, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageCircle, HelpCircle, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design-system';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Surface } from '@/components/ui/design-system';
-import { portalKnowledgeSystemsService } from '../api-service';
+import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
+import { getPublishedFAQs } from '../faq-system/service';
 import sanitizeHtml from '../../lib/sanitizeHtml';
 import WorkspaceLoader from '../../components/WorkspaceLoader';
 import { useKnowledgeRoute } from '../KnowledgeRouteContext';
@@ -36,8 +35,7 @@ function FAQPortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      if (!slug) return;
-      const faqs = await portalKnowledgeSystemsService.getAllByType(slug, 'faq');
+      const faqs = getPublishedFAQs();
       setPublishedFAQs(faqs);
     } catch (error) {
       console.error('Failed to load FAQ system:', error);

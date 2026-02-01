@@ -81,6 +81,27 @@ export function deleteFAQSystem(systemId: string): boolean {
   return true;
 }
 
+export function getPublishedFAQs(): any[] {
+  const allSystems = loadFromStorage();
+  const publishedSystems = allSystems.filter(system => system.publishedContent !== null);
+  
+  // Flatten all published FAQs from all systems
+  const allPublishedFAQs = [];
+  publishedSystems.forEach(system => {
+    if (system.publishedContent && system.publishedContent.faqs) {
+      system.publishedContent.faqs.forEach(faq => {
+        allPublishedFAQs.push({
+          ...faq,
+          systemId: system.id,
+          systemTitle: system.publishedContent?.title || 'FAQ System'
+        });
+      });
+    }
+  });
+  
+  return allPublishedFAQs;
+}
+
 export function initializeWorkspaceFAQSystem(workspaceId: string): void {
   const existingSystems = getFAQSystems(workspaceId);
   if (existingSystems.length > 0) return;

@@ -302,9 +302,6 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/faqs" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="faq" /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/faqs/new" element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/faqs/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><FAQEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/policies" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="policy" /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/policies/new" element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
-          <Route path="/workspace/:workspaceSlug/policies/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><PolicyEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/procedures" element={<PrivateRoute><WorkspaceRouteGuard><KnowledgeSystemPortalPage systemType="procedure" /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/procedures/new" element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/procedures/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><ProcedureEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
@@ -312,6 +309,9 @@ const AppContent = () => {
           <Route path="/workspace/:workspaceSlug/documentation/new" element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/documentation/:itemId" element={<PrivateRoute><WorkspaceRouteGuard><DocumentationEditorRoute /></WorkspaceRouteGuard></PrivateRoute>} />
           <Route path="/workspace/:workspaceSlug/knowledge" element={<PrivateRoute><WorkspaceRouteGuard><WorkspaceKnowledgeLayout /></WorkspaceRouteGuard></PrivateRoute>}>
+            <Route path="policy" element={<PolicyListRoute />} />
+            <Route path="policy/new" element={<PolicyEditorRoute />} />
+            <Route path="policy/:itemId" element={<PolicyEditorRoute />} />
           </Route>
           </Routes>
           </AppSurface>
