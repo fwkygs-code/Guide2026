@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -17,12 +17,7 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
   const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    loadPolicies();
-  }, [workspaceId]);
-
-  const loadPolicies = async () => {
+  const loadPolicies = useCallback(async () => {
     try {
       const response = await api.getKnowledgeSystems(workspaceId, 'policy');
       setPolicies(response.data || []);
@@ -32,7 +27,12 @@ export const PolicyListPage = ({ workspaceId, workspaceSlug }: PolicyListPagePro
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    loadPolicies();
+  }, [workspaceId, loadPolicies]);
 
   const handleCreate = () => {
     navigate(`/workspace/${workspaceSlug}/knowledge/policy/new`);

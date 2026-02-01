@@ -45,6 +45,44 @@ const QuotaDisplay = ({
   const resolvedError = usingShared ? sharedError : error;
   const resolvedQuotaData = usingShared ? sharedQuotaData : quotaData;
 
+  const fetchQuotaData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch user plan and quota
+      const planResponse = await api.getUserPlan();
+      const planData = planResponse.data;
+      
+      // HARD INVARIANT: Canonical fields must exist
+      if (planData.access_granted === undefined) {
+        console.error('[QUOTA] INVALID PLAN PAYLOAD - access_granted missing', planData);
+        throw new Error('Invalid plan data: access_granted field missing');
+      }
+      
+      let workspaceQuota = null;
+      if (workspaceId) {
+        const workspaceResponse = await api.getWorkspaceQuota(workspaceId);
+        workspaceQuota = workspaceResponse.data;
+      }
+      
+      setQuotaData({
+        user: {
+          plan: planData.plan,
+          access_granted: planData.access_granted,
+          quota: planData.quota,
+          over_quota: planData.over_quota,
+          workspace
+        },
+        workspace: workspaceQuota
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to fetch quota data');
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId]);
+
   useEffect(() => {
     if (usingShared) return;
     if (!user?.id) {
@@ -58,66 +96,6 @@ const QuotaDisplay = ({
     if (!onReadyChange) return;
     onReadyChange(!resolvedLoading && !!resolvedQuotaData && !resolvedError);
   }, [resolvedLoading, resolvedQuotaData, resolvedError, onReadyChange]);
-
-  const fetchQuotaData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Fetch user plan and quota
-      const planResponse = await api.getUserPlan();
-      const planData = planResponse.data;
-      
-      // If workspaceId provided, also fetch workspace-specific quota
-      let workspaceQuota = null;
-      if (workspaceId) {
-        try {
-          const workspaceResponse = await api.getWorkspaceQuota(workspaceId);
-          workspaceQuota = workspaceResponse.data;
-        } catch (err) {
-          // Workspace quota is optional, don't fail if it doesn't exist
-          console.warn('Workspace quota not available:', err);
-        }
-      }
-      
-      setQuotaData({
-        user: {
-          access_granted: planData.access_granted,
-          quota_used: planData.quota_used,
-          quota_limit: planData.quota_limit,
-          plan: planData.plan || 'free',
-          categories_limit: planData.categories_limit,
-          over_quota: planData.over_quota || false,
-          is_recurring: planData.is_recurring || false,
-          management_url: planData.management_url || null,
-          provider: planData.provider || null,
-          // Quota fields
-          quota: {
-            storage_used: planData.quota.storage_used_bytes || 0,
-            storage_allowed: planData.quota.storage_allowed_bytes || 0,
-            max_file_size: planData.quota.max_file_size_bytes || 0,
-            workspaces_used: planData.quota.workspace_count || 0,
-            workspaces_limit: planData.quota.workspace_limit,
-            walkthroughs_used: planData.quota.walkthroughs_used || 0,
-            walkthroughs_limit: planData.quota.walkthroughs_limit,
-            categories_used: planData.quota.categories_used || 0,
-            categories_limit: planData.quota.categories_limit
-          },
-          workspace: workspaceQuota ? {
-            walkthroughs_used: workspaceQuota.usage?.walkthrough_count || 0,
-            walkthroughs_limit: workspaceQuota.usage?.walkthrough_limit,
-            categories_used: workspaceQuota.usage?.category_count || 0,
-            categories_limit: workspaceQuota.usage?.category_limit
-          } : null
-        }
-      });
-    } catch (err) {
-      console.error('Failed to fetch quota data:', err);
-      setError(t('quota.failedToLoad'));
-    } finally {
-      setLoading(false);
-    }
-  }, [workspaceId, t]);
 
   if (resolvedLoading) {
     return (
@@ -148,6 +126,7 @@ const QuotaDisplay = ({
     );
   }
 
+  // Safe destructuring after null check
   const { planName, quota, workspaceQuota, access_until, is_recurring, access_granted } = resolvedQuotaData;
   
   // Calculate time until access expires

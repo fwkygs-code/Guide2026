@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -46,10 +46,36 @@ const DashboardPage = () => {
     navigate(path, { state: { workspaceTransition: true } });
   };
 
+  const fetchWorkspaces = useCallback(async () => {
+    try {
+      const response = await api.getWorkspaces();
+      const workspacesData = response.data;
+      setWorkspaces(workspacesData);
+      
+      // Release any locks for workspaces when user is on dashboard
+      // This ensures locks are released even if user navigated directly to dashboard
+      // (bypassing workspace page cleanup)
+      if (workspacesData && workspacesData.length > 0 && user?.id) {
+        workspacesData.forEach(async (workspace) => {
+          try {
+            // Silently release lock - ignore errors (lock may not exist or already released)
+            await api.unlockWorkspace(workspace.id).catch(() => {});
+          } catch (error) {
+            // Ignore errors - lock may not exist
+          }
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to load workspaces');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) return;
     fetchWorkspaces();
-  }, [user?.id]);
+  }, [user?.id, fetchWorkspaces]);
 
   const isDashboardReady = quotaDisplayReady;
 
@@ -83,32 +109,6 @@ const DashboardPage = () => {
         : null
     };
   }, [quotaData]);
-
-  const fetchWorkspaces = async () => {
-    try {
-      const response = await api.getWorkspaces();
-      const workspacesData = response.data;
-      setWorkspaces(workspacesData);
-      
-      // Release any locks for workspaces when user is on dashboard
-      // This ensures locks are released even if user navigated directly to dashboard
-      // (bypassing workspace page cleanup)
-      if (workspacesData && workspacesData.length > 0 && user?.id) {
-        workspacesData.forEach(async (workspace) => {
-          try {
-            // Silently release lock - ignore errors (lock may not exist or already released)
-            await api.unlockWorkspace(workspace.id).catch(() => {});
-          } catch (error) {
-            // Ignore errors - lock may not exist
-          }
-        });
-      }
-    } catch (error) {
-      toast.error('Failed to load workspaces');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePlanAction = () => {
     if (quotaData?.access_granted) {

@@ -72,6 +72,7 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
     };
   }, [active]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!active || !visible) return;
     if (ready) {

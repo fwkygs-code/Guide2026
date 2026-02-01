@@ -226,6 +226,7 @@ const PayPalSubscription = ({ onSuccess, onCancel, isSubscribing, setIsSubscribi
         pollingIntervalRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paypalButtons]);
 
   const initializePayPalButtons = () => {
