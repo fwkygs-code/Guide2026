@@ -75,6 +75,15 @@ else:
 CSRF_COOKIE_NAME = "ig_csrf_token"
 CSRF_HEADER_NAME = "x-csrf-token"
 CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+CSRF_EXEMPT_PATHS = {
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/signup",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/health",
+    "/health",
+}
 CSRF_SECRET = os.environ.get('CSRF_SECRET', JWT_SECRET)
 if not CSRF_SECRET:
     raise RuntimeError("CSRF_SECRET must be set or JWT_SECRET must be available for CSRF hashing")
@@ -130,6 +139,7 @@ async def log_cors_config():
     logging.info(f"[CORS] cors_origins={cors_origins}")
     logging.info("[CORS] allow_credentials=True allow_methods=* allow_headers="
                  "Accept,Authorization,Content-Type,Origin,X-CSRF-Token,X-Requested-With")
+    logging.info(f"[CSRF] Exempt paths: {sorted(CSRF_EXEMPT_PATHS)}")
 
 
 def _apply_cors_headers(response: Response, origin: str | None) -> Response:
@@ -162,7 +172,9 @@ class LowercaseRedirectMiddleware(BaseHTTPMiddleware):
 
 class CSRFMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.method.upper() not in CSRF_PROTECTED_METHODS:
+        method = request.method.upper()
+        path = request.url.path
+        if method not in CSRF_PROTECTED_METHODS or path in CSRF_EXEMPT_PATHS:
             return await call_next(request)
         auth_token = request.cookies.get(AUTH_COOKIE_NAME)
         if not auth_token:
@@ -171,15 +183,16 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         try:
             payload = decode_token(auth_token)
         except HTTPException as exc:
-            raise exc
+            logging.warning(f"[CSRF] Auth token invalid for path={request.url.path}: {exc.detail}")
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
         csrf_header = request.headers.get(CSRF_HEADER_NAME)
         csrf_hash = payload.get('csrf_hash')
         if not csrf_header:
             logging.warning(f"[CSRF] Missing header for user {payload.get('user_id')} path={request.url.path}")
-            raise HTTPException(status_code=403, detail="Missing CSRF token")
+            return JSONResponse(status_code=403, content={"detail": "Missing CSRF token"})
         if not verify_csrf_token(csrf_header, csrf_hash):
             logging.warning(f"[CSRF] Token mismatch for user {payload.get('user_id')} path={request.url.path}")
-            raise HTTPException(status_code=403, detail="Invalid CSRF token")
+            return JSONResponse(status_code=403, content={"detail": "Invalid CSRF token"})
         request.state.csrf_payload = payload
         return await call_next(request)
 
