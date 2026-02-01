@@ -222,8 +222,8 @@ const SignupPage = () => {
       <style jsx>{`
         @media (max-width: 768px) {
           [data-auth-container] {
-            background-color: #000;
-            background-image: none;
+            background-color: #000 !important;
+            background-image: none !important;
             min-height: 100vh;
           }
         }

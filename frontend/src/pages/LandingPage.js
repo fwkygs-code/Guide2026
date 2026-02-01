@@ -51,7 +51,9 @@ const LandingPage = () => {
         <style jsx>{`
           @media (max-width: 768px) {
             [data-nav-panel] {
-              background-color: #000;
+              background-color: #000 !important;
+              background-image: none !important;
+              backdrop-filter: none !important;
             }
           }
           @media (max-width: 768px) {
