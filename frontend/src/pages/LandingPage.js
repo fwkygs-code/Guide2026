@@ -72,7 +72,15 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
+      <section className="pt-32 pb-20 px-6" data-hero-panel>
+        {/* TEMP – mobile-only hero background test */}
+        <style jsx>{`
+          @media (max-width: 768px) {
+            [data-hero-panel] {
+              background-color: #000;
+            }
+          }
+        `}</style>
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
