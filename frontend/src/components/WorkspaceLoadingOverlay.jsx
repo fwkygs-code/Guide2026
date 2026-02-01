@@ -97,6 +97,7 @@ const WorkspaceLoadingOverlay = ({ active, ready, onFinish }) => {
         @media (max-width: 768px) {
           [data-loading-overlay] {
             background-color: #000 !important;
+            background: #000 !important;
           }
         }
       `}</style>
