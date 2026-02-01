@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { INTERGUIDE_MAIN_ANIMATION_URL, INTERGUIDE_LOGO_MAIN_280_URL } from '../utils/logo';
 
 const MIN_DISPLAY_MS = 1200;
@@ -15,6 +15,28 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
   const unmountTimeoutRef = useRef(null);
   const overflowRef = useRef(null);
 
+  const requestClose = useCallback(() => {
+    if (fading) return;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const elapsed = Math.max(0, now - startTimeRef.current);
+    const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
+
+    const finish = () => {
+      setFading(true);
+      fadeTimeoutRef.current = setTimeout(() => {
+        setVisible(false);
+        setFading(false);
+        if (onFinish) onFinish();
+      }, FADE_DURATION_MS);
+    };
+
+    if (remaining > 0 && !reducedMotion) {
+      fadeTimeoutRef.current = setTimeout(finish, remaining);
+    } else {
+      finish();
+    }
+  }, [fading, onFinish, reducedMotion]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -27,23 +49,6 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
     media.addListener(handleChange);
     return () => media.removeListener(handleChange);
   }, []);
-
-  const requestClose = () => {
-    if (fading) return;
-    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    const elapsed = Math.max(0, now - startTimeRef.current);
-    const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
-    if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
-    fadeTimeoutRef.current = setTimeout(() => {
-      setFading(true);
-      if (unmountTimeoutRef.current) clearTimeout(unmountTimeoutRef.current);
-      unmountTimeoutRef.current = setTimeout(() => {
-        setVisible(false);
-        setFading(false);
-        if (onFinish) onFinish();
-      }, FADE_DURATION_MS);
-    }, remaining);
-  };
 
   useEffect(() => {
     if (!active) {
@@ -70,15 +75,14 @@ const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
       if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
       if (unmountTimeoutRef.current) clearTimeout(unmountTimeoutRef.current);
     };
-  }, [active]);
+  }, [active, requestClose]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!active || !visible) return;
     if (ready) {
       requestClose();
     }
-  }, [active, ready, visible]);
+  }, [active, ready, visible, requestClose]);
 
   if (!visible) return null;
 

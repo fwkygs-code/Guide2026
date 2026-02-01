@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,8 +7,18 @@ export const useQuota = (workspaceId = null) => {
   const [quotaData, setQuotaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Dev-only: Track fetch counts to detect double-fetches
+  const fetchCountRef = useRef(0);
 
   const fetchQuotaData = useCallback(async () => {
+    // Dev-only: Log fetch count
+    if (process.env.NODE_ENV === 'development') {
+      fetchCountRef.current += 1;
+      console.count('[fetchQuota]');
+      console.log(`[useQuota] Fetch #${fetchCountRef.current} for workspace:`, workspaceId);
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -157,10 +167,17 @@ export const useQuota = (workspaceId = null) => {
     return quotaData.quota.over_quota || false;
   };
 
+  // Runtime assertion: ensure explicit states
+  const state = loading ? 'loading' : error ? 'error' : quotaData ? 'ready' : 'uninitialized';
+  if (process.env.NODE_ENV === 'development' && state === 'uninitialized' && user?.id) {
+    console.warn('[useQuota] Uninitialized state with authenticated user - possible TDZ or fetch failure');
+  }
+
   return {
     quotaData,
     loading,
     error,
+    state,
     refreshQuota,
     canUploadFile,
     canCreateWorkspace,

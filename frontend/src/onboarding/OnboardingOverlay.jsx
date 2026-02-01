@@ -77,6 +77,8 @@ const OnboardingOverlay = ({
     left = clamp(left, TOOLTIP_MARGIN, viewportWidth - tooltipRect.width - TOOLTIP_MARGIN);
 
     setTooltipStyle({ top: `${top}px`, left: `${left}px` });
+    // Intentional: Layout effect tied to mount/unmount only, adding isWaiting causes thrashing
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paddedRect, isRTL]);
 
   if (!step || !shouldRender) return null;

@@ -16,6 +16,46 @@ import { detectRTL } from '../utils/blockUtils';
 import sanitizeHtml from '../lib/sanitizeHtml';
 import WorkspaceLoader from '../components/WorkspaceLoader';
 
+// Helper to check if URL is from Cloudinary
+const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
+
+// Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
+const isGif = (url, mediaType = null) => {
+  if (!url) {
+    console.log('[GIF Debug] isGif: No URL provided');
+    return false;
+  }
+  const lowerUrl = url.toLowerCase();
+  // Check for .gif extension
+  if (lowerUrl.endsWith('.gif') || lowerUrl.includes('.gif?')) {
+    console.log('[GIF Debug] isGif: Detected GIF by extension:', url);
+    return true;
+  }
+  // If it's a Cloudinary video URL with media_type='image', it's definitely a GIF uploaded as video
+  if (isCloudinary(url) && url.includes('/video/upload/') && mediaType === 'image') {
+    console.log('[GIF Debug] isGif: Detected GIF - Cloudinary video URL with media_type=image (re-uploaded GIF):', url);
+    return true;
+  }
+  // Check if URL contains 'gif' in the path
+  if (isCloudinary(url) && url.includes('/video/upload/')) {
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.pathname.toLowerCase().includes('gif')) {
+        console.log('[GIF Debug] isGif: Detected GIF - URL path contains "gif":', url);
+        return true;
+      }
+    } catch (e) {
+      console.error('[GIF Debug] isGif: Error parsing URL:', e, url);
+    }
+  }
+  console.log('[GIF Debug] isGif: Not a GIF:', url, 'mediaType:', mediaType);
+  return false;
+};
+
+// Check if URL is a Cloudinary video (could be from GIF upload)
+const isCloudinaryVideo = (url) => {
+  return isCloudinary(url) && url.includes('/video/upload/');
+};
 
 const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const { slug, walkthroughId } = useParams();
@@ -127,48 +167,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       return { ...step, blocks: normalizedBlocks };
     });
     return { ...data, steps };
-  };
-  
-  // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
-  const isGif = (url, mediaType = null) => {
-    if (!url) {
-      console.log('[GIF Debug] isGif: No URL provided');
-      return false;
-    }
-    const lowerUrl = url.toLowerCase();
-    // Check for .gif extension
-    if (lowerUrl.endsWith('.gif') || lowerUrl.includes('.gif?')) {
-      console.log('[GIF Debug] isGif: Detected GIF by extension:', url);
-      return true;
-    }
-    // If it's a Cloudinary video URL with media_type='image', it's definitely a GIF uploaded as video
-    // This is the key detection for re-uploaded GIFs
-    if (isCloudinary(url) && url.includes('/video/upload/') && mediaType === 'image') {
-      console.log('[GIF Debug] isGif: Detected GIF - Cloudinary video URL with media_type=image (re-uploaded GIF):', url);
-      return true;
-    }
-    // Check if URL contains 'gif' in the path (original filename preserved in some cases)
-    if (isCloudinary(url) && url.includes('/video/upload/')) {
-      try {
-        const urlObj = new URL(url);
-        if (urlObj.pathname.toLowerCase().includes('gif')) {
-          console.log('[GIF Debug] isGif: Detected GIF - URL path contains "gif":', url);
-          return true;
-        }
-      } catch (e) {
-        console.error('[GIF Debug] isGif: Error parsing URL:', e, url);
-      }
-    }
-    console.log('[GIF Debug] isGif: Not a GIF:', url, 'mediaType:', mediaType);
-    return false;
-  };
-  
-  // Helper to check if URL is from Cloudinary
-  const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
-  
-  // Check if URL is a Cloudinary video (could be from GIF upload)
-  const isCloudinaryVideo = (url) => {
-    return isCloudinary(url) && url.includes('/video/upload/');
   };
   
   // Add optimization transformations to Cloudinary URLs

@@ -94,6 +94,8 @@ const NotificationsMenu = () => {
         important: true
       });
     }
+  // Intentional: location.pathname used for route-based notification filtering
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications, location.pathname, navigate]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;

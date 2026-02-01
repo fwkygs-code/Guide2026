@@ -9,6 +9,45 @@ import { Toaster } from '@/components/ui/sonner';
 import WorkspaceLoader from './components/WorkspaceLoader';
 import { toast } from 'sonner';
 import './i18n/config'; // Initialize i18n
+
+// Production error monitoring
+if (process.env.NODE_ENV === 'production') {
+  window.onerror = function(message, source, lineno, colno, error) {
+    // Capture TDZ errors and other critical errors
+    const errorInfo = {
+      type: 'javascript',
+      message: message,
+      source: source,
+      line: lineno,
+      column: colno,
+      stack: error?.stack || 'No stack trace',
+      timestamp: new Date().toISOString(),
+      route: window.location.pathname,
+      userAgent: navigator.userAgent.substring(0, 100)
+    };
+    
+    // Check for TDZ errors specifically
+    if (message.includes('Cannot access') || message.includes('before initialization')) {
+      console.error('[TDZ ERROR]', errorInfo);
+      // Could send to backend or monitoring service here
+    } else {
+      console.error('[PRODUCTION ERROR]', errorInfo);
+    }
+    
+    return false; // Let default handler run too
+  };
+  
+  // Capture unhandled promise rejections
+  window.addEventListener('unhandledrejection', function(event) {
+    console.error('[UNHANDLED REJECTION]', {
+      reason: event.reason?.message || event.reason,
+      stack: event.reason?.stack,
+      timestamp: new Date().toISOString(),
+      route: window.location.pathname
+    });
+  });
+}
+
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';

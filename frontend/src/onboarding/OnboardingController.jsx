@@ -26,6 +26,8 @@ const OnboardingController = () => {
   const targetSelector = useMemo(() => {
     if (!step?.target) return null;
     return typeof step.target === 'function' ? step.target(session) : step.target;
+    // Intentional: Onboarding state machine snapshots values, recomputing breaks flow
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step?.id, step?.target, session?.workspaceId, session?.categoryId, session?.walkthroughId, session?.step8, location.pathname]);
 
   const { rect, isReady } = useTargetRect(targetSelector, active);
