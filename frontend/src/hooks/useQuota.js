@@ -8,14 +8,6 @@ export const useQuota = (workspaceId = null) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-    fetchQuotaData();
-  }, [user?.id, fetchQuotaData]);
-
   const fetchQuotaData = useCallback(async () => {
     try {
       setLoading(true);
@@ -29,54 +21,37 @@ export const useQuota = (workspaceId = null) => {
         console.error('[QUOTA] INVALID PLAN PAYLOAD - access_granted missing', planData);
         throw new Error('Invalid plan data: access_granted field missing');
       }
-      if (planData.quota_used === undefined) {
-        console.error('[QUOTA] INVALID PLAN PAYLOAD - quota_used missing', planData);
-        throw new Error('Invalid plan data: quota_used field missing');
-      }
-      if (planData.quota_limit === undefined) {
-        console.error('[QUOTA] INVALID PLAN PAYLOAD - quota_limit missing', planData);
-        throw new Error('Invalid plan data: quota_limit field missing');
-      }
       
       let workspaceQuota = null;
       if (workspaceId) {
-        try {
-          const workspaceResponse = await api.getWorkspaceQuota(workspaceId);
-          workspaceQuota = workspaceResponse.data;
-          
-          // Validate workspace quota structure
-          if (workspaceQuota.walkthroughs_used === undefined) {
-            console.error('[QUOTA] INVALID WORKSPACE QUOTA - walkthroughs_used missing', workspaceQuota);
-            throw new Error('Invalid workspace quota: walkthroughs_used field missing');
-          }
-          if (workspaceQuota.walkthroughs_limit === undefined) {
-            console.error('[QUOTA] INVALID WORKSPACE QUOTA - walkthroughs_limit missing', workspaceQuota);
-            throw new Error('Invalid workspace quota: walkthroughs_limit field missing');
-          }
-        } catch (error) {
-          console.warn('[QUOTA] Failed to fetch workspace quota:', error);
-          // Don't throw here - continue with user quota only
-        }
+        const workspaceResponse = await api.getWorkspaceQuota(workspaceId);
+        workspaceQuota = workspaceResponse.data;
       }
       
       setQuotaData({
         user: {
+          plan: planData.plan,
           access_granted: planData.access_granted,
-          quota_used: planData.quota_used,
-          quota_limit: planData.quota_limit,
-          plan: planData.plan || 'free',
-          categories_limit: planData.quota.categories_limit,
-          over_quota: planData.quota.over_quota || false
+          quota: planData.quota,
+          over_quota: planData.over_quota,
+          workspace
         },
         workspace: workspaceQuota
       });
-    } catch (error) {
-      console.error('[QUOTA] Failed to fetch quota data:', error);
-      setError(error.message || 'Failed to fetch quota data');
+    } catch (err) {
+      setError(err.message || 'Failed to fetch quota data');
     } finally {
       setLoading(false);
     }
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    fetchQuotaData();
+  }, [user?.id, fetchQuotaData]);
 
   const refreshQuota = () => {
     fetchQuotaData();
