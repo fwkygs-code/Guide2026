@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
-import { portalKnowledgeSystemsService } from '../api-service';
+import { getPublishedPolicies } from '../policy-system/service';
 import WorkspaceLoader from '../../components/WorkspaceLoader';
 import { useKnowledgeRoute } from '../KnowledgeRouteContext';
 
@@ -48,9 +48,8 @@ function PolicyPortalPage() {
   const loadSystem = async () => {
     setLoading(true);
     try {
-      console.log('[PolicyPortal] Loading policies for slug:', slug);
-      if (!slug) return;
-      const policies = await portalKnowledgeSystemsService.getAllByType(slug, 'policy');
+      console.log('[PolicyPortal] Loading published policies...');
+      const policies = getPublishedPolicies();
       console.log('[PolicyPortal] Raw response:', policies);
       console.log('[PolicyPortal] Type:', typeof policies);
       console.log('[PolicyPortal] Is array:', Array.isArray(policies));
@@ -62,8 +61,7 @@ function PolicyPortalPage() {
       
       setPublishedPolicies(policiesArray);
     } catch (error) {
-      console.error('[PolicyPortal] Failed to load policy system:', error);
-      console.error('[PolicyPortal] Error details:', error.response?.data || error.message);
+      console.error('Failed to load policy system:', error);
       setPublishedPolicies([]);
     } finally {
       setLoading(false);

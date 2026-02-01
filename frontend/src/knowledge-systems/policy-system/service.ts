@@ -125,3 +125,40 @@ export function updateDraft(systemId: string, updates: Partial<PolicySystem>): P
 export function systemExists(systemId: string): boolean {
   return loadDraft(systemId) !== null || loadPublished(systemId) !== null;
 }
+
+/**
+ * Get all published policies
+ * @returns {any[]}
+ */
+export function getPublishedPolicies(): any[] {
+  const allPublishedPolicies = [];
+  
+  // Get all localStorage keys
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('policy:published:')) {
+      try {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const system = JSON.parse(stored);
+          if (validatePolicySystem(system)) {
+            // Flatten all policies from this system
+            if (system.content && system.content.policies) {
+              system.content.policies.forEach((policy: any) => {
+                allPublishedPolicies.push({
+                  ...policy,
+                  systemId: system.id,
+                  systemTitle: system.content?.title || 'Policy System'
+                });
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load published policy from key:', key, error);
+      }
+    }
+  }
+  
+  return allPublishedPolicies;
+}
