@@ -22,6 +22,12 @@ function Surface({
   children,
   ...props
 }) {
+  // Detect if this is a loading screen (has min-h-screen and centering classes)
+  const isLoadingScreen = className?.includes('min-h-screen') && 
+                         className?.includes('flex') && 
+                         className?.includes('items-center') && 
+                         className?.includes('justify-center');
+
   const getSurfaceClasses = () => {
     switch (variant) {
       case 'dark':
@@ -73,14 +79,15 @@ function Surface({
     <Component
       className={surfaceClasses}
       data-surface={variant}
+      data-loading-screen={isLoadingScreen}
       {...animationProps}
       {...props}
     >
-      {/* TEMP – mobile-only surface background test */}
-      {variant === 'glass' && (
+      {/* TEMP – mobile-only loading screen background test */}
+      {isLoadingScreen && variant === 'glass' && (
         <style jsx>{`
           @media (max-width: 768px) {
-            [data-surface="glass"] {
+            [data-loading-screen="true"] {
               background-color: #000 !important;
               background-image: none !important;
               backdrop-filter: none !important;
