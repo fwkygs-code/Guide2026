@@ -46,7 +46,20 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 glass border-b border-slate-200/50">
+      <nav className="fixed top-0 w-full z-50 glass border-b border-slate-200/50" data-nav-panel>
+        {/* TEMP – mobile-only nav background test */}
+        <style jsx>{`
+          @media (max-width: 768px) {
+            [data-nav-panel] {
+              background-color: #000;
+            }
+          }
+          @media (max-width: 768px) {
+            [data-hero-panel] {
+              background-color: #000;
+            }
+          }
+        `}</style>
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <video

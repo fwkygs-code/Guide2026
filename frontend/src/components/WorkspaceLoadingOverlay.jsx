@@ -84,6 +84,7 @@ const WorkspaceLoadingOverlay = ({ active, ready, onFinish }) => {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-background"
+      data-loading-overlay
       style={{
         backgroundColor: 'rgb(15, 23, 42)',
         opacity: fading ? 0 : 1,
@@ -91,6 +92,14 @@ const WorkspaceLoadingOverlay = ({ active, ready, onFinish }) => {
       }}
       aria-hidden="true"
     >
+      {/* TEMP – mobile-only loading overlay background test */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          [data-loading-overlay] {
+            background-color: #000 !important;
+          }
+        }
+      `}</style>
       <div className="flex flex-col items-center gap-4 text-center px-6">
         <WorkspaceLoader size={160} />
         <p className="text-sm text-muted-foreground">Loading workspace...</p>

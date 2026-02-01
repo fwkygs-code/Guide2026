@@ -205,6 +205,7 @@ const LoginPage = () => {
   return (
     <div 
       className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden"
+      data-auth-panel
       style={{
         backgroundImage: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
         backgroundSize: 'cover',
@@ -216,6 +217,15 @@ const LoginPage = () => {
         minHeight: '100vh'
       }}
     >
+      {/* TEMP – mobile-only auth background test */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          [data-auth-panel] {
+            background-color: #000 !important;
+            background-image: none !important;
+          }
+        }
+      `}</style>
       {/* Dark overlay for better readability - ensures text is always readable */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-800/75 to-slate-900/85"></div>
       
