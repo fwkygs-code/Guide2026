@@ -13,7 +13,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from collections import defaultdict
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -72,6 +72,31 @@ else:
     COOKIE_SECURE = True
     COOKIE_SAMESITE = "None"
 
+CSRF_COOKIE_NAME = "ig_csrf_token"
+CSRF_HEADER_NAME = "x-csrf-token"
+CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+CSRF_SECRET = os.environ.get('CSRF_SECRET', JWT_SECRET)
+if not CSRF_SECRET:
+    raise RuntimeError("CSRF_SECRET must be set or JWT_SECRET must be available for CSRF hashing")
+_CSRF_SECRET_BYTES = CSRF_SECRET.encode('utf-8')
+
+
+def generate_csrf_token() -> str:
+    raw = os.urandom(32)
+    token = base64.urlsafe_b64encode(raw).decode('utf-8').rstrip('=')
+    return token
+
+
+def hash_csrf_token(csrf_token: str) -> str:
+    return hmac.new(_CSRF_SECRET_BYTES, csrf_token.encode('utf-8'), hashlib.sha256).hexdigest()
+
+
+def verify_csrf_token(provided_token: str, expected_hash: Optional[str]) -> bool:
+    if not provided_token or not expected_hash:
+        return False
+    provided_hash = hash_csrf_token(provided_token)
+    return hmac.compare_digest(provided_hash, expected_hash)
+
 # Create the main app
 app = FastAPI()
 
@@ -85,7 +110,31 @@ class LowercaseRedirectMiddleware(BaseHTTPMiddleware):
             return RedirectResponse(url=target, status_code=301)
         return await call_next(request)
 
+class CSRFMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method.upper() not in CSRF_PROTECTED_METHODS:
+            return await call_next(request)
+        auth_token = request.cookies.get(AUTH_COOKIE_NAME)
+        if not auth_token:
+            # No authenticated session present; allow request to proceed (route will enforce auth if required)
+            return await call_next(request)
+        try:
+            payload = decode_token(auth_token)
+        except HTTPException as exc:
+            raise exc
+        csrf_header = request.headers.get(CSRF_HEADER_NAME)
+        csrf_hash = payload.get('csrf_hash')
+        if not csrf_header:
+            logging.warning(f"[CSRF] Missing header for user {payload.get('user_id')} path={request.url.path}")
+            raise HTTPException(status_code=403, detail="Missing CSRF token")
+        if not verify_csrf_token(csrf_header, csrf_hash):
+            logging.warning(f"[CSRF] Token mismatch for user {payload.get('user_id')} path={request.url.path}")
+            raise HTTPException(status_code=403, detail="Invalid CSRF token")
+        request.state.csrf_payload = payload
+        return await call_next(request)
+
 app.add_middleware(LowercaseRedirectMiddleware)
+app.add_middleware(CSRFMiddleware)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
@@ -1179,12 +1228,16 @@ async def ensure_walkthrough_step_ids(walkthrough: dict) -> dict:
 
     return walkthrough
 
-def create_token(user_id: str) -> str:
+def create_token(user_id: str) -> Tuple[str, str]:
+    csrf_token = generate_csrf_token()
+    csrf_hash = hash_csrf_token(csrf_token)
     payload = {
         'user_id': user_id,
-        'exp': datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+        'exp': datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS),
+        'csrf_hash': csrf_hash
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token, csrf_token
 
 def decode_token(token: str) -> dict:
     try:
@@ -1198,24 +1251,42 @@ _COOKIE_MISSING_LOGGED = False
 _COOKIE_INVALID_LOGGED = False
 _COOKIE_HEADER_FALLBACK_LOGGED = False
 
-def set_auth_cookie(response: Response, token: str) -> None:
+def set_auth_cookie(response: Response, token: str, csrf_token: str) -> None:
     response.set_cookie(
         key=AUTH_COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=True,
-        samesite="None",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         max_age=JWT_EXPIRATION_HOURS * 60 * 60,
         path="/",
         domain=".interguide.app"
     )
+    response.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=csrf_token,
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/",
+        domain=".interguide.app"
+    )
+
 
 def clear_auth_cookie(response: Response) -> None:
     response.delete_cookie(
         key=AUTH_COOKIE_NAME,
         httponly=True,
-        secure=True,
-        samesite="None",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/",
+        domain=".interguide.app"
+    )
+    response.delete_cookie(
+        key=CSRF_COOKIE_NAME,
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         path="/",
         domain=".interguide.app"
     )
@@ -2575,8 +2646,8 @@ async def signup(user_data: UserCreate, background_tasks: BackgroundTasks, respo
                     pass  # If conversion fails, leave as is (Pydantic will handle it)
         user = User(**user_dict)
     
-    token = create_token(user.id)
-    set_auth_cookie(response, token)
+    token, csrf_token = create_token(user.id)
+    set_auth_cookie(response, token, csrf_token)
     
     # Use model_dump to ensure proper JSON serialization
     # Note: email_verification_sent is always True here since email is sent in background
@@ -2592,8 +2663,8 @@ async def login(login_data: UserLogin, response: Response, request: Request):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     user = User(**{k: v for k, v in user_doc.items() if k != 'password'})
-    token = create_token(user.id)
-    set_auth_cookie(response, token)
+    token, csrf_token = create_token(user.id)
+    set_auth_cookie(response, token, csrf_token)
     
     return {"user": user, "token": token}
 

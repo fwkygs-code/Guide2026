@@ -7,10 +7,34 @@ const rawBase =
 
 const API_BASE = /^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`;
 const API_ROOT = `${API_BASE.replace(/\/$/, '')}/api`;
+const CSRF_COOKIE_NAME = 'ig_csrf_token';
 
 let cachedClient = null;
 let authExpired = false;
 let sessionActive = false;
+let csrfToken: string | null = null;
+
+const readCsrfCookie = () => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const match = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${CSRF_COOKIE_NAME}=([^;]*)`)
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+const ensureCsrfToken = () => {
+  if (csrfToken === null) {
+    csrfToken = readCsrfCookie();
+  }
+  return csrfToken;
+};
+
+const refreshCsrfTokenFromCookie = () => {
+  csrfToken = readCsrfCookie();
+  return csrfToken;
+};
 
 const isAuthRoute = (url?: string) => {
   if (!url) return false;
@@ -39,6 +63,9 @@ export const setAuthSessionActive = (isActive: boolean) => {
   sessionActive = isActive;
   if (!isActive) {
     authExpired = false;
+    csrfToken = null;
+  } else {
+    refreshCsrfTokenFromCookie();
   }
 };
 
@@ -60,6 +87,13 @@ export const getApiClient = () => {
       error.code = 'AUTH_EXPIRED';
       return Promise.reject(error);
     }
+    if (method !== 'get') {
+      const token = ensureCsrfToken();
+      if (token) {
+        config.headers = config.headers ?? {};
+        config.headers['X-CSRF-Token'] = token;
+      }
+    }
     return config;
   });
   cachedClient.interceptors.response.use(
@@ -78,3 +112,6 @@ export const getApiClient = () => {
   );
   return cachedClient;
 };
+
+// Initialize CSRF token cache on bootstrap
+ensureCsrfToken();
