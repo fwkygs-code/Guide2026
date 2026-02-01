@@ -18,16 +18,7 @@ function AppShell({ children, className = '' }) {
     <div className={cn(
       'min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900',
       className
-    )} data-app-shell>
-      {/* TEMP – mobile-only app shell background test */}
-      <style jsx>{`
-        @media (max-width: 768px) {
-          [data-app-shell] {
-            background-color: #000 !important;
-            background-image: none !important;
-          }
-        }
-      `}</style>
+    )}>
       {children}
     </div>
   );
