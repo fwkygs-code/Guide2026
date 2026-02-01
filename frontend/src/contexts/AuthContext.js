@@ -218,7 +218,10 @@ export const AuthProvider = ({ children }) => {
         throw new Error(`Backend server is not responding. The server at ${API_BASE} may be sleeping or unavailable. Please try again in a moment.`);
       }
       if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        throw new Error(`Cannot connect to backend server at ${API_BASE}. Please check your internet connection and verify the server is running.`);
+        const corsHint = !error.response
+          ? 'The request was blocked by the browser before it reached the backend (likely a CORS or HTTPS mismatch). '
+          : '';
+        throw new Error(`${corsHint}Cannot connect to backend server at ${API_BASE}. Please check your internet connection and verify the server is running.`);
       }
       throw error;
     }

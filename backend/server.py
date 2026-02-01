@@ -101,23 +101,27 @@ def verify_csrf_token(provided_token: str, expected_hash: Optional[str]) -> bool
 app = FastAPI()
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://www.interguide.app')
+CORS_ALLOWED_HEADERS = [
+    "Accept",
+    "Authorization",
+    "Content-Type",
+    "Origin",
+    "X-CSRF-Token",
+    "X-Requested-With",
+]
+CORS_ALLOWED_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+CORS_EXPOSE_HEADERS = ["*"]
 cors_origins = sorted(
     {FRONTEND_URL.rstrip('/'), "https://www.interguide.app", "https://interguide.app"}
 )
+_allowed_origins_set = set(cors_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=cors_origins,
-    allow_methods=["*"],
-    allow_headers=[
-        "Accept",
-        "Authorization",
-        "Content-Type",
-        "Origin",
-        "X-CSRF-Token",
-        "X-Requested-With",
-    ],
-    expose_headers=["*"],
+    allow_methods=CORS_ALLOWED_METHODS,
+    allow_headers=CORS_ALLOWED_HEADERS,
+    expose_headers=CORS_EXPOSE_HEADERS,
 )
 
 
@@ -126,6 +130,25 @@ async def log_cors_config():
     logging.info(f"[CORS] cors_origins={cors_origins}")
     logging.info("[CORS] allow_credentials=True allow_methods=* allow_headers="
                  "Accept,Authorization,Content-Type,Origin,X-CSRF-Token,X-Requested-With")
+
+
+def _apply_cors_headers(response: Response, origin: str | None) -> Response:
+    if origin and origin in _allowed_origins_set:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = ", ".join(CORS_ALLOWED_HEADERS)
+        response.headers["Access-Control-Allow-Methods"] = ", ".join(CORS_ALLOWED_METHODS)
+        response.headers["Access-Control-Expose-Headers"] = ", ".join(CORS_EXPOSE_HEADERS)
+        existing_vary = response.headers.get("Vary", "")
+        if "Origin" not in existing_vary.split(","):
+            response.headers["Vary"] = (existing_vary + ", Origin").lstrip(", ") if existing_vary else "Origin"
+    return response
+
+
+@app.middleware("http")
+async def ensure_cors_on_all_responses(request: Request, call_next):
+    response = await call_next(request)
+    return _apply_cors_headers(response, request.headers.get("origin"))
 
 class LowercaseRedirectMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -2694,6 +2717,13 @@ async def login(login_data: UserLogin, response: Response, request: Request):
     set_auth_cookie(response, token, csrf_token)
     
     return {"user": user, "token": token}
+
+
+@api_router.options("/auth/login")
+async def login_preflight(request: Request):
+    """Explicit preflight handler to guarantee CORS headers on OPTIONS requests."""
+    response = Response(status_code=200)
+    return _apply_cors_headers(response, request.headers.get("origin"))
 
 @api_router.post("/auth/logout")
 async def logout(response: Response):
@@ -8835,33 +8865,6 @@ async def health_check_api():
         "cloudinary_configured": USE_CLOUDINARY
     }
 
-# CORS - MUST be added BEFORE router to handle preflight requests
-# IMPORTANT: allow_credentials=True requires explicit origins (no "*").
-cors_origins = ["https://www.interguide.app", "https://interguide.app"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=cors_origins,
-    allow_methods=["*"],
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Origin",
-        "X-Requested-With"
-    ],
-    expose_headers=["*"],
-)
-
-@app.on_event("startup")
-async def log_cors_config():
-    logging.info(f"[CORS] cors_origins={cors_origins}")
-    logging.info(
-        "[CORS] config allow_credentials=True "
-        "allow_methods=* "
-        "allow_headers=Content-Type,Authorization,Accept,Origin,X-Requested-With"
-    )
 
 def _parse_cloudinary_public_id(url: str) -> tuple[str, str] | tuple[None, None]:
     if not url or "res.cloudinary.com" not in url or "/image/upload/" not in url:
