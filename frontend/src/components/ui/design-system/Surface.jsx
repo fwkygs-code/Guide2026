@@ -72,9 +72,22 @@ function Surface({
   return (
     <Component
       className={surfaceClasses}
+      data-surface={variant}
       {...animationProps}
       {...props}
     >
+      {/* TEMP – mobile-only surface background test */}
+      {variant === 'glass' && (
+        <style jsx>{`
+          @media (max-width: 768px) {
+            [data-surface="glass"] {
+              background-color: #000 !important;
+              background-image: none !important;
+              backdrop-filter: none !important;
+            }
+          }
+        `}</style>
+      )}
       {children}
     </Component>
   );
