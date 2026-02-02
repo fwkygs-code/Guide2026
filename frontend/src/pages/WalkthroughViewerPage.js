@@ -1239,18 +1239,17 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               {block.data?.variant === 'warning' ? '⚠️' :
                                block.data?.variant === 'important' ? '❗' : '💡'}
                             </span>
-                            <div
-                              className="prose prose-sm max-w-none text-slate-900 prose-headings:text-slate-900 prose-strong:text-slate-900"
-                              dangerouslySetInnerHTML={{
+                            <div className="prose prose-sm max-w-none text-slate-900 prose-headings:text-slate-900 prose-strong:text-slate-900">
+                              <div dangerouslySetInnerHTML={{
                                 __html: sanitizeHtml(
                                   block.data?.content ??
                                   block.data?.text ??
                                   block.data?.body ??
                                   block.data?.value ??
                                   ''
-                                )
-                              }}
-                            />
+                                ) || (block.data?.content ?? block.data?.text ?? '')
+                              }} />
+                            </div>
                           </div>
                         </div>
                       )}
