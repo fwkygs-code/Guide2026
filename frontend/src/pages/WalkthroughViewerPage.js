@@ -83,6 +83,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   const [name, setName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordRequired, setPasswordRequired] = useState(false);
   const [portalPassword, setPortalPassword] = useState('');
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
@@ -410,15 +411,19 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   }, [getStepHashValue, resolveStepFromHash]);
 
   const fetchWalkthrough = useCallback(async () => {
+    setLoading(true);
+    setPasswordRequired(false);
     try {
       const response = await apiClient.get(`/portal/${slug}/walkthroughs/${walkthroughId}`);
       setWalkthrough(normalizePortalWalkthrough(response.data));
+      setPasswordRequired(false);
     } catch (error) {
       if (error.response?.status === 401) {
+        setPasswordRequired(true);
         setShowPasswordDialog(true);
-      } else {
-        toast.error(t('toast.walkthroughNotFound'));
+        return;
       }
+      toast.error(t('toast.walkthroughNotFound'));
     } finally {
       setLoading(false);
     }
@@ -533,6 +538,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
         password: portalPassword
       });
       setWalkthrough(normalizePortalWalkthrough(response.data));
+      setPasswordRequired(false);
       setShowPasswordDialog(false);
       setPortalPassword('');
     } catch (error) {
@@ -630,7 +636,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     );
   }
 
-  if (!walkthrough) {
+  if (!walkthrough && !passwordRequired) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="text-center">
@@ -641,10 +647,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     );
   }
 
-  const stepCount = walkthrough.steps.length;
+  const stepCount = walkthrough?.steps?.length || 0;
   const progress = stepCount > 0 ? ((currentStep + 1) / stepCount) * 100 : 0;
-  const step = walkthrough.steps[currentStep];
-  const showStuckButton = !!walkthrough.enable_stuck_button && !!getWhatsAppBaseUrl(getWorkspaceWhatsAppUrl());
+  const step = walkthrough?.steps?.[currentStep] || null;
+  const showStuckButton = !!(walkthrough?.enable_stuck_button && getWhatsAppBaseUrl(getWorkspaceWhatsAppUrl()));
 
   return (
     <div className={`min-h-screen bg-card ${inIframe ? 'iframe-mode' : ''}`}>
@@ -699,10 +705,10 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       </header>
       )}
 
-      {/* Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        <AnimatePresence mode="wait">
-          {!showFeedback ? (
+      {walkthrough && (
+        <main className="max-w-4xl mx-auto px-6 py-12">
+          <AnimatePresence mode="wait">
+            {!showFeedback ? (
             <motion.div
               key={currentStep}
               initial={{ opacity: 0, x: 20 }}
@@ -1621,7 +1627,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Password Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
