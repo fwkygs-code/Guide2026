@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -58,7 +58,7 @@ const isCloudinaryVideo = (url) => {
 };
 
 const WalkthroughViewerPage = ({ isEmbedded = false }) => {
-  const { slug, walkthroughId } = useParams();
+  const { slug: routeSlug, walkthroughId: routeWalkthroughId } = useParams();
   const { t, i18n } = useTranslation();
   
   const location = useLocation();
@@ -66,6 +66,24 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
   // Detect if we're in an iframe
   const inIframe = isEmbedded || isEmbedParam || window.self !== window.top;
   const navigate = useNavigate();
+  const derivedParams = useMemo(() => {
+    const segments = location.pathname.split('/').filter(Boolean);
+    const portalIndex = segments.indexOf('portal');
+    const slugFromPath = portalIndex !== -1 && portalIndex + 1 < segments.length
+      ? segments[portalIndex + 1]
+      : null;
+    const walkthroughFromPath = portalIndex !== -1 && portalIndex + 2 < segments.length
+      ? segments[portalIndex + 2]
+      : segments[segments.length - 1] || null;
+
+    return {
+      slug: routeSlug || slugFromPath || '',
+      walkthroughId: routeWalkthroughId || walkthroughFromPath || ''
+    };
+  }, [routeSlug, routeWalkthroughId, location.pathname]);
+
+  const { slug, walkthroughId } = derivedParams;
+
   const [walkthrough, setWalkthrough] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
@@ -410,11 +428,20 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     resolveStepFromHash();
   }, [getStepHashValue, resolveStepFromHash]);
 
-  const fetchWalkthrough = useCallback(async () => {
+  const fetchWalkthrough = useCallback(async (targetSlug, targetWalkthroughId) => {
+    if (!targetSlug || !targetWalkthroughId) {
+      return;
+    }
     setLoading(true);
     setPasswordRequired(false);
     try {
-      const response = await apiClient.get(`/portal/${slug}/walkthroughs/${walkthroughId}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[WalkthroughViewer] Fetching walkthrough', {
+          slug: targetSlug,
+          walkthroughId: targetWalkthroughId
+        });
+      }
+      const response = await apiClient.get(`/portal/${targetSlug}/walkthroughs/${targetWalkthroughId}`);
       setWalkthrough(normalizePortalWalkthrough(response.data));
       setPasswordRequired(false);
     } catch (error) {
@@ -427,7 +454,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
     } finally {
       setLoading(false);
     }
-  }, [slug, walkthroughId, t]);
+  }, [t]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -441,7 +468,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       }
     };
     checkAuth();
-    fetchWalkthrough();
+    fetchWalkthrough(slug, walkthroughId);
   }, [slug, walkthroughId, fetchWalkthrough]);
 
   useEffect(() => {
