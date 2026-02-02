@@ -274,9 +274,17 @@ const BuilderV2Page = () => {
         status: 'draft',  // Always save as draft - publish is separate action
       };
 
+      console.log('[BuilderV2] walkthough metadata payload', walkthroughData);
+      console.log('[BuilderV2] current steps snapshot for save', walkthrough.steps);
+
       let finalWalkthroughId = walkthroughId;
 
       if (isEditing) {
+        console.log('[BuilderV2] updateWalkthrough payload', {
+          workspaceId,
+          walkthroughId,
+          walkthroughData
+        });
         await api.updateWalkthrough(workspaceId, walkthroughId, walkthroughData);
       } else {
         const response = await api.createWalkthrough(workspaceId, walkthroughData);
@@ -312,6 +320,10 @@ const BuilderV2Page = () => {
           };
 
           console.log(`[BuilderV2] Saving step ${step.id} with ${blocks.length} blocks:`, blocks.map(b => b.type));
+          const calloutBlocks = blocks.filter(b => b.type === BLOCK_TYPES.CALLOUT);
+          if (calloutBlocks.length) {
+            console.log('[BuilderV2] Callout block payload(s)', calloutBlocks);
+          }
 
           if (step.id && !step.id.startsWith('step-')) {
             // Existing step - update via API

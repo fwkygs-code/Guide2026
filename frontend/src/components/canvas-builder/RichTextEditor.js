@@ -11,10 +11,12 @@ import Highlight from '@tiptap/extension-highlight';
 import { FontFamily } from '@tiptap/extension-font-family';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
-import { Bold, Italic, Underline as UnderlineIcon, Code, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Code, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Palette } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SURFACES, BORDERS } from '../../utils/designTokens';
 import { RICH_TEXT_COLOR_PALETTE, RICH_TEXT_HIGHLIGHT_PALETTE } from '../../utils/richTextColors';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 
 const RichTextEditor = ({
   content,
@@ -214,41 +216,23 @@ const RichTextEditor = ({
 
             <div className="w-px h-6 bg-white/20 mx-1" />
 
-            <ColorButton
-              onClick={() => editor.chain().focus().unsetColor().run()}
-              active={!editor.getAttributes('textStyle')?.color}
-              label="Default"
-              color="#ffffff"
-              isDefault
+            <ColorPicker
+              label="Text color"
+              palette={RICH_TEXT_COLOR_PALETTE}
+              active={editor.getAttributes('textStyle')?.color}
+              onClear={() => editor.chain().focus().unsetColor().run()}
+              onSelect={(color) => editor.chain().focus().setColor(color).run()}
             />
-            {RICH_TEXT_COLOR_PALETTE.map((color) => (
-              <ColorButton
-                key={color}
-                onClick={() => editor.chain().focus().setColor(color).run()}
-                active={editor.getAttributes('textStyle')?.color === color}
-                label={color}
-                color={color}
-              />
-            ))}
 
             <div className="w-px h-6 bg-white/20 mx-1" />
 
-            <HighlightButton
-              onClick={() => editor.chain().focus().unsetHighlight().run()}
-              active={!editor.getAttributes('highlight')?.color}
-              label="Clear highlight"
-              color="#ffffff"
-              isDefault
+            <ColorPicker
+              label="Highlight color"
+              palette={RICH_TEXT_HIGHLIGHT_PALETTE}
+              active={editor.getAttributes('highlight')?.color}
+              onClear={() => editor.chain().focus().unsetHighlight().run()}
+              onSelect={(color) => editor.chain().focus().setHighlight({ color }).run()}
             />
-            {RICH_TEXT_HIGHLIGHT_PALETTE.map((color) => (
-              <HighlightButton
-                key={color}
-                onClick={() => editor.chain().focus().setHighlight({ color }).run()}
-                active={editor.getAttributes('highlight')?.color === color}
-                label={color}
-                color={color}
-              />
-            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -277,38 +261,46 @@ const ToolbarButton = ({ onClick, active, icon: Icon }) => (
   </motion.button>
 );
 
-const ColorButton = ({ onClick, active, color, label, isDefault = false }) => (
-  <motion.button
-    type="button"
-    onClick={onClick}
-    aria-label={label}
-    className={cn(
-      'h-6 w-6 rounded-full border border-white/20 transition-all duration-200',
-      active && 'ring-2 ring-white/70'
-    )}
-    style={{ backgroundColor: isDefault ? 'transparent' : color }}
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-  >
-    {isDefault && <span className="block h-full w-full rounded-full border border-white/60" />}
-  </motion.button>
-);
-
-const HighlightButton = ({ onClick, active, color, label, isDefault = false }) => (
-  <motion.button
-    type="button"
-    onClick={onClick}
-    aria-label={label}
-    className={cn(
-      'h-6 w-6 rounded-full border border-white/20 transition-all duration-200',
-      active && 'ring-2 ring-white/70'
-    )}
-    style={{ backgroundColor: isDefault ? 'transparent' : color }}
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-  >
-    {isDefault && <span className="block h-full w-full rounded-full border border-white/60" />}
-  </motion.button>
+const ColorPicker = ({ label, palette, active, onSelect, onClear }) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className={cn('h-9 w-9 p-0 flex items-center justify-center', active && 'bg-white/20 text-white shadow-lg')}
+      >
+        <Palette className="w-4 h-4" />
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-52 bg-slate-900 border border-white/20 text-white">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium">{label}</span>
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-xs text-white/60 hover:text-white"
+        >
+          Reset
+        </button>
+      </div>
+      <div className="grid grid-cols-5 gap-2">
+        {palette.map((color) => (
+          <button
+            key={color}
+            type="button"
+            onClick={() => onSelect(color)}
+            className={cn(
+              'h-8 rounded-md border border-white/20 transition-all',
+              active === color && 'ring-2 ring-white'
+            )}
+            style={{ backgroundColor: color }}
+            aria-label={`${label} ${color}`}
+          />
+        ))}
+      </div>
+    </PopoverContent>
+  </Popover>
 );
 
 export default RichTextEditor;
