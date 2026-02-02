@@ -77,7 +77,7 @@ const DashboardPage = () => {
     fetchWorkspaces();
   }, [user?.id, fetchWorkspaces]);
 
-  const isDashboardReady = quotaDisplayReady;
+  const isDashboardReady = !quotaLoading || quotaDisplayReady;
 
   const sharedQuotaData = useMemo(() => {
     if (!quotaData) return null;
