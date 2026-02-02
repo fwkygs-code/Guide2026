@@ -115,11 +115,6 @@ const FullscreenLoader = () => (
 
 const PrivateRoute = ({ children }) => {
   const { user, loading, isBlocked } = useAuth();
-  console.error('[RENDER] PrivateRoute', {
-    loading,
-    user: !!user,
-    isBlocked,
-  });
   
   if (loading) {
     return <FullscreenLoader />;
@@ -277,7 +272,6 @@ const VideoPreloader = () => {
 // Component to handle direction changes
 const AppContent = () => {
   const { i18n } = useTranslation();
-  console.error('[RENDER] App');
 
   useEffect(() => {
     // Ensure direction is set on mount and language changes

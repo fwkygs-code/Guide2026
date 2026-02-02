@@ -6,7 +6,6 @@ const MAX_DISPLAY_MS = 8000;
 const FADE_DURATION_MS = 400;
 
 const LoginLoadingOverlay = ({ active, ready, onFinish }) => {
-  console.error('[RENDER] LoginLoadingOverlay');
   const [visible, setVisible] = useState(active);
   const [fading, setFading] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);

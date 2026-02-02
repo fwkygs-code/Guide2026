@@ -23,7 +23,6 @@ import LoginLoadingOverlay from '../components/LoginLoadingOverlay';
 import WorkspaceLoader from '../components/WorkspaceLoader';
 
 const DashboardPage = () => {
-  console.error('[RENDER] DashboardPage');
   const { t } = useTranslation();
   const { backgroundUrl: workspaceBackground } = useWorkspace(); // Won't be set on dashboard, but available for consistency
   const [workspaces, setWorkspaces] = useState([]);
@@ -78,7 +77,7 @@ const DashboardPage = () => {
     fetchWorkspaces();
   }, [user?.id, fetchWorkspaces]);
 
-  const isDashboardReady = !quotaLoading || quotaDisplayReady;
+  const isDashboardReady = !loading && (!quotaLoading || quotaError || quotaDisplayReady);
 
   const sharedQuotaData = useMemo(() => {
     if (!quotaData) return null;
