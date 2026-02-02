@@ -78,6 +78,8 @@ export const getApiClient = () => {
     withCredentials: true
   });
   cachedClient.interceptors.request.use((config) => {
+    // CRITICAL: Always enforce credentials for cross-domain cookies
+    config.withCredentials = true;
     const method = (config.method || 'get').toLowerCase();
     if (authExpired && method !== 'get' && !isAuthRoute(config.url)) {
       notifyAuthExpired();

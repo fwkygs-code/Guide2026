@@ -65,6 +65,7 @@ if JWT_SECRET == 'your-secret-key-change-in-production':
 APP_ENV = os.environ.get('APP_ENV', 'production').lower()
 AUTH_COOKIE_NAME = os.environ.get('AUTH_COOKIE_NAME', 'ig_access_token')
 # Cross-site auth cookies require SameSite=None and Secure=true in production.
+# Domain must be .interguide.app (with leading dot) for cross-subdomain sharing.
 if APP_ENV == 'development':
     COOKIE_SECURE = False
     COOKIE_SAMESITE = "Lax"
