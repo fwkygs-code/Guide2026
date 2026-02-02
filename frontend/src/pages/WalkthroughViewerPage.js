@@ -1546,6 +1546,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
         </AnimatePresence>
       </main>
 
+      )}
+
       {/* Auth Dialog */}
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
         <DialogContent className="sm:max-w-md">
