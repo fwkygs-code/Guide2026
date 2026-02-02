@@ -26,6 +26,9 @@ const formatNumber = (num, t) => {
   return num.toLocaleString();
 };
 
+const asNumberOrNull = (value) => (typeof value === 'number' && !Number.isNaN(value) ? value : null);
+const asNumberOrZero = (value) => asNumberOrNull(value) ?? 0;
+
 const QuotaDisplay = ({
   workspaceId = null,
   showWarnings = true,
@@ -155,23 +158,38 @@ const QuotaDisplay = ({
   const planDisplayName = planName === 'pro' ? 'Pro' : 
                           planName === 'enterprise' ? 'Enterprise' : 
                           'Free';
-  
-  // Calculate percentages
-  const storagePercent = quota.storage_allowed > 0 
-    ? Math.min(100, (quota.storage_used / quota.storage_allowed) * 100)
+
+  const storageUsed = asNumberOrZero(quota?.storage_used);
+  const storageAllowed = asNumberOrNull(quota?.storage_allowed);
+  const storagePercent = storageAllowed !== null && storageAllowed > 0
+    ? Math.min(100, (storageUsed / storageAllowed) * 100)
     : 0;
-  
-  const workspacesPercent = quota.workspaces_limit !== null && quota.workspaces_limit > 0
-    ? Math.min(100, (quota.workspaces_used / quota.workspaces_limit) * 100)
+  const storageRemaining = storageAllowed !== null
+    ? Math.max(0, storageAllowed - storageUsed)
+    : null;
+
+  const workspacesUsed = asNumberOrZero(quota?.workspaces_used);
+  const workspacesLimit = asNumberOrNull(quota?.workspaces_limit);
+  const workspacesPercent = workspacesLimit !== null && workspacesLimit > 0
+    ? Math.min(100, (workspacesUsed / workspacesLimit) * 100)
     : 0;
-  
-  const walkthroughsPercent = quota.walkthroughs_limit !== null && quota.walkthroughs_limit > 0
-    ? Math.min(100, (quota.walkthroughs_used / quota.walkthroughs_limit) * 100)
+
+  const walkthroughsUsed = asNumberOrZero(quota?.walkthroughs_used);
+  const walkthroughsLimit = asNumberOrNull(quota?.walkthroughs_limit);
+  const walkthroughsPercent = walkthroughsLimit !== null && walkthroughsLimit > 0
+    ? Math.min(100, (walkthroughsUsed / walkthroughsLimit) * 100)
     : 0;
-  
-  const categoriesPercent = quota.categories_limit !== null && quota.categories_limit > 0
-    ? Math.min(100, (quota.categories_used / quota.categories_limit) * 100)
+
+  const categoriesUsed = asNumberOrZero(quota?.categories_used);
+  const categoriesLimit = asNumberOrNull(quota?.categories_limit);
+  const categoriesPercent = categoriesLimit !== null && categoriesLimit > 0
+    ? Math.min(100, (categoriesUsed / categoriesLimit) * 100)
     : 0;
+
+  const workspaceWalkthroughsUsed = asNumberOrZero(workspaceQuota?.walkthroughs_used);
+  const workspaceWalkthroughsLimit = asNumberOrNull(workspaceQuota?.walkthroughs_limit);
+  const workspaceCategoriesUsed = asNumberOrZero(workspaceQuota?.categories_used);
+  const workspaceCategoriesLimit = asNumberOrNull(workspaceQuota?.categories_limit);
 
   // Determine warning levels
   const getStorageWarning = () => {
@@ -332,7 +350,7 @@ const QuotaDisplay = ({
               <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.storage')}</CardTitle>
             </div>
             <span className="text-xs text-muted-foreground">
-              {formatBytes(quota.storage_used, t)} / {formatBytes(quota.storage_allowed, t)}
+              {formatBytes(storageUsed, t)} / {formatBytes(storageAllowed, t)}
             </span>
           </div>
         </CardHeader>
@@ -340,9 +358,9 @@ const QuotaDisplay = ({
           <Progress value={storagePercent} className="h-2" />
           <div className="mt-2 text-xs text-muted-foreground">
             {storagePercent.toFixed(1)}{t('quota.percentUsed')}
-            {quota.storage_allowed > 0 && (
+            {storageRemaining !== null && storageAllowed !== null && storageAllowed > 0 && (
               <span className="ml-2">
-                ({formatBytes(quota.storage_allowed - quota.storage_used, t)} {t('quota.remaining')})
+                ({formatBytes(storageRemaining, t)} {t('quota.remaining')})
               </span>
             )}
           </div>
@@ -358,12 +376,12 @@ const QuotaDisplay = ({
               <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.workspaces')}</CardTitle>
             </div>
             <span className="text-xs text-muted-foreground">
-              {quota.workspaces_used} / {formatNumber(quota.workspaces_limit, t)}
+              {workspacesUsed} / {formatNumber(workspacesLimit, t)}
             </span>
           </div>
         </CardHeader>
         <CardContent>
-          {quota.workspaces_limit !== null ? (
+          {workspacesLimit !== null ? (
             <>
               <Progress value={workspacesPercent} className="h-2" />
               <div className="mt-2 text-xs text-muted-foreground">
@@ -388,12 +406,12 @@ const QuotaDisplay = ({
               <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.walkthroughs')}</CardTitle>
             </div>
             <span className="text-xs text-muted-foreground">
-              {quota.walkthroughs_used} / {formatNumber(quota.walkthroughs_limit, t)}
+              {walkthroughsUsed} / {formatNumber(walkthroughsLimit, t)}
             </span>
           </div>
         </CardHeader>
         <CardContent>
-          {quota.walkthroughs_limit !== null ? (
+          {walkthroughsLimit !== null ? (
             <>
               <Progress value={walkthroughsPercent} className="h-2" />
               <div className="mt-2 text-xs text-muted-foreground">
@@ -418,12 +436,12 @@ const QuotaDisplay = ({
               <CardTitle className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors">{t('quota.categories')}</CardTitle>
             </div>
             <span className="text-xs text-muted-foreground">
-              {quota.categories_used} / {formatNumber(quota.categories_limit, t)}
+              {categoriesUsed} / {formatNumber(categoriesLimit, t)}
             </span>
           </div>
         </CardHeader>
         <CardContent>
-          {quota.categories_limit !== null ? (
+          {categoriesLimit !== null ? (
             <>
               <Progress value={categoriesPercent} className="h-2" />
               <div className="mt-2 text-xs text-muted-foreground">
@@ -452,13 +470,13 @@ const QuotaDisplay = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{t('quota.walkthroughs')}:</span>
               <span className="font-medium text-foreground">
-                {workspaceQuota.walkthroughs_used} / {formatNumber(workspaceQuota.walkthroughs_limit, t)}
+                {workspaceWalkthroughsUsed} / {formatNumber(workspaceWalkthroughsLimit, t)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{t('quota.categories')}:</span>
               <span className="font-medium text-foreground">
-                {workspaceQuota.categories_used} / {formatNumber(workspaceQuota.categories_limit, t)}
+                {workspaceCategoriesUsed} / {formatNumber(workspaceCategoriesLimit, t)}
               </span>
             </div>
           </CardContent>

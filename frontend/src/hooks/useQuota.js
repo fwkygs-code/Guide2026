@@ -10,6 +10,7 @@ export const useQuota = (workspaceId = null) => {
   
   // Dev-only: Track fetch counts to detect double-fetches
   const fetchCountRef = useRef(0);
+  const loggedMissingQuotaRef = useRef(false);
 
   const fetchQuotaData = useCallback(async () => {
     // Dev-only: Log fetch count
@@ -24,12 +25,16 @@ export const useQuota = (workspaceId = null) => {
       setError(null);
       
       const planResponse = await api.getUserPlan();
-      const planData = planResponse.data;
+      const planData = planResponse.data || {};
+      const accessGranted = planData.access_granted ?? false;
       
-      // HARD INVARIANT: Canonical fields must exist
-      if (planData.access_granted === undefined) {
-        console.error('[QUOTA] INVALID PLAN PAYLOAD - access_granted missing', planData);
-        throw new Error('Invalid plan data: access_granted field missing');
+      if (process.env.NODE_ENV === 'development' && planData.access_granted === undefined) {
+        console.warn('[useQuota] access_granted missing from plan payload, defaulting to false');
+      }
+
+      if (process.env.NODE_ENV === 'development' && !planData.quota && !loggedMissingQuotaRef.current) {
+        console.warn('[useQuota] quota payload missing; falling back to null-safe defaults');
+        loggedMissingQuotaRef.current = true;
       }
       
       let workspaceQuota = null;
@@ -38,15 +43,41 @@ export const useQuota = (workspaceId = null) => {
         workspaceQuota = workspaceResponse.data;
       }
       
+      const normalizeQuota = (quota = {}) => ({
+        storage_used: quota.storage_used ?? null,
+        storage_allowed: quota.storage_allowed ?? null,
+        max_file_size: quota.max_file_size ?? null,
+        workspaces_used: quota.workspaces_used ?? null,
+        workspaces_limit: quota.workspaces_limit ?? null,
+        walkthroughs_used: quota.walkthroughs_used ?? null,
+        walkthroughs_limit: quota.walkthroughs_limit ?? null,
+        categories_used: quota.categories_used ?? null,
+        categories_limit: quota.categories_limit ?? null,
+        over_quota: quota.over_quota ?? false
+      });
+
+      const normalizeWorkspaceQuota = (quota = null) => {
+        if (!quota) return null;
+        return {
+          walkthroughs_used: quota.walkthroughs_used ?? null,
+          walkthroughs_limit: quota.walkthroughs_limit ?? null,
+          categories_used: quota.categories_used ?? null,
+          categories_limit: quota.categories_limit ?? null
+        };
+      };
+
       setQuotaData({
-        user: {
-          plan: planData.plan,
-          access_granted: planData.access_granted,
-          quota: planData.quota,
-          over_quota: planData.over_quota,
-          workspace
-        },
-        workspace: workspaceQuota
+        plan: planData.plan ?? 'free',
+        planName: planData.plan ?? 'free',
+        access_granted: accessGranted,
+        access_until: planData.access_until ?? null,
+        is_recurring: planData.is_recurring ?? false,
+        management_url: planData.management_url ?? null,
+        provider: planData.provider ?? planData.billing_provider ?? null,
+        quota: normalizeQuota(planData.quota || {}),
+        workspaceQuota: normalizeWorkspaceQuota(workspaceQuota),
+        raw: planData,
+        workspaceRaw: workspaceQuota
       });
     } catch (err) {
       setError(err.message || 'Failed to fetch quota data');
