@@ -13,6 +13,7 @@ import { PortalProvider } from '../contexts/PortalContext';
 import { KnowledgeRouteProvider } from '../knowledge-systems/KnowledgeRouteContext';
 
 const PortalLayout = ({ isEmbedded = false }) => {
+  console.error('[RENDER] PortalLayout');
   const { t, ready } = useTranslation(['portal', 'common']);
   const { slug } = useParams();
   const location = useLocation();

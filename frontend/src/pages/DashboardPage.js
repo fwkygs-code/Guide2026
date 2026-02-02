@@ -23,6 +23,7 @@ import LoginLoadingOverlay from '../components/LoginLoadingOverlay';
 import WorkspaceLoader from '../components/WorkspaceLoader';
 
 const DashboardPage = () => {
+  console.error('[RENDER] DashboardPage');
   const { t } = useTranslation();
   const { backgroundUrl: workspaceBackground } = useWorkspace(); // Won't be set on dashboard, but available for consistency
   const [workspaces, setWorkspaces] = useState([]);
