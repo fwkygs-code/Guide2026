@@ -13,9 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
-import { getPublishedPolicies } from '../policy-system/service';
 import WorkspaceLoader from '../../components/WorkspaceLoader';
 import { useKnowledgeRoute } from '../KnowledgeRouteContext';
+import { portalKnowledgeSystemsService } from '../api-service';
 
 /**
  * Policy Portal Page - Authoritative Display
@@ -23,53 +23,56 @@ import { useKnowledgeRoute } from '../KnowledgeRouteContext';
 function PolicyPortalPage() {
   const { slug } = useKnowledgeRoute();
   const { t, ready } = useTranslation(['knowledgeSystems', 'portal']);
-  const [publishedPolicies, setPublishedPolicies] = useState([]);
+  const [publishedPolicies, setPublishedPolicies] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const loadSystem = useCallback(async () => {
-    setLoading(true);
-    try {
-      console.log('[PolicyPortal] Loading published policies...');
-      const policies = getPublishedPolicies();
-      console.log('[PolicyPortal] Loaded policies:', policies);
-      console.log('[PolicyPortal] Number of policies:', policies.length);
-      
-      // Ensure policies is an array
-      const policiesArray = Array.isArray(policies) ? policies : (policies || []);
-      console.log('[PolicyPortal] Policies array:', policiesArray);
-      
-      setPublishedPolicies(policiesArray);
-    } catch (error) {
-      console.error('Failed to load policy system:', error);
-      setPublishedPolicies([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
     if (!slug) {
       setPublishedPolicies([]);
       setLoading(false);
       return;
     }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const policies = await portalKnowledgeSystemsService.getAllByType(slug, 'policy');
+      setPublishedPolicies(Array.isArray(policies) ? policies : []);
+    } catch (err) {
+      console.error('[PolicyPortal] Failed to load policy system:', err);
+      setError(err);
+      setPublishedPolicies([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
+  useEffect(() => {
     loadSystem();
-  }, [slug, loadSystem]);
+  }, [loadSystem]);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    console.log('[PolicyPortal] publishedPolicies state changed:', publishedPolicies);
-    console.log('[PolicyPortal] publishedPolicies length:', publishedPolicies?.length);
-  }, [publishedPolicies]);
-
-  if (!ready || loading) {
+  if (!ready || loading || publishedPolicies === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
         <WorkspaceLoader size={160} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-8">
+        <Surface variant="glass-secondary" className="p-8 rounded-2xl border-amber-500/30 max-w-lg text-center">
+          <FileText className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-amber-100 mb-2">{t('policy.errorTitle', 'Unable to load policies')}</h2>
+          <p className="text-amber-200/80">{t('policy.errorDescription', 'Please refresh the page or try again in a moment.')}</p>
+        </Surface>
       </div>
     );
   }

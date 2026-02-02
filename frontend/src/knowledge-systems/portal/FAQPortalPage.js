@@ -6,10 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/design
 import { Badge } from '@/components/ui/badge';
 import { Surface } from '@/components/ui/design-system';
 import { COLORS, ICONOGRAPHY, MOTION } from '@/components/ui/design-system';
-import { getPublishedFAQs } from '../faq-system/service';
 import sanitizeHtml from '../../lib/sanitizeHtml';
 import WorkspaceLoader from '../../components/WorkspaceLoader';
 import { useKnowledgeRoute } from '../KnowledgeRouteContext';
+import { portalKnowledgeSystemsService } from '../api-service';
 
 /**
  * FAQ Portal Page - User-Friendly Help
@@ -17,39 +17,41 @@ import { useKnowledgeRoute } from '../KnowledgeRouteContext';
 function FAQPortalPage() {
   const { slug } = useKnowledgeRoute();
   const { t, ready } = useTranslation(['knowledgeSystems', 'portal']);
-  const [publishedFAQs, setPublishedFAQs] = useState([]);
+  const [publishedFAQs, setPublishedFAQs] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const loadSystem = useCallback(async () => {
-    setLoading(true);
-    try {
-      const faqs = getPublishedFAQs();
-      console.log('[FAQPortal] Loaded FAQs:', faqs);
-      console.log('[FAQPortal] Number of FAQs:', faqs.length);
-      setPublishedFAQs(faqs);
-    } catch (error) {
-      console.error('Failed to load FAQ system:', error);
-      setPublishedFAQs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
     if (!slug) {
       setPublishedFAQs([]);
       setLoading(false);
       return;
     }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const faqs = await portalKnowledgeSystemsService.getAllByType(slug, 'faq');
+      setPublishedFAQs(Array.isArray(faqs) ? faqs : []);
+    } catch (err) {
+      console.error('[FAQPortal] Failed to load FAQ system:', err);
+      setError(err);
+      setPublishedFAQs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
+  useEffect(() => {
     loadSystem();
-  }, [slug, loadSystem]);
+  }, [loadSystem]);
 
   // Get all FAQs
-  const allFaqs = publishedFAQs;
-  const system = publishedFAQs[0];
+  const allFaqs = publishedFAQs || [];
+  const system = allFaqs[0];
 
   // Get unique categories
   const categories = ['all', ...new Set(allFaqs.map(faq => faq.content?.category).filter(Boolean))];
@@ -63,10 +65,22 @@ function FAQPortalPage() {
     return matchesSearch && matchesCategory;
   });
 
-  if (!ready || loading) {
+  if (!ready || loading || publishedFAQs === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
         <WorkspaceLoader size={160} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-8">
+        <Surface variant="glass-secondary" className="p-8 rounded-2xl border-emerald-500/30 max-w-lg text-center">
+          <MessageCircle className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-emerald-100 mb-2">{t('faq.errorTitle', 'Unable to load FAQs')}</h2>
+          <p className="text-emerald-200/80">{t('faq.errorDescription', 'Please refresh the page or try again in a moment.')}</p>
+        </Surface>
       </div>
     );
   }
