@@ -1229,7 +1229,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         </div>
                       )}
                       {block.type === 'callout' && (
-                        <div className={`rounded-xl p-4 border-l-4 ${
+                        <div className={`rounded-xl p-4 border-l-4 text-slate-900 ${
                           block.data?.variant === 'warning' ? 'bg-amber-50 border-amber-500' :
                           block.data?.variant === 'important' ? 'bg-red-50 border-red-500' :
                           'bg-blue-50 border-blue-500'
@@ -1240,7 +1240,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                block.data?.variant === 'important' ? '❗' : '💡'}
                             </span>
                             <div
-                              className="prose prose-sm max-w-none text-foreground"
+                              className="prose prose-sm max-w-none text-slate-900 prose-headings:text-slate-900 prose-strong:text-slate-900"
                               dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || block.data?.text || '') }}
                             />
                           </div>
@@ -1803,7 +1803,7 @@ const AnnotatedImageViewer = ({ block }) => {
   const imageRef = useRef(null);
   const imageUrl = block.data?.url;
   const markers = block.data?.markers || [];
-  const [imageDimensions, setImageDimensions] = useState({ width: 400, height: 300 }); // Default fallback
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
   // Get actual rendered image dimensions
   useEffect(() => {
@@ -1811,12 +1811,11 @@ const AnnotatedImageViewer = ({ block }) => {
     if (!el) return;
 
     const updateDimensions = () => {
-      if (imageRef.current) {
-        setImageDimensions({
-          width: imageRef.current.offsetWidth || imageRef.current.clientWidth || 400,
-          height: imageRef.current.offsetHeight || imageRef.current.clientHeight || 300
-        });
-      }
+      if (!imageRef.current) return;
+      setImageDimensions({
+        width: imageRef.current.offsetWidth || imageRef.current.clientWidth || 0,
+        height: imageRef.current.offsetHeight || imageRef.current.clientHeight || 0
+      });
     };
 
     // Update immediately and on resize
@@ -1846,15 +1845,16 @@ const AnnotatedImageViewer = ({ block }) => {
       style={{
         userSelect: 'none',
         WebkitUserSelect: 'none',
-        maxWidth: '400px',
-        aspectRatio: '1/1' // Force square aspect ratio like builder
+        width: '100%',
+        maxWidth: 'min(640px, 90vw)',
+        height: 'auto'
       }}
     >
       <img
         ref={imageRef}
         src={imageUrl}
         alt={block.data?.alt || 'Annotated image'}
-        className="w-full h-full object-cover"
+        className="w-full h-auto"
         draggable={false}
         style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
       />
