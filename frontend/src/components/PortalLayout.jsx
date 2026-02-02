@@ -11,7 +11,6 @@ import LanguageSwitcher from './LanguageSwitcher';
 import WorkspaceLoader from './WorkspaceLoader';
 import { PortalProvider } from '../contexts/PortalContext';
 import { KnowledgeRouteProvider } from '../knowledge-systems/KnowledgeRouteContext';
-import { useAuth } from '../contexts/AuthContext';
 
 const PortalLayout = ({ isEmbedded = false }) => {
   const { t, ready } = useTranslation(['portal', 'common']);
@@ -22,17 +21,7 @@ const PortalLayout = ({ isEmbedded = false }) => {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
-  const { user, isBlocked } = useAuth();
   const workspace = portal?.workspace || null;
-
-  console.log('[PORTAL STATE]', {
-    user: !!user,
-    loading,
-    ready,
-    isBlocked,
-    workspacesCount: workspace ? 1 : 0,
-    activeWorkspace: workspace?.id || null,
-  });
 
   const isEmbedParam = useMemo(() => new URLSearchParams(location.search).get('embed') === '1', [location.search]);
   const inIframe = useMemo(() => {
@@ -155,9 +144,11 @@ const PortalLayout = ({ isEmbedded = false }) => {
 
   if (!ready || loading) {
     return (
-      <div style={{ color: 'red', padding: 20 }}>
-        BLOCKED: loading={String(loading)} ready={String(ready)}
-      </div>
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <WorkspaceLoader size={160} />
+        </div>
+      </AppShell>
     );
   }
 
