@@ -77,7 +77,7 @@ const DashboardPage = () => {
     fetchWorkspaces();
   }, [user?.id, fetchWorkspaces]);
 
-  const isDashboardReady = !loading && (!quotaLoading || quotaError || quotaDisplayReady);
+  const isDashboardReady = !quotaLoading || quotaDisplayReady;
 
   const sharedQuotaData = useMemo(() => {
     if (!quotaData) return null;
@@ -179,6 +179,7 @@ const DashboardPage = () => {
     return (
       <>
         <LoginLoadingOverlay
+          key={location.pathname}
           active={showLoginOverlay}
           ready={isDashboardReady}
           onFinish={() => setShowLoginOverlay(false)}
@@ -198,6 +199,7 @@ const DashboardPage = () => {
   return (
     <>
       <LoginLoadingOverlay
+        key={location.pathname}
         active={showLoginOverlay}
         ready={isDashboardReady}
         onFinish={() => setShowLoginOverlay(false)}
