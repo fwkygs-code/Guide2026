@@ -178,7 +178,8 @@ const LoginPage = () => {
     try {
       await login(email, password);
       toast.success(t('toast.welcomeBack'));
-      navigate('/dashboard', { state: { loginTransition: true } });
+      navigate('/dashboard', { replace: true });
+
     } catch (error) {
       // Show user-friendly error messages
       let errorMessage = error.response?.data?.detail || error.message || t('toast.loginFailed');

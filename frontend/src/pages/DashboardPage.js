@@ -40,7 +40,7 @@ const DashboardPage = () => {
   const { quotaData, isLoading: quotaLoading, error: quotaError } = useQuota();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showLoginOverlay, setShowLoginOverlay] = useState(!!location.state?.loginTransition);
+  const [showLoginOverlay, setShowLoginOverlay] = useState(false);
   const [quotaDisplayReady, setQuotaDisplayReady] = useState(false);
   const navigateToWorkspace = (path) => {
     navigate(path, { state: { workspaceTransition: true } });
