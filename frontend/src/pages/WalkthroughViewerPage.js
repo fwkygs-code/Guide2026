@@ -19,6 +19,17 @@ import WorkspaceLoader from '../components/WorkspaceLoader';
 // Helper to check if URL is from Cloudinary
 const isCloudinary = (url) => url && url.includes('res.cloudinary.com');
 
+// DOMPurify already sanitizes heading HTML before persistence, but builder output
+// wraps headings in <p> tags for styling. Rendering that inside <h*> produces
+// invalid markup (e.g., <h2><p>…</p></h2>). Strip a single leading/trailing
+// paragraph wrapper so browsers keep the text inside the heading element.
+const stripParagraphWrapper = (html) => {
+  if (!html || typeof html !== 'string') return '';
+  return html
+    .replace(/^<p[^>]*>/i, '')
+    .replace(/<\/p>$/i, '');
+};
+
 // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
 const isGif = (url, mediaType = null) => {
   if (!url) {
@@ -894,7 +905,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             block.data?.level === 1 ? 'text-3xl' :
                             block.data?.level === 2 ? 'text-2xl' : 'text-xl'
                           }`}
-                          dangerouslySetInnerHTML={{ __html: block.data?.content || '' }}
+                          dangerouslySetInnerHTML={{ __html: stripParagraphWrapper(block.data?.content || '') }}
                         />
                       )}
                       {block.type === 'text' && (
