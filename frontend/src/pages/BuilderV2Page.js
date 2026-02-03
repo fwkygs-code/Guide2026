@@ -1480,7 +1480,8 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             placeholder={t('builder.placeholders.headingText')}
             textSize={headingSize}
             isBold={true}
-            className="text-foreground text-gray-900"
+            className="text-foreground text-gray-900 text-center"
+            align="center"
           />
         </div>
       );
@@ -1494,6 +1495,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
               onUpdate({ data: { ...(block.data || {}), content } });
             }
           }}
+          textAlign="center"
         />
       );
 
@@ -1900,6 +1902,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           <RichTextEditor
             content={block.data?.content || ''}
             onChange={(content) => onUpdate({ data: { ...block.data, content } })}
+            textAlign="center"
           />
         </div>
       );
@@ -2027,7 +2030,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             value={block.data?.title || ''}
             onChange={(e) => onUpdate({ data: { ...block.data, title: e.target.value } })}
             placeholder={t('builder.placeholders.sectionTitle')}
-            className="font-semibold"
+            className="font-semibold text-center"
           />
           <div className="text-sm text-muted-foreground">
             {t('builder.placeholders.sectionNotSupported')}
@@ -2041,6 +2044,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           <RichTextEditor
             content={block.data?.message || ''}
             onChange={(message) => onUpdate({ data: { ...block.data, message } })}
+            textAlign="center"
           />
           <div className="flex items-center gap-2">
             <input

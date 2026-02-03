@@ -38,6 +38,16 @@ const getDirectionalProps = (html) => {
     style: { direction: dir }
   };
 };
+const getCenteredDirectionalProps = (html) => {
+  const base = getDirectionalProps(html);
+  return {
+    ...base,
+    style: {
+      ...(base.style || {}),
+      textAlign: 'center'
+    }
+  };
+};
 
 const CALLOUT_VARIANTS = {
   warning: {
@@ -931,21 +941,28 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                 <div className="space-y-6 mb-8">
                   {step.blocks.map((block, idx) => (
                     <div key={block.id || idx}>
-                      {block.type === 'heading' && (
-                        <h3 
-                          className={`font-heading font-bold text-foreground ${
-                            block.data?.level === 1 ? 'text-3xl' :
-                            block.data?.level === 2 ? 'text-2xl' : 'text-xl'
-                          }`}
-                          dangerouslySetInnerHTML={{ __html: stripParagraphWrapper(block.data?.content || '') }}
-                        />
-                      )}
+                      {block.type === 'heading' && (() => {
+                        const headingHtml = block.data?.content || '';
+                        const dir = getTextDirection(headingHtml);
+                        return (
+                          <h3 
+                            className={`font-heading font-bold text-foreground text-center ${
+                              block.data?.level === 1 ? 'text-3xl' :
+                              block.data?.level === 2 ? 'text-2xl' : 'text-xl'
+                            }`}
+                            dir={dir}
+                            style={{ direction: dir, textAlign: 'center' }}
+                            dangerouslySetInnerHTML={{ __html: stripParagraphWrapper(headingHtml) }}
+                          />
+                        );
+                      })()}
                       {block.type === 'text' && (() => {
                         const textHtml = block.data?.content || '';
+                        const directionalProps = getCenteredDirectionalProps(textHtml);
                         return (
                           <div
-                            className="prose max-w-none text-foreground"
-                            {...getDirectionalProps(textHtml)}
+                            className="prose max-w-none text-foreground text-center"
+                            {...directionalProps}
                             dangerouslySetInnerHTML={renderTrustedHtml(textHtml)}
                           />
                         );
@@ -1249,15 +1266,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         const titleHtml = block.data?.title || '';
                         const explanationHtml = block.data?.explanation || '';
                         return (
-                          <div className="border-l-4 border-warning/60 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
+                          <div className="border-l-4 border-warning/60 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none text-center">
                             <h4 
                               className="font-semibold text-foreground mb-1 relative z-10"
-                              {...getDirectionalProps(titleHtml)}
+                              {...getCenteredDirectionalProps(titleHtml)}
                               dangerouslySetInnerHTML={renderTrustedHtml(titleHtml)}
                             />
                             <div 
                               className="text-foreground relative z-10 prose prose-sm max-w-none"
-                              {...getDirectionalProps(explanationHtml)}
+                              {...getCenteredDirectionalProps(explanationHtml)}
                               dangerouslySetInnerHTML={renderTrustedHtml(explanationHtml)}
                             />
                           </div>
@@ -1302,8 +1319,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 {icon}
                               </span>
                               <div
-                                className="prose prose-sm max-w-none"
-                                {...getDirectionalProps(rawHtml)}
+                                className="prose prose-sm max-w-none text-center"
+                                {...getCenteredDirectionalProps(rawHtml)}
                                 dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
                               />
                             </div>
@@ -1396,11 +1413,11 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       {block.type === 'section' && (() => {
                         const sectionContent = block.data?.content || '';
                         return (
-                          <div className="border border-border rounded-xl p-6 bg-secondary/50">
+                          <div className="border border-border rounded-xl p-6 bg-secondary/50 text-center">
                             {block.data?.title && (
                               <h4
                                 className="font-semibold text-lg text-foreground mb-3"
-                                {...getDirectionalProps(block.data.title)}
+                                {...getCenteredDirectionalProps(block.data.title)}
                               >
                                 {block.data.title}
                               </h4>
@@ -1408,7 +1425,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             {sectionContent && (
                               <div
                                 className="prose prose-sm max-w-none text-foreground"
-                                {...getDirectionalProps(sectionContent)}
+                                {...getCenteredDirectionalProps(sectionContent)}
                                 dangerouslySetInnerHTML={renderTrustedHtml(sectionContent)}
                               />
                             )}
@@ -1424,8 +1441,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               className="mt-1 w-5 h-5 rounded border-primary/30 text-primary focus:ring-primary"
                             />
                             <div
-                              className="prose prose-sm max-w-none text-foreground flex-1"
-                              {...getDirectionalProps(confirmationMessage)}
+                              className="prose prose-sm max-w-none text-foreground flex-1 text-center"
+                              {...getCenteredDirectionalProps(confirmationMessage)}
                               dangerouslySetInnerHTML={renderTrustedHtml(confirmationMessage)}
                             />
                           </div>
@@ -1481,8 +1498,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {/* Legacy Content Display */}
               {step?.content && !step?.blocks?.length && (
                 <div 
-                  className="prose max-w-none mb-8 text-foreground"
-                  {...getDirectionalProps(step?.content)}
+                  className="prose max-w-none mb-8 text-foreground text-center"
+                  {...getCenteredDirectionalProps(step?.content)}
                   dangerouslySetInnerHTML={renderTrustedHtml(step?.content || '')}
                   data-testid="step-content"
                 />

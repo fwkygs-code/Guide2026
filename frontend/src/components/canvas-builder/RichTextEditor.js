@@ -22,7 +22,8 @@ const RichTextEditor = ({
   onChange,
   placeholder,
   system = null,
-  className = ''
+  className = '',
+  textAlign = 'left'
 }) => {
   const { t } = useTranslation();
   const translatedPlaceholder = placeholder || t('builder.placeholders.startTyping');
@@ -79,7 +80,8 @@ const RichTextEditor = ({
           'prose-a:text-current prose-code:text-current',
           system && getProseClasses(system)
         ),
-        dir: 'auto'
+        dir: 'auto',
+        style: { textAlign }
       },
     },
   });
