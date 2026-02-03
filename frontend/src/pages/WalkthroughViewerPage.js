@@ -31,6 +31,36 @@ const stripParagraphWrapper = (html) => {
 
 const renderTrustedHtml = (html) => ({ __html: html || '' });
 const getTextDirection = (html) => (detectRTL(html) ? 'rtl' : 'ltr');
+const getDirectionalProps = (html) => {
+  const dir = getTextDirection(html);
+  return {
+    dir,
+    style: { direction: dir }
+  };
+};
+
+const CALLOUT_VARIANTS = {
+  warning: {
+    container: 'bg-amber-500/10 border-amber-400/60 text-amber-50',
+    icon: 'text-amber-300'
+  },
+  important: {
+    container: 'bg-rose-500/10 border-rose-400/60 text-rose-100',
+    icon: 'text-rose-300'
+  },
+  info: {
+    container: 'bg-blue-500/10 border-blue-400/60 text-blue-50',
+    icon: 'text-blue-300'
+  },
+  tip: {
+    container: 'bg-cyan-500/10 border-cyan-400/60 text-cyan-50',
+    icon: 'text-cyan-300'
+  }
+};
+
+const getCalloutVariant = (variant) => {
+  return CALLOUT_VARIANTS[variant] || CALLOUT_VARIANTS.tip;
+};
 
 // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
 const isGif = (url, mediaType = null) => {
@@ -915,7 +945,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         return (
                           <div
                             className="prose max-w-none text-foreground"
-                            dir={getTextDirection(textHtml)}
+                            {...getDirectionalProps(textHtml)}
                             dangerouslySetInnerHTML={renderTrustedHtml(textHtml)}
                           />
                         );
@@ -1219,15 +1249,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         const titleHtml = block.data?.title || '';
                         const explanationHtml = block.data?.explanation || '';
                         return (
-                          <div className="border-l-4 border-warning/40 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none">
+                          <div className="border-l-4 border-warning/60 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
                             <h4 
                               className="font-semibold text-foreground mb-1 relative z-10"
-                              dir={getTextDirection(titleHtml)}
+                              {...getDirectionalProps(titleHtml)}
                               dangerouslySetInnerHTML={renderTrustedHtml(titleHtml)}
                             />
                             <div 
                               className="text-foreground relative z-10 prose prose-sm max-w-none"
-                              dir={getTextDirection(explanationHtml)}
+                              {...getDirectionalProps(explanationHtml)}
                               dangerouslySetInnerHTML={renderTrustedHtml(explanationHtml)}
                             />
                           </div>
@@ -1245,7 +1275,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                                 className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary"
                                 defaultChecked={false}
                               />
-                              <span className="text-foreground flex-1">{item.text}</span>
+                              <span className="text-foreground flex-1 text-center">{item.text}</span>
                             </label>
                           ))}
                         </div>
@@ -1257,20 +1287,23 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           block.data?.body ??
                           block.data?.value ??
                           '';
+                        const variantStyles = getCalloutVariant(block.data?.variant);
+                        const icon = block.data?.variant === 'warning'
+                          ? '⚠️'
+                          : block.data?.variant === 'important'
+                            ? '❗'
+                            : block.data?.variant === 'info'
+                              ? 'ℹ️'
+                              : '💡';
                         return (
-                          <div className={`rounded-xl p-4 border-l-4 text-slate-900 ${
-                            block.data?.variant === 'warning' ? 'bg-amber-50 border-amber-500' :
-                            block.data?.variant === 'important' ? 'bg-red-50 border-red-500' :
-                            'bg-blue-50 border-blue-500'
-                          }`}>
-                            <div className="flex items-start gap-3">
-                              <span className="text-2xl flex-shrink-0">
-                                {block.data?.variant === 'warning' ? '⚠️' :
-                                 block.data?.variant === 'important' ? '❗' : '💡'}
+                          <div className={`rounded-2xl p-5 border ${variantStyles.container}`}>
+                            <div className="flex items-start gap-4">
+                              <span className={`text-2xl flex-shrink-0 ${variantStyles.icon}`}>
+                                {icon}
                               </span>
                               <div
-                                className="prose prose-sm max-w-none text-slate-900 prose-headings:text-slate-900 prose-strong:text-slate-900"
-                                dir={getTextDirection(rawHtml)}
+                                className="prose prose-sm max-w-none"
+                                {...getDirectionalProps(rawHtml)}
                                 dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
                               />
                             </div>
@@ -1367,7 +1400,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             {block.data?.title && (
                               <h4
                                 className="font-semibold text-lg text-foreground mb-3"
-                                dir={getTextDirection(block.data.title)}
+                                {...getDirectionalProps(block.data.title)}
                               >
                                 {block.data.title}
                               </h4>
@@ -1375,7 +1408,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             {sectionContent && (
                               <div
                                 className="prose prose-sm max-w-none text-foreground"
-                                dir={getTextDirection(sectionContent)}
+                                {...getDirectionalProps(sectionContent)}
                                 dangerouslySetInnerHTML={renderTrustedHtml(sectionContent)}
                               />
                             )}
@@ -1392,7 +1425,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             />
                             <div
                               className="prose prose-sm max-w-none text-foreground flex-1"
-                              dir={getTextDirection(confirmationMessage)}
+                              {...getDirectionalProps(confirmationMessage)}
                               dangerouslySetInnerHTML={renderTrustedHtml(confirmationMessage)}
                             />
                           </div>
@@ -1449,7 +1482,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {step?.content && !step?.blocks?.length && (
                 <div 
                   className="prose max-w-none mb-8 text-foreground"
-                  dir={getTextDirection(step?.content)}
+                  {...getDirectionalProps(step?.content)}
                   dangerouslySetInnerHTML={renderTrustedHtml(step?.content || '')}
                   data-testid="step-content"
                 />

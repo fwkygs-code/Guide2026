@@ -9,7 +9,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FontSize } from '@/lib/fontSize';
 import { RICH_TEXT_COLOR_PALETTE, RICH_TEXT_HIGHLIGHT_PALETTE } from '../../utils/richTextColors';
 
@@ -17,6 +17,8 @@ function getEditorPlainText(editor) {
   // Preserve spaces (including trailing) better than HTML/textContent which can drop/collapse them.
   return editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n', '\0');
 }
+
+const FONT_SIZE_OPTIONS = ['12', '14', '16', '18', '20', '24', '28', '32', '36', '40', '48'];
 
 const InlineRichEditor = ({ 
   content, 
@@ -29,7 +31,9 @@ const InlineRichEditor = ({
   align = 'left'
 }) => {
   const [showToolbar, setShowToolbar] = React.useState(false);
+  const [fontMenuOpen, setFontMenuOpen] = React.useState(false);
   const lastSyncedContentRef = React.useRef(content || '');
+  const blurTimeoutRef = React.useRef(null);
 
   const editor = useEditor({
     extensions: [
@@ -65,12 +69,20 @@ const InlineRichEditor = ({
       onChange(html);
     },
     onFocus: () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+        blurTimeoutRef.current = null;
+      }
       setShowToolbar(true);
     },
-    onBlur: ({ event }) => {
-      // Delay hiding toolbar to allow button clicks
-      setTimeout(() => {
-        setShowToolbar(false);
+    onBlur: () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+      blurTimeoutRef.current = setTimeout(() => {
+        if (!fontMenuOpen) {
+          setShowToolbar(false);
+        }
       }, 200);
     },
     editorProps: {
@@ -100,6 +112,16 @@ const InlineRichEditor = ({
   if (!editor) {
     return null;
   }
+
+  const currentFontSize = editor.getAttributes('textStyle')?.fontSize
+    ? editor.getAttributes('textStyle').fontSize.replace('px', '')
+    : '16';
+
+  const handleFontSizeChange = (value) => {
+    if (!editor) return;
+    editor.chain().setFontSize(`${value}px`).run();
+    setFontMenuOpen(false);
+  };
 
   return (
     <div className="relative">
@@ -180,35 +202,52 @@ const InlineRichEditor = ({
             <AlignRight className="w-3.5 h-3.5" />
           </Button>
           <div className="w-px h-5 bg-border mx-0.5" />
-          <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-0.5">
             <div className="flex items-center gap-1">
-              <Type className="w-3.5 h-3.5 text-foreground" />
-              <Select
-                value={editor.getAttributes('textStyle').fontSize ? editor.getAttributes('textStyle').fontSize.replace('px', '') : '16'}
-                onValueChange={(value) => {
-                  editor.chain().focus().setFontSize(`${value}px`).run();
-                }}
-              >
-                <SelectTrigger 
-                  className="h-7 w-20 bg-secondary border-border text-foreground text-xs hover:bg-accent focus:ring-ring"
-                  onMouseDown={(e) => e.preventDefault()}
+              <Popover open={fontMenuOpen} onOpenChange={(open) => {
+                setFontMenuOpen(open);
+                if (open) {
+                  setShowToolbar(true);
+                }
+              }}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 flex items-center gap-1 text-foreground hover:bg-accent"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <Type className="w-3.5 h-3.5" />
+                    <span className="text-xs">{currentFontSize}px</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  side="top"
+                  sideOffset={6}
+                  className="w-32 bg-popover border-border text-foreground p-2 space-y-1"
+                  onOpenAutoFocus={(event) => event.preventDefault()}
+                  onCloseAutoFocus={(event) => event.preventDefault()}
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border text-foreground z-[101]" side="top">
-                  <SelectItem value="12" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">12px</SelectItem>
-                  <SelectItem value="14" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">14px</SelectItem>
-                  <SelectItem value="16" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">16px</SelectItem>
-                  <SelectItem value="18" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">18px</SelectItem>
-                  <SelectItem value="20" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">20px</SelectItem>
-                  <SelectItem value="24" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">24px</SelectItem>
-                  <SelectItem value="28" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">28px</SelectItem>
-                  <SelectItem value="32" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">32px</SelectItem>
-                  <SelectItem value="36" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">36px</SelectItem>
-                  <SelectItem value="40" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">40px</SelectItem>
-                  <SelectItem value="48" className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer">48px</SelectItem>
-                </SelectContent>
-              </Select>
+                  <div
+                    className="max-h-48 overflow-y-auto"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {FONT_SIZE_OPTIONS.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        className={`w-full text-left px-2 py-1 rounded-md text-sm hover:bg-accent ${currentFontSize === size ? 'bg-accent text-accent-foreground' : ''}`}
+                        onClick={() => handleFontSizeChange(size)}
+                      >
+                        {size}px
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="w-px h-5 bg-border mx-1" />
             <button

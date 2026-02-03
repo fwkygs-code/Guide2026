@@ -1515,7 +1515,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 value={block.data.caption || ''}
                 onChange={(e) => onUpdate({ data: { ...block.data, caption: e.target.value } })}
                 placeholder={t('builder.placeholders.addCaption')}
-                className="text-sm"
+                className="text-sm text-center"
               />
             </div>
           ) : (
@@ -1845,7 +1845,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                   onUpdate({ data: { ...block.data, items: newItems } });
                 }}
                 placeholder={t('builder.placeholders.checklistItem')}
-                className="flex-1"
+                className="flex-1 text-center"
               />
               <button
                 onClick={() => {

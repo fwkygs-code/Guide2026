@@ -11,10 +11,9 @@ import Highlight from '@tiptap/extension-highlight';
 import { FontFamily } from '@tiptap/extension-font-family';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
-import { Bold, Italic, Underline as UnderlineIcon, Code, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Palette } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Code, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Palette, Highlighter } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SURFACES, BORDERS } from '../../utils/designTokens';
-import { RICH_TEXT_COLOR_PALETTE, RICH_TEXT_HIGHLIGHT_PALETTE } from '../../utils/richTextColors';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 
@@ -216,22 +215,23 @@ const RichTextEditor = ({
 
             <div className="w-px h-6 bg-white/20 mx-1" />
 
-            <ColorPicker
-              label="Text color"
-              palette={RICH_TEXT_COLOR_PALETTE}
-              active={editor.getAttributes('textStyle')?.color}
+            <ColorPopoverButton
+              label={t('builder.richText.textColor') || 'Text Color'}
+              icon={Palette}
+              color={editor.getAttributes('textStyle')?.color}
               onClear={() => editor.chain().focus().unsetColor().run()}
-              onSelect={(color) => editor.chain().focus().setColor(color).run()}
+              onChange={(color) => editor.chain().focus().setColor(color).run()}
             />
 
             <div className="w-px h-6 bg-white/20 mx-1" />
 
-            <ColorPicker
-              label="Highlight color"
-              palette={RICH_TEXT_HIGHLIGHT_PALETTE}
-              active={editor.getAttributes('highlight')?.color}
+            <ColorPopoverButton
+              label={t('builder.richText.highlightColor') || 'Highlight Color'}
+              icon={Highlighter}
+              color={editor.getAttributes('highlight')?.color}
               onClear={() => editor.chain().focus().unsetHighlight().run()}
-              onSelect={(color) => editor.chain().focus().setHighlight({ color }).run()}
+              onChange={(color) => editor.chain().focus().setHighlight({ color }).run()}
+              showOutline
             />
           </motion.div>
         )}
@@ -261,46 +261,70 @@ const ToolbarButton = ({ onClick, active, icon: Icon }) => (
   </motion.button>
 );
 
-const ColorPicker = ({ label, palette, active, onSelect, onClear }) => (
-  <Popover>
-    <PopoverTrigger asChild>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className={cn('h-9 w-9 p-0 flex items-center justify-center', active && 'bg-white/20 text-white shadow-lg')}
-      >
-        <Palette className="w-4 h-4" />
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-52 bg-slate-900 border border-white/20 text-white">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium">{label}</span>
-        <button
+const ColorPopoverButton = ({ label, icon: Icon, color, onChange, onClear, showOutline = false }) => {
+  const [open, setOpen] = React.useState(false);
+  const safeColor = /^#([0-9A-F]{3}){1,2}$/i.test(color || '') ? color : '#FFFFFF';
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <motion.button
           type="button"
-          onClick={onClear}
-          className="text-xs text-white/60 hover:text-white"
+          className={cn(
+            'relative h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200',
+            'hover:bg-white/10 text-white/80 hover:text-white',
+            (color || showOutline) && 'bg-white/10 text-white'
+          )}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          Reset
-        </button>
-      </div>
-      <div className="grid grid-cols-5 gap-2">
-        {palette.map((color) => (
-          <button
-            key={color}
-            type="button"
-            onClick={() => onSelect(color)}
+          <Icon className="w-4 h-4" />
+          <span
             className={cn(
-              'h-8 rounded-md border border-white/20 transition-all',
-              active === color && 'ring-2 ring-white'
+              'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border border-white/40',
+              showOutline && 'ring-1 ring-white/60'
             )}
-            style={{ backgroundColor: color }}
-            aria-label={`${label} ${color}`}
+            style={{ backgroundColor: color || 'transparent' }}
           />
-        ))}
-      </div>
-    </PopoverContent>
-  </Popover>
-);
+        </motion.button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 bg-slate-900 border border-white/20 text-white space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">{label}</span>
+          <button
+            type="button"
+            onClick={() => {
+              onClear();
+              setOpen(false);
+            }}
+            className="text-xs text-white/60 hover:text-white"
+          >
+            Reset
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={safeColor}
+            onChange={(event) => {
+              onChange(event.target.value);
+            }}
+            className="h-10 w-10 rounded border border-white/30 bg-transparent cursor-pointer"
+          />
+          <div className="flex-1">
+            <input
+              type="text"
+              value={color || ''}
+              onChange={(event) => onChange(event.target.value)}
+              placeholder="#FFFFFF"
+              className="w-full rounded-md border border-white/20 bg-transparent px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-white/50"
+            />
+            <p className="text-[11px] text-white/50 mt-1">Supports HEX colors</p>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 export default RichTextEditor;
