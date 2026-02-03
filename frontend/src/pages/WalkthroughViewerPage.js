@@ -1319,11 +1319,11 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           : alignment === 'right'
                             ? 'text-right'
                             : 'text-center';
-                        const flexAlignClass = alignment === 'left'
-                          ? 'items-start'
+                        const justifyClass = alignment === 'left'
+                          ? 'justify-start'
                           : alignment === 'right'
-                            ? 'items-end'
-                            : 'items-center';
+                            ? 'justify-end'
+                            : 'justify-center';
                         const variantStyles = getCalloutVariant(block.data?.variant);
                         const icon = block.data?.variant === 'warning'
                           ? '⚠️'
@@ -1334,12 +1334,12 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               : '💡';
                         return (
                           <div className={`rounded-2xl p-5 border ${variantStyles.container} ${textAlignClass}`}>
-                            <div className={`flex flex-col gap-4 ${flexAlignClass} w-full`}>
-                              <span className={`text-3xl ${variantStyles.icon}`}>
+                            <div className={`flex gap-3 items-start ${justifyClass} w-full`}>
+                              <span className={`text-3xl flex-shrink-0 leading-none ${variantStyles.icon}`}>
                                 {icon}
                               </span>
                               <div
-                                className={`prose prose-sm max-w-none ${textAlignClass}`}
+                                className={`prose prose-sm max-w-none flex-1 ${textAlignClass}`}
                                 {...getDirectionalPropsWithAlignment(rawHtml, alignment)}
                                 dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
                               />
