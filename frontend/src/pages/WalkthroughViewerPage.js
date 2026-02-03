@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { apiClient, API_BASE, getPublicPortalUrl } from '../lib/api';
 import { detectRTL } from '../utils/blockUtils';
-import sanitizeHtml from '../lib/sanitizeHtml';
 import WorkspaceLoader from '../components/WorkspaceLoader';
 
 // Helper to check if URL is from Cloudinary
@@ -29,6 +28,9 @@ const stripParagraphWrapper = (html) => {
     .replace(/^<p[^>]*>/i, '')
     .replace(/<\/p>$/i, '');
 };
+
+const renderTrustedHtml = (html) => ({ __html: html || '' });
+const getTextDirection = (html) => (detectRTL(html) ? 'rtl' : 'ltr');
 
 // Helper to check if URL is a GIF (by extension or Cloudinary video URL from GIF)
 const isGif = (url, mediaType = null) => {
@@ -908,13 +910,16 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           dangerouslySetInnerHTML={{ __html: stripParagraphWrapper(block.data?.content || '') }}
                         />
                       )}
-                      {block.type === 'text' && (
-                        <div
-                          className="prose max-w-none text-foreground"
-                          style={{ direction: detectRTL(block.data?.content) ? 'rtl' : 'ltr' }}
-                          dangerouslySetInnerHTML={{ __html: block.data?.content || '' }}
-                        />
-                      )}
+                      {block.type === 'text' && (() => {
+                        const textHtml = block.data?.content || '';
+                        return (
+                          <div
+                            className="prose max-w-none text-foreground"
+                            dir={getTextDirection(textHtml)}
+                            dangerouslySetInnerHTML={renderTrustedHtml(textHtml)}
+                          />
+                        );
+                      })()}
                       {block.type === 'image' && (() => {
                         // Check if URL exists, if not show placeholder
                         if (!block.data?.url) {
@@ -1210,18 +1215,24 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       {block.type === 'spacer' && (
                         <div style={{ height: block.data?.height || 32 }} />
                       )}
-                      {block.type === 'problem' && (
-                        <div className="border-l-4 border-warning/40 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none">
-                          <h4 
-                            className="font-semibold text-foreground mb-1 relative z-10"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.title || '') }}
-                          />
-                          <div 
-                            className="text-foreground relative z-10 prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.explanation || '') }}
-                          />
-                        </div>
-                      )}
+                      {block.type === 'problem' && (() => {
+                        const titleHtml = block.data?.title || '';
+                        const explanationHtml = block.data?.explanation || '';
+                        return (
+                          <div className="border-l-4 border-warning/40 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none">
+                            <h4 
+                              className="font-semibold text-foreground mb-1 relative z-10"
+                              dir={getTextDirection(titleHtml)}
+                              dangerouslySetInnerHTML={renderTrustedHtml(titleHtml)}
+                            />
+                            <div 
+                              className="text-foreground relative z-10 prose prose-sm max-w-none"
+                              dir={getTextDirection(explanationHtml)}
+                              dangerouslySetInnerHTML={renderTrustedHtml(explanationHtml)}
+                            />
+                          </div>
+                        );
+                      })()}
                       {block.type === 'carousel' && block.data?.slides && block.data.slides.length > 0 && (
                         <CarouselViewer slides={block.data.slides} />
                       )}
@@ -1239,31 +1250,33 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           ))}
                         </div>
                       )}
-                      {block.type === 'callout' && (
-                        <div className={`rounded-xl p-4 border-l-4 text-slate-900 ${
-                          block.data?.variant === 'warning' ? 'bg-amber-50 border-amber-500' :
-                          block.data?.variant === 'important' ? 'bg-red-50 border-red-500' :
-                          'bg-blue-50 border-blue-500'
-                        }`}>
-                          <div className="flex items-start gap-3">
-                            <span className="text-2xl flex-shrink-0">
-                              {block.data?.variant === 'warning' ? '⚠️' :
-                               block.data?.variant === 'important' ? '❗' : '💡'}
-                            </span>
-                            <div className="prose prose-sm max-w-none text-slate-900 prose-headings:text-slate-900 prose-strong:text-slate-900">
-                              <div dangerouslySetInnerHTML={{
-                                __html: sanitizeHtml(
-                                  block.data?.content ??
-                                  block.data?.text ??
-                                  block.data?.body ??
-                                  block.data?.value ??
-                                  ''
-                                ) || (block.data?.content ?? block.data?.text ?? '')
-                              }} />
+                      {block.type === 'callout' && (() => {
+                        const rawHtml =
+                          block.data?.content ??
+                          block.data?.text ??
+                          block.data?.body ??
+                          block.data?.value ??
+                          '';
+                        return (
+                          <div className={`rounded-xl p-4 border-l-4 text-slate-900 ${
+                            block.data?.variant === 'warning' ? 'bg-amber-50 border-amber-500' :
+                            block.data?.variant === 'important' ? 'bg-red-50 border-red-500' :
+                            'bg-blue-50 border-blue-500'
+                          }`}>
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl flex-shrink-0">
+                                {block.data?.variant === 'warning' ? '⚠️' :
+                                 block.data?.variant === 'important' ? '❗' : '💡'}
+                              </span>
+                              <div
+                                className="prose prose-sm max-w-none text-slate-900 prose-headings:text-slate-900 prose-strong:text-slate-900"
+                                dir={getTextDirection(rawHtml)}
+                                dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
+                              />
                             </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                       {block.type === 'annotated_image' && block.data?.url && (
                         <AnnotatedImageViewer block={block} />
                       )}
@@ -1347,33 +1360,44 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           </div>
                         );
                       })()}
-                      {block.type === 'section' && (
-                        <div className="border border-border rounded-xl p-6 bg-secondary/50">
-                          {block.data?.title && (
-                            <h4 className="font-semibold text-lg text-foreground mb-3">
-                              {block.data.title}
-                            </h4>
-                          )}
-                          {block.data?.content && (
-                            <div
-                              className="prose prose-sm max-w-none text-foreground"
-                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.content || '') }}
+                      {block.type === 'section' && (() => {
+                        const sectionContent = block.data?.content || '';
+                        return (
+                          <div className="border border-border rounded-xl p-6 bg-secondary/50">
+                            {block.data?.title && (
+                              <h4
+                                className="font-semibold text-lg text-foreground mb-3"
+                                dir={getTextDirection(block.data.title)}
+                              >
+                                {block.data.title}
+                              </h4>
+                            )}
+                            {sectionContent && (
+                              <div
+                                className="prose prose-sm max-w-none text-foreground"
+                                dir={getTextDirection(sectionContent)}
+                                dangerouslySetInnerHTML={renderTrustedHtml(sectionContent)}
+                              />
+                            )}
+                          </div>
+                        );
+                      })()}
+                      {block.type === 'confirmation' && (() => {
+                        const confirmationMessage = block.data?.message || '';
+                        return (
+                          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              className="mt-1 w-5 h-5 rounded border-primary/30 text-primary focus:ring-primary"
                             />
-                          )}
-                        </div>
-                      )}
-                      {block.type === 'confirmation' && (
-                        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            className="mt-1 w-5 h-5 rounded border-primary/30 text-primary focus:ring-primary"
-                          />
-                          <div
-                            className="prose prose-sm max-w-none text-foreground flex-1"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.data?.message || '') }}
-                          />
-                        </div>
-                      )}
+                            <div
+                              className="prose prose-sm max-w-none text-foreground flex-1"
+                              dir={getTextDirection(confirmationMessage)}
+                              dangerouslySetInnerHTML={renderTrustedHtml(confirmationMessage)}
+                            />
+                          </div>
+                        );
+                      })()}
                       {block.type === 'external_link' && block.data?.url && (() => {
                         // Normalize URL to ensure it has a protocol
                         let normalizedUrl = block.data.url;
@@ -1425,7 +1449,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {step?.content && !step?.blocks?.length && (
                 <div 
                   className="prose max-w-none mb-8 text-foreground"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(step?.content || '') }}
+                  dir={getTextDirection(step?.content)}
+                  dangerouslySetInnerHTML={renderTrustedHtml(step?.content || '')}
                   data-testid="step-content"
                 />
               )}
