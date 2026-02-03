@@ -26,7 +26,6 @@ const SettingsPage = () => {
   const { textSize, setTextSize } = useTextSize();
   const { user } = useAuth();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(true);
   
   // Resolve workspace slug to ID
   const { workspace, workspaceId, loading: workspaceLoading } = useWorkspaceSlug(workspaceSlug);
@@ -141,29 +140,6 @@ const SettingsPage = () => {
       fetchMembers();
     }
   }, [workspaceId, user, fetchMembers]);
-  
-  const fetchWorkspace = async () => {
-    // Workspace is already loaded from useWorkspaceSlug hook, this function may not be needed
-    // But keeping for compatibility with existing code that might call it
-    if (!workspaceId || workspace) return;
-    try {
-      const response = await api.getWorkspace(workspaceId);
-      const workspaceData = response.data;
-      setName(workspaceData.name);
-      setBrandColor(response.data.brand_color || '#4f46e5');
-      setLogoUrl(response.data.logo || '');
-      setPortalBackgroundUrl(response.data.portal_background_url || '');
-      setPortalPalette(response.data.portal_palette || { primary: '#4f46e5', secondary: '#8b5cf6', accent: '#10b981' });
-      setPortalLinks(response.data.portal_links || []);
-      setPortalPhone(response.data.portal_phone || '');
-      setPortalWorkingHours(response.data.portal_working_hours || '');
-      setPortalWhatsapp(response.data.portal_whatsapp || '');
-    } catch (error) {
-      toast.error('Failed to load workspace');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogoUpload = async (file) => {
     try {
@@ -284,7 +260,7 @@ const SettingsPage = () => {
     toast.success(message);
   };
 
-  if (loading || workspaceLoading || !workspaceId) {
+  if (workspaceLoading || !workspaceId) {
     return (
       <DashboardLayout>
         <Surface variant="glass" className="min-h-screen flex items-center justify-center">
