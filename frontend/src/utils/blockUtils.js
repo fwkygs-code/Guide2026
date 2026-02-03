@@ -54,6 +54,7 @@ export const createBlock = (type, data = {}) => {
       targetStepId: '', // For go_to_step action
       targetWalkthroughId: '', // For go_to_walkthrough action
       style: 'primary',
+      alignment: 'center',
       layout: 'single', // single, double
       secondaryText: '',
       secondaryAction: 'link',
@@ -95,7 +96,8 @@ export const createBlock = (type, data = {}) => {
     },
     [BLOCK_TYPES.CALLOUT]: {
       variant: 'tip', // tip, warning, important, info
-      content: ''
+      content: '',
+      alignment: 'center'
     },
     [BLOCK_TYPES.ANNOTATED_IMAGE]: {
       url: '',

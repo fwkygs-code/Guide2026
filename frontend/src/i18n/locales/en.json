@@ -1242,6 +1242,7 @@
       "aspectRatio": "Aspect Ratio",
       "style": "Style",
       "variant": "Variant",
+      "alignment": "Alignment",
       "content": "Content",
       "title": "Title",
       "explanation": "Explanation",
@@ -1256,6 +1257,11 @@
       "collapsible": "Collapsible",
       "defaultCollapsed": "Default Collapsed",
       "slides": "Slides"
+    },
+    "alignmentOptions": {
+      "left": "Left",
+      "center": "Center",
+      "right": "Right"
     },
     "buttonDefaults": {
       "next": "Next Step",

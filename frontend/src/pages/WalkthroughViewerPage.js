@@ -38,16 +38,19 @@ const getDirectionalProps = (html) => {
     style: { direction: dir }
   };
 };
-const getCenteredDirectionalProps = (html) => {
+const getDirectionalPropsWithAlignment = (html, alignment = 'center') => {
   const base = getDirectionalProps(html);
+  const normalizedAlignment = ['left', 'center', 'right'].includes(alignment) ? alignment : 'center';
   return {
     ...base,
     style: {
       ...(base.style || {}),
-      textAlign: 'center'
+      textAlign: normalizedAlignment
     }
   };
 };
+
+const getCenteredDirectionalProps = (html) => getDirectionalPropsWithAlignment(html, 'center');
 
 const CALLOUT_VARIANTS = {
   warning: {
@@ -1143,6 +1146,12 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                       {block.type === 'button' && (() => {
                         const action = block.data?.action || 'next';
                         const buttonStyle = block.data?.style || 'primary';
+                        const alignment = block.data?.alignment || 'center';
+                        const justifyClass = alignment === 'left'
+                          ? 'justify-start'
+                          : alignment === 'right'
+                            ? 'justify-end'
+                            : 'justify-center';
                         
                         const getButtonVariant = () => {
                           if (buttonStyle === 'secondary') return 'outline';
@@ -1244,7 +1253,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         };
                         
                         return (
-                          <div className="flex">
+                          <div className={`flex w-full ${justifyClass}`}>
                             <Button 
                               variant={getButtonVariant()}
                               className="rounded-full"
@@ -1304,6 +1313,17 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           block.data?.body ??
                           block.data?.value ??
                           '';
+                        const alignment = block.data?.alignment || 'center';
+                        const textAlignClass = alignment === 'left'
+                          ? 'text-left'
+                          : alignment === 'right'
+                            ? 'text-right'
+                            : 'text-center';
+                        const flexAlignClass = alignment === 'left'
+                          ? 'items-start'
+                          : alignment === 'right'
+                            ? 'items-end'
+                            : 'items-center';
                         const variantStyles = getCalloutVariant(block.data?.variant);
                         const icon = block.data?.variant === 'warning'
                           ? '⚠️'
@@ -1313,14 +1333,14 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               ? 'ℹ️'
                               : '💡';
                         return (
-                          <div className={`rounded-2xl p-5 border ${variantStyles.container} text-center`}>
-                            <div className="flex flex-col items-center gap-4">
+                          <div className={`rounded-2xl p-5 border ${variantStyles.container} ${textAlignClass}`}>
+                            <div className={`flex flex-col gap-4 ${flexAlignClass} w-full`}>
                               <span className={`text-3xl ${variantStyles.icon}`}>
                                 {icon}
                               </span>
                               <div
-                                className="prose prose-sm max-w-none text-center"
-                                {...getCenteredDirectionalProps(rawHtml)}
+                                className={`prose prose-sm max-w-none ${textAlignClass}`}
+                                {...getDirectionalPropsWithAlignment(rawHtml, alignment)}
                                 dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
                               />
                             </div>

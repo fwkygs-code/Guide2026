@@ -1756,21 +1756,39 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             );
           })()}
           
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.buttonStyle')}</Label>
-            <Select
-              value={block.data.style || 'primary'}
-              onValueChange={(value) => onUpdate({ data: { ...block.data, style: value } })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="primary">Primary</SelectItem>
-                <SelectItem value="secondary">Secondary</SelectItem>
-                <SelectItem value="outline">Outline</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.buttonStyle')}</Label>
+              <Select
+                value={block.data.style || 'primary'}
+                onValueChange={(value) => onUpdate({ data: { ...block.data, style: value } })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primary">Primary</SelectItem>
+                  <SelectItem value="secondary">Secondary</SelectItem>
+                  <SelectItem value="outline">Outline</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.alignment')}</Label>
+              <Select
+                value={block.data.alignment || 'center'}
+                onValueChange={(alignment) => onUpdate({ data: { ...block.data, alignment } })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">{t('builder.alignmentOptions.left')}</SelectItem>
+                  <SelectItem value="center">{t('builder.alignmentOptions.center')}</SelectItem>
+                  <SelectItem value="right">{t('builder.alignmentOptions.right')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       );
@@ -1883,26 +1901,49 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
           block.data?.variant === 'info' ? 'border-blue-500 bg-blue-50' :
           'border-primary bg-primary/10'
         }`}>
-          <div className="mb-2">
-            <Select
-              value={block.data?.variant || 'tip'}
-              onValueChange={(variant) => onUpdate({ data: { ...block.data, variant } })}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tip">💡 {t('builder.calloutTip')}</SelectItem>
-                <SelectItem value="warning">⚠️ {t('builder.calloutWarning')}</SelectItem>
-                <SelectItem value="important">❗ {t('builder.calloutImportant')}</SelectItem>
-                <SelectItem value="info">ℹ️ {t('builder.calloutInfo')}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap gap-4 mb-3">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                {t('builder.blockSettings.variant')}
+              </Label>
+              <Select
+                value={block.data?.variant || 'tip'}
+                onValueChange={(variant) => onUpdate({ data: { ...block.data, variant } })}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tip">💡 {t('builder.calloutTip')}</SelectItem>
+                  <SelectItem value="warning">⚠️ {t('builder.calloutWarning')}</SelectItem>
+                  <SelectItem value="important">❗ {t('builder.calloutImportant')}</SelectItem>
+                  <SelectItem value="info">ℹ️ {t('builder.calloutInfo')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                {t('builder.blockSettings.alignment')}
+              </Label>
+              <Select
+                value={block.data?.alignment || 'center'}
+                onValueChange={(alignment) => onUpdate({ data: { ...block.data, alignment } })}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">{t('builder.alignmentOptions.left')}</SelectItem>
+                  <SelectItem value="center">{t('builder.alignmentOptions.center')}</SelectItem>
+                  <SelectItem value="right">{t('builder.alignmentOptions.right')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <RichTextEditor
             content={block.data?.content || ''}
             onChange={(content) => onUpdate({ data: { ...block.data, content } })}
-            textAlign="center"
+            textAlign={block.data?.alignment || 'center'}
           />
         </div>
       );
