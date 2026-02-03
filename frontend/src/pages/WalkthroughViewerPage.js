@@ -1313,9 +1313,9 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               ? 'ℹ️'
                               : '💡';
                         return (
-                          <div className={`rounded-2xl p-5 border ${variantStyles.container}`}>
-                            <div className="flex items-start gap-4">
-                              <span className={`text-2xl flex-shrink-0 ${variantStyles.icon}`}>
+                          <div className={`rounded-2xl p-5 border ${variantStyles.container} text-center`}>
+                            <div className="flex flex-col items-center gap-4">
+                              <span className={`text-3xl ${variantStyles.icon}`}>
                                 {icon}
                               </span>
                               <div

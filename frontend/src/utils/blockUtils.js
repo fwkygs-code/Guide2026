@@ -52,11 +52,20 @@ export const createBlock = (type, data = {}) => {
       action: 'next', // next, link, check, go_to_step, end, restart, support
       url: '',
       targetStepId: '', // For go_to_step action
+      targetWalkthroughId: '', // For go_to_walkthrough action
       style: 'primary',
+      layout: 'single', // single, double
+      secondaryText: '',
+      secondaryAction: 'link',
+      secondaryUrl: '',
+      secondaryTargetStepId: '',
+      secondaryTargetWalkthroughId: '',
+      secondaryStyle: 'secondary',
       // Support action fields
       supportWhatsapp: '',
       supportPhone: '',
       supportHours: '',
+      supportLink: '',
       usePortalContactInfo: true // Use workspace portal contact info or custom
     },
     [BLOCK_TYPES.DIVIDER]: {
