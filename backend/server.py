@@ -296,7 +296,7 @@ PAYPAL_API_BASE = os.environ.get('PAYPAL_API_BASE', 'https://api-m.paypal.com') 
 
 # Email Configuration (Resend HTTP API only)
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
-RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'auth@interguide.app')
 # TEMPORARY: Fallback to Resend test domain if primary fails
 if not RESEND_FROM_EMAIL or '@' not in RESEND_FROM_EMAIL:
     RESEND_FROM_EMAIL = "onboarding@resend.dev"
@@ -307,6 +307,13 @@ RESEND_API_URL = "https://api.resend.com/emails"
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://www.interguide.app')
 # Main domain for email verification links (should always be the production domain)
 MAIN_DOMAIN = 'https://www.interguide.app'
+INVITE_LINK_BASE_URL = os.environ.get('INVITE_LINK_BASE_URL', 'https://app.interguide.app')
+INVITE_TOKEN_EXPIRATION_DAYS = int(os.environ.get('INVITE_TOKEN_EXPIRATION_DAYS', '7'))
+INVITE_PENDING_COOKIE_NAME = os.environ.get('INVITE_PENDING_COOKIE_NAME', 'ig_invite_token')
+INVITE_ACTION_COOKIE_NAME = os.environ.get('INVITE_ACTION_COOKIE_NAME', 'ig_invite_action')
+INVITE_TOKEN_COOKIE_MAX_AGE = int(os.environ.get('INVITE_TOKEN_COOKIE_MAX_AGE', '1800'))
+INVITE_COOKIE_DOMAIN = os.environ.get('INVITE_COOKIE_DOMAIN', '.interguide.app')
+INVITE_VALID_ACTIONS = {"accept", "decline"}
 STATIC_OG_IMAGE_URL = 'https://res.cloudinary.com/ds1dgifj8/image/upload/w_1200,h_630,c_fill,g_center,q_auto,f_auto/interguide-static/og-image'
 FB_APP_ID = os.environ.get('FB_APP_ID')
 # PART 5: SANDBOX VS PRODUCTION DOCUMENTATION
@@ -423,6 +430,7 @@ class InvitationStatus(str, Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
     DECLINED = "declined"
+    EXPIRED = "expired"
 
 class NotificationType(str, Enum):
     INVITE = "invite"
@@ -515,6 +523,9 @@ class WorkspaceMember(BaseModel):
     invited_at: Optional[datetime] = None  # When invitation was sent
     responded_at: Optional[datetime] = None  # When invitation was accepted/declined
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    invited_email: Optional[str] = None
+    invite_token: Optional[str] = None
+    invite_expires_at: Optional[datetime] = None
 
 class CategoryCreate(BaseModel):
     name: str
@@ -1003,57 +1014,6 @@ InterGuide Team
         logging.error(f"[EMAIL][FAILED] Password reset email to {email}, error={str(e)}", exc_info=True)
         return False
 
-def send_invitation_email(email: str, workspace_name: str, inviter_name: str) -> bool:
-    """
-    Send workspace invitation email via Resend HTTP API.
-    Returns True on success, False on failure.
-    Email contains notification only - no magic auth links.
-    """
-    if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
-        logging.warning(f"[EMAIL][FAILED] email={email} error=Resend not configured")
-        return False
-    
-    try:
-        # Plain text version
-        text_content = f"""Hi,
-
-{inviter_name} has invited you to collaborate on the workspace "{workspace_name}" in InterGuide.
-
-Please log in to your InterGuide account to accept or decline the invitation.
-
-If you don't have an account, you can sign up at {MAIN_DOMAIN}/signup.
-
-Best regards,
-InterGuide
-"""
-        
-        # HTML version
-        html_content = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .button {{ display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
-        .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Workspace Invitation</h2>
-        <p>Hi,</p>
-        <p><strong>{inviter_name}</strong> has invited you to collaborate on the workspace <strong>"{workspace_name}"</strong> in InterGuide.</p>
-        <p>Please log in to your InterGuide account to accept or decline the invitation.</p>
-        <a href="{MAIN_DOMAIN}/login" class="button">Log In to InterGuide</a>
-        <p>If you don't have an account, you can <a href="{MAIN_DOMAIN}/signup">sign up here</a>.</p>
-        <div class="footer">
-            <p>Best regards,<br>InterGuide</p>
-        </div>
-    </div>
-</body>
-</html>
-"""
         
         headers = {
             "Authorization": f"Bearer {RESEND_API_KEY}",
@@ -1063,7 +1023,7 @@ InterGuide
         payload = {
             "from": RESEND_FROM_EMAIL,
             "to": [email],
-            "subject": f"Invitation to collaborate on {workspace_name}",
+            "subject": "You’ve been invited to join a workspace on Interguide",
             "text": text_content,
             "html": html_content
         }
@@ -1337,6 +1297,87 @@ def set_auth_cookie(response: Response, token: str, csrf_token: str) -> None:
     )
 
 
+def _set_invite_resume_cookies(response: Response, token: str, action: str) -> None:
+    response.set_cookie(
+        key=INVITE_PENDING_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=INVITE_TOKEN_COOKIE_MAX_AGE,
+        path="/",
+        domain=INVITE_COOKIE_DOMAIN
+    )
+    response.set_cookie(
+        key=INVITE_ACTION_COOKIE_NAME,
+        value=action,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=INVITE_TOKEN_COOKIE_MAX_AGE,
+        path="/",
+        domain=INVITE_COOKIE_DOMAIN
+    )
+
+
+def _clear_invite_resume_cookies(response: Response) -> None:
+    response.delete_cookie(
+        key=INVITE_PENDING_COOKIE_NAME,
+        path="/",
+        domain=INVITE_COOKIE_DOMAIN
+    )
+    response.delete_cookie(
+        key=INVITE_ACTION_COOKIE_NAME,
+        path="/",
+        domain=INVITE_COOKIE_DOMAIN
+    )
+
+
+def _parse_iso_datetime(value: Optional[Union[str, datetime]]) -> Optional[datetime]:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except Exception:
+        return None
+
+
+async def _clear_member_invite_token(invitation_id: str) -> None:
+    await db.workspace_members.update_one(
+        {"id": invitation_id},
+        {"$unset": {"invite_token": "", "invite_expires_at": ""}}
+    )
+
+
+async def _get_invite_member_by_token(token: str) -> Dict[str, Any]:
+    if not token:
+        raise HTTPException(status_code=400, detail="Invitation token is required")
+    member = await db.workspace_members.find_one(
+        {"invite_token": token},
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+    status = member.get("status")
+    if status != InvitationStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Invitation is no longer pending")
+    expires_at = _parse_iso_datetime(member.get("invite_expires_at"))
+    if expires_at and datetime.now(timezone.utc) >= expires_at:
+        await db.workspace_members.update_one(
+            {"id": member.get("id")},
+            {
+                "$set": {
+                    "status": InvitationStatus.EXPIRED,
+                    "responded_at": datetime.now(timezone.utc).isoformat()
+                },
+                "$unset": {"invite_token": "", "invite_expires_at": ""}
+            }
+        )
+        raise HTTPException(status_code=400, detail="Invitation has expired")
+    return member
+
 def clear_auth_cookie(response: Response) -> None:
     response.delete_cookie(
         key=AUTH_COOKIE_NAME,
@@ -1434,6 +1475,18 @@ async def get_current_user(
             # Continue on error - don't block user access if grace period check fails
     
     return User(**user)
+
+
+async def _get_current_user_optional(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials]
+) -> Optional[User]:
+    try:
+        return await get_current_user(request, credentials)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            return None
+        raise
 
 async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     """
@@ -2729,8 +2782,31 @@ async def login(login_data: UserLogin, response: Response, request: Request):
     user = User(**{k: v for k, v in user_doc.items() if k != 'password'})
     token, csrf_token = create_token(user.id)
     set_auth_cookie(response, token, csrf_token)
-    
-    return {"user": user, "token": token}
+
+    # Resume pending invitation if present
+    invite_token = request.cookies.get(INVITE_PENDING_COOKIE_NAME)
+    invite_action = request.cookies.get(INVITE_ACTION_COOKIE_NAME)
+    resume_info = None
+    if invite_token and invite_action in INVITE_VALID_ACTIONS:
+        try:
+            await _handle_invite_with_current_user(invite_token, invite_action, user, response)
+            resume_info = {
+                "invite_resumed": True,
+                "invite_action": invite_action
+            }
+        except HTTPException as exc:
+            resume_info = {
+                "invite_resumed": False,
+                "invite_action": invite_action,
+                "error": exc.detail
+            }
+        finally:
+            _clear_invite_resume_cookies(response)
+
+    result = {"user": user, "token": token}
+    if resume_info:
+        result.update(resume_info)
+    return result
 
 
 @api_router.options("/auth/login")
@@ -3125,6 +3201,9 @@ async def delete_notification(notification_id: str, current_user: User = Depends
 class InviteRequest(BaseModel):
     email: EmailStr
 
+class InviteTokenPayload(BaseModel):
+    token: str
+
 async def can_user_share_workspaces(user_id: str) -> bool:
     """Check if user can share workspaces (must have Pro plan or active subscription, or be in grace period)."""
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "plan_id": 1, "grace_period_ends_at": 1})
@@ -3213,13 +3292,18 @@ async def invite_user_to_workspace(
     # Create invitation (WorkspaceMember with PENDING status)
     try:
         invited_at = datetime.now(timezone.utc)
+        invite_token = secrets.token_urlsafe(32)
+        invite_expires_at = invited_at + timedelta(days=INVITE_TOKEN_EXPIRATION_DAYS)
         member = WorkspaceMember(
             workspace_id=workspace_id,
             user_id=invitee_user_id,
             role=UserRole.EDITOR,  # Shared users are members with EDITOR role
             status=InvitationStatus.PENDING,
             invited_by_user_id=current_user.id,
-            invited_at=invited_at
+            invited_at=invited_at,
+            invited_email=invite_data.email,
+            invite_token=invite_token,
+            invite_expires_at=invite_expires_at
         )
         member_dict = member.model_dump()
         # Ensure datetime fields are properly serialized
@@ -3232,6 +3316,9 @@ async def invite_user_to_workspace(
         if 'responded_at' in member_dict and member_dict['responded_at']:
             if isinstance(member_dict['responded_at'], datetime):
                 member_dict['responded_at'] = member_dict['responded_at'].isoformat()
+        if 'invite_expires_at' in member_dict and member_dict['invite_expires_at']:
+            if isinstance(member_dict['invite_expires_at'], datetime):
+                member_dict['invite_expires_at'] = member_dict['invite_expires_at'].isoformat()
         await db.workspace_members.insert_one(member_dict)
         
         # HARDENING LAYER C: Audit log
@@ -3273,7 +3360,10 @@ async def invite_user_to_workspace(
         send_invitation_email,
         invite_data.email,
         workspace['name'],
-        current_user.name
+        current_user.name,
+        member.role.value,
+        invite_token,
+        invite_expires_at
     )
     
     return {
@@ -3281,6 +3371,64 @@ async def invite_user_to_workspace(
         "message": f"Invitation sent to {invite_data.email}",
         "invitation_id": member.id
     }
+
+# Public token endpoints -----------------------------------------------------
+
+@api_router.post("/workspace-invites/accept")
+async def accept_invite_token(
+    payload: InviteTokenPayload,
+    request: Request,
+    response: Response,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
+):
+    return await _handle_invite_token_request(payload.token, "accept", request, response, credentials)
+
+
+@api_router.post("/workspace-invites/decline")
+async def decline_invite_token(
+    payload: InviteTokenPayload,
+    request: Request,
+    response: Response,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
+):
+    return await _handle_invite_token_request(payload.token, "decline", request, response, credentials)
+
+
+async def _handle_invite_token_request(
+    invite_token: str,
+    action: str,
+    request: Request,
+    response: Response,
+    credentials: Optional[HTTPAuthorizationCredentials]
+):
+    if action not in INVITE_VALID_ACTIONS:
+        raise HTTPException(status_code=400, detail="Invalid invite action")
+    member = await _get_invite_member_by_token(invite_token)
+    user = await _get_current_user_optional(request, credentials)
+    if not user:
+        _set_invite_resume_cookies(response, invite_token, action)
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Authentication required", "redirect": "/login"}
+        )
+    result = await _execute_invite_action(member, action, user)
+    _clear_invite_resume_cookies(response)
+    return result
+
+
+async def _execute_invite_action(member_doc: Dict[str, Any], action: str, current_user: User):
+    workspace_id = member_doc.get("workspace_id")
+    invitation_id = member_doc.get("id")
+    if action == "accept":
+        result = await accept_invitation(workspace_id, invitation_id, current_user=current_user)
+    else:
+        result = await decline_invitation(workspace_id, invitation_id, current_user=current_user)
+    await _clear_member_invite_token(invitation_id)
+    if isinstance(result, dict):
+        result.setdefault("workspace_id", workspace_id)
+        result.setdefault("action", action)
+    return result
+
 
 @api_router.post("/workspaces/{workspace_id}/invitations/{invitation_id}/accept")
 async def accept_invitation(

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { api, getBackendUrl } from '../lib/api';
+import { api, getBackendUrl, getPublicPortalUrl } from '../lib/api';
 import { useTextSize } from '../contexts/TextSizeContext';
 import DashboardLayout from '../components/DashboardLayout';
 import WorkspaceLoader from '../components/WorkspaceLoader';
@@ -249,8 +249,8 @@ const SettingsPage = () => {
     }
   };
 
-  // Use backend URL for portal sharing (WhatsApp crawlers need backend route)
-  const portalUrl = `${getBackendUrl()}/portal/${workspace?.slug}`;
+  // Use public portal URL for sharing (user-facing link)
+  const portalUrl = `${getPublicPortalUrl()}/portal/${workspace?.slug}`;
   const portalEmbedUrl = `${window.location.origin}/embed/portal/${workspace?.slug}`;
   const portalIframeCode = `<iframe src="${portalEmbedUrl}" width="100%" height="800" frameborder="0" allowfullscreen></iframe>`;
   const portalScriptCode = `<script src="${window.location.origin}/embed/widget.js" data-slug="${workspace?.slug}"></script>`;
@@ -284,7 +284,7 @@ const SettingsPage = () => {
         description={t('settings.subtitle')}
       />
 
-      <PageSurface>
+      <PageSurface className="text-foreground">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">

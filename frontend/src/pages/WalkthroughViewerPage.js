@@ -935,124 +935,161 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   )}
                 </div>
               )}
-                        return (
-                          <h3 
-                            className={`font-heading font-bold text-foreground text-center ${
-                              block.data?.level === 1 ? 'text-3xl' :
-                              block.data?.level === 2 ? 'text-2xl' : 'text-xl'
-                            }`}
-                            dir={dir}
-                            style={{ direction: dir, textAlign: 'center' }}
-                            dangerouslySetInnerHTML={{ __html: stripParagraphWrapper(headingHtml) }}
-                          />
-                        );
-                      })()}
-                      {block.type === 'text' && (() => {
-                        const textHtml = block.data?.content || '';
-                        const directionalProps = getCenteredDirectionalProps(textHtml);
-                        return (
-                          <div
-                            className="prose max-w-none text-foreground text-center"
-                            {...directionalProps}
-                            dangerouslySetInnerHTML={renderTrustedHtml(textHtml)}
-                          />
-                        );
-                      })()}
-                      {block.type === 'image' && (() => {
-                        // Check if URL exists, if not show placeholder
-                        if (!block.data?.url) {
-                          console.warn('[GIF Debug] Block image missing URL:', { blockId: block.id, block });
+
+              {step?.blocks?.length > 0 && (
+                <div className="mt-6 space-y-6">
+                  {step.blocks.map((block, idx) => {
+                    if (!block) return null;
+                    return (
+                      <div key={block.id || idx} className="space-y-4">
+                        {block.type === 'heading' && (() => {
+                          const headingHtml =
+                            block.data?.content ??
+                            block.data?.text ??
+                            block.data?.value ??
+                            '';
+                          const dir = getTextDirection(headingHtml);
                           return (
-                            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center bg-secondary">
-                              <p className="text-sm text-muted-foreground">Image URL missing</p>
-                            </div>
+                            <h3 
+                              className={`font-heading font-bold text-foreground text-center ${
+                                block.data?.level === 1 ? 'text-3xl' :
+                                block.data?.level === 2 ? 'text-2xl' : 'text-xl'
+                              }`}
+                              dir={dir}
+                              style={{ direction: dir, textAlign: 'center' }}
+                              dangerouslySetInnerHTML={{ __html: stripParagraphWrapper(headingHtml) }}
+                            />
                           );
-                        }
-                        
-                        const imageUrl = block.data.url;
-                        // Enhanced mobile detection - check multiple methods
-                        const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
-                        const isMobileUA = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-                        const isMobileScreen = window.innerWidth <= 768 || (window.screen && window.screen.width <= 768);
-                        const isMobile = isMobileUA || isMobileScreen;
-                        
-                        const isGifFile = isGif(imageUrl, 'image'); // Assume image type for blocks
-                        const isVideoUrl = isCloudinaryVideo(imageUrl);
-                        
-                        console.log('[GIF Debug] Block Image Render:', {
-                          blockId: block.id,
-                          url: imageUrl,
-                          isMobileUA,
-                          isMobileScreen,
-                          isMobile,
-                          isVideoUrl,
-                          isGifFile,
-                          userAgent: userAgent.substring(0, 50)
-                        });
-                        
-                        // Render as video if:
-                        // 1. It's a Cloudinary video URL in an image block (re-uploaded GIFs) - ALWAYS render as video on ALL devices
-                        // 2. It's a GIF and we're on mobile (use converted URL for old GIFs)
-                        const shouldRenderAsVideo = isVideoUrl || (isGifFile && isMobile);
-                        let gifVideoUrl = null;
-                        if (shouldRenderAsVideo) {
-                          if (isVideoUrl) {
-                            gifVideoUrl = imageUrl; // Re-uploaded GIF: use video URL directly
-                          } else if (isGifFile) {
-                            // Old GIF: try to convert URL
-                            gifVideoUrl = getGifVideoUrl(imageUrl, 'image');
-                            if (!gifVideoUrl) {
-                              console.warn('[GIF Debug] Block: URL conversion failed, but will still try to render as video on mobile');
-                              // On mobile, even if conversion fails, try the original URL as video
-                              // (some browsers might handle it, or we'll get an error and fallback)
+                        })()}
+                        {block.type === 'text' && (() => {
+                          const textHtml = block.data?.content || '';
+                          const directionalProps = getCenteredDirectionalProps(textHtml);
+                          return (
+                            <div
+                              className="prose max-w-none text-foreground text-center"
+                              {...directionalProps}
+                              dangerouslySetInnerHTML={renderTrustedHtml(textHtml)}
+                            />
+                          );
+                        })()}
+                        {block.type === 'image' && (() => {
+                          if (!block.data?.url) {
+                            console.warn('[GIF Debug] Block image missing URL:', { blockId: block.id, block });
+                            return (
+                              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center bg-secondary">
+                                <p className="text-sm text-muted-foreground">Image URL missing</p>
+                              </div>
+                            );
+                          }
+
+                          const imageUrl = block.data.url;
+                          const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
+                          const isMobileUA = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+                          const isMobileScreen = window.innerWidth <= 768 || (window.screen && window.screen.width <= 768);
+                          const isMobile = isMobileUA || isMobileScreen;
+                          const isGifFile = isGif(imageUrl, 'image');
+                          const isVideoUrl = isCloudinaryVideo(imageUrl);
+
+                          console.log('[GIF Debug] Block Image Render:', {
+                            blockId: block.id,
+                            url: imageUrl,
+                            isMobileUA,
+                            isMobileScreen,
+                            isMobile,
+                            isVideoUrl,
+                            isGifFile,
+                            userAgent: userAgent.substring(0, 50)
+                          });
+
+                          const shouldRenderAsVideo = isVideoUrl || (isGifFile && isMobile);
+                          let gifVideoUrl = null;
+                          if (shouldRenderAsVideo) {
+                            if (isVideoUrl) {
                               gifVideoUrl = imageUrl;
+                            } else if (isGifFile) {
+                              gifVideoUrl = getGifVideoUrl(imageUrl, 'image');
+                              if (!gifVideoUrl) {
+                                console.warn('[GIF Debug] Block: URL conversion failed, but will still try to render as video on mobile');
+                                gifVideoUrl = imageUrl;
+                              }
                             }
                           }
-                        }
-                        
-                        console.log('[GIF Debug] Block Image Decision:', {
-                          blockId: block.id,
-                          shouldRenderAsVideo,
-                          gifVideoUrl,
-                          finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null,
-                          reason: isVideoUrl ? 'video-url' : (isGifFile && isMobile ? 'gif-mobile' : 'not-video')
-                        });
-                        
-                        if (gifVideoUrl && shouldRenderAsVideo) {
-                          const optimizedVideoUrl = optimizeCloudinaryUrl(gifVideoUrl, true);
-                          console.log('[GIF Debug] Block rendering as VIDEO:', {
+
+                          console.log('[GIF Debug] Block Image Decision:', {
                             blockId: block.id,
-                            original: imageUrl,
-                            videoUrl: gifVideoUrl,
-                            optimized: optimizedVideoUrl
+                            shouldRenderAsVideo,
+                            gifVideoUrl,
+                            finalUrl: gifVideoUrl ? optimizeCloudinaryUrl(gifVideoUrl, true) : null,
+                            reason: isVideoUrl ? 'video-url' : (isGifFile && isMobile ? 'gif-mobile' : 'not-video')
                           });
+
+                          if (gifVideoUrl && shouldRenderAsVideo) {
+                            const optimizedVideoUrl = optimizeCloudinaryUrl(gifVideoUrl, true);
+                            console.log('[GIF Debug] Block rendering as VIDEO:', {
+                              blockId: block.id,
+                              original: imageUrl,
+                              videoUrl: gifVideoUrl,
+                              optimized: optimizedVideoUrl
+                            });
+                            return (
+                              <figure>
+                                <video
+                                  key={`block-video-${block.id || idx}-${imageUrl}-${currentStep}`}
+                                  src={optimizedVideoUrl}
+                                  autoPlay
+                                  loop
+                                  muted
+                                  playsInline
+                                  className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
+                                  onClick={() => setImagePreviewUrl(imageUrl)}
+                                  onLoadStart={() => console.log('[GIF Debug] Block video load started:', optimizedVideoUrl)}
+                                  onLoadedData={() => console.log('[GIF Debug] Block video loaded successfully:', optimizedVideoUrl)}
+                                  onError={(e) => {
+                                    console.error('[GIF Debug] Block video failed to load:', {
+                                      blockId: block.id,
+                                      error: e,
+                                      src: optimizedVideoUrl,
+                                      original: imageUrl,
+                                      videoElement: e.target
+                                    });
+                                    const img = document.createElement('img');
+                                    img.src = imageUrl;
+                                    img.className = e.target.className;
+                                    img.onclick = () => setImagePreviewUrl(imageUrl);
+                                    e.target.parentNode.replaceChild(img, e.target);
+                                  }}
+                                />
+                                {block.data?.caption && (
+                                  <figcaption className="text-sm text-muted-foreground mt-2 text-center">
+                                    {block.data.caption}
+                                  </figcaption>
+                                )}
+                              </figure>
+                            );
+                          }
+
+                          const optimizedImageUrl = isCloudinary(imageUrl)
+                            ? optimizeCloudinaryUrl(imageUrl, false)
+                            : imageUrl;
+
                           return (
                             <figure>
-                              <video
-                                key={`block-video-${block.id || idx}-${imageUrl}-${currentStep}`}
-                                src={optimizedVideoUrl}
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                                className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
+                              <img
+                                data-gif-src={isGifFile ? imageUrl : undefined}
+                                src={optimizedImageUrl} 
+                                alt={block.data?.alt || ''} 
+                                className="w-full max-h-[45vh] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
                                 onClick={() => setImagePreviewUrl(imageUrl)}
-                                onLoadStart={() => console.log('[GIF Debug] Block video load started:', optimizedVideoUrl)}
-                                onLoadedData={() => console.log('[GIF Debug] Block video loaded successfully:', optimizedVideoUrl)}
-                                onError={(e) => {
-                                  console.error('[GIF Debug] Block video failed to load:', {
-                                    blockId: block.id,
-                                    error: e,
-                                    src: optimizedVideoUrl,
-                                    original: imageUrl,
-                                    videoElement: e.target
-                                  });
-                                  const img = document.createElement('img');
-                                  img.src = imageUrl;
-                                  img.className = e.target.className;
-                                  img.onclick = () => setImagePreviewUrl(imageUrl);
-                                  e.target.parentNode.replaceChild(img, e.target);
-                                }}
+                                loading="eager"
+                                decoding="async"
+                                key={`block-${block.id || idx}-${imageUrl}-${currentStep}`}
+                                style={isGifFile ? {
+                                  imageRendering: 'auto',
+                                  WebkitBackfaceVisibility: 'visible',
+                                  backfaceVisibility: 'visible',
+                                  transform: 'translateZ(0)',
+                                  willChange: 'auto'
+                                } : {}}
                               />
                               {block.data?.caption && (
                                 <figcaption className="text-sm text-muted-foreground mt-2 text-center">
@@ -1061,453 +1098,407 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               )}
                             </figure>
                           );
-                        }
-                        
-                        // Regular image for non-GIFs or desktop non-video GIFs
-                        const optimizedImageUrl = isCloudinary(imageUrl) 
-                          ? optimizeCloudinaryUrl(imageUrl, false)
-                          : imageUrl;
-                        
-                        return (
-                          <figure>
-                            <img
-                              data-gif-src={isGifFile ? imageUrl : undefined}
-                              src={optimizedImageUrl} 
-                              alt={block.data?.alt || ''} 
-                              className="w-full max-h-[45vh] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
-                              onClick={() => setImagePreviewUrl(imageUrl)}
-                              loading="eager"
-                              decoding="async"
-                              key={`block-${block.id || idx}-${imageUrl}-${currentStep}`}
-                              style={isGifFile ? {
-                                imageRendering: 'auto',
-                                WebkitBackfaceVisibility: 'visible',
-                                backfaceVisibility: 'visible',
-                                transform: 'translateZ(0)',
-                                willChange: 'auto'
-                              } : {}}
-                            />
-                            {block.data?.caption && (
-                              <figcaption className="text-sm text-muted-foreground mt-2 text-center">
-                                {block.data.caption}
-                              </figcaption>
-                            )}
-                          </figure>
-                        );
-                      })()}
-                      {block.type === 'video' && block.data?.url && (
-                        <div>
-                          {block.data.type === 'youtube' ? (
-                            <div className="aspect-video">
-                              <iframe
-                                src={block.data.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                                className="w-full h-full rounded-lg shadow-soft"
-                                allowFullScreen
-                              />
-                            </div>
-                          ) : (
-                            <video 
-                              src={isCloudinary(block.data.url) ? optimizeCloudinaryUrl(block.data.url, true) : block.data.url} 
-                              controls 
-                              className="max-w-full rounded-lg shadow-soft max-h-[50vh]"
-                            />
-                          )}
-                        </div>
-                      )}
-                      {block.type === 'file' && block.data?.url && (
-                        <div className="border border-border rounded-lg p-4 flex items-center justify-between bg-secondary">
+                        })()}
+                        {block.type === 'video' && block.data?.url && (
                           <div>
-                            <div className="font-medium text-foreground">{block.data.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {block.data.size ? `${(block.data.size / 1024).toFixed(2)} KB` : 'File'}
-                            </div>
-                          </div>
-                          <a 
-                            href={block.data.url} 
-                            download 
-                            className="text-primary hover:underline text-sm font-medium"
-                          >
-                            Download
-                          </a>
-                        </div>
-                      )}
-                      {block.type === 'button' && (() => {
-                        const action = block.data?.action || 'next';
-                        const buttonStyle = block.data?.style || 'primary';
-                        const alignment = block.data?.alignment || 'center';
-                        const justifyClass = alignment === 'left'
-                          ? 'justify-start'
-                          : alignment === 'right'
-                            ? 'justify-end'
-                            : 'justify-center';
-                        
-                        const getButtonVariant = () => {
-                          if (buttonStyle === 'secondary') return 'outline';
-                          if (buttonStyle === 'outline') return 'outline';
-                          return 'default';
-                        };
-                        
-                        const handleButtonClick = () => {
-                          console.log('[Button Click]', { action, blockData: block.data });
-                          
-                          switch (action) {
-                            case 'next':
-                              handleNext();
-                              break;
-                              
-                            case 'go_to_step':
-                              if (block.data?.targetStepId) {
-                                const targetIndex = walkthrough.steps.findIndex(s => s.id === block.data.targetStepId);
-                                console.log('[Go to Step]', { targetStepId: block.data.targetStepId, targetIndex });
-                                if (targetIndex !== -1) {
-                                  setHashForStepIndex(targetIndex);
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                } else {
-                                  console.error('[Go to Step] Target step not found');
-                                }
-                              } else {
-                                console.error('[Go to Step] No targetStepId configured');
-                              }
-                              break;
-                              
-                            case 'end':
-                              console.log('[End Walkthrough]');
-                              if (window.confirm(t('dialogs.confirm.endWalkthrough'))) {
-                                // Try to go back, or navigate to portal if no history
-                                if (window.history.length > 1) {
-                                  window.history.back();
-                                } else {
-                                  window.location.href = `/portal/${slug}`;
-                                }
-                              }
-                              break;
-                              
-                            case 'restart':
-                              console.log('[Restart Walkthrough]');
-                              if (window.confirm(t('dialogs.confirm.restartWalkthrough'))) {
-                                setHashForStepIndex(0);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }
-                              break;
-                              
-                            case 'support':
-                              console.log('[Get Support]', { 
-                                usePortal: block.data?.usePortalContactInfo, 
-                                workspaceWhatsapp: walkthrough?.workspace?.contact_whatsapp,
-                                customWhatsapp: block.data?.supportWhatsapp,
-                                customPhone: block.data?.supportPhone
-                              });
-                              
-                              // Prepare contact info and show dialog
-                              const contactInfo = {};
-                              
-                              if (block.data?.usePortalContactInfo !== false && walkthrough?.workspace) {
-                                contactInfo.whatsapp = walkthrough.workspace.contact_whatsapp;
-                                contactInfo.phone = walkthrough.workspace.contact_phone;
-                                contactInfo.hours = walkthrough.workspace.contact_hours;
-                              } else {
-                                contactInfo.whatsapp = block.data?.supportWhatsapp;
-                                contactInfo.phone = block.data?.supportPhone;
-                                contactInfo.hours = block.data?.supportHours;
-                              }
-                              
-                              if (!contactInfo.whatsapp && !contactInfo.phone) {
-                                console.warn('[Get Support] No contact info configured');
-                                alert(t('dialogs.alert.noSupportContact'));
-                              } else {
-                                setSupportContactInfo(contactInfo);
-                                setShowSupportDialog(true);
-                              }
-                              break;
-                              
-                            case 'link':
-                              console.log('[External Link]', block.data?.url);
-                              if (block.data?.url) {
-                                window.open(block.data.url, '_blank');
-                              }
-                              break;
-                              
-                            case 'check':
-                              console.log('[Checkpoint]');
-                              // Checkpoint action - mark step as completed
-                              setCompletedSteps(prev => new Set([...prev, currentStep]));
-                              handleNext();
-                              break;
-                              
-                            default:
-                              console.log('[Default action] Moving to next');
-                              handleNext();
-                          }
-                        };
-                        
-                        return (
-                          <div className={`flex w-full ${justifyClass}`}>
-                            <Button 
-                              variant={getButtonVariant()}
-                              className="rounded-full"
-                              onClick={handleButtonClick}
-                              disabled={action === 'next' && !canProceedNext()}
-                            >
-                              {block.data?.text || 'Button'}
-                            </Button>
-                          </div>
-                        );
-                      })()}
-                      {block.type === 'divider' && (
-                        <hr className="border-border" />
-                      )}
-                      {block.type === 'spacer' && (
-                        <div style={{ height: block.data?.height || 32 }} />
-                      )}
-                      {block.type === 'problem' && (() => {
-                        const titleHtml = block.data?.title || '';
-                        const explanationHtml = block.data?.explanation || '';
-                        return (
-                          <div className="border-l-4 border-warning/60 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none text-center">
-                            <h4 
-                              className="font-semibold text-foreground mb-1 relative z-10"
-                              {...getCenteredDirectionalProps(titleHtml)}
-                              dangerouslySetInnerHTML={renderTrustedHtml(titleHtml)}
-                            />
-                            <div 
-                              className="text-foreground relative z-10 prose prose-sm max-w-none"
-                              {...getCenteredDirectionalProps(explanationHtml)}
-                              dangerouslySetInnerHTML={renderTrustedHtml(explanationHtml)}
-                            />
-                          </div>
-                        );
-                      })()}
-                      {block.type === 'carousel' && block.data?.slides && block.data.slides.length > 0 && (
-                        <CarouselViewer slides={block.data.slides} />
-                      )}
-                      {block.type === 'checklist' && block.data?.items && block.data.items.length > 0 && (
-                        <div className="bg-secondary border border-border rounded-xl p-4 space-y-2">
-                          {block.data.items.map((item, itemIdx) => (
-                            <label key={itemIdx} className="flex items-start gap-3 cursor-pointer group">
-                              <input
-                                type="checkbox"
-                                className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                                defaultChecked={false}
-                              />
-                              <span className="text-foreground flex-1 text-center">{item.text}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      {block.type === 'callout' && (() => {
-                        const rawHtml =
-                          block.data?.content ??
-                          block.data?.text ??
-                          block.data?.body ??
-                          block.data?.value ??
-                          '';
-                        const variantStyles = getCalloutVariant(block.data?.variant);
-                        const icon = block.data?.variant === 'warning'
-                          ? '⚠️'
-                          : block.data?.variant === 'important'
-                            ? '❗'
-                            : block.data?.variant === 'info'
-                              ? 'ℹ️'
-                              : '💡';
-                        const directionalProps = getDirectionalProps(rawHtml);
-                        return (
-                          <div className={`rounded-2xl p-5 border ${variantStyles.container}`}>
-                            <div className="flex gap-3 items-start w-full">
-                              <span className={`text-3xl flex-shrink-0 leading-none ${variantStyles.icon}`}>
-                                {icon}
-                              </span>
-                              <div
-                                className="prose prose-sm max-w-none flex-1"
-                                {...directionalProps}
-                                dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      {block.type === 'annotated_image' && block.data?.url && (
-                        <AnnotatedImageViewer block={block} />
-                      )}
-                      {block.type === 'embed' && block.data?.url && (() => {
-                        // Transform URL based on provider
-                        const getEmbedUrl = (url, provider) => {
-                          if (!url) return '';
-                          
-                          try {
-                            switch (provider) {
-                              case 'youtube':
-                                // Convert YouTube watch URLs to embed format
-                                if (url.includes('youtube.com/watch')) {
-                                  const videoId = url.split('v=')[1]?.split('&')[0];
-                                  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
-                                } else if (url.includes('youtu.be/')) {
-                                  const videoId = url.split('youtu.be/')[1]?.split('?')[0];
-                                  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
-                                } else if (url.includes('youtube.com/embed/')) {
-                                  return url; // Already in embed format
-                                }
-                                return url;
-                                
-                              case 'vimeo':
-                                // Convert Vimeo URLs to embed format
-                                if (url.includes('vimeo.com/') && !url.includes('/video/')) {
-                                  const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-                                  return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
-                                }
-                                return url;
-                                
-                              case 'loom':
-                                // Loom share URLs to embed format
-                                if (url.includes('loom.com/share/')) {
-                                  const videoId = url.split('/share/')[1]?.split('?')[0];
-                                  return videoId ? `https://www.loom.com/embed/${videoId}` : url;
-                                }
-                                return url;
-                                
-                              case 'figma':
-                                // Figma URLs need embed parameter
-                                if (url.includes('figma.com/') && !url.includes('embed')) {
-                                  return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
-                                }
-                                return url;
-                                
-                              case 'google_docs':
-                                // Google Docs need /preview or /pub?embedded=true
-                                if (url.includes('docs.google.com/document/')) {
-                                  const docId = url.split('/d/')[1]?.split('/')[0];
-                                  return docId ? `https://docs.google.com/document/d/${docId}/preview` : url;
-                                } else if (url.includes('docs.google.com/presentation/')) {
-                                  const docId = url.split('/d/')[1]?.split('/')[0];
-                                  return docId ? `https://docs.google.com/presentation/d/${docId}/embed` : url;
-                                } else if (url.includes('docs.google.com/spreadsheets/')) {
-                                  const docId = url.split('/d/')[1]?.split('/')[0];
-                                  return docId ? `https://docs.google.com/spreadsheets/d/${docId}/preview` : url;
-                                }
-                                return url;
-                                
-                              default:
-                                return url;
-                            }
-                          } catch (error) {
-                            console.error('Error transforming embed URL:', error);
-                            return url;
-                          }
-                        };
-                        
-                        const embedUrl = getEmbedUrl(block.data.url, block.data?.provider || 'youtube');
-                        
-                        return (
-                          <div className="aspect-video bg-secondary rounded-xl overflow-hidden">
-                            <iframe
-                              src={embedUrl}
-                              className="w-full h-full"
-                              allowFullScreen
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              loading="lazy"
-                            />
-                          </div>
-                        );
-                      })()}
-                      {block.type === 'section' && (() => {
-                        const sectionContent = block.data?.content || '';
-                        return (
-                          <div className="border border-border rounded-xl p-6 bg-secondary/50 text-center">
-                            {block.data?.title && (
-                              <h4
-                                className="font-semibold text-lg text-foreground mb-3"
-                                {...getCenteredDirectionalProps(block.data.title)}
-                              >
-                                {block.data.title}
-                              </h4>
-                            )}
-                            {sectionContent && (
-                              <div
-                                className="prose prose-sm max-w-none text-foreground"
-                                {...getCenteredDirectionalProps(sectionContent)}
-                                dangerouslySetInnerHTML={renderTrustedHtml(sectionContent)}
+                            {block.data.type === 'youtube' ? (
+                              <div className="aspect-video">
+                                <iframe
+                                  src={block.data.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                                  className="w-full h-full rounded-lg shadow-soft"
+                                  allowFullScreen
+                                />
+                              </div>
+                            ) : (
+                              <video 
+                                src={isCloudinary(block.data.url) ? optimizeCloudinaryUrl(block.data.url, true) : block.data.url} 
+                                controls 
+                                className="max-w-full rounded-lg shadow-soft max-h-[50vh]"
                               />
                             )}
                           </div>
-                        );
-                      })()}
-                      {block.type === 'confirmation' && (() => {
-                        const confirmationMessage = block.data?.message || '';
-                        return (
-                          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              className="mt-1 w-5 h-5 rounded border-primary/30 text-primary focus:ring-primary"
-                            />
-                            <div
-                              className="prose prose-sm max-w-none text-foreground flex-1 text-center"
-                              {...getCenteredDirectionalProps(confirmationMessage)}
-                              dangerouslySetInnerHTML={renderTrustedHtml(confirmationMessage)}
-                            />
-                          </div>
-                        );
-                      })()}
-                      {block.type === 'external_link' && block.data?.url && (() => {
-                        // Normalize URL to ensure it has a protocol
-                        let normalizedUrl = block.data.url;
-                        if (normalizedUrl && !/^https?:\/\//i.test(normalizedUrl)) {
-                          normalizedUrl = `https://${normalizedUrl}`;
-                        }
-
-                        const alignment = block.data?.alignment || 'center';
-                        const justifyClass = alignment === 'left'
-                          ? 'justify-start'
-                          : alignment === 'right'
-                            ? 'justify-end'
-                            : 'justify-center';
-                        const textAlignClass = alignment === 'left'
-                          ? 'text-left'
-                          : alignment === 'right'
-                            ? 'text-right'
-                            : 'text-center';
-                        const openInNewTab =
-                          block.data?.openInNewTab !== undefined
-                            ? block.data.openInNewTab
-                            : block.data?.newTab !== false;
-
-                        return (
-                          <div className={`flex w-full ${justifyClass}`}>
-                            <a
-                              href={normalizedUrl}
-                              target={openInNewTab ? '_blank' : undefined}
-                              rel={openInNewTab ? 'noopener noreferrer' : undefined}
-                              className={`inline-flex items-center gap-2 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium ${textAlignClass}`}
+                        )}
+                        {block.type === 'file' && block.data?.url && (
+                          <div className="border border-border rounded-lg p-4 flex items-center justify-between bg-secondary">
+                            <div>
+                              <div className="font-medium text-foreground">{block.data.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {block.data.size ? `${(block.data.size / 1024).toFixed(2)} KB` : 'File'}
+                              </div>
+                            </div>
+                            <a 
+                              href={block.data.url} 
+                              download 
+                              className="text-primary hover:underline text-sm font-medium"
                             >
-                              {block.data?.text || 'Visit Link'}
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
+                              Download
                             </a>
                           </div>
-                        );
-                      })()}
-                      {block.type === 'code' && (
-                        <div className="bg-background text-foreground rounded-xl overflow-hidden">
-                          <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {block.data?.language || 'code'}
-                            </span>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(block.data?.code || '');
-                                toast.success('Copied to clipboard!');
-                              }}
-                              className="text-xs px-2 py-1 bg-secondary hover:bg-slate-600 rounded text-foreground transition-colors"
-                            >
-                              Copy
-                            </button>
+                        )}
+                        {block.type === 'button' && (() => {
+                          const action = block.data?.action || 'next';
+                          const buttonStyle = block.data?.style || 'primary';
+                          const alignment = block.data?.alignment || 'center';
+                          const justifyClass = alignment === 'left'
+                            ? 'justify-start'
+                            : alignment === 'right'
+                              ? 'justify-end'
+                              : 'justify-center';
+                          
+                          const getButtonVariant = () => {
+                            if (buttonStyle === 'secondary') return 'outline';
+                            if (buttonStyle === 'outline') return 'outline';
+                            return 'default';
+                          };
+                          
+                          const handleButtonClick = () => {
+                            console.log('[Button Click]', { action, blockData: block.data });
+                            
+                            switch (action) {
+                              case 'next':
+                                handleNext();
+                                break;
+                                
+                              case 'go_to_step':
+                                if (block.data?.targetStepId) {
+                                  const targetIndex = walkthrough.steps.findIndex(s => s.id === block.data.targetStepId);
+                                  console.log('[Go to Step]', { targetStepId: block.data.targetStepId, targetIndex });
+                                  if (targetIndex !== -1) {
+                                    setHashForStepIndex(targetIndex);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  } else {
+                                    console.error('[Go to Step] Target step not found');
+                                  }
+                                } else {
+                                  console.error('[Go to Step] No targetStepId configured');
+                                }
+                                break;
+                                
+                              case 'end':
+                                console.log('[End Walkthrough]');
+                                if (window.confirm(t('dialogs.confirm.endWalkthrough'))) {
+                                  if (window.history.length > 1) {
+                                    window.history.back();
+                                  } else {
+                                    window.location.href = `/portal/${slug}`;
+                                  }
+                                }
+                                break;
+
+                              case 'restart':
+                                console.log('[Restart Walkthrough]');
+                                if (window.confirm(t('dialogs.confirm.restartWalkthrough'))) {
+                                  setHashForStepIndex(0);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                                break;
+
+                              case 'support':
+                                console.log('[Get Support]', {
+                                  usePortal: block.data?.usePortalContactInfo,
+                                  workspaceWhatsapp: walkthrough?.workspace?.contact_whatsapp,
+                                  customWhatsapp: block.data?.supportWhatsapp,
+                                  customPhone: block.data?.supportPhone
+                                });
+
+                                const contactInfo = {};
+
+                                if (block.data?.usePortalContactInfo !== false && walkthrough?.workspace) {
+                                  contactInfo.whatsapp = walkthrough.workspace.contact_whatsapp;
+                                  contactInfo.phone = walkthrough.workspace.contact_phone;
+                                  contactInfo.hours = walkthrough.workspace.contact_hours;
+                                } else {
+                                  contactInfo.whatsapp = block.data?.supportWhatsapp;
+                                  contactInfo.phone = block.data?.supportPhone;
+                                  contactInfo.hours = block.data?.supportHours;
+                                }
+
+                                if (!contactInfo.whatsapp && !contactInfo.phone) {
+                                  console.warn('[Get Support] No contact info configured');
+                                  alert(t('dialogs.alert.noSupportContact'));
+                                } else {
+                                  setSupportContactInfo(contactInfo);
+                                  setShowSupportDialog(true);
+                                }
+                                break;
+
+                              case 'link':
+                                console.log('[External Link]', block.data?.url);
+                                if (block.data?.url) {
+                                  window.open(block.data.url, '_blank');
+                                }
+                                break;
+
+                              case 'check':
+                                console.log('[Checkpoint]');
+                                setCompletedSteps((prev) => new Set([...prev, currentStep]));
+                                handleNext();
+                                break;
+
+                              default:
+                                console.log('[Default action] Moving to next');
+                                handleNext();
+                            }
+                          };
+
+                          return (
+                            <div className={`flex w-full ${justifyClass}`}>
+                              <Button
+                                variant={getButtonVariant()}
+                                className="rounded-full"
+                                onClick={handleButtonClick}
+                                disabled={action === 'next' && !canProceedNext()}
+                              >
+                                {block.data?.text || 'Button'}
+                              </Button>
+                            </div>
+                          );
+                        })()}
+                        {block.type === 'divider' && <hr className="border-border" />}
+                        {block.type === 'spacer' && <div style={{ height: block.data?.height || 32 }} />}
+                        {block.type === 'problem' && (() => {
+                          const titleHtml = block.data?.title || '';
+                          const explanationHtml = block.data?.explanation || '';
+                          return (
+                            <div className="border-l-4 border-warning/60 bg-warning/15 backdrop-blur-sm p-4 rounded-xl shadow-[0_2px_8px_rgba(90,200,250,0.15)] relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none text-center">
+                              <h4
+                                className="font-semibold text-foreground mb-1 relative z-10"
+                                {...getCenteredDirectionalProps(titleHtml)}
+                                dangerouslySetInnerHTML={renderTrustedHtml(titleHtml)}
+                              />
+                              <div
+                                className="text-foreground relative z-10 prose prose-sm max-w-none"
+                                {...getCenteredDirectionalProps(explanationHtml)}
+                                dangerouslySetInnerHTML={renderTrustedHtml(explanationHtml)}
+                              />
+                            </div>
+                          );
+                        })()}
+                        {block.type === 'carousel' && block.data?.slides && block.data.slides.length > 0 && (
+                          <CarouselViewer slides={block.data.slides} />
+                        )}
+                        {block.type === 'checklist' && block.data?.items && block.data.items.length > 0 && (
+                          <div className="bg-secondary border border-border rounded-xl p-4 space-y-2">
+                            {block.data.items.map((item, itemIdx) => (
+                              <label key={itemIdx} className="flex items-start gap-3 cursor-pointer group">
+                                <input
+                                  type="checkbox"
+                                  className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                                  defaultChecked={false}
+                                />
+                                <span className="text-foreground flex-1 text-center">{item.text}</span>
+                              </label>
+                            ))}
                           </div>
-                          <pre className="p-4 overflow-x-auto text-sm font-mono">
-                            <code>{block.data?.code || ''}</code>
-                          </pre>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                        {block.type === 'callout' && (() => {
+                          const rawHtml =
+                            block.data?.content ??
+                            block.data?.text ??
+                            block.data?.body ??
+                            block.data?.value ??
+                            '';
+                          const variantStyles = getCalloutVariant(block.data?.variant);
+                          const icon = block.data?.variant === 'warning'
+                            ? '⚠️'
+                            : block.data?.variant === 'important'
+                              ? '❗'
+                              : block.data?.variant === 'info'
+                                ? 'ℹ️'
+                                : '💡';
+                          const directionalProps = getDirectionalProps(rawHtml);
+                          return (
+                            <div className={`rounded-2xl p-5 border ${variantStyles.container}`}>
+                              <div className="flex gap-3 items-start w-full">
+                                <span className={`text-3xl flex-shrink-0 leading-none ${variantStyles.icon}`}>
+                                  {icon}
+                                </span>
+                                <div
+                                  className="prose prose-sm max-w-none flex-1"
+                                  {...directionalProps}
+                                  dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        {block.type === 'annotated_image' && block.data?.url && (
+                          <AnnotatedImageViewer block={block} />
+                        )}
+                        {block.type === 'embed' && block.data?.url && (() => {
+                          const getEmbedUrl = (url, provider) => {
+                            if (!url) return '';
+
+                            try {
+                              switch (provider) {
+                                case 'youtube':
+                                  if (url.includes('youtube.com/watch')) {
+                                    const videoId = url.split('v=')[1]?.split('&')[0];
+                                    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+                                  } else if (url.includes('youtu.be/')) {
+                                    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                                    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+                                  } else if (url.includes('youtube.com/embed/')) {
+                                    return url;
+                                  }
+                                  return url;
+
+                                case 'vimeo':
+                                  if (url.includes('vimeo.com/') && !url.includes('/video/')) {
+                                    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+                                    return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
+                                  }
+                                  return url;
+
+                                case 'loom':
+                                  if (url.includes('loom.com/share/')) {
+                                    const videoId = url.split('/share/')[1]?.split('?')[0];
+                                    return videoId ? `https://www.loom.com/embed/${videoId}` : url;
+                                  }
+                                  return url;
+
+                                case 'figma':
+                                  if (url.includes('figma.com/') && !url.includes('embed')) {
+                                    return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
+                                  }
+                                  return url;
+
+                                case 'google_docs':
+                                  if (url.includes('docs.google.com/document/')) {
+                                    const docId = url.split('/d/')[1]?.split('/')[0];
+                                    return docId ? `https://docs.google.com/document/d/${docId}/preview` : url;
+                                  } else if (url.includes('docs.google.com/presentation/')) {
+                                    const docId = url.split('/d/')[1]?.split('/')[0];
+                                    return docId ? `https://docs.google.com/presentation/d/${docId}/embed` : url;
+                                  } else if (url.includes('docs.google.com/spreadsheets/')) {
+                                    const docId = url.split('/d/')[1]?.split('/')[0];
+                                    return docId ? `https://docs.google.com/spreadsheets/d/${docId}/preview` : url;
+                                  }
+                                  return url;
+
+                                default:
+                                  return url;
+                              }
+                            } catch (error) {
+                              console.error('Error transforming embed URL:', error);
+                              return url;
+                            }
+                          };
+
+                          const embedUrl = getEmbedUrl(block.data.url, block.data?.provider || 'youtube');
+
+                          return (
+                            <div className="aspect-video bg-secondary rounded-xl overflow-hidden">
+                              <iframe
+                                src={embedUrl}
+                                className="w-full h-full"
+                                allowFullScreen
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                loading="lazy"
+                              />
+                            </div>
+                          );
+                        })()}
+                        {block.type === 'section' && (() => {
+                          const sectionContent = block.data?.content || '';
+                          return (
+                            <div className="border border-border rounded-xl p-6 bg-secondary/50 text-center">
+                              {block.data?.title && (
+                                <h4
+                                  className="font-semibold text-lg text-foreground mb-3"
+                                  {...getCenteredDirectionalProps(block.data.title)}
+                                >
+                                  {block.data.title}
+                                </h4>
+                              )}
+                              {sectionContent && (
+                                <div
+                                  className="prose prose-sm max-w-none text-foreground"
+                                  {...getCenteredDirectionalProps(sectionContent)}
+                                  dangerouslySetInnerHTML={renderTrustedHtml(sectionContent)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {block.type === 'confirmation' && (() => {
+                          const confirmationMessage = block.data?.message || '';
+                          return (
+                            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                className="mt-1 w-5 h-5 rounded border-primary/30 text-primary focus:ring-primary"
+                              />
+                              <div
+                                className="prose prose-sm max-w-none text-foreground flex-1 text-center"
+                                {...getCenteredDirectionalProps(confirmationMessage)}
+                                dangerouslySetInnerHTML={renderTrustedHtml(confirmationMessage)}
+                              />
+                            </div>
+                          );
+                        })()}
+                        {block.type === 'external_link' && block.data?.url && (() => {
+                          let normalizedUrl = block.data.url;
+                          if (normalizedUrl && !/^https?:\/\//i.test(normalizedUrl)) {
+                            normalizedUrl = `https://${normalizedUrl}`;
+                          }
+
+                          const alignment = block.data?.alignment || 'center';
+                          const justifyClass = alignment === 'left'
+                            ? 'justify-start'
+                            : alignment === 'right'
+                              ? 'justify-end'
+                              : 'justify-center';
+                          const textAlignClass = alignment === 'left'
+                            ? 'text-left'
+                            : alignment === 'right'
+                              ? 'text-right'
+                              : 'text-center';
+                          const openInNewTab =
+                            block.data?.openInNewTab !== undefined
+                              ? block.data.openInNewTab
+                              : block.data?.newTab !== false;
+
+                          return (
+                            <div className={`flex w-full ${justifyClass}`}>
+                              <a
+                                href={normalizedUrl}
+                                target={openInNewTab ? '_blank' : undefined}
+                                rel={openInNewTab ? 'noopener noreferrer' : undefined}
+                                className={`inline-flex items-center gap-2 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium ${textAlignClass}`}
+                              >
+                                {block.data?.text || 'Visit Link'}
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            </div>
+                          );
+                        })()}
+                        {block.type === 'code' && (
+                          <div className="bg-background text-foreground rounded-xl overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                {block.data?.language || 'code'}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(block.data?.code || '');
+                                  toast.success('Copied to clipboard!');
+                                }}
+                                className="text-xs px-2 py-1 bg-secondary hover:bg-slate-600 rounded text-foreground transition-colors"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                            <pre className="p-4 overflow-x-auto text-sm font-mono">
+                              <code>{block.data?.code || ''}</code>
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
