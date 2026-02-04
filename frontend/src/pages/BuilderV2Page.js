@@ -2101,6 +2101,28 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             />
             <Label className="text-sm">{t('builder.openInNewTab')}</Label>
           </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.alignment')}</Label>
+            <Select
+              value={block.data?.alignment || 'center'}
+              onValueChange={(alignment) => {
+                if (!alignment) {
+                  onUpdate({ data: { ...block.data, alignment: undefined } });
+                } else {
+                  onUpdate({ data: { ...block.data, alignment } });
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="left">{t('builder.alignmentOptions.left')}</SelectItem>
+                <SelectItem value="center">{t('builder.alignmentOptions.center')}</SelectItem>
+                <SelectItem value="right">{t('builder.alignmentOptions.right')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       );
 

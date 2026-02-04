@@ -127,6 +127,7 @@ export const createBlock = (type, data = {}) => {
       text: 'Learn more',
       url: '',
       openInNewTab: true,
+      alignment: 'center',
       style: 'default' // default, primary, secondary
     },
     [BLOCK_TYPES.CODE]: {

@@ -740,8 +740,8 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       {/* Header - Hide in iframe mode */}
       {!inIframe && (
       <header className="glass border-b border-border/50 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
+        <div className="max-w-5xl mx-auto px-6 py-3">
+          <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-3 min-w-0">
               <Link
                 to={`/portal/${slug}`}
@@ -789,7 +789,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
       )}
 
       {walkthrough && (
-        <main className="max-w-4xl mx-auto px-6 py-12">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 md:py-10">
           <AnimatePresence mode="wait">
             {!showFeedback ? (
             <motion.div
@@ -797,15 +797,15 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="glass rounded-2xl p-8"
+              className="glass rounded-2xl p-5 md:p-6"
             >
-              <h2 className="text-3xl font-heading font-bold text-foreground mb-6 text-center" data-testid="step-title">
+              <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-4 text-center" data-testid="step-title">
                 {step?.title}
               </h2>
               
               {/* Media Display (Legacy) */}
               {step?.media_url && (
-                <div className="mb-6">
+                <div className="mb-5">
                   {step.media_type === 'image' && (() => {
                     // Enhanced mobile detection - check multiple methods
                     const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -870,7 +870,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           loop
                           muted
                           playsInline
-                          className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-secondary cursor-zoom-in"
+                          className="w-full max-h-[45vh] object-contain rounded-lg shadow-soft bg-secondary cursor-zoom-in"
                           onClick={() => setImagePreviewUrl(step.media_url)}
                           onLoadStart={() => console.log('[GIF Debug] Video load started:', optimizedVideoUrl)}
                           onLoadedData={() => console.log('[GIF Debug] Video loaded successfully:', optimizedVideoUrl)}
@@ -902,7 +902,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         data-gif-src={isGifFile ? step.media_url : undefined}
                         src={optimizedImageUrl} 
                         alt={step.title} 
-                        className="w-full max-h-[420px] object-contain rounded-lg shadow-soft bg-secondary cursor-zoom-in"
+                        className="w-full max-h-[45vh] object-contain rounded-lg shadow-soft bg-secondary cursor-zoom-in"
                         onClick={() => setImagePreviewUrl(step.media_url)}
                         loading="eager"
                         decoding="async"
@@ -921,7 +921,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                     <video 
                       src={isCloudinary(step.media_url) ? optimizeCloudinaryUrl(step.media_url, true) : step.media_url} 
                       controls 
-                      className="max-w-full rounded-lg shadow-soft"
+                      className="max-w-full rounded-lg shadow-soft max-h-[50vh]"
                     />
                   )}
                   {step.media_type === 'youtube' && (
@@ -935,18 +935,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                   )}
                 </div>
               )}
-              
-              {/* Blocks Display (New) */}
-              {/* DO NOT sanitize editor HTML here. */}
-              {/* Portal renders trusted, pre-sanitized editor output. */}
-              {/* Re-sanitizing breaks lists, RTL text, and inline content. */}
-              {step?.blocks && step.blocks.length > 0 && (
-                <div className="space-y-6 mb-8">
-                  {step.blocks.map((block, idx) => (
-                    <div key={block.id || idx}>
-                      {block.type === 'heading' && (() => {
-                        const headingHtml = block.data?.content || '';
-                        const dir = getTextDirection(headingHtml);
                         return (
                           <h3 
                             className={`font-heading font-bold text-foreground text-center ${
@@ -1086,7 +1074,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                               data-gif-src={isGifFile ? imageUrl : undefined}
                               src={optimizedImageUrl} 
                               alt={block.data?.alt || ''} 
-                              className="w-full max-h-[420px] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
+                              className="w-full max-h-[45vh] object-contain rounded-xl shadow-sm bg-secondary/50 cursor-zoom-in"
                               onClick={() => setImagePreviewUrl(imageUrl)}
                               loading="eager"
                               decoding="async"
@@ -1121,7 +1109,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             <video 
                               src={isCloudinary(block.data.url) ? optimizeCloudinaryUrl(block.data.url, true) : block.data.url} 
                               controls 
-                              className="max-w-full rounded-lg shadow-soft"
+                              className="max-w-full rounded-lg shadow-soft max-h-[50vh]"
                             />
                           )}
                         </div>
@@ -1464,19 +1452,37 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                         if (normalizedUrl && !/^https?:\/\//i.test(normalizedUrl)) {
                           normalizedUrl = `https://${normalizedUrl}`;
                         }
-                        
+
+                        const alignment = block.data?.alignment || 'center';
+                        const justifyClass = alignment === 'left'
+                          ? 'justify-start'
+                          : alignment === 'right'
+                            ? 'justify-end'
+                            : 'justify-center';
+                        const textAlignClass = alignment === 'left'
+                          ? 'text-left'
+                          : alignment === 'right'
+                            ? 'text-right'
+                            : 'text-center';
+                        const openInNewTab =
+                          block.data?.openInNewTab !== undefined
+                            ? block.data.openInNewTab
+                            : block.data?.newTab !== false;
+
                         return (
-                          <a
-                            href={normalizedUrl}
-                            target={block.data?.newTab !== false ? '_blank' : '_self'}
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                          >
-                            {block.data?.text || 'Visit Link'}
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </a>
+                          <div className={`flex w-full ${justifyClass}`}>
+                            <a
+                              href={normalizedUrl}
+                              target={openInNewTab ? '_blank' : undefined}
+                              rel={openInNewTab ? 'noopener noreferrer' : undefined}
+                              className={`inline-flex items-center gap-2 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium ${textAlignClass}`}
+                            >
+                              {block.data?.text || 'Visit Link'}
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </div>
                         );
                       })()}
                       {block.type === 'code' && (
@@ -1508,7 +1514,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               {/* Legacy Content Display */}
               {step?.content && !step?.blocks?.length && (
                 <div 
-                  className="prose max-w-none mb-8 text-foreground text-center"
+                  className="prose max-w-none mb-6 text-foreground text-center"
                   {...getCenteredDirectionalProps(step?.content)}
                   dangerouslySetInnerHTML={renderTrustedHtml(step?.content || '')}
                   data-testid="step-content"
@@ -1516,7 +1522,7 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
               )}
 
               {/* Navigation */}
-              <div className="flex items-center justify-between pt-6 border-t border-border">
+              <div className="flex items-center justify-between pt-4 border-t border-border">
                 {isStepCheckoffRequired() && (
                   <button
                     type="button"

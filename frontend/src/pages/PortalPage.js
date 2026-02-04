@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ const PortalPage = () => {
   const [categorySelectOpen, setCategorySelectOpen] = useState(false);
   const [selectedCategoryForChat, setSelectedCategoryForChat] = useState(null);
   const [knowledgeSystemCounts, setKnowledgeSystemCounts] = useState({});
+  const walkthroughsSectionRef = useRef(null);
 
   // Organize categories into parent/children structure
   const categoryTree = useMemo(() => {
@@ -75,6 +76,12 @@ const PortalPage = () => {
     return grouped;
   }, [categoryTree, filteredWalkthroughs]);
 
+  const scrollToWalkthroughs = useCallback(() => {
+    if (walkthroughsSectionRef.current) {
+      walkthroughsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
   useEffect(() => {
     if (!slug) return;
     
@@ -120,7 +127,7 @@ const PortalPage = () => {
   return (
       <>
       {/* Portal-Specific Header */}
-      <section className={`${inIframe ? 'py-8' : 'py-16'} px-6 relative`}>
+      <section className={`${inIframe ? 'py-6' : 'py-10 md:py-14'} px-6 relative`}>
         <div className="max-w-6xl mx-auto">
           {portalIdNormalized === 'admin' && (
             <motion.div
@@ -128,23 +135,34 @@ const PortalPage = () => {
               animate={{ opacity: 1, y: 0 }}
               className="relative"
             >
-              <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
-                <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-center">
+              <div className="glass rounded-3xl p-7 md:p-10 shadow-xl border border-border/50">
+                <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr] items-center">
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.admin.label')}</p>
-                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
+                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-2 mb-3">
                       {portalDetails.title}
                     </h1>
-                    <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <p className="text-base md:text-lg text-muted-foreground mb-5 leading-relaxed">
+                      {portalDetails.description}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                       <Badge variant="secondary">{t('portal:headers.admin.badgeSystemHealth')}</Badge>
                       <Badge variant="secondary">{t('portal:headers.admin.badgeAuditReady')}</Badge>
                       <Badge variant="secondary">{t('portal:headers.admin.badgeIntegrationControl')}</Badge>
                     </div>
                   </div>
-                  <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
+                  <button
+                    type="button"
+                    onClick={scrollToWalkthroughs}
+                    className="rounded-2xl overflow-hidden border border-border/40 bg-slate-950/60 relative focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary transition-all duration-300 group"
+                  >
                     <img src={portalDetails.headerImage} alt="Admin control center overview" className="w-full h-full object-cover" />
-                  </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="absolute bottom-4 right-4 text-xs font-semibold uppercase tracking-wide text-white flex items-center gap-2">
+                      {t('portal:headers.tenant.imageCtaLabel')}
+                      <ChevronRight className="w-4 h-4" />
+                    </span>
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -156,24 +174,45 @@ const PortalPage = () => {
               animate={{ opacity: 1, y: 0 }}
               className="relative"
             >
-              <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
-                <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] items-center">
-                  <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
+              <div className="glass rounded-3xl p-7 md:p-10 shadow-xl border border-border/50">
+                <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] items-center">
+                  <button
+                    type="button"
+                    onClick={scrollToWalkthroughs}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        scrollToWalkthroughs();
+                      }
+                    }}
+                    className="rounded-2xl overflow-hidden border border-border/40 bg-slate-950/60 relative cursor-pointer group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t('portal:headers.tenant.imageCta')}
+                    title={t('portal:headers.tenant.imageCta')}
+                  >
                     <img src={portalDetails.headerImage} alt="Guided journey checklist" className="w-full h-full object-cover" />
-                  </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+                      {t('portal:headers.tenant.imageCtaLabel')}
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </button>
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.tenant.label')}</p>
-                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
+                    <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-2 mb-3">
                       {portalDetails.title}
                     </h1>
-                    <p className="text-lg text-muted-foreground mb-8">{portalDetails.description}</p>
+                    <p className="text-base md:text-lg text-muted-foreground mb-6 leading-relaxed">
+                      {portalDetails.description}
+                    </p>
                     <div className="relative max-w-2xl">
                       <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder={t('portal:searchPlaceholder')}
-                        className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
+                        className="pl-12 h-12 md:h-14 text-base md:text-lg rounded-xl bg-background/70 border border-border/60 focus-visible:ring-primary/50"
                         data-testid="portal-search-input"
                       />
                     </div>
@@ -248,17 +287,19 @@ const PortalPage = () => {
 
       {/* Categories Filter */}
       {categoryTree.length > 0 && (
-        <section className="py-6 px-6 relative">
+        <section className="py-4 px-6" aria-label={t('portal:categoriesLabel')}>
           <div className="max-w-7xl mx-auto">
-            {/* 3D Glass Bubble for Categories */}
-            <div className="glass rounded-2xl p-4 md:p-6 shadow-xl">
-              <div className="flex gap-3 flex-wrap justify-center">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+                {t('portal:categoriesLabel')}
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap md:flex-nowrap overflow-x-auto pb-1">
               <Badge
                 variant={selectedCategory === null ? 'default' : 'outline'}
-                className="cursor-pointer px-4 py-2 text-sm font-medium text-foreground transition-all hover:scale-105"
+                className={`cursor-pointer px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full border ${selectedCategory === null ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-foreground border-border/70 hover:border-foreground/60'}`}
                 onClick={() => setSelectedCategory(null)}
                 data-testid="category-all"
-                style={selectedCategory === null ? { backgroundColor: primaryColor, borderColor: primaryColor, color: 'white' } : { color: primaryColor }}
               >
                 {t('common:all')}
               </Badge>
@@ -266,25 +307,20 @@ const PortalPage = () => {
                 <Badge
                   key={category.id}
                   variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  className="cursor-pointer px-4 py-2 text-sm font-medium text-foreground transition-all hover:scale-105"
+                  className={`cursor-pointer px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full border ${selectedCategory === category.id ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-foreground border-border/70 hover:border-foreground/60'}`}
                   onClick={() => setSelectedCategory(category.id)}
                   data-testid={`category-${category.id}`}
-                  style={selectedCategory === category.id ? { backgroundColor: primaryColor, borderColor: primaryColor, color: 'white' } : { color: primaryColor }}
                 >
                   {category.name}
-                  {category.children.length > 0 && (
-                    <span className="ml-1.5 text-xs opacity-70">({category.children.length})</span>
-                  )}
                 </Badge>
               ))}
-              </div>
             </div>
           </div>
         </section>
       )}
 
       {/* Walkthroughs - Organized by Category */}
-      <section className="py-12 px-6 pb-20">
+      <section className="py-8 md:py-10 px-6 pb-16" ref={walkthroughsSectionRef} id="portal-walkthroughs">
         <div className="max-w-7xl mx-auto">
           {showByCategory ? (
             // Show organized by categories
@@ -298,16 +334,14 @@ const PortalPage = () => {
                     transition={{ delay: sectionIndex * 0.1 }}
                   >
                     {category && (
-                      <div className="glass rounded-2xl p-4 mb-6 shadow-lg">
-                        <div className="flex items-center justify-between gap-3 flex-wrap">
-                          <div className="flex items-center gap-3">
-                            <FolderOpen className="w-6 h-6" style={{ color: primaryColor }} />
-                            <div>
-                              <h2 className="text-2xl font-heading font-bold text-foreground">{category.name}</h2>
-                              {category.description && (
-                                <p className="text-sm text-muted-foreground font-medium mt-1">{category.description}</p>
-                              )}
-                            </div>
+                      <div className="mb-4 pl-3 border-l-2 border-border/50">
+                        <div className="flex items-center gap-3">
+                          <FolderOpen className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <h2 className="text-lg font-semibold text-foreground tracking-tight">{category.name}</h2>
+                            {category.description && (
+                              <p className="text-sm text-muted-foreground mt-0.5 leading-snug">{category.description}</p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -321,7 +355,7 @@ const PortalPage = () => {
                         ))}
                       </div>
                     )}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
                       {walkthroughs.map((walkthrough, index) => (
                         <motion.div
                           key={walkthrough.id}
@@ -329,14 +363,14 @@ const PortalPage = () => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: (sectionIndex * 0.1) + (index * 0.05) }}
                         >
-                          <Link to={`/portal/${slug}/${walkthrough.slug || walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
-                            <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-border hover:border-primary/30 group">
-                              <div className="flex items-start gap-4 mb-4">
+                          <Link to={`/portal/${slug}/${walkthrough.slug || walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`} className="block h-full">
+                            <div className="rounded-xl p-5 md:p-6 border border-border/70 hover:border-primary/40 bg-card/80 h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                              <div className="flex items-start gap-4 mb-3">
                                 {walkthrough.icon_url ? (
                                   <img
                                     src={normalizeImageUrl(walkthrough.icon_url)}
                                     alt={walkthrough.title}
-                                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-border group-hover:scale-105 transition-transform"
+                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-border"
                                     onError={(e) => {
                                       console.error('Failed to load icon:', walkthrough.icon_url);
                                       e.target.style.display = 'none';
@@ -344,7 +378,7 @@ const PortalPage = () => {
                                   />
                                 ) : (
                                   <div 
-                                    className="w-16 h-16 rounded-2xl backdrop-blur-sm border flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
+                                    className="w-14 h-14 rounded-xl backdrop-blur-sm border flex items-center justify-center flex-shrink-0"
                                     style={{ 
                                       backgroundColor: `${primaryColor}15`, 
                                       borderColor: `${primaryColor}30` 
@@ -355,31 +389,35 @@ const PortalPage = () => {
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <h3 
-                                    className="text-lg font-heading font-semibold text-foreground mb-2 transition-colors"
-                                    style={{ '--hover-color': primaryColor }}
-                                    onMouseEnter={(e) => e.target.style.color = primaryColor}
-                                    onMouseLeave={(e) => e.target.style.color = ''}
+                                    className="text-lg font-heading font-semibold text-foreground mb-1 leading-tight"
                                   >
                                     {walkthrough.title}
                                   </h3>
-                                  <p className="text-sm text-muted-foreground line-clamp-2">
+                                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                                     {walkthrough.description || t('translation:walkthrough.noDescription')}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between pt-4 border-t border-border">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs text-foreground border-border">
-                                    {walkthrough.steps?.length || 0} steps
+                              <div className="flex items-center justify-between pt-3 mt-2 border-t border-border/70">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Badge variant="outline" className="text-[11px] uppercase tracking-wide border-border/70">
+                                    {walkthrough.steps?.length || 0} {t('portal:stepsLabel')}
                                   </Badge>
                                   {walkthrough.privacy === 'password' && (
-                                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                    <Badge variant="secondary" className="text-[11px] flex items-center gap-1">
                                       <Lock className="w-3 h-3" />
                                       Locked
                                     </Badge>
                                   )}
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="px-0 text-sm font-semibold text-primary hover:text-primary"
+                                >
+                                  {t('portal:startGuide')}
+                                  <ChevronRight className="w-4 h-4 ml-1" />
+                                </Button>
                               </div>
                             </div>
                           </Link>
@@ -401,7 +439,7 @@ const PortalPage = () => {
           ) : (
             // Show flat list when category is selected
             filteredWalkthroughs.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
                 {filteredWalkthroughs.map((walkthrough, index) => (
                   <motion.div
                     key={walkthrough.id}
@@ -409,42 +447,49 @@ const PortalPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Link to={`/portal/${slug}/${walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`}>
-                      <div className="glass rounded-xl p-6 hover:shadow-soft-lg transition-all h-full border border-border hover:border-primary/30 group">
-                        <div className="flex items-start gap-4 mb-4">
+                    <Link to={`/portal/${slug}/${walkthrough.id}`} data-testid={`walkthrough-${walkthrough.id}`} className="block h-full">
+                      <div className="rounded-xl p-5 md:p-6 border border-border/70 hover:border-primary/40 bg-card/80 h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                        <div className="flex items-start gap-4 mb-3">
                           {walkthrough.icon_url ? (
                             <img
                               src={walkthrough.icon_url}
                               alt={walkthrough.title}
-                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-border group-hover:scale-105 transition-transform"
+                              className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-border"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
                               <BookOpen className="w-8 h-8 text-primary" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-heading font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                            <h3 className="text-lg font-heading font-semibold text-foreground mb-1 leading-tight">
                               {walkthrough.title}
                             </h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
+                            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                               {walkthrough.description || t('translation:walkthrough.noDescription')}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between pt-4 border-t border-border">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs text-foreground border-border">
-                              {walkthrough.steps?.length || 0} steps
+                        <div className="flex items-center justify-between pt-3 mt-2 border-t border-border/70">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-[11px] uppercase tracking-wide border-border/70">
+                              {walkthrough.steps?.length || 0} {t('portal:stepsLabel')}
                             </Badge>
                             {walkthrough.privacy === 'password' && (
-                              <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Badge variant="secondary" className="text-[11px] flex items-center gap-1">
                                 <Lock className="w-3 h-3" />
                                 Locked
                               </Badge>
                             )}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="px-0 text-sm font-semibold text-primary hover:text-primary"
+                          >
+                            {t('portal:startGuide')}
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
                         </div>
                       </div>
                     </Link>

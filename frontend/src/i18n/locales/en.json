@@ -211,30 +211,32 @@
   "portal": {
     "headers": {
       "admin": {
-        "label": "פורטל ניהול",
-        "title": "מרכז שליטה לניהול",
-        "description": "הגדרת מערכות, ניהול נתונים ושליטה באינטגרציות.",
-        "badgeSystemHealth": "מצב מערכת",
-        "badgeAuditReady": "מוכן לביקורת",
-        "badgeIntegrationControl": "שליטה באינטגרציות"
+        "label": "Admin Portal",
+        "title": "Management control center",
+        "description": "Configure systems, manage data, and control integrations.",
+        "badgeSystemHealth": "System Health",
+        "badgeAuditReady": "Audit Ready",
+        "badgeIntegrationControl": "Integration Control"
       },
       "tenant": {
-        "label": "פורטל משתמשים",
-        "title": "החוויה המודרכת שלך",
-        "description": "הנחיות שלב אחר שלב מותאמות למסע שלך."
+        "label": "User Portal",
+        "title": "Your guided experience",
+        "description": "Step-by-step instructions tailored to your journey.",
+        "imageCtaLabel": "Jump in",
+        "imageCta": "Go to walkthroughs"
       },
       "knowledge": {
-        "label": "פורטל ידע",
-        "title": "מאגר ידע",
-        "description": "תיעוד ברור, תשובות וידע מערכת."
+        "label": "Knowledge Portal",
+        "title": "Knowledge base",
+        "description": "Clear documentation, answers, and system knowledge."
       },
       "integrations": {
-        "label": "פורטל אינטגרציות",
-        "title": "אינטגרציות",
-        "description": "חיבור כלים, אוטומציות וסנכרון מערכות.",
-        "badgeApiReady": "מוכן ל‑API",
-        "badgeWorkflowAutomation": "אוטומציות תהליך",
-        "badgeSyncHealth": "מצב סנכרון"
+        "label": "Integrations Portal",
+        "title": "Integrations",
+        "description": "Connect tools, automate workflows, and sync systems.",
+        "badgeApiReady": "API Ready",
+        "badgeWorkflowAutomation": "Workflow Automation",
+        "badgeSyncHealth": "Sync Health"
       }
     },
     "needHelp": "Need Help?",
@@ -245,6 +247,9 @@
     "howCanWeHelp": "How can we help you?",
     "searchKnowledgeBase": "Search our knowledge base or browse categories",
     "searchPlaceholder": "Search for guides...",
+    "categoriesLabel": "Categories",
+    "stepsLabel": "steps",
+    "startGuide": "Start",
     "adminDialog": {
       "title": "Admin Dashboard",
       "message": "You are currently viewing the portal. Would you like to go to the Admin Dashboard to manage your workspace?",
