@@ -82,7 +82,10 @@ export const createBlock = (type, data = {}) => {
     },
     [BLOCK_TYPES.COLUMNS]: {
       count: 2,
-      blocks: [[], []]
+      column1: '',
+      column2: '',
+      column1Button: null,
+      column2Button: null
     },
     [BLOCK_TYPES.HTML]: {
       content: ''
@@ -96,8 +99,7 @@ export const createBlock = (type, data = {}) => {
     },
     [BLOCK_TYPES.CALLOUT]: {
       variant: 'tip', // tip, warning, important, info
-      content: '',
-      alignment: 'center'
+      content: ''
     },
     [BLOCK_TYPES.ANNOTATED_IMAGE]: {
       url: '',

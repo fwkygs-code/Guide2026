@@ -1496,6 +1496,7 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             }
           }}
           textAlign="center"
+          variant="builder"
         />
       );
 
@@ -1921,29 +1922,11 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                {t('builder.blockSettings.alignment')}
-              </Label>
-              <Select
-                value={block.data?.alignment || 'center'}
-                onValueChange={(alignment) => onUpdate({ data: { ...block.data, alignment } })}
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="left">{t('builder.alignmentOptions.left')}</SelectItem>
-                  <SelectItem value="center">{t('builder.alignmentOptions.center')}</SelectItem>
-                  <SelectItem value="right">{t('builder.alignmentOptions.right')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <RichTextEditor
             content={block.data?.content || ''}
             onChange={(content) => onUpdate({ data: { ...block.data, content } })}
-            textAlign={block.data?.alignment || 'center'}
+            variant="builder"
           />
         </div>
       );
@@ -2086,18 +2069,11 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
             content={block.data?.message || ''}
             onChange={(message) => onUpdate({ data: { ...block.data, message } })}
             textAlign="center"
+            variant="builder"
           />
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              disabled
-              className="flex-shrink-0"
-            />
-            <Input
-              value={block.data?.buttonText || t('builder.iUnderstand')}
-              onChange={(e) => onUpdate({ data: { ...block.data, buttonText: e.target.value } })}
-              placeholder="Button text"
-            />
+            <input type="checkbox" disabled className="w-5 h-5 rounded border-primary/30" />
+            <span className="text-sm text-muted-foreground">{t('builder.confirmationPreview')}</span>
           </div>
         </div>
       );
@@ -2238,27 +2214,109 @@ const BlockContent = ({ block, onUpdate, onDelete, workspaceId, walkthroughId, s
         </div>
       );
 
-    case BLOCK_TYPES.COLUMNS:
+    case BLOCK_TYPES.COLUMNS: {
+      const getDefaultColumnButtonText = (action) => {
+        const defaults = {
+          next: 'builder.buttonDefaults.next',
+          go_to_step: 'builder.buttonDefaults.goToStep',
+          end: 'builder.buttonDefaults.end',
+          restart: 'builder.buttonDefaults.restart',
+          support: 'builder.buttonDefaults.support',
+          link: 'builder.buttonDefaults.link',
+          check: 'builder.buttonDefaults.check'
+        };
+        return defaults[action] || 'builder.buttonDefaults.button';
+      };
+
+      const updateColumnButton = (key, buttonData) => {
+        onUpdate({ data: { ...block.data, [key]: buttonData } });
+      };
+
+      const renderColumnButtonControls = (columnKey) => {
+        const buttonData = block.data?.[columnKey] || null;
+        const buttonAction = buttonData?.action || 'next';
+
+        return (
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.buttonText')}</Label>
+            <Input
+              value={buttonData?.text || ''}
+              onChange={(e) => {
+                const text = e.target.value;
+                if (!text) {
+                  updateColumnButton(columnKey, null);
+                  return;
+                }
+                const existing = buttonData || { action: 'next' };
+                updateColumnButton(columnKey, { ...existing, text });
+              }}
+              placeholder={t(getDefaultColumnButtonText(buttonAction))}
+            />
+
+            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.blockSettings.action')}</Label>
+            <Select
+              value={buttonAction}
+              onValueChange={(value) => {
+                const existing = buttonData || {};
+                const currentAction = existing.action || 'next';
+                const currentText = existing.text || '';
+                const previousDefault = getDefaultColumnButtonText(currentAction);
+                const newDefault = getDefaultColumnButtonText(value);
+                const shouldUpdateText = !currentText || currentText === previousDefault;
+
+                updateColumnButton(columnKey, {
+                  ...existing,
+                  action: value,
+                  text: shouldUpdateText ? newDefault : currentText || newDefault
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="next">{t('builder.buttonActions.next')}</SelectItem>
+                <SelectItem value="go_to_step">{t('builder.buttonActions.goToStep')}</SelectItem>
+                <SelectItem value="end">{t('builder.buttonActions.end')}</SelectItem>
+                <SelectItem value="restart">{t('builder.buttonActions.restart')}</SelectItem>
+                <SelectItem value="support">{t('builder.buttonActions.support')}</SelectItem>
+                <SelectItem value="link">{t('builder.buttonActions.link')}</SelectItem>
+                <SelectItem value="check">{t('builder.buttonActions.check')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        );
+      };
+
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.placeholders.column1')}</Label>
-              <RichTextEditor
-                content={block.data?.column1 || ''}
-                onChange={(content) => onUpdate({ data: { ...block.data, column1: content } })}
-              />
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.placeholders.column1')}</Label>
+                <RichTextEditor
+                  content={block.data?.column1 || ''}
+                  onChange={(content) => onUpdate({ data: { ...block.data, column1: content } })}
+                  variant="builder"
+                />
+              </div>
+              {renderColumnButtonControls('column1Button')}
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.placeholders.column2')}</Label>
-              <RichTextEditor
-                content={block.data?.column2 || ''}
-                onChange={(content) => onUpdate({ data: { ...block.data, column2: content } })}
-              />
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">{t('builder.placeholders.column2')}</Label>
+                <RichTextEditor
+                  content={block.data?.column2 || ''}
+                  onChange={(content) => onUpdate({ data: { ...block.data, column2: content } })}
+                  variant="builder"
+                />
+              </div>
+              {renderColumnButtonControls('column2Button')}
             </div>
           </div>
         </div>
       );
+    }
 
     default:
       return <div className="text-muted-foreground text-sm">Unknown block type: {block.type}</div>;

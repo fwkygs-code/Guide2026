@@ -1313,17 +1313,6 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                           block.data?.body ??
                           block.data?.value ??
                           '';
-                        const alignment = block.data?.alignment || 'center';
-                        const textAlignClass = alignment === 'left'
-                          ? 'text-left'
-                          : alignment === 'right'
-                            ? 'text-right'
-                            : 'text-center';
-                        const justifyClass = alignment === 'left'
-                          ? 'justify-start'
-                          : alignment === 'right'
-                            ? 'justify-end'
-                            : 'justify-center';
                         const variantStyles = getCalloutVariant(block.data?.variant);
                         const icon = block.data?.variant === 'warning'
                           ? '⚠️'
@@ -1332,15 +1321,16 @@ const WalkthroughViewerPage = ({ isEmbedded = false }) => {
                             : block.data?.variant === 'info'
                               ? 'ℹ️'
                               : '💡';
+                        const directionalProps = getDirectionalProps(rawHtml);
                         return (
                           <div className={`rounded-2xl p-5 border ${variantStyles.container}`}>
-                            <div className={`flex gap-3 items-start ${justifyClass} w-full`}>
+                            <div className="flex gap-3 items-start w-full">
                               <span className={`text-3xl flex-shrink-0 leading-none ${variantStyles.icon}`}>
                                 {icon}
                               </span>
                               <div
-                                className={`prose prose-sm max-w-none flex-1 ${textAlignClass}`}
-                                {...getDirectionalPropsWithAlignment(rawHtml, alignment)}
+                                className="prose prose-sm max-w-none flex-1"
+                                {...directionalProps}
                                 dangerouslySetInnerHTML={renderTrustedHtml(rawHtml)}
                               />
                             </div>
@@ -1954,13 +1944,14 @@ const AnnotatedImageViewer = ({ block }) => {
 
   return (
     <div
-      className="relative border border-border rounded-lg overflow-hidden bg-secondary select-none mx-auto"
+      className="relative border border-border rounded-lg bg-secondary select-none mx-auto"
       style={{
         userSelect: 'none',
         WebkitUserSelect: 'none',
         width: '100%',
         maxWidth: 'min(640px, 90vw)',
-        height: 'auto'
+        height: 'auto',
+        overflow: 'visible'
       }}
     >
       <img

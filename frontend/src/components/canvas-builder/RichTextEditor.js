@@ -23,12 +23,14 @@ const RichTextEditor = ({
   placeholder,
   system = null,
   className = '',
-  textAlign = 'left'
+  textAlign = 'left',
+  variant = 'default'
 }) => {
   const { t } = useTranslation();
   const translatedPlaceholder = placeholder || t('builder.placeholders.startTyping');
   const [showToolbar, setShowToolbar] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
+  const isBuilderVariant = variant === 'builder';
 
   const editor = useEditor({
     extensions: [
@@ -78,7 +80,8 @@ const RichTextEditor = ({
           'prose max-w-none focus:outline-none min-h-[120px] p-6 text-foreground',
           'prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground',
           'prose-a:text-current prose-code:text-current',
-          system && getProseClasses(system)
+          system && getProseClasses(system),
+          isBuilderVariant && 'text-slate-900 prose-headings:text-slate-900 prose-p:text-slate-700'
         ),
         dir: 'auto',
         style: { textAlign }
@@ -111,6 +114,12 @@ const RichTextEditor = ({
 
   // Get glass surface styling for the editor
   const getEditorSurface = () => {
+    if (isBuilderVariant) {
+      return cn(
+        'bg-white border border-slate-200 rounded-xl shadow-sm transition-all duration-300',
+        focused && 'ring-2 ring-primary/20'
+      );
+    }
     if (system) {
       return cn(
         SURFACES.glass.secondary,
@@ -124,7 +133,7 @@ const RichTextEditor = ({
 
   return (
     <motion.div
-      className={cn('relative rounded-xl overflow-visible', getEditorSurface(), className)}
+      className={cn('relative rounded-xl overflow-visible', getEditorSurface(), isBuilderVariant && 'text-slate-900', className)}
       initial={{ opacity: 0.9 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}

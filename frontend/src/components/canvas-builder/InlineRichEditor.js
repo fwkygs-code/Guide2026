@@ -7,11 +7,10 @@ import { Color } from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
-import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Type, Palette, Highlighter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FontSize } from '@/lib/fontSize';
-import { RICH_TEXT_COLOR_PALETTE, RICH_TEXT_HIGHLIGHT_PALETTE } from '../../utils/richTextColors';
 
 function getEditorPlainText(editor) {
   // Preserve spaces (including trailing) better than HTML/textContent which can drop/collapse them.
@@ -201,8 +200,8 @@ const InlineRichEditor = ({
           >
             <AlignRight className="w-3.5 h-3.5" />
           </Button>
-          <div className="w-px h-5 bg-border mx-0.5" />
-            <div className="flex items-center gap-0.5">
+          <div className="w-px h-5 bg-border mx-1" />
+          <div className="flex items-center gap-0.5">
             <div className="flex items-center gap-1">
               <Popover open={fontMenuOpen} onOpenChange={(open) => {
                 setFontMenuOpen(open);
@@ -249,53 +248,24 @@ const InlineRichEditor = ({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="w-px h-5 bg-border mx-1" />
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                editor.chain().focus().unsetColor().run();
-              }}
-              className="h-5 w-5 rounded-full border border-border"
-              aria-label="Default text color"
-            />
-            {RICH_TEXT_COLOR_PALETTE.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  editor.chain().focus().setColor(color).run();
-                }}
-                className={`h-5 w-5 rounded-full border border-border ${editor.getAttributes('textStyle')?.color === color ? 'ring-2 ring-primary' : ''}`}
-                style={{ backgroundColor: color }}
-                aria-label={`Text color ${color}`}
-              />
-            ))}
-            <div className="w-px h-5 bg-border mx-1" />
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                editor.chain().focus().unsetHighlight().run();
-              }}
-              className="h-5 w-5 rounded-full border border-border"
-              aria-label="Clear highlight"
-            />
-            {RICH_TEXT_HIGHLIGHT_PALETTE.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  editor.chain().focus().setHighlight({ color }).run();
-                }}
-                className={`h-5 w-5 rounded-full border border-border ${editor.getAttributes('highlight')?.color === color ? 'ring-2 ring-primary' : ''}`}
-                style={{ backgroundColor: color }}
-                aria-label={`Highlight ${color}`}
-              />
-            ))}
           </div>
+          <div className="w-px h-5 bg-border mx-1" />
+          <ColorButton
+            icon={Palette}
+            ariaLabel="Text color"
+            color={editor.getAttributes('textStyle')?.color}
+            onChange={(color) => editor.chain().focus().setColor(color).run()}
+            onClear={() => editor.chain().focus().unsetColor().run()}
+          />
+          <div className="w-px h-5 bg-border mx-1" />
+          <ColorButton
+            icon={Highlighter}
+            ariaLabel="Highlight color"
+            color={editor.getAttributes('highlight')?.color}
+            onChange={(color) => editor.chain().focus().setHighlight({ color }).run()}
+            onClear={() => editor.chain().focus().unsetHighlight().run()}
+            showOutline
+          />
         </div>
       )}
 
@@ -304,6 +274,68 @@ const InlineRichEditor = ({
         className="inline-rich-editor"
       />
     </div>
+  );
+};
+
+const ColorButton = ({ icon: Icon, ariaLabel, color, onChange, onClear, showOutline = false }) => {
+  const [open, setOpen] = React.useState(false);
+  const safeColor = /^#([0-9A-F]{3}){1,2}$/i.test(color || '') ? color : '#FFFFFF';
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={`h-7 w-7 p-0 relative text-foreground hover:bg-accent ${color ? 'bg-accent/30' : ''}`}
+          onMouseDown={(e) => e.preventDefault()}
+          aria-label={ariaLabel}
+        >
+          <Icon className="w-3.5 h-3.5" />
+          <span
+            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border border-border ${showOutline ? 'ring-1 ring-white/50' : ''}`}
+            style={{ backgroundColor: color || 'transparent' }}
+          />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 bg-popover border-border text-foreground space-y-3">
+        <div className="flex items-center justify-between text-sm font-medium">
+          <span>{ariaLabel}</span>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onClear();
+              setOpen(false);
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Reset
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={safeColor}
+            onChange={(event) => {
+              onChange(event.target.value);
+            }}
+            className="h-10 w-10 rounded border border-border bg-transparent cursor-pointer"
+          />
+          <div className="flex-1 space-y-1">
+            <input
+              type="text"
+              value={color || ''}
+              onChange={(event) => onChange(event.target.value)}
+              placeholder="#FFFFFF"
+              className="w-full rounded-md border border-border bg-transparent px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <p className="text-[11px] text-muted-foreground">Supports HEX colors</p>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
