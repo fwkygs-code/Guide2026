@@ -1518,7 +1518,13 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 async def _validate_binding_token(request: Request) -> Tuple[str, str]:
-    """Validate X-Workspace-Binding header, return (workspace_id, extension_id)."""
+    """Validate X-Workspace-Binding header, return (workspace_id, extension_id).
+    
+    SECURITY: This is the SOLE authority for extension workspace scoping.
+    - No cookie/JWT fallback allowed
+    - Revoked tokens return 403 (immediate termination)
+    - Mismatched extension_id returns 403 (single-extension enforcement)
+    """
     raw = request.headers.get("X-Workspace-Binding")
     if not raw:
         raise HTTPException(status_code=401, detail="Missing binding token")
@@ -5580,50 +5586,14 @@ async def get_portal_knowledge_system(slug: str, system_id: str):
     
     return system
 
-# Workspace Binding Token endpoints
-@api_router.post("/workspaces/{workspace_id}/binding-token")
-async def generate_binding_token(workspace_id: str, current_user: User = Depends(get_current_user)):
-    if not await is_workspace_owner(workspace_id, current_user.id):
-        raise HTTPException(status_code=403, detail="Only workspace owner can generate binding token")
-    # Revoke all existing tokens for this workspace
-    await db.workspace_binding_tokens.update_many(
-        {"workspace_id": workspace_id, "revoked_at": None},
-        {"$set": {"revoked_at": datetime.now(timezone.utc)}}
-    )
-    # Generate new token
-    raw_token = secrets.token_urlsafe(32)  # 256-bit entropy
-    token_hash = _hash_token(raw_token)
-    record = WorkspaceBindingToken(
-        workspace_id=workspace_id,
-        token_hash=token_hash,
-        created_at=datetime.now(timezone.utc)
-    )
-    await db.workspace_binding_tokens.insert_one(record.model_dump())
-    return {"token": raw_token}
-
-@api_router.post("/workspaces/{workspace_id}/binding-token/regenerate")
-async def regenerate_binding_token(workspace_id: str, current_user: User = Depends(get_current_user)):
-    if not await is_workspace_owner(workspace_id, current_user.id):
-        raise HTTPException(status_code=403, detail="Only workspace owner can regenerate binding token")
-    # Revoke all existing tokens for this workspace
-    await db.workspace_binding_tokens.update_many(
-        {"workspace_id": workspace_id, "revoked_at": None},
-        {"$set": {"revoked_at": datetime.now(timezone.utc)}}
-    )
-    # Generate new token
-    raw_token = secrets.token_urlsafe(32)
-    token_hash = _hash_token(raw_token)
-    record = WorkspaceBindingToken(
-        workspace_id=workspace_id,
-        token_hash=token_hash,
-        created_at=datetime.now(timezone.utc)
-    )
-    await db.workspace_binding_tokens.insert_one(record.model_dump())
-    return {"token": raw_token}
-
-# Extension Bind endpoint
+# Step Routes
 @api_router.post("/extension/bind", response_model=ExtensionBindResponse)
 async def bind_extension(request: Request, payload: ExtensionBindRequest):
+    """Bind extension instance to workspace via capability token.
+    
+    SECURITY: Zero-cookie/zero-session. Token is presented in header, hashed for lookup.
+    Binding is permanent (one extension_id per token) until token regeneration.
+    """
     raw = request.headers.get("X-Workspace-Binding")
     if not raw:
         raise HTTPException(status_code=401, detail="Missing binding token")
@@ -5652,6 +5622,10 @@ async def bind_extension(request: Request, payload: ExtensionBindRequest):
 
 @api_router.get("/extension/walkthroughs", response_model=ExtensionWalkthroughsResponse)
 async def list_extension_walkthroughs(request: Request):
+    """Return walkthroughs scoped ONLY by binding token workspace.
+    
+    SECURITY: No user auth. Workspace derived solely from validated binding token.
+    """
     workspace_id, _ = await _validate_binding_token(request)
     cursor = db.walkthroughs.find(
         {"workspace_id": workspace_id, "archived": {"$ne": True}},
@@ -5664,16 +5638,25 @@ async def list_extension_walkthroughs(request: Request):
 
 @api_router.post("/extension/targets", response_model=ExtensionTargetResponse)
 async def create_extension_target(
-    request: Request,
-    payload: ExtensionTargetCreateRequest
+    payload: ExtensionTargetCreateRequest,
+    current_user: User = Depends(get_current_user)
 ):
-    workspace_id, _ = await _validate_binding_token(request)
+    workspace_ids = await get_admin_workspace_ids(current_user.id)
+    if not workspace_ids:
+        raise HTTPException(status_code=403, detail="No admin workspaces available")
+
     walkthrough = await db.walkthroughs.find_one(
-        {"id": payload.walkthrough_id, "workspace_id": workspace_id},
-        {"_id": 0, "steps": 1}
+        {"id": payload.walkthrough_id, "workspace_id": {"$in": workspace_ids}},
+        {"_id": 0, "workspace_id": 1, "steps": 1}
     )
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found in workspace")
+    workspace_id = walkthrough["workspace_id"]
+
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role not in {UserRole.OWNER, UserRole.ADMIN}:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
     if payload.step_id:
         valid_step_ids = {
             step.get("step_id") or step.get("id")
@@ -5682,36 +5665,57 @@ async def create_extension_target(
         }
         if payload.step_id not in valid_step_ids:
             raise HTTPException(status_code=400, detail="Invalid step_id for walkthrough")
+
     target = ExtensionTarget(
         workspace_id=workspace_id,
         walkthrough_id=payload.walkthrough_id,
         step_id=payload.step_id,
         url_rule=payload.url_rule,
         selector=payload.selector,
-        created_by="extension",  # token-bound; no user context
+        created_by=current_user.id,
     )
     await db.extension_targets.insert_one(target.model_dump())
     return target
 
 
 @api_router.get("/extension/targets", response_model=List[ExtensionTargetResponse])
-async def list_extension_targets(request: Request):
-    workspace_id, _ = await _validate_binding_token(request)
-    cursor = db.extension_targets.find({"workspace_id": workspace_id})
+async def list_extension_targets(current_user: User = Depends(get_current_user)):
+    owner_cursor = db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1})
+    owner_workspace_ids = [doc["id"] async for doc in owner_cursor]
+
+    member_cursor = db.workspace_members.find(
+        {
+            "user_id": current_user.id,
+            "status": InvitationStatus.ACCEPTED,
+            "role": {"$in": [UserRole.ADMIN, UserRole.OWNER]},
+        },
+        {"_id": 0, "workspace_id": 1}
+    )
+    member_workspace_ids = [doc["workspace_id"] async for doc in member_cursor]
+
+    workspace_ids = list({*owner_workspace_ids, *member_workspace_ids})
+    if not workspace_ids:
+        return []
+
+    cursor = db.extension_targets.find({"workspace_id": {"$in": workspace_ids}})
     results = []
     async for doc in cursor:
         doc.pop("_id", None)
-        results.append(ExtensionTargetResponse(**doc))
+        results.append(ExtensionTarget(**doc))
     return results
 
 
 @api_router.get("/extension/admin/walkthroughs", response_model=List[ExtensionAdminWalkthrough])
-async def list_admin_walkthroughs(request: Request):
-    workspace_id, _ = await _validate_binding_token(request)
+async def list_admin_walkthroughs(current_user: User = Depends(get_current_user)):
+    workspace_ids = await get_admin_workspace_ids(current_user.id)
+    if not workspace_ids:
+        return []
+
     cursor = db.walkthroughs.find(
-        {"workspace_id": workspace_id, "archived": {"$ne": True}},
-        {"_id": 0, "id": 1, "title": 1, "steps": 1}
+        {"workspace_id": {"$in": workspace_ids}, "archived": {"$ne": True}},
+        {"_id": 0, "id": 1, "workspace_id": 1, "title": 1, "steps": 1}
     )
+
     walkthroughs: List[ExtensionAdminWalkthrough] = []
     async for doc in cursor:
         steps_data = []
@@ -5731,19 +5735,26 @@ async def list_admin_walkthroughs(request: Request):
                     order=order_value
                 )
             )
+
         walkthroughs.append(
             ExtensionAdminWalkthrough(
                 walkthrough_id=doc["id"],
-                workspace_id=workspace_id,
+                workspace_id=doc["workspace_id"],
                 title=doc.get("title", "Untitled walkthrough"),
                 steps=steps_data
             )
         )
+
     return walkthroughs
 
 
 @api_router.get("/extension/resolve", response_model=ExtensionResolveResponse)
 async def resolve_extension_targets(request: Request, url: str = Query(..., description="Current page URL")):
+    """Resolve targets for current URL scoped ONLY by binding token workspace.
+    
+    SECURITY: No user auth. Single-workspace enforced by _validate_binding_token.
+    Returns only targets belonging to the token's workspace.
+    """
     workspace_id, _ = await _validate_binding_token(request)
     normalized = normalize_url(url)
     cursor = db.extension_targets.find({
