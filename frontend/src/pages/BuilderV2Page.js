@@ -39,6 +39,12 @@ import WorkspaceLoader from '../components/WorkspaceLoader';
  * - Canvas Stage (center, ONLY scrollable area)
  * - Inspector Panel (right, fixed width, no scroll)
  */
+const arraysEqual = (a = [], b = []) => (
+  Array.isArray(a) && Array.isArray(b) &&
+  a.length === b.length &&
+  a.every((value, index) => value === b[index])
+);
+
 const BuilderV2Page = () => {
   const { t } = useTranslation();
 
@@ -199,6 +205,82 @@ const BuilderV2Page = () => {
 
   const flattenedCategories = useMemo(() => getFlattenedCategories(categories), [categories]);
 
+  const categoryHierarchy = useMemo(() => {
+    const parentMap = new Map();
+    const childrenMap = new Map();
+
+    categories.forEach((category) => {
+      if (!category?.id) return;
+      const id = category.id;
+      const parentId = category.parent_id || null;
+      parentMap.set(id, parentId);
+
+      if (!childrenMap.has(parentId)) {
+        childrenMap.set(parentId, []);
+      }
+      if (!childrenMap.has(id)) {
+        childrenMap.set(id, []);
+      }
+      childrenMap.get(parentId).push(id);
+    });
+
+    const getAncestors = (id) => {
+      const ancestors = [];
+      let current = parentMap.get(id);
+      while (current) {
+        ancestors.push(current);
+        current = parentMap.get(current);
+      }
+      return ancestors;
+    };
+
+    const getDescendants = (id) => {
+      const descendants = [];
+      const stack = [...(childrenMap.get(id) || [])];
+      while (stack.length) {
+        const childId = stack.pop();
+        descendants.push(childId);
+        const childChildren = childrenMap.get(childId);
+        if (childChildren?.length) {
+          stack.push(...childChildren);
+        }
+      }
+      return descendants;
+    };
+
+    return { getAncestors, getDescendants };
+  }, [categories]);
+
+  const applyHierarchySelection = useCallback((previousIds = [], categoryId, isSelected) => {
+    const nextIds = new Set(previousIds);
+
+    if (isSelected) {
+      nextIds.add(categoryId);
+      categoryHierarchy.getAncestors(categoryId).forEach((ancestorId) => nextIds.add(ancestorId));
+    } else {
+      nextIds.delete(categoryId);
+      categoryHierarchy.getDescendants(categoryId).forEach((descendantId) => nextIds.delete(descendantId));
+    }
+
+    const ordered = [];
+    flattenedCategories.forEach(({ id }) => {
+      if (nextIds.has(id)) {
+        ordered.push(id);
+        nextIds.delete(id);
+      }
+    });
+    nextIds.forEach((id) => ordered.push(id));
+
+    return ordered;
+  }, [categoryHierarchy, flattenedCategories]);
+
+  const enforceHierarchySelection = useCallback((ids = []) => {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return Array.isArray(ids) ? ids : [];
+    }
+    return ids.reduce((acc, id) => applyHierarchySelection(acc, id, true), []);
+  }, [applyHierarchySelection]);
+
   const loadWalkthrough = useCallback(async () => {
     try {
       setLoading(true);
@@ -227,12 +309,13 @@ const BuilderV2Page = () => {
         });
       }
       const normalizedCategoryIds = normalizeCategoryIds(normalized.category_ids);
-      setWalkthrough({ ...normalized, category_ids: normalizedCategoryIds });
+      const enforcedCategoryIds = enforceHierarchySelection(normalizedCategoryIds);
+      setWalkthrough({ ...normalized, category_ids: enforcedCategoryIds });
       setSetupData({
         title: normalized.title || '',
         description: normalized.description || '',
         icon_url: normalized.icon_url || '',
-        category_ids: normalizedCategoryIds
+        category_ids: enforcedCategoryIds
       });
       if (normalized.steps && normalized.steps.length > 0) {
         setCurrentStepIndex(0);
@@ -266,9 +349,24 @@ const BuilderV2Page = () => {
     setSetupData(prev => (
       prev.category_ids.includes(sessionCategoryId)
         ? prev
-        : { ...prev, category_ids: [...prev.category_ids, sessionCategoryId] }
+        : { ...prev, category_ids: applyHierarchySelection(prev.category_ids, sessionCategoryId, true) }
     ));
-  }, [categories, setupComplete, isEditing]);
+  }, [categories, setupComplete, isEditing, applyHierarchySelection]);
+
+  useEffect(() => {
+    if (!categories.length) return;
+
+    setSetupData(prev => {
+      const enforced = enforceHierarchySelection(prev.category_ids);
+      return arraysEqual(enforced, prev.category_ids) ? prev : { ...prev, category_ids: enforced };
+    });
+
+    setWalkthrough(prev => {
+      if (!prev) return prev;
+      const enforced = enforceHierarchySelection(prev.category_ids);
+      return arraysEqual(enforced, prev.category_ids) ? prev : { ...prev, category_ids: enforced };
+    });
+  }, [categories, enforceHierarchySelection]);
 
   // Save walkthrough
   const saveWalkthrough = async () => {
@@ -785,9 +883,7 @@ const BuilderV2Page = () => {
                               const optionId = option.id;
                               setSetupData(prev => ({
                                 ...prev,
-                                category_ids: checked
-                                  ? [...prev.category_ids, optionId]
-                                  : prev.category_ids.filter(id => id !== optionId)
+                                category_ids: applyHierarchySelection(prev.category_ids, optionId, checked === true),
                               }));
                             }}
                           />

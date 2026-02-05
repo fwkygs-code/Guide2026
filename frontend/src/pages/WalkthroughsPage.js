@@ -18,6 +18,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AppShell, PageHeader, PageSurface, Surface, Card, Button, Badge, CardContent } from '../components/ui/design-system';
 import WorkspaceLoader from '../components/WorkspaceLoader';
 
+const arraysEqual = (a = [], b = []) => (
+  Array.isArray(a) && Array.isArray(b) &&
+  a.length === b.length &&
+  a.every((value, index) => value === b[index])
+);
+
 const WalkthroughsPage = () => {
   const { t } = useTranslation();
   const { workspaceSlug } = useParams();
@@ -129,6 +135,82 @@ const WalkthroughsPage = () => {
 
   const flattenedCategories = useMemo(() => getFlattenedCategories(categories), [categories]);
 
+  const categoryHierarchy = useMemo(() => {
+    const parentMap = new Map();
+    const childrenMap = new Map();
+
+    categories.forEach((category) => {
+      if (!category?.id) return;
+      const id = category.id;
+      const parentId = category.parent_id || null;
+      parentMap.set(id, parentId);
+
+      if (!childrenMap.has(parentId)) {
+        childrenMap.set(parentId, []);
+      }
+      if (!childrenMap.has(id)) {
+        childrenMap.set(id, []);
+      }
+      childrenMap.get(parentId).push(id);
+    });
+
+    const getAncestors = (id) => {
+      const ancestors = [];
+      let current = parentMap.get(id);
+      while (current) {
+        ancestors.push(current);
+        current = parentMap.get(current);
+      }
+      return ancestors;
+    };
+
+    const getDescendants = (id) => {
+      const descendants = [];
+      const stack = [...(childrenMap.get(id) || [])];
+      while (stack.length) {
+        const childId = stack.pop();
+        descendants.push(childId);
+        const childChildren = childrenMap.get(childId);
+        if (childChildren?.length) {
+          stack.push(...childChildren);
+        }
+      }
+      return descendants;
+    };
+
+    return { getAncestors, getDescendants };
+  }, [categories]);
+
+  const applyHierarchySelection = useCallback((previousIds = [], categoryId, isSelected) => {
+    const nextIds = new Set(previousIds);
+
+    if (isSelected) {
+      nextIds.add(categoryId);
+      categoryHierarchy.getAncestors(categoryId).forEach((ancestorId) => nextIds.add(ancestorId));
+    } else {
+      nextIds.delete(categoryId);
+      categoryHierarchy.getDescendants(categoryId).forEach((descendantId) => nextIds.delete(descendantId));
+    }
+
+    const ordered = [];
+    flattenedCategories.forEach(({ id }) => {
+      if (nextIds.has(id)) {
+        ordered.push(id);
+        nextIds.delete(id);
+      }
+    });
+    nextIds.forEach((id) => ordered.push(id));
+
+    return ordered;
+  }, [categoryHierarchy, flattenedCategories]);
+
+  const enforceHierarchySelection = useCallback((ids = []) => {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return Array.isArray(ids) ? ids : [];
+    }
+    return ids.reduce((acc, id) => applyHierarchySelection(acc, id, true), []);
+  }, [applyHierarchySelection]);
+
   // Helper function to get category names for a walkthrough
   const getWalkthroughCategoryNames = (walkthrough) => {
     if (!walkthrough.category_ids || walkthrough.category_ids.length === 0) {
@@ -194,12 +276,13 @@ const WalkthroughsPage = () => {
 
   const handleOpenSettings = (walkthrough) => {
     setEditingWalkthrough(walkthrough);
+    const enforcedCategoryIds = enforceHierarchySelection(normalizeCategoryIds(walkthrough.category_ids));
     setEditSettings({
       title: walkthrough.title || '',
       slug: walkthrough.slug || '',
       description: walkthrough.description || '',
       icon_url: walkthrough.icon_url || '',
-      category_ids: normalizeCategoryIds(walkthrough.category_ids),
+      category_ids: enforcedCategoryIds,
       enable_stuck_button: !!walkthrough.enable_stuck_button
     });
     setSettingsDialogOpen(true);
@@ -215,7 +298,7 @@ const WalkthroughsPage = () => {
       const updateData = {
         title: editSettings.title.trim(),
         description: editSettings.description || '',
-        category_ids: editSettings.category_ids || [],
+        category_ids: enforceHierarchySelection(editSettings.category_ids) || [],
         icon_url: editSettings.icon_url || null,
         enable_stuck_button: !!editSettings.enable_stuck_button,
         status: editingWalkthrough.status  // Preserve the current status
@@ -660,11 +743,14 @@ const WalkthroughsPage = () => {
                             id={`edit-cat-${category.id}`}
                             checked={editSettings.category_ids.includes(category.id)}
                             onCheckedChange={(checked) => {
+                              const nextIds = applyHierarchySelection(
+                                editSettings.category_ids,
+                                category.id,
+                                checked === true
+                              );
                               setEditSettings(prev => ({
                                 ...prev,
-                                category_ids: checked
-                                  ? [...prev.category_ids, category.id]
-                                  : prev.category_ids.filter(id => id !== category.id)
+                                category_ids: nextIds
                               }));
                             }}
                           />

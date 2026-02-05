@@ -115,11 +115,18 @@ const PortalPage = () => {
     return grouped;
   }, [categoryTree, filteredWalkthroughs]);
 
-  const scrollToWalkthroughs = useCallback(() => {
+  const scrollToWalkthroughs = useCallback((event) => {
+    if (event) {
+      event.preventDefault();
+    }
+    if (resolverActive) {
+      handleGuidedStart();
+      return;
+    }
     if (walkthroughsSectionRef.current) {
       walkthroughsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, []);
+  }, [resolverActive]);
 
   const resetResolver = useCallback(() => {
     setResolverActive(false);
@@ -231,6 +238,7 @@ const PortalPage = () => {
   }, [slug, t, knowledgeSystemCounts]);
 
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
+  const showWalkthroughSections = !resolverActive;
   return (
       <>
       {/* Portal-Specific Header */}
@@ -260,7 +268,10 @@ const PortalPage = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={scrollToWalkthroughs}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      handleGuidedStart();
+                    }}
                     className="rounded-2xl overflow-hidden border border-border/40 bg-slate-950/60 relative focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary transition-all duration-300 group"
                   >
                     <img src={portalDetails.headerImage} alt="Admin control center overview" className="w-full h-full object-cover" />
@@ -285,11 +296,14 @@ const PortalPage = () => {
                 <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] items-center">
                   <button
                     type="button"
-                    onClick={scrollToWalkthroughs}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      handleGuidedStart();
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        scrollToWalkthroughs();
+                        handleGuidedStart();
                       }
                     }}
                     className="rounded-2xl overflow-hidden border border-border/40 bg-slate-950/60 relative cursor-pointer group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
@@ -519,7 +533,7 @@ const PortalPage = () => {
       </section>
 
       {/* Categories Filter */}
-      {categoryTree.length > 0 && (
+      {showWalkthroughSections && categoryTree.length > 0 && (
         <section className="py-4 px-6" aria-label={t('portal:categoriesLabel')}>
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-3">
@@ -553,6 +567,7 @@ const PortalPage = () => {
       )}
 
       {/* Walkthroughs - Organized by Category */}
+      {showWalkthroughSections && (
       <section className="py-8 md:py-10 px-6 pb-16" ref={walkthroughsSectionRef} id="portal-walkthroughs">
         <div className="max-w-7xl mx-auto">
           {showByCategory ? (
