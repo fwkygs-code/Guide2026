@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      width: 320px;
+      min-height: 200px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #ffffff;
+      color: #1f2937;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+      color: #4f46e5;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-unbound { background: #fef3c7; color: #92400e; }
+    .status-bound { background: #d1fae5; color: #065f46; }
+    .status-revoked { background: #fee2e2; color: #991b1b; }
+    
+    .section { margin-bottom: 16px; }
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .token-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: monospace;
+      resize: vertical;
+      min-height: 60px;
+    }
+    .token-input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #4f46e5;
+      color: white;
+    }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .btn-secondary:hover { background: #e5e7eb; }
+    
+    .btn-danger {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    .btn-danger:hover { background: #fee2e2; }
+    
+    .workspace-info {
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+    .workspace-name {
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+    .workspace-meta {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .error-message {
+      padding: 10px 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      color: #991b1b;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .success-message {
+      padding: 10px 12px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      color: #166534;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .help-text {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 16v-4M12 8h.01"/>
+    </svg>
+    <h1>Interguide</h1>
+    <span id="status-badge" class="status-badge status-unbound">Unbound</span>
+  </div>
+
+  <!-- Unbound State: Token Input -->
+  <div id="unbound-section" class="section">
+    <div class="section-title">Bind to Workspace</div>
+    <textarea 
+      id="token-input" 
+      class="token-input" 
+      placeholder="Paste your workspace binding token here..."
+    ></textarea>
+    <button id="bind-btn" class="btn btn-primary" style="margin-top: 8px;">
+      <span id="bind-spinner" class="spinner hidden"></span>
+      <span id="bind-text">Bind to Workspace</span>
+    </button>
+    <p class="help-text">
+      Get your token from Workspace → Settings → Interguide Extension
+    </p>
+  </div>
+
+  <!-- Bound State: Workspace Info -->
+  <div id="bound-section" class="section hidden">
+    <div class="section-title">Connected Workspace</div>
+    <div class="workspace-info">
+      <div id="workspace-name" class="workspace-name">Loading...</div>
+      <div class="workspace-meta">
+        Extension ID: <span id="extension-id-short"></span>
+      </div>
+    </div>
+    <button id="unbind-btn" class="btn btn-danger">
+      Disconnect Extension
+    </button>
+    <p class="help-text">
+      Disconnecting clears the token from this device. The token remains valid for other devices.
+    </p>
+  </div>
+
+  <!-- Revoked State -->
+  <div id="revoked-section" class="section hidden">
+    <div class="error-message">
+      <strong>Token Revoked</strong><br>
+      This extension's access has been revoked. Please paste a new token to reconnect.
+    </div>
+    <textarea 
+      id="token-input-revoked" 
+      class="token-input" 
+      placeholder="Paste new binding token..."
+    ></textarea>
+    <button id="rebind-btn" class="btn btn-primary" style="margin-top: 8px;">
+      Reconnect
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div id="error-message" class="error-message hidden"></div>
+  <div id="success-message" class="success-message hidden"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

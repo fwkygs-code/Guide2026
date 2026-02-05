@@ -1,10 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Interguide Walkthrough Overlay",
-  "version": "0.3.0",
-  "description": "Displays contextual Interguide walkthroughs via browser extension.",
-  "permissions": ["storage", "cookies"],
-  "host_permissions": ["https://api.interguide.app/*"],
+  "name": "Interguide Extension",
+  "version": "0.4.0",
+  "description": "Capability-based workspace binding for Interguide walkthroughs. Zero cookies, zero auth.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://api.interguide.app/*", "<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -12,7 +21,14 @@
     {
       "matches": ["<all_urls>"],
       "js": ["contentScript.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": false
     }
-  ]
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
 }
