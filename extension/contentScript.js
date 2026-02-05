@@ -430,19 +430,30 @@
     return { valid: true };
   };
   const checkAdminStatus = async () => {
-    try {
-      const response = await fetch(API_AUTH_ME_ENDPOINT, { credentials: 'include' });
-      if (!response.ok) {
-        adminMode = false;
-        return;
-      }
-
-      const data = await response.json();
-      const role = (data?.role || '').toLowerCase();
-      adminMode = role === 'manager' || role === 'admin' || role === 'owner';
-      window.__IG_EXTENSION_ADMIN_MODE__ = adminMode;
-    } catch {
+    if (!chrome?.runtime?.sendMessage) {
       adminMode = false;
+      return;
+    }
+
+    const result = await new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({ authenticated: false });
+            return;
+          }
+          resolve(response || { authenticated: false });
+        });
+      } catch {
+        resolve({ authenticated: false });
+      }
+    });
+
+    adminMode = Boolean(result?.authenticated);
+    if (adminMode) {
+      window.__IG_EXTENSION_ADMIN_MODE__ = true;
+    } else {
+      window.__IG_EXTENSION_ADMIN_MODE__ = false;
     }
   };
 
@@ -559,7 +570,6 @@
 (() => {
   const API_RESOLVE_ENDPOINT = 'https://api.interguide.app/api/extension/resolve';
   const API_RESOLVE_PUBLIC_ENDPOINT = 'https://api.interguide.app/api/extension/resolve-public';
-  const API_AUTH_ME_ENDPOINT = 'https://api.interguide.app/api/auth/me';
   const API_ADMIN_WALKTHROUGHS = 'https://api.interguide.app/api/extension/admin/walkthroughs';
   const API_EXTENSION_TARGETS = 'https://api.interguide.app/api/extension/targets';
   const WALKTHROUGH_BASE_URL = 'https://www.interguide.app/portal/walkthrough';
@@ -720,11 +730,11 @@
       if (!response.ok) throw new Error('resolve_failed');
       const data = await response.json();
       applyMatches(data);
-      return true;
+      return data?.matches || [];
     } catch {
       matches = [];
       hideButton();
-      return false;
+      return [];
     }
   };
 
@@ -737,26 +747,26 @@
       if (!response.ok) throw new Error('public_resolve_failed');
       const data = await response.json();
       applyMatches(data);
-      return { handled: true };
+      return { handled: true, matches: data?.matches || [] };
     } catch {
       matches = [];
       hideButton();
-      return { handled: true };
+      return { handled: true, matches: [] };
     }
   };
 
   const resolveTargets = async (url) => {
     const adminMode = isAdminModeEnabled();
-    if (unauthorized && !adminMode) return;
+    if (unauthorized && !adminMode) return [];
 
     if (!adminMode) {
       const publicResult = await runPublicResolve(url);
       if (publicResult?.handled && !publicResult?.fallback) {
-        return;
+          return publicResult.matches || [];
       }
     }
 
-    await runAuthResolve(url);
+    return await runAuthResolve(url);
   };
 
   const handleNavigation = () => {
