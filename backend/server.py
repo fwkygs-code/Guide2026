@@ -27,6 +27,7 @@ import asyncio
 import time
 import math
 import smtplib
+from pathlib import Path
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import ssl
