@@ -5620,6 +5620,80 @@ async def bind_extension(request: Request, payload: ExtensionBindRequest):
         boundAt=datetime.now(timezone.utc)
     )
 
+
+class BindingTokenResponse(BaseModel):
+    token: Optional[str] = None  # Only shown once on generation
+    status: str  # "active", "revoked", "none"
+    created_at: Optional[datetime] = None
+
+
+@api_router.post("/workspaces/{workspace_id}/binding-token", response_model=BindingTokenResponse)
+async def generate_binding_token(workspace_id: str, current_user: User = Depends(get_current_user)):
+    """Generate a new 256-bit capability token for extension workspace binding.
+    
+    SECURITY: Only workspace owner can generate. Previous tokens are revoked.
+    Raw token is returned ONLY once; backend stores only SHA-256 hash.
+    """
+    # Verify ownership
+    is_owner = await is_workspace_owner(workspace_id, current_user.id)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Only workspace owner can generate binding tokens")
+    
+    # Revoke all existing tokens for this workspace
+    await db.workspace_binding_tokens.update_many(
+        {"workspace_id": workspace_id, "revoked_at": None},
+        {"$set": {"revoked_at": datetime.now(timezone.utc)}}
+    )
+    
+    # Generate 256-bit URL-safe token (43 chars base64url)
+    raw_token = secrets.token_urlsafe(32)  # 32 bytes = 256 bits
+    token_hash = _hash_token(raw_token)
+    
+    # Store hashed token
+    await db.workspace_binding_tokens.insert_one({
+        "workspace_id": workspace_id,
+        "token_hash": token_hash,
+        "created_at": datetime.now(timezone.utc),
+        "revoked_at": None,
+        "bound_extension_id": None
+    })
+    
+    return BindingTokenResponse(
+        token=raw_token,  # ONE-TIME REVEAL
+        status="active",
+        created_at=datetime.now(timezone.utc)
+    )
+
+
+@api_router.get("/workspaces/{workspace_id}/binding-token", response_model=BindingTokenResponse)
+async def get_binding_token_status(workspace_id: str, current_user: User = Depends(get_current_user)):
+    """Get status of current binding token (does NOT return raw token)."""
+    # Verify admin access
+    member = await get_workspace_member(workspace_id, current_user.id)
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Find active token
+    token_doc = await db.workspace_binding_tokens.find_one(
+        {"workspace_id": workspace_id, "revoked_at": None},
+        {"_id": 0, "token_hash": 0}  # Never expose hash
+    )
+    
+    if not token_doc:
+        return BindingTokenResponse(status="none")
+    
+    return BindingTokenResponse(
+        status="active",
+        created_at=token_doc.get("created_at")
+    )
+
+
+@api_router.post("/workspaces/{workspace_id}/binding-token/regenerate", response_model=BindingTokenResponse)
+async def regenerate_binding_token(workspace_id: str, current_user: User = Depends(get_current_user)):
+    """Revoke current token and generate a new one (instant revocation)."""
+    return await generate_binding_token(workspace_id, current_user)
+
+
 @api_router.get("/extension/walkthroughs", response_model=ExtensionWalkthroughsResponse)
 async def list_extension_walkthroughs(request: Request):
     """Return walkthroughs scoped ONLY by binding token workspace.

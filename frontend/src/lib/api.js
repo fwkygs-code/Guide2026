@@ -289,5 +289,10 @@ export const api = {
     if (systemType) params.system_type = systemType;
     return apiClient.get(`/portal/${slug}/knowledge-systems`, { params });
   },
-  getPortalKnowledgeSystem: (slug, systemId) => apiClient.get(`/portal/${slug}/knowledge-systems/${systemId}`)
+  getPortalKnowledgeSystem: (slug, systemId) => apiClient.get(`/portal/${slug}/knowledge-systems/${systemId}`),
+
+  // Extension Binding Tokens (Workspace Integrations)
+  generateBindingToken: (workspaceId) => apiClient.post(`/workspaces/${workspaceId}/binding-token`),
+  getBindingTokenStatus: (workspaceId) => apiClient.get(`/workspaces/${workspaceId}/binding-token`),
+  regenerateBindingToken: (workspaceId) => apiClient.post(`/workspaces/${workspaceId}/binding-token/regenerate`)
 };

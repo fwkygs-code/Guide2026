@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle, UserPlus, Mail, X, Check } from 'lucide-react';
+import { Save, Copy, ExternalLink, Share2, Code, Globe, Type, Upload, Plus, Trash2, Phone, Clock, MessageCircle, UserPlus, Mail, X, Check, Puzzle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,9 +48,14 @@ const SettingsPage = () => {
   const [inviting, setInviting] = useState(false);
   const [members, setMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [tokenRaw, setTokenRaw] = useState(null);
-  const [generating, setGenerating] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  
+  // Extension Binding Token state
+  const [bindingToken, setBindingToken] = useState(null);
+  const [tokenStatus, setTokenStatus] = useState('none');
+  const [tokenCreatedAt, setTokenCreatedAt] = useState(null);
+  const [loadingToken, setLoadingToken] = useState(false);
+  const [showToken, setShowToken] = useState(false);
 
   const checkOwnership = useCallback(async () => {
     if (!workspaceId || !user) return;
@@ -251,39 +256,79 @@ const SettingsPage = () => {
     }
   };
 
+  // Extension Binding Token handlers
+  const fetchTokenStatus = useCallback(async () => {
+    if (!workspaceId || !isOwner) return;
+    setLoadingToken(true);
+    try {
+      const response = await api.getBindingTokenStatus(workspaceId);
+      setTokenStatus(response.data.status);
+      setTokenCreatedAt(response.data.created_at);
+      setBindingToken(null);
+      setShowToken(false);
+    } catch (error) {
+      console.error('Failed to fetch token status:', error);
+      setTokenStatus('none');
+    } finally {
+      setLoadingToken(false);
+    }
+  }, [workspaceId, isOwner]);
+
+  useEffect(() => {
+    if (workspaceId && isOwner) {
+      fetchTokenStatus();
+    }
+  }, [workspaceId, isOwner, fetchTokenStatus]);
+
+  const handleGenerateToken = async () => {
+    if (!workspaceId || !isOwner) return;
+    setLoadingToken(true);
+    try {
+      const response = await api.generateBindingToken(workspaceId);
+      setBindingToken(response.data.token);
+      setTokenStatus('active');
+      setTokenCreatedAt(response.data.created_at);
+      setShowToken(true);
+      toast.success('Extension binding token generated');
+    } catch (error) {
+      console.error('Failed to generate token:', error);
+      toast.error(error.response?.data?.detail || 'Failed to generate token');
+    } finally {
+      setLoadingToken(false);
+    }
+  };
+
+  const handleRegenerateToken = async () => {
+    if (!workspaceId || !isOwner) return;
+    if (!confirm('This will revoke the current token and all extensions using it will stop working immediately. Continue?')) return;
+    setLoadingToken(true);
+    try {
+      const response = await api.regenerateBindingToken(workspaceId);
+      setBindingToken(response.data.token);
+      setTokenStatus('active');
+      setTokenCreatedAt(response.data.created_at);
+      setShowToken(true);
+      toast.success('Extension binding token regenerated (old token revoked)');
+    } catch (error) {
+      console.error('Failed to regenerate token:', error);
+      toast.error(error.response?.data?.detail || 'Failed to regenerate token');
+    } finally {
+      setLoadingToken(false);
+    }
+  };
+
+  const handleCopyToken = () => {
+    if (bindingToken) {
+      navigator.clipboard.writeText(bindingToken);
+      toast.success('Token copied to clipboard');
+    }
+  };
+
   // Use public portal URL for sharing (user-facing link)
   const portalUrl = `${getPublicPortalUrl()}/portal/${workspace?.slug}`;
   const portalEmbedUrl = `${window.location.origin}/embed/portal/${workspace?.slug}`;
   const portalIframeCode = `<iframe src="${portalEmbedUrl}" width="100%" height="800" frameborder="0" allowfullscreen></iframe>`;
   const portalScriptCode = `<script src="${window.location.origin}/embed/widget.js" data-slug="${workspace?.slug}"></script>`;
-
-  const handleGenerateToken = async () => {
-    if (!workspaceId) return;
-    setGenerating(true);
-    try {
-      const res = await api.post(`/workspaces/${workspaceId}/binding-token`);
-      setTokenRaw(res.data.token);
-      toast.success('Token generated—copy it now; it will not be shown again.');
-    } catch (err) {
-      toast.error('Failed to generate token');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleRegenerateToken = async () => {
-    if (!workspaceId) return;
-    setGenerating(true);
-    try {
-      const res = await api.post(`/workspaces/${workspaceId}/binding-token/regenerate`);
-      setTokenRaw(res.data.token);
-      toast.success('Token regenerated—copy it now; previous tokens are revoked.');
-    } catch (err) {
-      toast.error('Failed to regenerate token');
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   const copyToClipboard = (text, message = 'Copied!') => {
     navigator.clipboard.writeText(text);
@@ -738,58 +783,176 @@ const SettingsPage = () => {
 
               <TabsContent value="integration" className="space-y-4 mt-4">
                 <div>
-                  <Label className="text-foreground">Interguide Extension</Label>
-                  <p className="text-xs text-muted-foreground mb-1.5">Generate a binding token to connect this workspace to the Chrome extension</p>
+                  <Label className="text-foreground">CRM Integration</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">Use these URLs to integrate with your CRM or other platforms</p>
                   <div className="space-y-3 mt-3">
-                    <div className="flex items-center justify-between p-3 glass rounded-xl">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Binding Token</p>
-                        <p className="text-xs text-muted-foreground">
-                          {tokenRaw ? 'Copy now—will not be shown again' : 'Generate a token to bind the extension'}
-                        </p>
-                      </div>
+                    <div>
+                      <Label className="text-xs text-foreground mb-1">Portal API Endpoint</Label>
                       <div className="flex gap-2">
-                        {!tokenRaw && (
-                          <Button size="sm" onClick={handleGenerateToken} disabled={generating}>
-                            {generating ? 'Generating...' : 'Generate'}
-                          </Button>
-                        )}
-                        {tokenRaw && (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => copyToClipboard(tokenRaw, 'Token copied!')}>
-                              <Copy className="w-3 h-3 mr-1" />
-                              Copy
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => setTokenRaw(null)}>
-                              Hide
-                            </Button>
-                          </>
-                        )}
+                        <Input
+                          value={`${window.location.origin}/api/portal/${workspace?.slug}`}
+                          readOnly
+                          className="flex-1 font-mono text-xs text-foreground"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => copyToClipboard(`${window.location.origin}/api/portal/${workspace?.slug}`, 'API endpoint copied!')}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-3 glass rounded-xl">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Regenerate</p>
-                        <p className="text-xs text-muted-foreground">Revoke all tokens and create a new one</p>
+                    <div>
+                      <Label className="text-xs text-foreground mb-1">Embeddable Portal URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={portalEmbedUrl}
+                          readOnly
+                          className="flex-1 font-mono text-xs text-foreground"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => copyToClipboard(portalEmbedUrl, 'Embed URL copied!')}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <Button size="sm" variant="outline" onClick={handleRegenerateToken} disabled={generating}>
-                        Regenerate
-                      </Button>
                     </div>
                   </div>
                   <div className="mt-4 p-4 glass rounded-xl">
-                    <p className="text-sm font-medium text-foreground mb-2">How it works:</p>
+                    <p className="text-sm font-medium text-foreground mb-2">Integration Tips:</p>
                     <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                      <li>Generate a token and copy it once</li>
-                      <li>In the Chrome extension, paste the token to bind this workspace</li>
-                      <li>Only one extension can be bound at a time</li>
-                      <li>Regenerating revokes all previous tokens immediately</li>
+                      <li>Use the embed URL in iframes for seamless integration</li>
+                      <li>API endpoint returns JSON data for custom integrations</li>
+                      <li>All portal routes support CORS for cross-origin embedding</li>
+                      <li>Works with Salesforce, HubSpot, Zendesk, and other CRMs</li>
                     </ul>
                   </div>
                 </div>
               </TabsContent>
             </Tabs>
           </div>
+
+          {/* Interguide Extension Integration */}
+          {isOwner && (
+            <div className="glass rounded-xl p-6 border-2 border-primary/20">
+              <div className="flex items-center gap-2 mb-4">
+                <Puzzle className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-heading font-semibold text-foreground">Interguide Extension</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Connect the Chrome extension to this workspace. The extension displays walkthroughs on any website without requiring users to log in.
+              </p>
+              
+              <div className="space-y-4">
+                {/* Token Status */}
+                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Binding Token Status</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tokenStatus === 'active' 
+                        ? `Active (created ${tokenCreatedAt ? new Date(tokenCreatedAt).toLocaleDateString() : 'recently'})`
+                        : tokenStatus === 'revoked'
+                        ? 'Revoked - generate new token'
+                        : 'No token generated yet'}
+                    </p>
+                  </div>
+                  <Badge variant={tokenStatus === 'active' ? 'success' : tokenStatus === 'revoked' ? 'destructive' : 'secondary'}>
+                    {tokenStatus === 'active' ? 'Active' : tokenStatus === 'revoked' ? 'Revoked' : 'None'}
+                  </Badge>
+                </div>
+
+                {/* Token Display (one-time reveal) */}
+                {showToken && bindingToken && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <div className="flex items-start gap-2 mb-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+                      <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                        Copy this token now — it will never be shown again
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={bindingToken}
+                        readOnly
+                        type="text"
+                        className="flex-1 font-mono text-xs bg-white dark:bg-slate-900"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={handleCopyToken}
+                        className="shrink-0"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Paste this token into the Interguide Extension popup to bind it to this workspace.
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  {tokenStatus === 'none' ? (
+                    <Button
+                      onClick={handleGenerateToken}
+                      disabled={loadingToken}
+                      className="flex-1"
+                    >
+                      {loadingToken ? (
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4 mr-2" />
+                      )}
+                      Generate Token
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={handleRegenerateToken}
+                        disabled={loadingToken}
+                        className="flex-1"
+                      >
+                        {loadingToken ? (
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                        )}
+                        Regenerate Token
+                      </Button>
+                      {!showToken && tokenStatus === 'active' && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => setShowToken(true)}
+                          disabled={loadingToken}
+                          className="flex-1"
+                        >
+                          <Puzzle className="w-4 h-4 mr-2" />
+                          Show Token
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Instructions */}
+                <div className="mt-4 p-3 bg-secondary/30 rounded-lg text-xs text-muted-foreground space-y-1">
+                  <p><strong>How to use:</strong></p>
+                  <ol className="list-decimal list-inside space-y-1 ml-1">
+                    <li>Install the Interguide Extension from the Chrome Web Store</li>
+                    <li>Click the extension icon in your browser toolbar</li>
+                    <li>Paste the token above and click "Bind to Workspace"</li>
+                    <li>The extension will now display walkthroughs from this workspace on any matching website</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Save Button at Bottom */}
           <div className="glass rounded-xl p-6 border-t-2 border-primary/20">
