@@ -491,6 +491,17 @@ class ExtensionTargetUrlRule(BaseModel):
     value: str
 
 
+class ExtensionTarget(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    workspace_id: str
+    walkthrough_id: str
+    step_id: Optional[int] = Field(default=None, ge=1)
+    created_by: str
+    url_rules: List[ExtensionTargetUrlRule]
+    status: Literal["active", "inactive"] = "active"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class ExtensionTargetCreateRequest(BaseModel):
     workspace_id: str
     walkthrough_id: str
@@ -679,16 +690,6 @@ class KnowledgeSystemUpdate(BaseModel):
     content: Optional[Dict[str, Any]] = None
     status: Optional[KnowledgeSystemStatus] = None
 
-
-class ExtensionTarget(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    workspace_id: str
-    walkthrough_id: str
-    step_id: Optional[int] = Field(default=None, ge=1)
-    created_by: str
-    url_rules: List[ExtensionTargetUrlRule]
-    status: Literal["active", "inactive"] = "active"
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class KnowledgeSystem(BaseModel):
     model_config = ConfigDict(extra="ignore")
