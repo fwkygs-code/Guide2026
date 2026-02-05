@@ -486,6 +486,11 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class ExtensionTargetUrlRule(BaseModel):
+    type: Literal["exact", "prefix"]
+    value: str
+
+
 class ExtensionTargetCreateRequest(BaseModel):
     workspace_id: str
     walkthrough_id: str
@@ -673,11 +678,6 @@ class KnowledgeSystemUpdate(BaseModel):
     description: Optional[str] = None
     content: Optional[Dict[str, Any]] = None
     status: Optional[KnowledgeSystemStatus] = None
-
-
-class ExtensionTargetUrlRule(BaseModel):
-    type: Literal["exact", "prefix"]
-    value: str
 
 
 class ExtensionTarget(BaseModel):
