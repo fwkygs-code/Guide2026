@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 // Updated: Fixed setup form and carousel block - 2024
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -186,6 +186,31 @@ const BuilderV2Page = () => {
       console.error('Failed to load categories');
     }
   }, [workspaceId]);
+
+  const categoryOptions = useMemo(() => {
+    if (!Array.isArray(categories)) return [];
+    const byParent = categories.reduce((acc, category) => {
+      const parentKey = category.parent_id || 'root';
+      acc[parentKey] = acc[parentKey] || [];
+      acc[parentKey].push(category);
+      return acc;
+    }, {});
+
+    const buildOptions = (parentId = 'root', level = 0) => {
+      const nodes = (byParent[parentId] || []).sort((a, b) => a.name.localeCompare(b.name));
+      return nodes.flatMap((node) => [
+        {
+          id: node.id,
+          name: node.name,
+          level,
+          parentId: node.parent_id
+        },
+        ...buildOptions(node.id, level + 1)
+      ]);
+    };
+
+    return buildOptions();
+  }, [categories]);
 
   const loadWalkthrough = useCallback(async () => {
     try {
@@ -666,8 +691,6 @@ const BuilderV2Page = () => {
 
   // Show setup form for new walkthroughs before allowing step creation
   if (!setupComplete && !isEditing) {
-    const parentCategories = categories.filter(c => !c.parent_id);
-    
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-secondary p-8">
         <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border border-border p-8 max-h-[90vh] overflow-y-auto" data-onboarding="walkthrough-setup-form">
@@ -756,26 +779,29 @@ const BuilderV2Page = () => {
                   <Label className="text-sm font-medium text-foreground mb-2 block">
                     {t('common.categories')}
                   </Label>
-                  {parentCategories.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{t('walkthrough.noCategories')}</p>
+                  {categoryOptions.length === 0 ? (
+                    <p className="text-sm text-slate-500">{t('walkthrough.noCategories')}</p>
                   ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
-                      {parentCategories.map((category) => (
-                        <div key={category.id} className="flex items-center space-x-2">
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                      {categoryOptions.map((option) => (
+                        <div
+                          key={option.id}
+                          className="flex items-center space-x-2"
+                        >
                           <Checkbox
-                            id={`cat-${category.id}`}
-                            checked={setupData.category_ids.includes(category.id)}
+                            id={`cat-${option.id}`}
+                            checked={setupData.category_ids.includes(option.id)}
                             onCheckedChange={(checked) => {
                               setSetupData(prev => ({
                                 ...prev,
                                 category_ids: checked
-                                  ? [...prev.category_ids, category.id]
-                                  : prev.category_ids.filter(id => id !== category.id)
+                                  ? [...prev.category_ids, option.id]
+                                  : prev.category_ids.filter(id => id !== option.id)
                               }));
                             }}
                           />
-                          <Label htmlFor={`cat-${category.id}`} className="text-sm cursor-pointer text-foreground">
-                            {category.name}
+                          <Label htmlFor={`cat-${option.id}`} className="text-sm cursor-pointer">
+                            {option.name}
                           </Label>
                         </div>
                       ))}

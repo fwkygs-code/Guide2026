@@ -29,40 +29,6 @@ const PortalLayout = ({ isEmbedded = false }) => {
     return isEmbedded || isEmbedParam || window.self !== window.top;
   }, [isEmbedded, isEmbedParam]);
 
-  useEffect(() => {
-    if (!slug) {
-      setPortal(null);
-      setLoading(false);
-      return;
-    }
-    const fetchPortal = async () => {
-      try {
-        const response = await apiClient.get(`/portal/${slug}`);
-        setPortal(response.data);
-      } catch (error) {
-        setPortal(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPortal();
-  }, [slug]);
-
-  useEffect(() => {
-    if (!slug) return;
-    const checkAuth = async () => {
-      try {
-        const response = await apiClient.get('/auth/me', {
-          validateStatus: (status) => status < 500
-        });
-        setIsLoggedIn(response.status === 200);
-      } catch (error) {
-        setIsLoggedIn(false);
-      }
-    };
-    checkAuth();
-  }, [slug]);
-
   const portalIdRaw = new URLSearchParams(location.search).get('portalId')
     || new URLSearchParams(location.search).get('portal')
     || workspace?.portal_id
@@ -226,6 +192,40 @@ const PortalLayout = ({ isEmbedded = false }) => {
   }, [accentColor, primaryColor, secondaryColor, workspaceInitials, workspaceName]);
 
   useEffect(() => {
+    if (!slug) {
+      setPortal(null);
+      setLoading(false);
+      return;
+    }
+    const fetchPortal = async () => {
+      try {
+        const response = await apiClient.get(`/portal/${slug}`);
+        setPortal(response.data);
+      } catch (error) {
+        setPortal(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPortal();
+  }, [slug]);
+
+  useEffect(() => {
+    if (!slug) return;
+    const checkAuth = async () => {
+      try {
+        const response = await apiClient.get('/auth/me', {
+          validateStatus: (status) => status < 500
+        });
+        setIsLoggedIn(response.status === 200);
+      } catch (error) {
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuth();
+  }, [slug]);
+
+  useEffect(() => {
     if (!portal?.workspace?.name || !slug) return undefined;
     const workspace = portal.workspace;
     const workspaceName = workspace.name;
@@ -326,6 +326,7 @@ const PortalLayout = ({ isEmbedded = false }) => {
       </AppShell>
     );
   }
+
   const backgroundStyle = workspace.portal_background_url
     ? { backgroundImage: `url(${normalizeImageUrl(workspace.portal_background_url)})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
     : {};
