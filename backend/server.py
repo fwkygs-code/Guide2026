@@ -1,7 +1,7 @@
 # Force Render rebuild - 2026-01-21 23:45 - CRITICAL CACHE PURGE v4
 # Deploy marker: restore original Render services
 # Local file compiles perfectly - Render cache is corrupted
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
