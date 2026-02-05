@@ -756,6 +756,7 @@ const PortalPage = () => {
           )}
         </div>
       </section>
+      )}
 
       {/* Knowledge Systems Menu - Hide in iframe mode */}
       {!inIframe && (
