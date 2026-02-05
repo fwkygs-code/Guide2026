@@ -495,18 +495,19 @@ class ExtensionTarget(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     workspace_id: str
     walkthrough_id: str
-    step_id: Optional[int] = Field(default=None, ge=1)
+    step_id: Optional[str] = None
     created_by: str
-    url_rules: List[ExtensionTargetUrlRule]
+    url_rule: ExtensionTargetUrlRule
+    selector: Optional[str] = None
     status: Literal["active", "inactive"] = "active"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ExtensionTargetCreateRequest(BaseModel):
-    workspace_id: str
     walkthrough_id: str
-    step_id: Optional[int] = Field(default=None, ge=1)
-    url_rules: List[ExtensionTargetUrlRule]
+    step_id: Optional[str] = None
+    url_rule: ExtensionTargetUrlRule
+    selector: Optional[str] = None
 
 
 class ExtensionTargetResponse(ExtensionTarget):
@@ -515,12 +516,25 @@ class ExtensionTargetResponse(ExtensionTarget):
 
 class ExtensionResolveMatch(BaseModel):
     walkthrough_id: str
-    step_id: Optional[int] = None
+    step_id: Optional[str] = None
 
 
 class ExtensionResolveResponse(BaseModel):
     matches: List[ExtensionResolveMatch] = []
     updated_at: Optional[datetime] = None  # Track modifications
+
+
+class ExtensionAdminStep(BaseModel):
+    id: str
+    title: str
+    order: int
+
+
+class ExtensionAdminWalkthrough(BaseModel):
+    walkthrough_id: str
+    workspace_id: str
+    title: str
+    steps: List[ExtensionAdminStep] = []
 
 class WorkspaceCreate(BaseModel):
     name: str
@@ -1432,6 +1446,23 @@ async def get_user_workspace_ids(user_id: str) -> List[str]:
         {
             "user_id": user_id,
             "status": InvitationStatus.ACCEPTED
+        },
+        {"_id": 0, "workspace_id": 1}
+    )
+    member_ids = [doc["workspace_id"] async for doc in member_cursor]
+
+    return list({*owner_ids, *member_ids})
+
+
+async def get_admin_workspace_ids(user_id: str) -> List[str]:
+    owner_cursor = db.workspaces.find({"owner_id": user_id}, {"_id": 0, "id": 1})
+    owner_ids = [doc["id"] async for doc in owner_cursor]
+
+    member_cursor = db.workspace_members.find(
+        {
+            "user_id": user_id,
+            "status": InvitationStatus.ACCEPTED,
+            "role": {"$in": [UserRole.ADMIN.value, UserRole.OWNER.value]},
         },
         {"_id": 0, "workspace_id": 1}
     )
@@ -5493,25 +5524,37 @@ async def create_extension_target(
     payload: ExtensionTargetCreateRequest,
     current_user: User = Depends(get_current_user)
 ):
-    member = await check_workspace_access(payload.workspace_id, current_user.id)
-    if member.role not in {UserRole.OWNER, UserRole.ADMIN}:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    workspace_ids = await get_admin_workspace_ids(current_user.id)
+    if not workspace_ids:
+        raise HTTPException(status_code=403, detail="No admin workspaces available")
 
     walkthrough = await db.walkthroughs.find_one(
-        {"id": payload.walkthrough_id, "workspace_id": payload.workspace_id},
-        {"_id": 0}
+        {"id": payload.walkthrough_id, "workspace_id": {"$in": workspace_ids}},
+        {"_id": 0, "workspace_id": 1, "steps": 1}
     )
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found in workspace")
+    workspace_id = walkthrough["workspace_id"]
 
-    if payload.step_id is not None and payload.step_id < 1:
-        raise HTTPException(status_code=400, detail="step_id must be >= 1")
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role not in {UserRole.OWNER, UserRole.ADMIN}:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    if payload.step_id:
+        valid_step_ids = {
+            step.get("step_id") or step.get("id")
+            for step in walkthrough.get("steps", [])
+            if isinstance(step, dict)
+        }
+        if payload.step_id not in valid_step_ids:
+            raise HTTPException(status_code=400, detail="Invalid step_id for walkthrough")
 
     target = ExtensionTarget(
-        workspace_id=payload.workspace_id,
+        workspace_id=workspace_id,
         walkthrough_id=payload.walkthrough_id,
         step_id=payload.step_id,
-        url_rules=payload.url_rules,
+        url_rule=payload.url_rule,
+        selector=payload.selector,
         created_by=current_user.id,
     )
     await db.extension_targets.insert_one(target.model_dump())
@@ -5545,6 +5588,49 @@ async def list_extension_targets(current_user: User = Depends(get_current_user))
     return results
 
 
+@api_router.get("/extension/admin/walkthroughs", response_model=List[ExtensionAdminWalkthrough])
+async def list_admin_walkthroughs(current_user: User = Depends(get_current_user)):
+    workspace_ids = await get_admin_workspace_ids(current_user.id)
+    if not workspace_ids:
+        return []
+
+    cursor = db.walkthroughs.find(
+        {"workspace_id": {"$in": workspace_ids}, "archived": {"$ne": True}},
+        {"_id": 0, "id": 1, "workspace_id": 1, "title": 1, "steps": 1}
+    )
+
+    walkthroughs: List[ExtensionAdminWalkthrough] = []
+    async for doc in cursor:
+        steps_data = []
+        for idx, step in enumerate(doc.get("steps", [])):
+            if not isinstance(step, dict):
+                continue
+            step_identifier = step.get("step_id") or step.get("id") or f"step-{idx}"
+            order = step.get("order")
+            try:
+                order_value = int(order) if order is not None else idx
+            except (TypeError, ValueError):
+                order_value = idx
+            steps_data.append(
+                ExtensionAdminStep(
+                    id=str(step_identifier),
+                    title=step.get("title", "Untitled step"),
+                    order=order_value
+                )
+            )
+
+        walkthroughs.append(
+            ExtensionAdminWalkthrough(
+                walkthrough_id=doc["id"],
+                workspace_id=doc["workspace_id"],
+                title=doc.get("title", "Untitled walkthrough"),
+                steps=steps_data
+            )
+        )
+
+    return walkthroughs
+
+
 @api_router.get("/extension/resolve", response_model=ExtensionResolveResponse)
 async def resolve_extension_targets(url: str = Query(..., description="Current page URL"), current_user: User = Depends(get_current_user)):
     normalized = normalize_url(url)
@@ -5561,8 +5647,44 @@ async def resolve_extension_targets(url: str = Query(..., description="Current p
     async for doc in cursor:
         doc.pop("_id", None)
         target = ExtensionTarget(**doc)
-        if any(url_rule_matches(rule, normalized) for rule in target.url_rules):
+        if url_rule_matches(target.url_rule, normalized):
             matches.append(ExtensionResolveMatch(walkthrough_id=target.walkthrough_id, step_id=target.step_id))
+
+    return ExtensionResolveResponse(matches=matches)
+
+
+@api_router.get("/extension/resolve-public", response_model=ExtensionResolveResponse)
+async def resolve_extension_targets_public(url: str = Query(..., description="Current page URL")):
+    normalized = normalize_url(url)
+
+    cursor = db.extension_targets.find({"status": "active"})
+    matches: List[ExtensionResolveMatch] = []
+    walkthrough_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+
+    async for doc in cursor:
+        doc.pop("_id", None)
+        target = ExtensionTarget(**doc)
+        if not url_rule_matches(target.url_rule, normalized):
+            continue
+
+        walkthrough = walkthrough_cache.get(target.walkthrough_id)
+        if walkthrough is None:
+            walkthrough = await db.walkthroughs.find_one(
+                {
+                    "id": target.walkthrough_id,
+                    "workspace_id": target.workspace_id,
+                    "status": WalkthroughStatus.PUBLISHED,
+                    "privacy": Privacy.PUBLIC,
+                },
+                {"_id": 0, "id": 1}
+            )
+            walkthrough_cache[target.walkthrough_id] = walkthrough
+
+        if walkthrough:
+            matches.append(ExtensionResolveMatch(
+                walkthrough_id=target.walkthrough_id,
+                step_id=target.step_id
+            ))
 
     return ExtensionResolveResponse(matches=matches)
 

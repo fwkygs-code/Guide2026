@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, FolderOpen, Search, Lock, ChevronRight, HelpCircle, X } from 'lucide-react';
+import { BookOpen, FolderOpen, Search, Lock, ChevronRight, HelpCircle, X, Compass } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import GuidedResolverModal from '@/components/GuidedResolverModal';
 
 
 const PortalPage = () => {
-  const { t } = useTranslation(['portal', 'common', 'translation']);
+  const { t, i18n } = useTranslation(['portal', 'common', 'translation']);
   const navigate = useNavigate();
   const {
     portal,
@@ -29,6 +29,7 @@ const PortalPage = () => {
     inIframe,
     workspaceHeroImage,
   } = usePortal();
+  const isRTL = i18n.dir() === 'rtl';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
@@ -394,64 +395,52 @@ const PortalPage = () => {
       {/* Guided Resolver Entry + Flow */}
       <section className="py-6 px-6">
         <div className="max-w-7xl mx-auto space-y-3">
-          <div className="mb-1 text-xs font-semibold tracking-[0.3em] text-muted-foreground uppercase">
-            {t('portal:guided.ctaHeading', { defaultValue: 'Guided resolver' })}
+          <div className="text-xs font-semibold tracking-[0.3em] text-muted-foreground uppercase">
+            {t('portal:guided.ctaHeading', { defaultValue: 'Guided journey' })}
           </div>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-            <div className="flex-1 w-full space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                {t('portal:search.manualLabel', { defaultValue: 'Manual search' })}
-              </p>
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                  {t('portal:search.manualLabel', { defaultValue: 'Manual search' })}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t('portal:guided.entryHelper', { defaultValue: 'Search manually or let us guide you.' })}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="link"
+                className="px-0 text-sm font-medium text-muted-foreground"
+                onClick={handleGuidedCtaReset}
+              >
+                {t('portal:guided.ctaReset', { defaultValue: 'Clear search' })}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 rtl:flex-row-reverse">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search
+                  className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 ${isRTL ? 'right-4' : 'left-4'}`}
+                />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('portal:searchPlaceholder')}
-                  className="pl-12 h-12 text-base rounded-xl bg-background/70 border border-border/60 focus-visible:ring-primary/50"
+                  className={`h-12 text-base rounded-xl bg-background/70 border border-border/60 focus-visible:ring-primary/50 ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
                   data-testid="portal-search-input"
                 />
               </div>
-            </div>
-            <div className="flex-1 w-full space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                {t('portal:guided.panelLabel', { defaultValue: 'Guided quiz' })}
-              </p>
-              <div
-                role="button"
-                tabIndex={0}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 data-testid="guided-resolver-start"
-                className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/60 px-4 py-3 transition hover:border-foreground/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+                className="h-12 w-12 rounded-xl border border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/70 transition"
+                aria-label={t('portal:guided.ctaButtonAria', { defaultValue: 'Open guided journey assistant' })}
                 onClick={openGuidedJourney}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openGuidedJourney();
-                  }
-                }}
               >
-                <div className="flex-1 flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none" />
-                    <div className="pl-9 pr-3 py-2 rounded-xl border border-transparent bg-card/70 text-sm text-muted-foreground pointer-events-none">
-                      {t('portal:guided.ctaPlaceholder', { defaultValue: 'Find the right guide…' })}
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                    aria-label={t('portal:guided.ctaReset', { defaultValue: 'Clear filters' })}
-                    onClick={handleGuidedCtaReset}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-                <span className="text-xs font-medium text-muted-foreground hidden md:inline">
-                  {t('portal:guided.ctaHint', { defaultValue: 'Tap to launch guided mode' })}
-                </span>
-              </div>
+                <Compass className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </div>
