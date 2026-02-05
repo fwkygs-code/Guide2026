@@ -676,7 +676,7 @@ class KnowledgeSystemUpdate(BaseModel):
 
 
 class ExtensionTargetUrlRule(BaseModel):
-    type: Literal["exact", "prefix", "host", "regex"]
+    type: Literal["exact", "prefix"]
     value: str
 
 
