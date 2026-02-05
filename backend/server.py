@@ -33,6 +33,7 @@ from email.mime.multipart import MIMEMultipart
 import ssl
 from datetime import timedelta
 from collections import defaultdict
+from dotenv import load_dotenv
 import uuid
 import bcrypt
 import jwt
