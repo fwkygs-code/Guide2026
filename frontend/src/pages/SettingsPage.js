@@ -48,6 +48,8 @@ const SettingsPage = () => {
   const [inviting, setInviting] = useState(false);
   const [members, setMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [tokenRaw, setTokenRaw] = useState(null);
+  const [generating, setGenerating] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
   const checkOwnership = useCallback(async () => {
@@ -254,6 +256,34 @@ const SettingsPage = () => {
   const portalEmbedUrl = `${window.location.origin}/embed/portal/${workspace?.slug}`;
   const portalIframeCode = `<iframe src="${portalEmbedUrl}" width="100%" height="800" frameborder="0" allowfullscreen></iframe>`;
   const portalScriptCode = `<script src="${window.location.origin}/embed/widget.js" data-slug="${workspace?.slug}"></script>`;
+
+  const handleGenerateToken = async () => {
+    if (!workspaceId) return;
+    setGenerating(true);
+    try {
+      const res = await api.post(`/workspaces/${workspaceId}/binding-token`);
+      setTokenRaw(res.data.token);
+      toast.success('Token generated—copy it now; it will not be shown again.');
+    } catch (err) {
+      toast.error('Failed to generate token');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleRegenerateToken = async () => {
+    if (!workspaceId) return;
+    setGenerating(true);
+    try {
+      const res = await api.post(`/workspaces/${workspaceId}/binding-token/regenerate`);
+      setTokenRaw(res.data.token);
+      toast.success('Token regenerated—copy it now; previous tokens are revoked.');
+    } catch (err) {
+      toast.error('Failed to regenerate token');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const copyToClipboard = (text, message = 'Copied!') => {
     navigator.clipboard.writeText(text);
@@ -708,51 +738,52 @@ const SettingsPage = () => {
 
               <TabsContent value="integration" className="space-y-4 mt-4">
                 <div>
-                  <Label className="text-foreground">CRM Integration</Label>
-                  <p className="text-xs text-muted-foreground mb-1.5">Use these URLs to integrate with your CRM or other platforms</p>
+                  <Label className="text-foreground">Interguide Extension</Label>
+                  <p className="text-xs text-muted-foreground mb-1.5">Generate a binding token to connect this workspace to the Chrome extension</p>
                   <div className="space-y-3 mt-3">
-                    <div>
-                      <Label className="text-xs text-foreground mb-1">Portal API Endpoint</Label>
+                    <div className="flex items-center justify-between p-3 glass rounded-xl">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Binding Token</p>
+                        <p className="text-xs text-muted-foreground">
+                          {tokenRaw ? 'Copy now—will not be shown again' : 'Generate a token to bind the extension'}
+                        </p>
+                      </div>
                       <div className="flex gap-2">
-                        <Input
-                          value={`${window.location.origin}/api/portal/${workspace?.slug}`}
-                          readOnly
-                          className="flex-1 font-mono text-xs text-foreground"
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => copyToClipboard(`${window.location.origin}/api/portal/${workspace?.slug}`, 'API endpoint copied!')}
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
+                        {!tokenRaw && (
+                          <Button size="sm" onClick={handleGenerateToken} disabled={generating}>
+                            {generating ? 'Generating...' : 'Generate'}
+                          </Button>
+                        )}
+                        {tokenRaw && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => copyToClipboard(tokenRaw, 'Token copied!')}>
+                              <Copy className="w-3 h-3 mr-1" />
+                              Copy
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setTokenRaw(null)}>
+                              Hide
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <div>
-                      <Label className="text-xs text-foreground mb-1">Embeddable Portal URL</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={portalEmbedUrl}
-                          readOnly
-                          className="flex-1 font-mono text-xs text-foreground"
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => copyToClipboard(portalEmbedUrl, 'Embed URL copied!')}
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
+                    <div className="flex items-center justify-between p-3 glass rounded-xl">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Regenerate</p>
+                        <p className="text-xs text-muted-foreground">Revoke all tokens and create a new one</p>
                       </div>
+                      <Button size="sm" variant="outline" onClick={handleRegenerateToken} disabled={generating}>
+                        Regenerate
+                      </Button>
                     </div>
                   </div>
                   <div className="mt-4 p-4 glass rounded-xl">
-                    <p className="text-sm font-medium text-foreground mb-2">Integration Tips:</p>
+                    <p className="text-sm font-medium text-foreground mb-2">How it works:</p>
                     <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                      <li>Use the embed URL in iframes for seamless integration</li>
-                      <li>API endpoint returns JSON data for custom integrations</li>
-                      <li>All portal routes support CORS for cross-origin embedding</li>
-                      <li>Works with Salesforce, HubSpot, Zendesk, and other CRMs</li>
+                      <li>Generate a token and copy it once</li>
+                      <li>In the Chrome extension, paste the token to bind this workspace</li>
+                      <li>Only one extension can be bound at a time</li>
+                      <li>Regenerating revokes all previous tokens immediately</li>
                     </ul>
                   </div>
                 </div>

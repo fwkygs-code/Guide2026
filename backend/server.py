@@ -5580,7 +5580,48 @@ async def get_portal_knowledge_system(slug: str, system_id: str):
     
     return system
 
-# Step Routes
+# Workspace Binding Token endpoints
+@api_router.post("/workspaces/{workspace_id}/binding-token")
+async def generate_binding_token(workspace_id: str, current_user: User = Depends(get_current_user)):
+    if not await is_workspace_owner(workspace_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Only workspace owner can generate binding token")
+    # Revoke all existing tokens for this workspace
+    await db.workspace_binding_tokens.update_many(
+        {"workspace_id": workspace_id, "revoked_at": None},
+        {"$set": {"revoked_at": datetime.now(timezone.utc)}}
+    )
+    # Generate new token
+    raw_token = secrets.token_urlsafe(32)  # 256-bit entropy
+    token_hash = _hash_token(raw_token)
+    record = WorkspaceBindingToken(
+        workspace_id=workspace_id,
+        token_hash=token_hash,
+        created_at=datetime.now(timezone.utc)
+    )
+    await db.workspace_binding_tokens.insert_one(record.model_dump())
+    return {"token": raw_token}
+
+@api_router.post("/workspaces/{workspace_id}/binding-token/regenerate")
+async def regenerate_binding_token(workspace_id: str, current_user: User = Depends(get_current_user)):
+    if not await is_workspace_owner(workspace_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Only workspace owner can regenerate binding token")
+    # Revoke all existing tokens for this workspace
+    await db.workspace_binding_tokens.update_many(
+        {"workspace_id": workspace_id, "revoked_at": None},
+        {"$set": {"revoked_at": datetime.now(timezone.utc)}}
+    )
+    # Generate new token
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = _hash_token(raw_token)
+    record = WorkspaceBindingToken(
+        workspace_id=workspace_id,
+        token_hash=token_hash,
+        created_at=datetime.now(timezone.utc)
+    )
+    await db.workspace_binding_tokens.insert_one(record.model_dump())
+    return {"token": raw_token}
+
+# Extension Bind endpoint
 @api_router.post("/extension/bind", response_model=ExtensionBindResponse)
 async def bind_extension(request: Request, payload: ExtensionBindRequest):
     raw = request.headers.get("X-Workspace-Binding")
