@@ -5623,25 +5623,16 @@ async def list_extension_walkthroughs(request: Request):
 
 @api_router.post("/extension/targets", response_model=ExtensionTargetResponse)
 async def create_extension_target(
-    payload: ExtensionTargetCreateRequest,
-    current_user: User = Depends(get_current_user)
+    request: Request,
+    payload: ExtensionTargetCreateRequest
 ):
-    workspace_ids = await get_admin_workspace_ids(current_user.id)
-    if not workspace_ids:
-        raise HTTPException(status_code=403, detail="No admin workspaces available")
-
+    workspace_id, _ = await _validate_binding_token(request)
     walkthrough = await db.walkthroughs.find_one(
-        {"id": payload.walkthrough_id, "workspace_id": {"$in": workspace_ids}},
-        {"_id": 0, "workspace_id": 1, "steps": 1}
+        {"id": payload.walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0, "steps": 1}
     )
     if not walkthrough:
         raise HTTPException(status_code=404, detail="Walkthrough not found in workspace")
-    workspace_id = walkthrough["workspace_id"]
-
-    member = await check_workspace_access(workspace_id, current_user.id)
-    if member.role not in {UserRole.OWNER, UserRole.ADMIN}:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     if payload.step_id:
         valid_step_ids = {
             step.get("step_id") or step.get("id")
@@ -5650,57 +5641,36 @@ async def create_extension_target(
         }
         if payload.step_id not in valid_step_ids:
             raise HTTPException(status_code=400, detail="Invalid step_id for walkthrough")
-
     target = ExtensionTarget(
         workspace_id=workspace_id,
         walkthrough_id=payload.walkthrough_id,
         step_id=payload.step_id,
         url_rule=payload.url_rule,
         selector=payload.selector,
-        created_by=current_user.id,
+        created_by="extension",  # token-bound; no user context
     )
     await db.extension_targets.insert_one(target.model_dump())
     return target
 
 
 @api_router.get("/extension/targets", response_model=List[ExtensionTargetResponse])
-async def list_extension_targets(current_user: User = Depends(get_current_user)):
-    owner_cursor = db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1})
-    owner_workspace_ids = [doc["id"] async for doc in owner_cursor]
-
-    member_cursor = db.workspace_members.find(
-        {
-            "user_id": current_user.id,
-            "status": InvitationStatus.ACCEPTED,
-            "role": {"$in": [UserRole.ADMIN, UserRole.OWNER]},
-        },
-        {"_id": 0, "workspace_id": 1}
-    )
-    member_workspace_ids = [doc["workspace_id"] async for doc in member_cursor]
-
-    workspace_ids = list({*owner_workspace_ids, *member_workspace_ids})
-    if not workspace_ids:
-        return []
-
-    cursor = db.extension_targets.find({"workspace_id": {"$in": workspace_ids}})
+async def list_extension_targets(request: Request):
+    workspace_id, _ = await _validate_binding_token(request)
+    cursor = db.extension_targets.find({"workspace_id": workspace_id})
     results = []
     async for doc in cursor:
         doc.pop("_id", None)
-        results.append(ExtensionTarget(**doc))
+        results.append(ExtensionTargetResponse(**doc))
     return results
 
 
 @api_router.get("/extension/admin/walkthroughs", response_model=List[ExtensionAdminWalkthrough])
-async def list_admin_walkthroughs(current_user: User = Depends(get_current_user)):
-    workspace_ids = await get_admin_workspace_ids(current_user.id)
-    if not workspace_ids:
-        return []
-
+async def list_admin_walkthroughs(request: Request):
+    workspace_id, _ = await _validate_binding_token(request)
     cursor = db.walkthroughs.find(
-        {"workspace_id": {"$in": workspace_ids}, "archived": {"$ne": True}},
-        {"_id": 0, "id": 1, "workspace_id": 1, "title": 1, "steps": 1}
+        {"workspace_id": workspace_id, "archived": {"$ne": True}},
+        {"_id": 0, "id": 1, "title": 1, "steps": 1}
     )
-
     walkthroughs: List[ExtensionAdminWalkthrough] = []
     async for doc in cursor:
         steps_data = []
@@ -5720,16 +5690,14 @@ async def list_admin_walkthroughs(current_user: User = Depends(get_current_user)
                     order=order_value
                 )
             )
-
         walkthroughs.append(
             ExtensionAdminWalkthrough(
                 walkthrough_id=doc["id"],
-                workspace_id=doc["workspace_id"],
+                workspace_id=workspace_id,
                 title=doc.get("title", "Untitled walkthrough"),
                 steps=steps_data
             )
         )
-
     return walkthroughs
 
 
