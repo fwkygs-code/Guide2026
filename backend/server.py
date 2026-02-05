@@ -1,24 +1,38 @@
 # Force Render rebuild - 2026-01-21 23:45 - CRITICAL CACHE PURGE v4
 # Deploy marker: restore original Render services
 # Local file compiles perfectly - Render cache is corrupted
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, File as FastAPIFile, UploadFile, Request, Response, Header, Query, Form, Body, BackgroundTasks
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
+from pydantic import BaseModel, EmailStr, Field, validator
+from datetime import datetime, timezone
+from typing import Optional, Dict, Any, List, Tuple
+from enum import Enum
+import secrets
+import hashlib
+import jwt
+import bcrypt
+import re
+import json
 import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional, Dict, Any, Tuple, Union, Literal
+import os
+from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import ASCENDING, DESCENDING
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
+import uvicorn
+import asyncio
+import time
+import math
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import ssl
+from datetime import timedelta
 from collections import defaultdict
 import uuid
-from datetime import datetime, timezone, timedelta
-import time
-import asyncio
 import bcrypt
 import jwt
 from enum import Enum
@@ -537,6 +551,32 @@ class ExtensionAdminWalkthrough(BaseModel):
     title: str
     status: Optional[str] = None
     steps: List[ExtensionAdminStep] = []
+
+# Capability-binding models
+class WorkspaceBindingToken(BaseModel):
+    _id: Optional[str] = None
+    workspace_id: str
+    token_hash: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    revoked_at: Optional[datetime] = None
+    bound_extension_id: Optional[str] = None
+
+class ExtensionBindRequest(BaseModel):
+    extensionId: str
+
+class ExtensionBindResponse(BaseModel):
+    workspaceId: str
+    workspaceName: str
+    boundAt: datetime
+
+class ExtensionWalkthrough(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    steps: List[dict] = []
+
+class ExtensionWalkthroughsResponse(BaseModel):
+    walkthroughs: List[ExtensionWalkthrough]
 
 class WorkspaceCreate(BaseModel):
     name: str
@@ -1472,6 +1512,26 @@ async def get_admin_workspace_ids(user_id: str) -> List[str]:
 
     return list({*owner_ids, *member_ids})
 
+
+# Capability-binding helpers
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+async def _validate_binding_token(request: Request) -> Tuple[str, str]:
+    """Validate X-Workspace-Binding header, return (workspace_id, extension_id)."""
+    raw = request.headers.get("X-Workspace-Binding")
+    if not raw:
+        raise HTTPException(status_code=401, detail="Missing binding token")
+    token_hash = _hash_token(raw)
+    record = await db.workspace_binding_tokens.find_one({"token_hash": token_hash})
+    if not record:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    if record.get("revoked_at"):
+        raise HTTPException(status_code=403, detail="Token revoked")
+    bound_ext_id = record.get("bound_extension_id")
+    if bound_ext_id and bound_ext_id != request.headers.get("X-Extension-Id"):
+        raise HTTPException(status_code=403, detail="Token bound to another extension")
+    return record["workspace_id"], request.headers.get("X-Extension-Id")
 
 def normalize_url(url: str) -> str:
     parsed = urlparse(url)
@@ -5521,6 +5581,46 @@ async def get_portal_knowledge_system(slug: str, system_id: str):
     return system
 
 # Step Routes
+@api_router.post("/extension/bind", response_model=ExtensionBindResponse)
+async def bind_extension(request: Request, payload: ExtensionBindRequest):
+    raw = request.headers.get("X-Workspace-Binding")
+    if not raw:
+        raise HTTPException(status_code=401, detail="Missing binding token")
+    token_hash = _hash_token(raw)
+    record = await db.workspace_binding_tokens.find_one({"token_hash": token_hash})
+    if not record:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    if record.get("revoked_at"):
+        raise HTTPException(status_code=403, detail="Token revoked")
+    bound_ext_id = record.get("bound_extension_id")
+    if bound_ext_id and bound_ext_id != payload.extensionId:
+        raise HTTPException(status_code=403, detail="Token already bound to another extension")
+    # Bind to this extension
+    await db.workspace_binding_tokens.update_one(
+        {"_id": record["_id"]},
+        {"$set": {"bound_extension_id": payload.extensionId}}
+    )
+    workspace = await db.workspaces.find_one({"id": record["workspace_id"]}, {"_id": 0, "name": 1})
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    return ExtensionBindResponse(
+        workspaceId=record["workspace_id"],
+        workspaceName=workspace["name"],
+        boundAt=datetime.now(timezone.utc)
+    )
+
+@api_router.get("/extension/walkthroughs", response_model=ExtensionWalkthroughsResponse)
+async def list_extension_walkthroughs(request: Request):
+    workspace_id, _ = await _validate_binding_token(request)
+    cursor = db.walkthroughs.find(
+        {"workspace_id": workspace_id, "archived": {"$ne": True}},
+        {"_id": 0, "id": 1, "title": 1, "description": 1, "steps": 1}
+    )
+    walkthroughs = []
+    async for doc in cursor:
+        walkthroughs.append(ExtensionWalkthrough(**doc))
+    return ExtensionWalkthroughsResponse(walkthroughs=walkthroughs)
+
 @api_router.post("/extension/targets", response_model=ExtensionTargetResponse)
 async def create_extension_target(
     payload: ExtensionTargetCreateRequest,
@@ -5634,24 +5734,23 @@ async def list_admin_walkthroughs(current_user: User = Depends(get_current_user)
 
 
 @api_router.get("/extension/resolve", response_model=ExtensionResolveResponse)
-async def resolve_extension_targets(url: str = Query(..., description="Current page URL"), current_user: User = Depends(get_current_user)):
+async def resolve_extension_targets(request: Request, url: str = Query(..., description="Current page URL")):
+    workspace_id, _ = await _validate_binding_token(request)
     normalized = normalize_url(url)
-    workspace_ids = await get_user_workspace_ids(current_user.id)
-    if not workspace_ids:
-        return ExtensionResolveResponse(matches=[])
-
     cursor = db.extension_targets.find({
-        "workspace_id": {"$in": workspace_ids},
+        "workspace_id": workspace_id,
         "status": "active"
     })
-
     matches: List[ExtensionResolveMatch] = []
     async for doc in cursor:
         doc.pop("_id", None)
         target = ExtensionTarget(**doc)
         if url_rule_matches(target.url_rule, normalized):
-            matches.append(ExtensionResolveMatch(walkthrough_id=target.walkthrough_id, step_id=target.step_id))
-
+            matches.append(ExtensionResolveMatch(
+                walkthrough_id=target.walkthrough_id,
+                step_id=target.step_id,
+                selector=target.selector
+            ))
     return ExtensionResolveResponse(matches=matches)
 
 
