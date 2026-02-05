@@ -17,9 +17,18 @@ import GuidedResolverModal from '@/components/GuidedResolverModal';
 
 
 const PortalPage = () => {
-  const { t, ready } = useTranslation(['portal', 'common', 'translation']);
+  const { t } = useTranslation(['portal', 'common', 'translation']);
   const navigate = useNavigate();
-  const { portal, workspace, slug, portalIdNormalized, portalDetails, primaryColor, inIframe, workspaceHeroImage } = usePortal();
+  const {
+    portal,
+    workspace,
+    slug,
+    portalIdNormalized,
+    portalDetails = {},
+    primaryColor,
+    inIframe,
+    workspaceHeroImage,
+  } = usePortal();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
@@ -36,7 +45,11 @@ const PortalPage = () => {
       : []
   ), []);
 
-  const normalizedCategories = useMemo(() => normalizeCategories(portal?.categories || []), [portal?.categories]);
+  const normalizationReady = Array.isArray(portal?.categories) && Array.isArray(portal?.walkthroughs);
+  const normalizedCategories = useMemo(
+    () => (normalizationReady ? normalizeCategories(portal?.categories || []) : []),
+    [normalizationReady, portal?.categories]
+  );
 
   const normalizedWalkthroughs = useMemo(() => (
     Array.isArray(portal?.walkthroughs)
@@ -46,6 +59,13 @@ const PortalPage = () => {
         }))
       : []
   ), [portal?.walkthroughs, normalizeCategoryIds]);
+
+  const safePortalDetails = portalDetails || {};
+  const portalTitle = safePortalDetails.title || workspace?.name || '';
+  const portalDescription = safePortalDetails.description || portal?.description || '';
+  const portalHeroImage = safePortalDetails.headerImage || workspaceHeroImage || '';
+  const tenantHeroImage = workspaceHeroImage || safePortalDetails.headerImage || portalHeroImage;
+  const hasGuidedData = normalizedCategories.length > 0 && normalizedWalkthroughs.length > 0;
 
   // Organize categories into parent/children structure
   const categoryTree = useMemo(() => buildCategoryTree(normalizedCategories), [normalizedCategories]);
@@ -105,12 +125,12 @@ const PortalPage = () => {
   }, [categoryTree, filteredWalkthroughs]);
 
   const openGuidedJourney = useCallback(() => {
-    if (!normalizedCategories.length || !normalizedWalkthroughs.length) {
+    if (!hasGuidedData) {
       toast.info(t('portal:guidedUnavailable', { defaultValue: 'Guided helper is unavailable right now.' }));
       return;
     }
     setGuidedOpen(true);
-  }, [normalizedCategories.length, normalizedWalkthroughs.length, t]);
+  }, [hasGuidedData, t]);
 
   const handleGuidedResultSelect = useCallback((walkthrough) => {
     if (!walkthrough) return;
@@ -161,6 +181,21 @@ const PortalPage = () => {
   }, [slug, t, knowledgeSystemCounts]);
 
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
+  if (!portal || !normalizationReady) {
+    return (
+      <section className="py-24 px-6 text-center">
+        <div className="max-w-2xl mx-auto">
+          <p className="text-sm uppercase tracking-[0.35em] text-muted-foreground mb-4">
+            {t('portal:loadingLabel', { defaultValue: 'Preparing portal' })}
+          </p>
+          <p className="text-lg text-muted-foreground">
+            {t('portal:loadingMessage', { defaultValue: 'Hold tight while we load your workspace experience.' })}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   const showWalkthroughSections = true;
   return (
       <>
@@ -178,10 +213,10 @@ const PortalPage = () => {
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.admin.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-2 mb-3">
-                      {portalDetails.title}
+                      {portalTitle}
                     </h1>
                     <p className="text-base md:text-lg text-muted-foreground mb-5 leading-relaxed">
-                      {portalDetails.description}
+                      {portalDescription}
                     </p>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                       <Badge variant="secondary">{t('portal:headers.admin.badgeSystemHealth')}</Badge>
@@ -193,11 +228,11 @@ const PortalPage = () => {
                     type="button"
                     onClick={(event) => {
                       event.preventDefault();
-                      handleGuidedStart();
+                      openGuidedJourney();
                     }}
                     className="rounded-2xl overflow-hidden border border-border/40 bg-slate-950/60 relative focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary transition-all duration-300 group"
                   >
-                    <img src={portalDetails.headerImage} alt="Admin control center overview" className="w-full h-full object-cover" />
+                    <img src={portalHeroImage} alt="Admin control center overview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <span className="absolute bottom-4 right-4 text-xs font-semibold uppercase tracking-wide text-white flex items-center gap-2">
                       {t('portal:headers.tenant.imageCtaLabel')}
@@ -221,12 +256,12 @@ const PortalPage = () => {
                     type="button"
                     onClick={(event) => {
                       event.preventDefault();
-                      handleGuidedStart();
+                      openGuidedJourney();
                     }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        handleGuidedStart();
+                        openGuidedJourney();
                       }
                     }}
                     className="rounded-2xl overflow-hidden border border-border/40 bg-slate-950/60 relative cursor-pointer group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
@@ -235,7 +270,7 @@ const PortalPage = () => {
                     aria-label={t('portal:headers.tenant.imageCta')}
                     title={t('portal:headers.tenant.imageCta')}
                   >
-                    <img src={workspaceHeroImage || portalDetails.headerImage} alt={`${workspace?.name || 'Workspace'} guided journey`} className="w-full h-full object-cover" />
+                    <img src={tenantHeroImage} alt={`${workspace?.name || 'Workspace'} guided journey`} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
                       {t('portal:headers.tenant.imageCtaLabel')}
@@ -245,10 +280,10 @@ const PortalPage = () => {
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.tenant.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-2 mb-3">
-                      {portalDetails.title}
+                      {portalTitle}
                     </h1>
                     <p className="text-base md:text-lg text-muted-foreground mb-6 leading-relaxed">
-                      {portalDetails.description}
+                      {portalDescription}
                     </p>
                     <div className="relative max-w-2xl">
                       <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
@@ -277,9 +312,9 @@ const PortalPage = () => {
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.knowledge.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
-                      {portalDetails.title}
+                      {portalTitle}
                     </h1>
-                    <p className="text-lg text-muted-foreground mb-8">{portalDetails.description}</p>
+                    <p className="text-lg text-muted-foreground mb-8">{portalDescription}</p>
                     <div className="relative max-w-2xl">
                       <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
                       <Input
@@ -292,7 +327,7 @@ const PortalPage = () => {
                     </div>
                   </div>
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
-                    <img src={portalDetails.headerImage} alt={`${workspace?.name || 'Workspace'} knowledge systems overview`} className="w-full h-full object-cover" />
+                    <img src={portalHeroImage} alt={`${workspace?.name || 'Workspace'} knowledge systems overview`} className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>
@@ -308,14 +343,14 @@ const PortalPage = () => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] items-center">
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
-                    <img src={portalDetails.headerImage} alt={`${workspace?.name || 'Workspace'} integrations overview`} className="w-full h-full object-cover" />
+                    <img src={portalHeroImage} alt={`${workspace?.name || 'Workspace'} integrations overview`} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.integrations.label')}</p>
                     <h1 className="text-4xl lg:text-5xl font-heading font-bold text-foreground mt-3 mb-4">
-                      {portalDetails.title}
+                      {portalTitle}
                     </h1>
-                    <p className="text-lg text-muted-foreground mb-6">{portalDetails.description}</p>
+                    <p className="text-lg text-muted-foreground mb-6">{portalDescription}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <Badge variant="secondary">{t('portal:headers.integrations.badgeApiReady')}</Badge>
                       <Badge variant="secondary">{t('portal:headers.integrations.badgeWorkflowAutomation')}</Badge>
@@ -381,7 +416,7 @@ const PortalPage = () => {
 
       {/* Walkthroughs - Organized by Category */}
       {showWalkthroughSections && (
-      <section className="py-8 md:py-10 px-6 pb-16" ref={walkthroughsSectionRef} id="portal-walkthroughs">
+      <section className="py-8 md:py-10 px-6 pb-16" id="portal-walkthroughs">
         <div className="max-w-7xl mx-auto">
           {showByCategory ? (
             // Show organized by categories
@@ -778,14 +813,16 @@ const PortalPage = () => {
         </footer>
       )}
 
-      <GuidedResolverModal
-        open={isGuidedOpen}
-        onClose={() => setGuidedOpen(false)}
-        categories={normalizedCategories}
-        walkthroughs={normalizedWalkthroughs}
-        portalSlug={slug}
-        onSelectWalkthrough={handleGuidedResultSelect}
-      />
+      {hasGuidedData && (
+        <GuidedResolverModal
+          open={isGuidedOpen}
+          onClose={() => setGuidedOpen(false)}
+          categories={normalizedCategories}
+          walkthroughs={normalizedWalkthroughs}
+          portalSlug={slug}
+          onSelectWalkthrough={handleGuidedResultSelect}
+        />
+      )}
 
     </>
   );
