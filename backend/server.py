@@ -13,7 +13,7 @@ import re
 import json
 import logging
 import os
-from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks, status, APIRouter, Query
+from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks, status, APIRouter, Query, File, UploadFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6557,7 +6557,7 @@ async def get_feedback(workspace_id: str, walkthrough_id: str, current_user: Use
 # Media Upload Route - Two-Phase Commit with Quota Enforcement
 @api_router.post("/upload")
 async def upload_file(
-    file: UploadFile = FastAPIFile(...),
+    file: UploadFile = File(...),
     workspace_id: Optional[str] = Form(None),
     idempotency_key: Optional[str] = Form(None),
     reference_type: Optional[str] = Form(None),
