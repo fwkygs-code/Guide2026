@@ -16,7 +16,18 @@ import { usePortal } from '../contexts/PortalContext';
 
 const PortalPage = () => {
   const { t, ready } = useTranslation(['portal', 'common', 'translation']);
-  const { portal, workspace, slug, portalIdNormalized, portalDetails, primaryColor, inIframe, workspaceHeroImage } = usePortal();
+  const {
+    portal,
+    workspace,
+    slug,
+    portalIdNormalized,
+    portalDetails,
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    inIframe,
+    workspaceHeroImage
+  } = usePortal();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
@@ -81,6 +92,40 @@ const PortalPage = () => {
       walkthroughsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, []);
+
+  const categoryCounts = useMemo(() => {
+    if (!Array.isArray(portal?.walkthroughs)) {
+      return { _all: 0 };
+    }
+    const counts = { _all: portal.walkthroughs.length };
+    categoryTree.forEach((category) => {
+      const catIds = [category.id, ...category.children.map((child) => child.id)];
+      counts[category.id] = portal.walkthroughs.filter((wt) =>
+        wt.category_ids?.some((id) => catIds.includes(id))
+      ).length;
+    });
+    return counts;
+  }, [portal?.walkthroughs, categoryTree]);
+
+  const getCategoryCount = useCallback(
+    (categoryId) => categoryCounts[categoryId] ?? 0,
+    [categoryCounts]
+  );
+
+  const chipPrimary = primaryColor || '#6366f1';
+  const chipSecondary = secondaryColor || accentColor || chipPrimary;
+  const getCategoryChipStyle = useCallback(
+    (isSelected) => ({
+      background: isSelected
+        ? `linear-gradient(130deg, ${hexToRgba(chipPrimary, 0.55)}, ${hexToRgba(chipSecondary, 0.38)})`
+        : 'rgba(15, 23, 42, 0.65)',
+      borderColor: isSelected ? hexToRgba(chipPrimary, 0.75) : 'rgba(148, 163, 184, 0.35)',
+      boxShadow: isSelected
+        ? `0 18px 45px ${hexToRgba(chipPrimary, 0.25)}`
+        : '0 6px 24px rgba(2, 6, 23, 0.45)'
+    }),
+    [chipPrimary, chipSecondary]
+  );
 
   useEffect(() => {
     if (!slug) return;
@@ -289,30 +334,82 @@ const PortalPage = () => {
       {categoryTree.length > 0 && (
         <section className="py-4 px-6" aria-label={t('portal:categoriesLabel')}>
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
                 {t('portal:categoriesLabel')}
               </p>
+              <span className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
+                {(portal?.walkthroughs?.length || 0).toString().padStart(2, '0')} {t('portal:guidesLabel', { defaultValue: 'Guides' })}
+              </span>
             </div>
-            <div className="flex gap-2 flex-wrap md:flex-nowrap overflow-x-auto pb-1">
-              <Badge
-                variant={selectedCategory === null ? 'default' : 'outline'}
-                className={`cursor-pointer px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full border ${selectedCategory === null ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-foreground border-border/70 hover:border-foreground/60'}`}
+            <div className="flex gap-3 flex-wrap md:flex-nowrap overflow-x-auto pb-2">
+              <button
+                type="button"
                 onClick={() => setSelectedCategory(null)}
                 data-testid="category-all"
+                aria-pressed={selectedCategory === null}
+                className="flex-1 min-w-[240px] rounded-3xl border px-5 py-4 text-left transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/60"
+                style={getCategoryChipStyle(selectedCategory === null)}
               >
-                {t('common:all')}
-              </Badge>
-              {categoryTree.map((category) => (
-                <Badge
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.35em] text-white/60">
+                      {t('portal:categories.allLabel', { defaultValue: 'Collection' })}
+                    </p>
+                    <p className="text-lg font-heading font-semibold text-white">
+                      {t('common:all')}
+                    </p>
+                  </div>
+                  <div className="px-3 py-1 rounded-full text-[11px] font-semibold text-white/90 bg-white/10 border border-white/15">
+                    {getCategoryCount('_all')} {t('portal:guidesShortLabel', { defaultValue: 'guides' })}
+                  </div>
+                </div>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  {t('portal:categories.allDescription', { defaultValue: 'Show everything in this workspace journey.' })}
+                </p>
+              </button>
+
+              {categoryTree.map((category, index) => (
+                <button
                   key={category.id}
-                  variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  className={`cursor-pointer px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full border ${selectedCategory === category.id ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-foreground border-border/70 hover:border-foreground/60'}`}
+                  type="button"
                   onClick={() => setSelectedCategory(category.id)}
                   data-testid={`category-${category.id}`}
+                  aria-pressed={selectedCategory === category.id}
+                  className="flex-1 min-w-[240px] rounded-3xl border px-5 py-4 text-left transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/60"
+                  style={getCategoryChipStyle(selectedCategory === category.id)}
                 >
-                  {category.name}
-                </Badge>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.35em] text-white/60">
+                        {t('portal:categoriesLabelSingle', { defaultValue: 'Category' })}
+                      </p>
+                      <p className="text-lg font-heading font-semibold text-white">
+                        {category.name}
+                      </p>
+                    </div>
+                    <div className="px-3 py-1 rounded-full text-[11px] font-semibold text-white/90 bg-white/10 border border-white/15">
+                      {getCategoryCount(category.id)} {t('portal:guidesShortLabel', { defaultValue: 'guides' })}
+                    </div>
+                  </div>
+                  {category.description && (
+                    <p className="text-sm text-white/75 leading-relaxed line-clamp-2">
+                      {category.description}
+                    </p>
+                  )}
+                  {category.children.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {category.children.map((subCat) => (
+                        <span
+                          key={subCat.id}
+                          className="text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/10 text-white/70 border border-white/15"
+                        >
+                          {subCat.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </button>
               ))}
             </div>
           </div>
@@ -721,3 +818,14 @@ const PortalPage = () => {
 };
 
 export default PortalPage;
+
+const hexToRgba = (hex, alpha = 1) => {
+  if (!hex) return `rgba(99, 102, 241, ${alpha})`;
+  const normalized = hex.replace('#', '');
+  const matches = normalized.length === 3
+    ? normalized.split('').map((char) => char + char)
+    : normalized.match(/.{1,2}/g);
+  if (!matches) return `rgba(99, 102, 241, ${alpha})`;
+  const [r, g, b] = matches.map((value) => parseInt(value, 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};

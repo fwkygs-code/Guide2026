@@ -63,6 +63,168 @@ const PortalLayout = ({ isEmbedded = false }) => {
     checkAuth();
   }, [slug]);
 
+  const portalIdRaw = new URLSearchParams(location.search).get('portalId')
+    || new URLSearchParams(location.search).get('portal')
+    || workspace?.portal_id
+    || workspace?.portalId
+    || 'tenant';
+  const portalIdNormalized = portalIdRaw.toLowerCase() === 'integration'
+    ? 'integrations'
+    : portalIdRaw.toLowerCase();
+
+  const portalConfig = useMemo(() => ({
+    admin: {
+      title: t('portal:headers.admin.title'),
+      description: t('portal:headers.admin.description'),
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0f172a"/>
+          <rect x="48" y="48" width="624" height="324" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
+          <rect x="80" y="92" width="180" height="96" rx="12" fill="#1f2937"/>
+          <rect x="280" y="92" width="160" height="140" rx="12" fill="#1f2937"/>
+          <rect x="460" y="92" width="200" height="220" rx="12" fill="#1f2937"/>
+          <circle cx="170" cy="280" r="40" fill="#0ea5e9"/>
+          <circle cx="330" cy="300" r="18" fill="#22c55e"/>
+          <circle cx="380" cy="300" r="18" fill="#f97316"/>
+          <path d="M170 240 L330 300 L380 300" stroke="#38bdf8" stroke-width="4" fill="none"/>
+          <path d="M330 300 L560 200" stroke="#38bdf8" stroke-width="4" fill="none"/>
+          <circle cx="560" cy="200" r="24" fill="#38bdf8"/>
+        </svg>`
+      )}`
+    },
+    tenant: {
+      title: t('portal:headers.tenant.title'),
+      description: t('portal:headers.tenant.description'),
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0b1324"/>
+          <rect x="60" y="60" width="600" height="300" rx="28" fill="#111827"/>
+          <rect x="100" y="110" width="520" height="52" rx="12" fill="#1f2937"/>
+          <rect x="100" y="182" width="420" height="52" rx="12" fill="#1f2937"/>
+          <rect x="100" y="254" width="320" height="52" rx="12" fill="#1f2937"/>
+          <circle cx="130" cy="136" r="14" fill="#22c55e"/>
+          <circle cx="130" cy="208" r="14" fill="#38bdf8"/>
+          <circle cx="130" cy="280" r="14" fill="#f59e0b"/>
+          <path d="M160 136 H590" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+          <path d="M160 208 H490" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+          <path d="M160 280 H390" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+        </svg>`
+      )}`
+    },
+    knowledge: {
+      title: t('portal:headers.knowledge.title'),
+      description: t('portal:headers.knowledge.description'),
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0b1120"/>
+          <rect x="80" y="84" width="220" height="252" rx="16" fill="#1e293b"/>
+          <rect x="250" y="84" width="220" height="252" rx="16" fill="#1f2937"/>
+          <rect x="420" y="84" width="220" height="252" rx="16" fill="#111827"/>
+          <path d="M110 130 H280" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M110 170 H260" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M280 130 H450" stroke="#a855f7" stroke-width="6" stroke-linecap="round"/>
+          <path d="M280 170 H430" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M450 130 H620" stroke="#f97316" stroke-width="6" stroke-linecap="round"/>
+          <path d="M450 170 H600" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="190" cy="260" r="26" fill="#38bdf8"/>
+          <circle cx="360" cy="260" r="26" fill="#a855f7"/>
+          <circle cx="530" cy="260" r="26" fill="#f97316"/>
+        </svg>`
+      )}`
+    },
+    integrations: {
+      title: t('portal:headers.integrations.title'),
+      description: t('portal:headers.integrations.description'),
+      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+          <rect width="720" height="420" fill="#0f172a"/>
+          <rect x="60" y="60" width="600" height="300" rx="28" fill="#0b1220" stroke="#1f2937" stroke-width="2"/>
+          <circle cx="160" cy="210" r="50" fill="#22c55e"/>
+          <circle cx="360" cy="140" r="44" fill="#38bdf8"/>
+          <circle cx="560" cy="250" r="58" fill="#f97316"/>
+          <path d="M210 210 L316 156" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M404 156 L512 228" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <path d="M220 240 L520 264" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+          <rect x="330" y="250" width="70" height="40" rx="10" fill="#1f2937"/>
+          <rect x="320" y="102" width="80" height="36" rx="10" fill="#1f2937"/>
+        </svg>`
+      )}`
+    }
+  }), [t]);
+
+  const portalDetails = portalConfig[portalIdNormalized] || portalConfig.tenant;
+  const portalPalette = workspace?.portal_palette || {};
+  const primaryColor = portalPalette.primary || workspace?.brand_color || '#4f46e5';
+  const secondaryColor = portalPalette.secondary || '#8b5cf6';
+  const accentColor = portalPalette.accent || '#10b981';
+  const workspaceName = workspace?.name?.trim() || 'Workspace';
+  const workspaceInitials = getWorkspaceInitials(workspaceName);
+
+  const workspaceHeroImage = useMemo(() => {
+    const gradientStart = primaryColor;
+    const gradientEnd = secondaryColor;
+    const accent = accentColor;
+    const svg = `
+      <svg width="720" height="480" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${gradientStart}" />
+            <stop offset="100%" stop-color="${gradientEnd}" />
+          </linearGradient>
+          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${accent}" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="${gradientEnd}" stop-opacity="0.4" />
+          </linearGradient>
+          <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="22" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width="720" height="480" rx="40" fill="#040714" />
+        <rect x="24" y="28" width="672" height="424" rx="32" fill="url(#heroGradient)" opacity="0.92" />
+        <circle cx="620" cy="60" r="120" fill="url(#accentGradient)" opacity="0.2" filter="url(#softGlow)" />
+        <circle cx="110" cy="400" r="110" fill="#ffffff" opacity="0.06" />
+        <circle cx="600" cy="420" r="70" fill="#ffffff" opacity="0.05" />
+        <g fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2">
+          <path d="M80 120 Q360 60 640 120" />
+          <path d="M80 200 Q360 140 640 200" />
+          <path d="M80 280 Q360 220 640 280" />
+        </g>
+        <g>
+          <text x="60" y="210" fill="rgba(255,255,255,0.65)" font-size="18" letter-spacing="0.6em" font-family="'Poppins', 'Segoe UI', sans-serif">
+            GUIDED JOURNEY
+          </text>
+          <text x="60" y="290" fill="#ffffff" font-size="66" font-family="'Clash Display', 'Poppins', 'Segoe UI', sans-serif" font-weight="600">
+            ${escapeSvgText(workspaceName)}
+          </text>
+          <text x="62" y="330" fill="rgba(255,255,255,0.7)" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif">
+            Confidence in every step
+          </text>
+        </g>
+        <g>
+          ${workspaceInitials.split('').map((char, index) => `
+            <g transform="translate(${60 + index * 78}, 360)">
+              <rect width="64" height="64" rx="18" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" />
+              <text x="32" y="41" fill="#ffffff" font-size="28" font-family="'Poppins', 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">
+                ${escapeSvgText(char)}
+              </text>
+            </g>
+          `).join('')}
+        </g>
+        <g transform="translate(420, 340)">
+          <rect width="240" height="86" rx="24" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.2)" />
+          <text x="120" y="45" fill="#ffffff" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif" text-anchor="middle">
+            Navigate your playbook
+          </text>
+        </g>
+      </svg>
+    `;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }, [accentColor, primaryColor, secondaryColor, workspaceInitials, workspaceName]);
+
   useEffect(() => {
     if (!portal?.workspace?.name || !slug) return undefined;
     const workspace = portal.workspace;
@@ -164,169 +326,6 @@ const PortalLayout = ({ isEmbedded = false }) => {
       </AppShell>
     );
   }
-
-  const portalIdRaw = new URLSearchParams(location.search).get('portalId')
-    || new URLSearchParams(location.search).get('portal')
-    || workspace?.portal_id
-    || workspace?.portalId
-    || 'tenant';
-  const portalIdNormalized = portalIdRaw.toLowerCase() === 'integration'
-    ? 'integrations'
-    : portalIdRaw.toLowerCase();
-
-  const portalConfig = {
-    admin: {
-      title: t('portal:headers.admin.title'),
-      description: t('portal:headers.admin.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0f172a"/>
-          <rect x="48" y="48" width="624" height="324" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
-          <rect x="80" y="92" width="180" height="96" rx="12" fill="#1f2937"/>
-          <rect x="280" y="92" width="160" height="140" rx="12" fill="#1f2937"/>
-          <rect x="460" y="92" width="200" height="220" rx="12" fill="#1f2937"/>
-          <circle cx="170" cy="280" r="40" fill="#0ea5e9"/>
-          <circle cx="330" cy="300" r="18" fill="#22c55e"/>
-          <circle cx="380" cy="300" r="18" fill="#f97316"/>
-          <path d="M170 240 L330 300 L380 300" stroke="#38bdf8" stroke-width="4" fill="none"/>
-          <path d="M330 300 L560 200" stroke="#38bdf8" stroke-width="4" fill="none"/>
-          <circle cx="560" cy="200" r="24" fill="#38bdf8"/>
-        </svg>`
-      )}`
-    },
-    tenant: {
-      title: t('portal:headers.tenant.title'),
-      description: t('portal:headers.tenant.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0b1324"/>
-          <rect x="60" y="60" width="600" height="300" rx="28" fill="#111827"/>
-          <rect x="100" y="110" width="520" height="52" rx="12" fill="#1f2937"/>
-          <rect x="100" y="182" width="420" height="52" rx="12" fill="#1f2937"/>
-          <rect x="100" y="254" width="320" height="52" rx="12" fill="#1f2937"/>
-          <circle cx="130" cy="136" r="14" fill="#22c55e"/>
-          <circle cx="130" cy="208" r="14" fill="#38bdf8"/>
-          <circle cx="130" cy="280" r="14" fill="#f59e0b"/>
-          <path d="M160 136 H590" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
-          <path d="M160 208 H490" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
-          <path d="M160 280 H390" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
-        </svg>`
-      )}`
-    },
-    knowledge: {
-      title: t('portal:headers.knowledge.title'),
-      description: t('portal:headers.knowledge.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0b1120"/>
-          <rect x="80" y="84" width="220" height="252" rx="16" fill="#1e293b"/>
-          <rect x="250" y="84" width="220" height="252" rx="16" fill="#1f2937"/>
-          <rect x="420" y="84" width="220" height="252" rx="16" fill="#111827"/>
-          <path d="M110 130 H280" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M110 170 H260" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M280 130 H450" stroke="#a855f7" stroke-width="6" stroke-linecap="round"/>
-          <path d="M280 170 H430" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M450 130 H620" stroke="#f97316" stroke-width="6" stroke-linecap="round"/>
-          <path d="M450 170 H600" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <circle cx="190" cy="260" r="26" fill="#38bdf8"/>
-          <circle cx="360" cy="260" r="26" fill="#a855f7"/>
-          <circle cx="530" cy="260" r="26" fill="#f97316"/>
-        </svg>`
-      )}`
-    },
-    integrations: {
-      title: t('portal:headers.integrations.title'),
-      description: t('portal:headers.integrations.description'),
-      headerImage: `data:image/svg+xml;utf8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
-          <rect width="720" height="420" fill="#0f172a"/>
-          <rect x="60" y="60" width="600" height="300" rx="28" fill="#0b1220" stroke="#1f2937" stroke-width="2"/>
-          <circle cx="160" cy="210" r="50" fill="#22c55e"/>
-          <circle cx="360" cy="140" r="44" fill="#38bdf8"/>
-          <circle cx="560" cy="250" r="58" fill="#f97316"/>
-          <path d="M210 210 L316 156" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M404 156 L512 228" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <path d="M220 240 L520 264" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-          <rect x="330" y="250" width="70" height="40" rx="10" fill="#1f2937"/>
-          <rect x="320" y="102" width="80" height="36" rx="10" fill="#1f2937"/>
-        </svg>`
-      )}`
-    }
-  };
-
-  const portalDetails = portalConfig[portalIdNormalized] || portalConfig.tenant;
-  const portalPalette = workspace.portal_palette || {};
-  const primaryColor = portalPalette.primary || workspace.brand_color || '#4f46e5';
-  const secondaryColor = portalPalette.secondary || '#8b5cf6';
-  const accentColor = portalPalette.accent || '#10b981';
-  const workspaceName = workspace?.name?.trim() || 'Workspace';
-  const workspaceInitials = getWorkspaceInitials(workspaceName);
-
-  const workspaceHeroImage = useMemo(() => {
-    const gradientStart = primaryColor;
-    const gradientEnd = secondaryColor;
-    const accent = accentColor;
-    const svg = `
-      <svg width="720" height="480" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="${gradientStart}" />
-            <stop offset="100%" stop-color="${gradientEnd}" />
-          </linearGradient>
-          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="${accent}" stop-opacity="0.9" />
-            <stop offset="100%" stop-color="${gradientEnd}" stop-opacity="0.4" />
-          </linearGradient>
-          <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="22" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        <rect width="720" height="480" rx="40" fill="#040714" />
-        <rect x="24" y="28" width="672" height="424" rx="32" fill="url(#heroGradient)" opacity="0.92" />
-        <circle cx="620" cy="60" r="120" fill="url(#accentGradient)" opacity="0.2" filter="url(#softGlow)" />
-        <circle cx="110" cy="400" r="110" fill="#ffffff" opacity="0.06" />
-        <circle cx="600" cy="420" r="70" fill="#ffffff" opacity="0.05" />
-        <g fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2">
-          <path d="M80 120 Q360 60 640 120" />
-          <path d="M80 200 Q360 140 640 200" />
-          <path d="M80 280 Q360 220 640 280" />
-        </g>
-        <g>
-          <text x="60" y="210" fill="rgba(255,255,255,0.65)" font-size="18" letter-spacing="0.6em" font-family="'Poppins', 'Segoe UI', sans-serif">
-            GUIDED JOURNEY
-          </text>
-          <text x="60" y="290" fill="#ffffff" font-size="66" font-family="'Clash Display', 'Poppins', 'Segoe UI', sans-serif" font-weight="600">
-            ${escapeSvgText(workspaceName)}
-          </text>
-          <text x="62" y="330" fill="rgba(255,255,255,0.7)" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif">
-            Confidence in every step
-          </text>
-        </g>
-        <g>
-          ${workspaceInitials.split('').map((char, index) => `
-            <g transform="translate(${60 + index * 78}, 360)">
-              <rect width="64" height="64" rx="18" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" />
-              <text x="32" y="41" fill="#ffffff" font-size="28" font-family="'Poppins', 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">
-                ${escapeSvgText(char)}
-              </text>
-            </g>
-          `).join('')}
-        </g>
-        <g transform="translate(420, 340)">
-          <rect width="240" height="86" rx="24" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.2)" />
-          <text x="120" y="45" fill="#ffffff" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif" text-anchor="middle">
-            Navigate your playbook
-          </text>
-        </g>
-      </svg>
-    `;
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-  }, [accentColor, primaryColor, secondaryColor, workspaceInitials, workspaceName]);
-
   const backgroundStyle = workspace.portal_background_url
     ? { backgroundImage: `url(${normalizeImageUrl(workspace.portal_background_url)})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
     : {};
