@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -12,8 +12,8 @@ import { normalizeImageUrl } from '../lib/utils';
 import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/KnowledgeSystemsNavigationBar';
 import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 import { usePortal } from '../contexts/PortalContext';
-import createCategoryResolver from '../utils/categoryResolver';
 import { buildCategoryTree, normalizeCategories } from '../utils/categoryTree';
+import GuidedResolverModal from '@/components/GuidedResolverModal';
 
 
 const PortalPage = () => {
@@ -26,13 +26,7 @@ const PortalPage = () => {
   const [categorySelectOpen, setCategorySelectOpen] = useState(false);
   const [selectedCategoryForChat, setSelectedCategoryForChat] = useState(null);
   const [knowledgeSystemCounts, setKnowledgeSystemCounts] = useState({});
-  const walkthroughsSectionRef = useRef(null);
-  const resolverOnSelectRef = useRef(null);
-  const [resolverActive, setResolverActive] = useState(false);
-  const [resolverPrompt, setResolverPrompt] = useState(null);
-  const [resolverOptions, setResolverOptions] = useState([]);
-  const [resolverWalkthroughs, setResolverWalkthroughs] = useState([]);
-  const [resolverDepth, setResolverDepth] = useState(1);
+  const [isGuidedOpen, setGuidedOpen] = useState(false);
 
   const normalizeCategoryIds = useCallback((ids) => (
     Array.isArray(ids)
@@ -55,11 +49,6 @@ const PortalPage = () => {
 
   // Organize categories into parent/children structure
   const categoryTree = useMemo(() => buildCategoryTree(normalizedCategories), [normalizedCategories]);
-
-  const resolver = useMemo(() => {
-    if (!normalizedCategories.length || !normalizedWalkthroughs.length) return null;
-    return createCategoryResolver(normalizedCategories, normalizedWalkthroughs);
-  }, [normalizedCategories, normalizedWalkthroughs]);
 
   // Get all category IDs (including children) when a parent is selected
   const getCategoryIds = useCallback((categoryId) => {
@@ -115,86 +104,20 @@ const PortalPage = () => {
     return grouped;
   }, [categoryTree, filteredWalkthroughs]);
 
-  const scrollToWalkthroughs = useCallback((event) => {
-    if (event) {
-      event.preventDefault();
-    }
-    if (resolverActive) {
-      handleGuidedStart();
+  const openGuidedJourney = useCallback(() => {
+    if (!normalizedCategories.length || !normalizedWalkthroughs.length) {
+      toast.info(t('portal:guidedUnavailable', { defaultValue: 'Guided helper is unavailable right now.' }));
       return;
     }
-    if (walkthroughsSectionRef.current) {
-      walkthroughsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [resolverActive]);
+    setGuidedOpen(true);
+  }, [normalizedCategories.length, normalizedWalkthroughs.length, t]);
 
-  const resetResolver = useCallback(() => {
-    setResolverActive(false);
-    setResolverPrompt(null);
-    setResolverOptions([]);
-    setResolverWalkthroughs([]);
-    resolverOnSelectRef.current = null;
-  }, []);
-
-  const navigateToWalkthrough = useCallback((walkthrough) => {
+  const handleGuidedResultSelect = useCallback((walkthrough) => {
     if (!walkthrough) return;
-    resetResolver();
     const target = walkthrough.slug || walkthrough.id;
     if (!target) return;
     navigate(`/portal/${slug}/${target}`);
-  }, [navigate, resetResolver, slug]);
-
-  const showWalkthroughList = useCallback((walkthroughsList) => {
-    setResolverActive(true);
-    setResolverPrompt(null);
-    setResolverOptions([]);
-    setResolverWalkthroughs(walkthroughsList || []);
-    resolverOnSelectRef.current = null;
-  }, []);
-
-  const promptUserToChoose = useCallback((options, depth, onSelect) => {
-    if (!Array.isArray(options) || options.length === 0) {
-      showWalkthroughList([]);
-      return;
-    }
-    const copyMap = {
-      1: 'What do you need help with?',
-      2: 'Which area best matches your issue?',
-      3: 'Let\'s narrow it down a bit more'
-    };
-    setResolverPrompt(copyMap[depth] || copyMap[3]);
-    setResolverOptions(options);
-    setResolverWalkthroughs([]);
-    setResolverDepth(depth);
-    resolverOnSelectRef.current = onSelect;
-    setResolverActive(true);
-  }, [showWalkthroughList]);
-
-  const resolverHandlers = useMemo(() => ({
-    navigateToWalkthrough,
-    showWalkthroughList,
-    promptUserToChoose
-  }), [navigateToWalkthrough, promptUserToChoose, showWalkthroughList]);
-
-  const handleGuidedStart = useCallback(() => {
-    if (!resolver) {
-      toast.info('Guided helper is unavailable right now.');
-      return;
-    }
-    setResolverActive(true);
-    setResolverPrompt(null);
-    setResolverOptions([]);
-    setResolverWalkthroughs([]);
-    resolverOnSelectRef.current = null;
-    resolver.resolveNode(null, 1, resolverHandlers);
-  }, [resolver, resolverHandlers]);
-
-  const handleResolverOptionClick = useCallback((optionId) => {
-    if (!optionId) return;
-    if (resolverOnSelectRef.current) {
-      resolverOnSelectRef.current(optionId);
-    }
-  }, []);
+  }, [navigate, slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -238,7 +161,7 @@ const PortalPage = () => {
   }, [slug, t, knowledgeSystemCounts]);
 
   const showByCategory = selectedCategory === null && categoryTree.length > 0;
-  const showWalkthroughSections = !resolverActive;
+  const showWalkthroughSections = true;
   return (
       <>
       {/* Portal-Specific Header */}
@@ -410,125 +333,15 @@ const PortalPage = () => {
       <section className="py-6 px-6">
         <div className="max-w-7xl mx-auto space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="default" onClick={handleGuidedStart} data-testid="guided-resolver-start">
+            <Button
+              type="button"
+              onClick={openGuidedJourney}
+              data-testid="guided-resolver-start"
+              className="rounded-full px-5 py-2 h-auto bg-foreground text-background hover:bg-foreground/90"
+            >
               {t('portal:findRightGuide', { defaultValue: 'Find the right guide' })}
             </Button>
-            {resolverActive && (
-              <Button variant="ghost" onClick={resetResolver} data-testid="guided-resolver-reset">
-                {t('portal:guidedReset', { defaultValue: 'Exit guided helper' })}
-              </Button>
-            )}
           </div>
-          {resolverActive && (
-            <div className="glass rounded-2xl border border-border/60 p-6">
-              {resolverPrompt && resolverOptions.length > 0 ? (
-                <div className="space-y-5">
-                  <h3 className="text-lg font-heading font-semibold text-foreground">
-                    {resolverPrompt}
-                  </h3>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {resolverOptions.map((option) => (
-                      <Button
-                        key={option.id}
-                        variant="outline"
-                        className="justify-start h-auto py-3"
-                        onClick={() => handleResolverOptionClick(option.id)}
-                      >
-                        <div>
-                          <div className="font-semibold text-left">{option.name}</div>
-                          {option.description && (
-                            <p className="text-sm text-muted-foreground text-left mt-1 line-clamp-2">
-                              {option.description}
-                            </p>
-                          )}
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                        {t('portal:guidedResults', { defaultValue: 'Recommended walkthroughs' })}
-                      </p>
-                      <h3 className="text-2xl font-heading font-bold text-foreground mt-1">
-                        {resolverWalkthroughs.length > 0
-                          ? t('portal:guidedMatches', { defaultValue: '{{count}} guides match', count: resolverWalkthroughs.length })
-                          : t('portal:guidedNoMatches', { defaultValue: 'No matching guides' })}
-                      </h3>
-                    </div>
-                  </div>
-                  {resolverWalkthroughs.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
-                      {resolverWalkthroughs.map((walkthrough, index) => (
-                        <motion.div
-                          key={`resolver-${walkthrough.id}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => navigateToWalkthrough(walkthrough)}
-                            className="block text-left w-full"
-                          >
-                            <div className="rounded-xl p-5 md:p-6 border border-border/70 hover:border-primary/40 bg-card/80 h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-                              <div className="flex items-start gap-4 mb-3">
-                                {walkthrough.icon_url ? (
-                                  <img
-                                    src={normalizeImageUrl(walkthrough.icon_url)}
-                                    alt={walkthrough.title}
-                                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-border"
-                                  />
-                                ) : (
-                                  <div 
-                                    className="w-14 h-14 rounded-xl backdrop-blur-sm border flex items-center justify-center flex-shrink-0"
-                                    style={{ 
-                                      backgroundColor: `${primaryColor}15`, 
-                                      borderColor: `${primaryColor}30` 
-                                    }}
-                                  >
-                                    <BookOpen className="w-8 h-8" style={{ color: primaryColor }} />
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="text-lg font-heading font-semibold text-foreground mb-1 leading-tight">
-                                    {walkthrough.title}
-                                  </h3>
-                                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                                    {walkthrough.description || t('translation:walkthrough.noDescription')}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between pt-3 mt-2 border-t border-border/70">
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Badge variant="outline" className="text-[11px] uppercase tracking-wide border-border/70">
-                                    {walkthrough.steps?.length || 0} {t('portal:stepsLabel')}
-                                  </Badge>
-                                  {walkthrough.privacy === 'password' && (
-                                    <Badge variant="secondary" className="text-[11px] flex items-center gap-1">
-                                      <Lock className="w-3 h-3" />
-                                      Locked
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      {t('portal:guidedNoResultsMessage', { defaultValue: 'Try another option or browse categories below.' })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </section>
 
@@ -964,6 +777,15 @@ const PortalPage = () => {
           </div>
         </footer>
       )}
+
+      <GuidedResolverModal
+        open={isGuidedOpen}
+        onClose={() => setGuidedOpen(false)}
+        categories={normalizedCategories}
+        walkthroughs={normalizedWalkthroughs}
+        portalSlug={slug}
+        onSelectWalkthrough={handleGuidedResultSelect}
+      />
 
     </>
   );
