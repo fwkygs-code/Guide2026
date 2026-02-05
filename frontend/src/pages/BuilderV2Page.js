@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { normalizeImageUrl, normalizeImageUrlsInObject } from '../lib/utils';
+import { getFlattenedCategories, normalizeCategories } from '../utils/categoryTree';
 import sanitizeHtml from '../lib/sanitizeHtml';
 import { BLOCK_TYPES, createBlock, getBlockLabelKey, getBlockLabel, getBlockIcon, getAllBlockTypes } from '../utils/blockUtils';
 import InlineRichEditor from '../components/canvas-builder/InlineRichEditor';
@@ -181,36 +182,22 @@ const BuilderV2Page = () => {
   const loadCategories = useCallback(async () => {
     try {
       const response = await api.getCategories(workspaceId);
-      setCategories(normalizeImageUrlsInObject(response.data));
+      const normalized = normalizeCategories(normalizeImageUrlsInObject(response.data));
+      setCategories(normalized);
     } catch (error) {
       console.error('Failed to load categories');
     }
   }, [workspaceId]);
 
-  const categoryOptions = useMemo(() => {
-    if (!Array.isArray(categories)) return [];
-    const byParent = categories.reduce((acc, category) => {
-      const parentKey = category.parent_id || 'root';
-      acc[parentKey] = acc[parentKey] || [];
-      acc[parentKey].push(category);
-      return acc;
-    }, {});
+  const normalizeCategoryIds = useCallback((ids) => (
+    Array.isArray(ids)
+      ? ids
+          .map((id) => (id === null || id === undefined ? null : String(id)))
+          .filter((id) => id !== null)
+      : []
+  ), []);
 
-    const buildOptions = (parentId = 'root', level = 0) => {
-      const nodes = (byParent[parentId] || []).sort((a, b) => a.name.localeCompare(b.name));
-      return nodes.flatMap((node) => [
-        {
-          id: node.id,
-          name: node.name,
-          level,
-          parentId: node.parent_id
-        },
-        ...buildOptions(node.id, level + 1)
-      ]);
-    };
-
-    return buildOptions();
-  }, [categories]);
+  const flattenedCategories = useMemo(() => getFlattenedCategories(categories), [categories]);
 
   const loadWalkthrough = useCallback(async () => {
     try {
@@ -239,12 +226,13 @@ const BuilderV2Page = () => {
           };
         });
       }
-      setWalkthrough(normalized);
+      const normalizedCategoryIds = normalizeCategoryIds(normalized.category_ids);
+      setWalkthrough({ ...normalized, category_ids: normalizedCategoryIds });
       setSetupData({
         title: normalized.title || '',
         description: normalized.description || '',
         icon_url: normalized.icon_url || '',
-        category_ids: normalized.category_ids || []
+        category_ids: normalizedCategoryIds
       });
       if (normalized.steps && normalized.steps.length > 0) {
         setCurrentStepIndex(0);
@@ -273,11 +261,12 @@ const BuilderV2Page = () => {
     if (setupComplete || isEditing) return;
     const session = getOnboardingSession();
     if (!session?.active || !session.categoryId) return;
-    if (!categories.some(category => category.id === session.categoryId)) return;
+    const sessionCategoryId = String(session.categoryId);
+    if (!categories.some(category => category.id === sessionCategoryId)) return;
     setSetupData(prev => (
-      prev.category_ids.includes(session.categoryId)
+      prev.category_ids.includes(sessionCategoryId)
         ? prev
-        : { ...prev, category_ids: [...prev.category_ids, session.categoryId] }
+        : { ...prev, category_ids: [...prev.category_ids, sessionCategoryId] }
     ));
   }, [categories, setupComplete, isEditing]);
 
@@ -779,29 +768,31 @@ const BuilderV2Page = () => {
                   <Label className="text-sm font-medium text-foreground mb-2 block">
                     {t('common.categories')}
                   </Label>
-                  {categoryOptions.length === 0 ? (
+                  {flattenedCategories.length === 0 ? (
                     <p className="text-sm text-slate-500">{t('walkthrough.noCategories')}</p>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
-                      {categoryOptions.map((option) => (
+                      {flattenedCategories.map((option) => (
                         <div
                           key={option.id}
                           className="flex items-center space-x-2"
+                          style={{ paddingLeft: option.depth * 16 }}
                         >
                           <Checkbox
                             id={`cat-${option.id}`}
                             checked={setupData.category_ids.includes(option.id)}
                             onCheckedChange={(checked) => {
+                              const optionId = option.id;
                               setSetupData(prev => ({
                                 ...prev,
                                 category_ids: checked
-                                  ? [...prev.category_ids, option.id]
-                                  : prev.category_ids.filter(id => id !== option.id)
+                                  ? [...prev.category_ids, optionId]
+                                  : prev.category_ids.filter(id => id !== optionId)
                               }));
                             }}
                           />
                           <Label htmlFor={`cat-${option.id}`} className="text-sm cursor-pointer">
-                            {option.name}
+                            {option.label}
                           </Label>
                         </div>
                       ))}

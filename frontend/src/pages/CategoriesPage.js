@@ -92,21 +92,48 @@ const CategoriesPage = () => {
     };
   }, [workspaceId, navigate]);
 
-  // Organize categories into tree structure
+  // Organize categories into full tree structure (unlimited depth)
   const categoryTree = useMemo(() => {
-    // Filter out any null/undefined categories and ensure parent_id is properly handled
+    if (!Array.isArray(categories)) return [];
+
     const validCategories = categories.filter(c => c && c.id);
-    const parents = validCategories.filter(c => !c.parent_id || c.parent_id === null || c.parent_id === '');
-    return parents.map(parent => ({
-      ...parent,
-      children: validCategories.filter(c => c.parent_id === parent.id)
-    }));
+    const byParent = validCategories.reduce((acc, category) => {
+      const parentKey = category.parent_id || 'root';
+      if (!acc[parentKey]) {
+        acc[parentKey] = [];
+      }
+      acc[parentKey].push(category);
+      return acc;
+    }, {});
+
+    const buildTree = (parentId = 'root', depth = 0, visited = new Set()) => {
+      const nodes = (byParent[parentId] || []).sort((a, b) => a.name.localeCompare(b.name));
+      return nodes
+        .map(node => {
+          if (visited.has(node.id)) {
+            return null;
+          }
+          const nextVisited = new Set(visited);
+          nextVisited.add(node.id);
+          return {
+            ...node,
+            depth,
+            children: buildTree(node.id, depth + 1, nextVisited)
+          };
+        })
+        .filter(Boolean);
+    };
+
+    return buildTree();
   }, [categories]);
 
-  const parentCategories = useMemo(() => {
-    const validCategories = categories.filter(c => c && c.id);
-    return validCategories.filter(c => !c.parent_id || c.parent_id === null || c.parent_id === '');
-  }, [categories]);
+  const flattenedCategories = useMemo(() => {
+    const flatten = (nodes) => nodes.flatMap(node => [
+      { id: node.id, name: node.name, depth: node.depth },
+      ...flatten(node.children || [])
+    ]);
+    return flatten(categoryTree);
+  }, [categoryTree]);
 
   const handleIconUpload = async (file, isEdit = false) => {
     try {
@@ -158,7 +185,7 @@ const CategoriesPage = () => {
       setNewCategoryIcon('');
       setNewCategoryNotebooklmUrl('');
       setCreatingForParent(null);
-      toast.success(parentId ? 'Sub-category created!' : 'Category created!');
+      toast.success('Category created!');
       if (!parentId && response?.data?.id) {
         window.dispatchEvent(new CustomEvent('onboarding:categoryCreated', { detail: { categoryId: response.data.id, categoryName: response.data.name } }));
       }
@@ -362,9 +389,9 @@ const CategoriesPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">{t('category.noneTopLevel')}</SelectItem>
-                        {parentCategories.map(cat => (
+                        {flattenedCategories.map(cat => (
                           <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
+                            {`${'• '.repeat(cat.depth)}${cat.name}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -527,51 +554,17 @@ const CategoriesPage = () => {
                         animate={{ opacity: 1, height: 'auto' }}
                         className="space-y-2 mt-4 pt-4 border-t border-white/20"
                       >
-                        <div className="text-sm font-medium text-slate-300 mb-2">{t('categories.subCategories')}:</div>
-                        <div className="grid grid-cols-1 gap-2">
-                          {category.children.map((subCat) => (
-                            <div
-                              key={subCat.id}
-                              className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg group/sub"
-                            >
-                              <div className="flex items-center gap-3">
-                                {subCat.icon_url ? (
-                                  <img
-                                    src={subCat.icon_url}
-                                    alt={subCat.name}
-                                    className="w-6 h-6 rounded-lg object-cover"
-                                  />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                                )}
-                                <div>
-                                  <div className="text-sm font-medium text-white">{subCat.name}</div>
-                                  {subCat.description && (
-                                    <div className="text-xs text-slate-400 truncate">{subCat.description}</div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 group-hover/sub:opacity-100 transition-opacity">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => openEditDialog(subCat)}
-                                  data-testid={`edit-subcategory-${subCat.id}`}
-                                  className="h-6 w-6 p-0 text-foreground hover:text-slate-300"
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteCategory(subCat.id, subCat.name)}
-                                  data-testid={`delete-subcategory-${subCat.id}`}
-                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
+                        <div className="text-sm953 font-medium text-slate-300 mb-2">{t('categories.subCategories')}:</div>
+                        <div className="space-y-2">
+                          {category.children.map((child) => (
+                            <RecursiveCategoryRow
+                              key={child.id}
+                              category={child}
+                              depth={1}
+                              onEdit={openEditDialog}
+                              onDelete={handleDeleteCategory}
+                              t={t}
+                            />
                           ))}
                         </div>
                       </motion.div>
@@ -716,3 +709,68 @@ const CategoriesPage = () => {
 };
 
 export default CategoriesPage;
+
+const RecursiveCategoryRow = ({ category, depth, onEdit, onDelete, t }) => {
+  const padding = Math.min(depth * 16, 64);
+
+  return (
+    <div className="space-y-2">
+      <div
+        className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg group/sub"
+        style={{ marginLeft: padding }}
+      >
+        <div className="flex items-center gap-3">
+          {category.icon_url ? (
+            <img
+              src={category.icon_url}
+              alt={category.name}
+              className="w-6 h-6 rounded-lg object-cover"
+            />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          )}
+          <div>
+            <div className="text-sm font-medium text-white">{category.name}</div>
+            {category.description && (
+              <div className="text-xs text-slate-400 truncate">{category.description}</div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 group-hover/sub:opacity-100 transition-opacity">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onEdit(category)}
+            data-testid={`edit-subcategory-${category.id}`}
+            className="h-6 w-6 p-0 text-foreground hover:text-slate-300"
+          >
+            <Edit className="w-3 h-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onDelete(category.id, category.name)}
+            data-testid={`delete-subcategory-${category.id}`}
+            className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+      {category.children?.length > 0 && (
+        <div className="space-y-2">
+          {category.children.map(child => (
+            <RecursiveCategoryRow
+              key={child.id}
+              category={child}
+              depth={depth + 1}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

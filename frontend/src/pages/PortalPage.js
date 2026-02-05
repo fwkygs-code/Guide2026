@@ -13,6 +13,7 @@ import KnowledgeSystemsNavigationBar from '../knowledge-systems/portal/Knowledge
 import { portalKnowledgeSystemsService } from '../knowledge-systems/api-service';
 import { usePortal } from '../contexts/PortalContext';
 import createCategoryResolver from '../utils/categoryResolver';
+import { buildCategoryTree, normalizeCategories } from '../utils/categoryTree';
 
 
 const PortalPage = () => {
@@ -33,32 +34,57 @@ const PortalPage = () => {
   const [resolverWalkthroughs, setResolverWalkthroughs] = useState([]);
   const [resolverDepth, setResolverDepth] = useState(1);
 
+  const normalizeCategoryIds = useCallback((ids) => (
+    Array.isArray(ids)
+      ? ids
+          .map((id) => (id === null || id === undefined ? null : String(id)))
+          .filter((id) => id !== null)
+      : []
+  ), []);
+
+  const normalizedCategories = useMemo(() => normalizeCategories(portal?.categories || []), [portal?.categories]);
+
+  const normalizedWalkthroughs = useMemo(() => (
+    Array.isArray(portal?.walkthroughs)
+      ? portal.walkthroughs.map((walkthrough) => ({
+          ...walkthrough,
+          category_ids: normalizeCategoryIds(walkthrough.category_ids),
+        }))
+      : []
+  ), [portal?.walkthroughs, normalizeCategoryIds]);
+
   // Organize categories into parent/children structure
-  const categoryTree = useMemo(() => {
-    if (!portal?.categories) return [];
-    const parents = portal.categories.filter(c => !c.parent_id);
-    return parents.map(parent => ({
-      ...parent,
-      children: portal.categories.filter(c => c.parent_id === parent.id)
-    }));
-  }, [portal?.categories]);
+  const categoryTree = useMemo(() => buildCategoryTree(normalizedCategories), [normalizedCategories]);
 
   const resolver = useMemo(() => {
-    if (!portal?.categories || !portal?.walkthroughs) return null;
-    return createCategoryResolver(portal.categories, portal.walkthroughs);
-  }, [portal?.categories, portal?.walkthroughs]);
+    if (!normalizedCategories.length || !normalizedWalkthroughs.length) return null;
+    return createCategoryResolver(normalizedCategories, normalizedWalkthroughs);
+  }, [normalizedCategories, normalizedWalkthroughs]);
 
   // Get all category IDs (including children) when a parent is selected
   const getCategoryIds = useCallback((categoryId) => {
     if (!categoryId) return null;
-    const category = portal.categories.find(c => c.id === categoryId);
-    if (!category) return [categoryId];
-    const children = portal.categories.filter(c => c.parent_id === categoryId).map(c => c.id);
-    return [categoryId, ...children];
-  }, [portal.categories]);
+    const ids = [];
+    const stack = [categoryId];
+    const byParent = normalizedCategories.reduce((acc, category) => {
+      const key = category.parent_id || 'root';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(category.id);
+      return acc;
+    }, {});
+
+    while (stack.length) {
+      const current = stack.pop();
+      ids.push(current);
+      const children = byParent[current] || [];
+      stack.push(...children);
+    }
+
+    return ids;
+  }, [normalizedCategories]);
 
   const filteredWalkthroughs = useMemo(() => {
-    return portal?.walkthroughs?.filter(wt => {
+    return normalizedWalkthroughs.filter(wt => {
       const matchesSearch = wt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            wt.description?.toLowerCase().includes(searchQuery.toLowerCase());
       if (!selectedCategory) return matchesSearch;
@@ -149,6 +175,9 @@ const PortalPage = () => {
       return;
     }
     setResolverActive(true);
+    setResolverPrompt(null);
+    setResolverOptions([]);
+    setResolverWalkthroughs([]);
     resolverOnSelectRef.current = null;
     resolver.resolveNode(null, 1, resolverHandlers);
   }, [resolver, resolverHandlers]);

@@ -6,6 +6,7 @@ import { Plus, BookOpen, Edit, Trash2, Eye, FolderOpen, ChevronRight, Archive, S
 import { toast } from 'sonner';
 import { api, getBackendUrl, getPublicPortalUrl } from '../lib/api';
 import { normalizeImageUrlsInObject, normalizeImageUrl } from '../lib/utils';
+import { normalizeCategories, getFlattenedCategories } from '../utils/categoryTree';
 import DashboardLayout from '../components/DashboardLayout';
 import { useQuota } from '../hooks/useQuota';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
@@ -39,6 +40,14 @@ const WalkthroughsPage = () => {
   });
   const [uploadingIcon, setUploadingIcon] = useState(false);
 
+  const normalizeCategoryIds = useCallback((ids) => (
+    Array.isArray(ids)
+      ? ids
+          .map((id) => (id === null || id === undefined ? null : String(id)))
+          .filter((id) => id !== null)
+      : []
+  ), []);
+
   const fetchData = useCallback(async () => {
     try {
       // First get workspace by slug to get the ID
@@ -53,8 +62,17 @@ const WalkthroughsPage = () => {
         api.getCategories(workspaceData.id)
       ]);
       // Normalize image URLs
-      setWalkthroughs(normalizeImageUrlsInObject(wtResponse.data));
-      setCategories(normalizeImageUrlsInObject(catResponse.data));
+      const normalizedWalkthroughsRaw = normalizeImageUrlsInObject(wtResponse.data);
+      const normalizedWalkthroughs = Array.isArray(normalizedWalkthroughsRaw)
+        ? normalizedWalkthroughsRaw.map((walkthrough) => ({
+            ...walkthrough,
+            category_ids: normalizeCategoryIds(walkthrough.category_ids),
+          }))
+        : [];
+      setWalkthroughs(normalizedWalkthroughs);
+
+      const normalizedCategories = normalizeCategories(normalizeImageUrlsInObject(catResponse.data));
+      setCategories(normalizedCategories);
       // Expand all categories by default
       const allCategoryIds = new Set(catResponse.data.map(c => c.id));
       setExpandedCategories(allCategoryIds);
@@ -63,7 +81,7 @@ const WalkthroughsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [workspaceSlug, t]);
+  }, [workspaceSlug, t, normalizeCategoryIds]);
 
   useEffect(() => {
     fetchData();
@@ -108,6 +126,8 @@ const WalkthroughsPage = () => {
       children: categories.filter(c => c.parent_id === parent.id)
     }));
   }, [categories]);
+
+  const flattenedCategories = useMemo(() => getFlattenedCategories(categories), [categories]);
 
   // Helper function to get category names for a walkthrough
   const getWalkthroughCategoryNames = (walkthrough) => {
@@ -179,7 +199,7 @@ const WalkthroughsPage = () => {
       slug: walkthrough.slug || '',
       description: walkthrough.description || '',
       icon_url: walkthrough.icon_url || '',
-      category_ids: walkthrough.category_ids || [],
+      category_ids: normalizeCategoryIds(walkthrough.category_ids),
       enable_stuck_button: !!walkthrough.enable_stuck_button
     });
     setSettingsDialogOpen(true);
@@ -626,12 +646,16 @@ const WalkthroughsPage = () => {
                   <Label className="text-sm font-medium text-white mb-2 block">
                     {t('common.categories')}
                   </Label>
-                  {parentCategories.length === 0 ? (
+                  {flattenedCategories.length === 0 ? (
                     <p className="text-sm text-slate-500">{t('walkthrough.noCategories')}</p>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
-                      {parentCategories.map((category) => (
-                        <div key={category.id} className="flex items-center space-x-2">
+                      {flattenedCategories.map((category) => (
+                        <div
+                          key={category.id}
+                          className="flex items-center space-x-2"
+                          style={{ paddingLeft: category.depth * 16 }}
+                        >
                           <Checkbox
                             id={`edit-cat-${category.id}`}
                             checked={editSettings.category_ids.includes(category.id)}
@@ -645,7 +669,7 @@ const WalkthroughsPage = () => {
                             }}
                           />
                           <Label htmlFor={`edit-cat-${category.id}`} className="text-sm cursor-pointer">
-                            {category.name}
+                            {category.label}
                           </Label>
                         </div>
                       ))}
