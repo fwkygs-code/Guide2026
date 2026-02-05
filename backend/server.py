@@ -796,7 +796,7 @@ class Subscription(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class File(BaseModel):
+class FileRecord(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
@@ -2724,7 +2724,7 @@ async def create_file_record_from_url(url: str, user_id: str, workspace_id: str,
     
     # Create file record (status=active since file already exists)
     file_id = str(uuid.uuid4())
-    file_record = File(
+    file_record = FileRecord(
         id=file_id,
         user_id=user_id,
         workspace_id=workspace_id,
@@ -6739,7 +6739,7 @@ async def upload_file(
         file_owner_id = workspace['owner_id']
         
         file_id = str(uuid.uuid4())
-        file_record = File(
+        file_record = FileRecord(
             id=file_id,
             user_id=file_owner_id,  # Use workspace owner's ID for quota tracking
             workspace_id=workspace_id,
