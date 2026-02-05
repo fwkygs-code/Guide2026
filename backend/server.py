@@ -3,7 +3,7 @@
 # Local file compiles perfectly - Render cache is corrupted
 from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Literal
 from enum import Enum
 import secrets
 import hashlib
