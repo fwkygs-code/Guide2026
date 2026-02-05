@@ -13,7 +13,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional, Dict, Any, Tuple, Union
+from typing import List, Optional, Dict, Any, Tuple, Union, Literal
 from collections import defaultdict
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -37,6 +37,7 @@ import re
 import sys
 import inspect
 import html as html_module
+from urllib.parse import urlparse, urlunparse
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -483,6 +484,26 @@ class User(BaseModel):
     has_completed_onboarding: bool = False  # Track if user completed onboarding
     has_dismissed_onboarding: bool = False  # Track if user dismissed onboarding
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ExtensionTargetCreateRequest(BaseModel):
+    workspace_id: str
+    walkthrough_id: str
+    step_id: Optional[int] = Field(default=None, ge=1)
+    url_rules: List[ExtensionTargetUrlRule]
+
+
+class ExtensionTargetResponse(ExtensionTarget):
+    pass
+
+
+class ExtensionResolveMatch(BaseModel):
+    walkthrough_id: str
+    step_id: Optional[int] = None
+
+
+class ExtensionResolveResponse(BaseModel):
+    matches: List[ExtensionResolveMatch] = []
     updated_at: Optional[datetime] = None  # Track modifications
 
 class WorkspaceCreate(BaseModel):
@@ -652,6 +673,22 @@ class KnowledgeSystemUpdate(BaseModel):
     description: Optional[str] = None
     content: Optional[Dict[str, Any]] = None
     status: Optional[KnowledgeSystemStatus] = None
+
+
+class ExtensionTargetUrlRule(BaseModel):
+    type: Literal["exact", "prefix", "host", "regex"]
+    value: str
+
+
+class ExtensionTarget(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    workspace_id: str
+    walkthrough_id: str
+    step_id: Optional[int] = Field(default=None, ge=1)
+    created_by: str
+    url_rules: List[ExtensionTargetUrlRule]
+    status: Literal["active", "inactive"] = "active"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class KnowledgeSystem(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1377,6 +1414,43 @@ async def _get_invite_member_by_token(token: str) -> Dict[str, Any]:
         )
         raise HTTPException(status_code=400, detail="Invitation has expired")
     return member
+
+
+async def require_workspace_admin(workspace_id: str, current_user: User) -> WorkspaceMember:
+    member = await check_workspace_access(workspace_id, current_user.id)
+    if member.role not in {UserRole.OWNER, UserRole.ADMIN}:
+        raise HTTPException(status_code=403, detail="Admin access required for workspace")
+    return member
+
+
+async def get_user_workspace_ids(user_id: str) -> List[str]:
+    owner_cursor = db.workspaces.find({"owner_id": user_id}, {"_id": 0, "id": 1})
+    owner_ids = [doc["id"] async for doc in owner_cursor]
+
+    member_cursor = db.workspace_members.find(
+        {
+            "user_id": user_id,
+            "status": InvitationStatus.ACCEPTED
+        },
+        {"_id": 0, "workspace_id": 1}
+    )
+    member_ids = [doc["workspace_id"] async for doc in member_cursor]
+
+    return list({*owner_ids, *member_ids})
+
+
+def normalize_url(url: str) -> str:
+    parsed = urlparse(url)
+    normalized = parsed._replace(fragment="")
+    return urlunparse(normalized)
+
+
+def url_rule_matches(rule: ExtensionTargetUrlRule, url: str) -> bool:
+    if rule.type == "exact":
+        return url == rule.value
+    if rule.type == "prefix":
+        return url.startswith(rule.value)
+    return False
 
 def clear_auth_cookie(response: Response) -> None:
     response.delete_cookie(
@@ -5413,6 +5487,84 @@ async def get_portal_knowledge_system(slug: str, system_id: str):
     return system
 
 # Step Routes
+@api_router.post("/extension/targets", response_model=ExtensionTargetResponse)
+async def create_extension_target(
+    payload: ExtensionTargetCreateRequest,
+    current_user: User = Depends(get_current_user)
+):
+    member = await check_workspace_access(payload.workspace_id, current_user.id)
+    if member.role not in {UserRole.OWNER, UserRole.ADMIN}:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": payload.walkthrough_id, "workspace_id": payload.workspace_id},
+        {"_id": 0}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found in workspace")
+
+    if payload.step_id is not None and payload.step_id < 1:
+        raise HTTPException(status_code=400, detail="step_id must be >= 1")
+
+    target = ExtensionTarget(
+        workspace_id=payload.workspace_id,
+        walkthrough_id=payload.walkthrough_id,
+        step_id=payload.step_id,
+        url_rules=payload.url_rules,
+        created_by=current_user.id,
+    )
+    await db.extension_targets.insert_one(target.model_dump())
+    return target
+
+
+@api_router.get("/extension/targets", response_model=List[ExtensionTargetResponse])
+async def list_extension_targets(current_user: User = Depends(get_current_user)):
+    owner_cursor = db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1})
+    owner_workspace_ids = [doc["id"] async for doc in owner_cursor]
+
+    member_cursor = db.workspace_members.find(
+        {
+            "user_id": current_user.id,
+            "status": InvitationStatus.ACCEPTED,
+            "role": {"$in": [UserRole.ADMIN, UserRole.OWNER]},
+        },
+        {"_id": 0, "workspace_id": 1}
+    )
+    member_workspace_ids = [doc["workspace_id"] async for doc in member_cursor]
+
+    workspace_ids = list({*owner_workspace_ids, *member_workspace_ids})
+    if not workspace_ids:
+        return []
+
+    cursor = db.extension_targets.find({"workspace_id": {"$in": workspace_ids}})
+    results = []
+    async for doc in cursor:
+        doc.pop("_id", None)
+        results.append(ExtensionTarget(**doc))
+    return results
+
+
+@api_router.get("/extension/resolve", response_model=ExtensionResolveResponse)
+async def resolve_extension_targets(url: str = Query(..., description="Current page URL"), current_user: User = Depends(get_current_user)):
+    normalized = normalize_url(url)
+    workspace_ids = await get_user_workspace_ids(current_user.id)
+    if not workspace_ids:
+        return ExtensionResolveResponse(matches=[])
+
+    cursor = db.extension_targets.find({
+        "workspace_id": {"$in": workspace_ids},
+        "status": "active"
+    })
+
+    matches: List[ExtensionResolveMatch] = []
+    async for doc in cursor:
+        doc.pop("_id", None)
+        target = ExtensionTarget(**doc)
+        if any(url_rule_matches(rule, normalized) for rule in target.url_rules):
+            matches.append(ExtensionResolveMatch(walkthrough_id=target.walkthrough_id, step_id=target.step_id))
+
+    return ExtensionResolveResponse(matches=matches)
+
 @api_router.post("/workspaces/{workspace_id}/walkthroughs/{walkthrough_id}/steps")
 async def add_step(workspace_id: str, walkthrough_id: str, step_data: StepCreate, current_user: User = Depends(get_current_user)):
     member = await get_workspace_member(workspace_id, current_user.id)

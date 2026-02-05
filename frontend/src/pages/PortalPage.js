@@ -60,11 +60,13 @@ const PortalPage = () => {
       : []
   ), [portal?.walkthroughs, normalizeCategoryIds]);
 
+  const workspaceFallbackName = t('portal:workspaceFallback', { defaultValue: 'Workspace' });
   const safePortalDetails = portalDetails || {};
   const portalTitle = safePortalDetails.title || workspace?.name || '';
   const portalDescription = safePortalDetails.description || portal?.description || '';
   const portalHeroImage = safePortalDetails.headerImage || workspaceHeroImage || '';
   const tenantHeroImage = workspaceHeroImage || safePortalDetails.headerImage || portalHeroImage;
+  const workspaceDisplayName = workspace?.name || workspaceFallbackName;
   const hasGuidedData = normalizedCategories.length > 0 && normalizedWalkthroughs.length > 0;
 
   // Organize categories into parent/children structure
@@ -138,6 +140,15 @@ const PortalPage = () => {
     if (!target) return;
     navigate(`/portal/${slug}/${target}`);
   }, [navigate, slug]);
+
+  const handleGuidedCtaReset = useCallback(
+    (event) => {
+      event?.stopPropagation();
+      setSearchQuery('');
+      setSelectedCategory(null);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!slug) return;
@@ -232,7 +243,11 @@ const PortalPage = () => {
                     }}
                     className="rounded-2xl overflow-hidden border border-border/40 bg-slate-950/60 relative focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary transition-all duration-300 group"
                   >
-                    <img src={portalHeroImage} alt="Admin control center overview" className="w-full h-full object-cover" />
+                    <img
+                      src={portalHeroImage}
+                      alt={t('portal:headers.admin.imageAlt', { defaultValue: 'Admin control center overview' })}
+                      className="w-full h-full object-cover"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <span className="absolute bottom-4 right-4 text-xs font-semibold uppercase tracking-wide text-white flex items-center gap-2">
                       {t('portal:headers.tenant.imageCtaLabel')}
@@ -270,7 +285,11 @@ const PortalPage = () => {
                     aria-label={t('portal:headers.tenant.imageCta')}
                     title={t('portal:headers.tenant.imageCta')}
                   >
-                    <img src={tenantHeroImage} alt={`${workspace?.name || 'Workspace'} guided journey`} className="w-full h-full object-cover" />
+                    <img
+                      src={tenantHeroImage}
+                      alt={t('portal:headers.tenant.heroAlt', { defaultValue: '{{name}} guided journey', name: workspaceDisplayName })}
+                      className="w-full h-full object-cover"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
                       {t('portal:headers.tenant.imageCtaLabel')}
@@ -327,7 +346,11 @@ const PortalPage = () => {
                     </div>
                   </div>
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
-                    <img src={portalHeroImage} alt={`${workspace?.name || 'Workspace'} knowledge systems overview`} className="w-full h-full object-cover" />
+                    <img
+                      src={portalHeroImage}
+                      alt={t('portal:headers.knowledge.heroAlt', { defaultValue: '{{name}} knowledge systems overview', name: workspaceDisplayName })}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 </div>
               </div>
@@ -343,7 +366,11 @@ const PortalPage = () => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] items-center">
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
-                    <img src={portalHeroImage} alt={`${workspace?.name || 'Workspace'} integrations overview`} className="w-full h-full object-cover" />
+                    <img
+                      src={portalHeroImage}
+                      alt={t('portal:headers.integrations.heroAlt', { defaultValue: '{{name}} integrations overview', name: workspaceDisplayName })}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.integrations.label')}</p>
@@ -366,16 +393,66 @@ const PortalPage = () => {
 
       {/* Guided Resolver Entry + Flow */}
       <section className="py-6 px-6">
-        <div className="max-w-7xl mx-auto space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              onClick={openGuidedJourney}
-              data-testid="guided-resolver-start"
-              className="rounded-full px-5 py-2 h-auto bg-foreground text-background hover:bg-foreground/90"
-            >
-              {t('portal:findRightGuide', { defaultValue: 'Find the right guide' })}
-            </Button>
+        <div className="max-w-7xl mx-auto space-y-3">
+          <div className="mb-1 text-xs font-semibold tracking-[0.3em] text-muted-foreground uppercase">
+            {t('portal:guided.ctaHeading', { defaultValue: 'Guided resolver' })}
+          </div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <div className="flex-1 w-full space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                {t('portal:search.manualLabel', { defaultValue: 'Manual search' })}
+              </p>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('portal:searchPlaceholder')}
+                  className="pl-12 h-12 text-base rounded-xl bg-background/70 border border-border/60 focus-visible:ring-primary/50"
+                  data-testid="portal-search-input"
+                />
+              </div>
+            </div>
+            <div className="flex-1 w-full space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                {t('portal:guided.panelLabel', { defaultValue: 'Guided quiz' })}
+              </p>
+              <div
+                role="button"
+                tabIndex={0}
+                data-testid="guided-resolver-start"
+                className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/60 px-4 py-3 transition hover:border-foreground/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+                onClick={openGuidedJourney}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openGuidedJourney();
+                  }
+                }}
+              >
+                <div className="flex-1 flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none" />
+                    <div className="pl-9 pr-3 py-2 rounded-xl border border-transparent bg-card/70 text-sm text-muted-foreground pointer-events-none">
+                      {t('portal:guided.ctaPlaceholder', { defaultValue: 'Find the right guide…' })}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    aria-label={t('portal:guided.ctaReset', { defaultValue: 'Clear filters' })}
+                    onClick={handleGuidedCtaReset}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <span className="text-xs font-medium text-muted-foreground hidden md:inline">
+                  {t('portal:guided.ctaHint', { defaultValue: 'Tap to launch guided mode' })}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
