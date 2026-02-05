@@ -259,6 +259,74 @@ const PortalLayout = ({ isEmbedded = false }) => {
   const primaryColor = portalPalette.primary || workspace.brand_color || '#4f46e5';
   const secondaryColor = portalPalette.secondary || '#8b5cf6';
   const accentColor = portalPalette.accent || '#10b981';
+  const workspaceName = workspace?.name?.trim() || 'Workspace';
+  const workspaceInitials = getWorkspaceInitials(workspaceName);
+
+  const workspaceHeroImage = useMemo(() => {
+    const gradientStart = primaryColor;
+    const gradientEnd = secondaryColor;
+    const accent = accentColor;
+    const svg = `
+      <svg width="720" height="480" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${gradientStart}" />
+            <stop offset="100%" stop-color="${gradientEnd}" />
+          </linearGradient>
+          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${accent}" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="${gradientEnd}" stop-opacity="0.4" />
+          </linearGradient>
+          <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="22" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width="720" height="480" rx="40" fill="#040714" />
+        <rect x="24" y="28" width="672" height="424" rx="32" fill="url(#heroGradient)" opacity="0.92" />
+        <circle cx="620" cy="60" r="120" fill="url(#accentGradient)" opacity="0.2" filter="url(#softGlow)" />
+        <circle cx="110" cy="400" r="110" fill="#ffffff" opacity="0.06" />
+        <circle cx="600" cy="420" r="70" fill="#ffffff" opacity="0.05" />
+        <g fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2">
+          <path d="M80 120 Q360 60 640 120" />
+          <path d="M80 200 Q360 140 640 200" />
+          <path d="M80 280 Q360 220 640 280" />
+        </g>
+        <g>
+          <text x="60" y="210" fill="rgba(255,255,255,0.65)" font-size="18" letter-spacing="0.6em" font-family="'Poppins', 'Segoe UI', sans-serif">
+            GUIDED JOURNEY
+          </text>
+          <text x="60" y="290" fill="#ffffff" font-size="66" font-family="'Clash Display', 'Poppins', 'Segoe UI', sans-serif" font-weight="600">
+            ${escapeSvgText(workspaceName)}
+          </text>
+          <text x="62" y="330" fill="rgba(255,255,255,0.7)" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif">
+            Confidence in every step
+          </text>
+        </g>
+        <g>
+          ${workspaceInitials.split('').map((char, index) => `
+            <g transform="translate(${60 + index * 78}, 360)">
+              <rect width="64" height="64" rx="18" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" />
+              <text x="32" y="41" fill="#ffffff" font-size="28" font-family="'Poppins', 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">
+                ${escapeSvgText(char)}
+              </text>
+            </g>
+          `).join('')}
+        </g>
+        <g transform="translate(420, 340)">
+          <rect width="240" height="86" rx="24" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.2)" />
+          <text x="120" y="45" fill="#ffffff" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif" text-anchor="middle">
+            Navigate your playbook
+          </text>
+        </g>
+      </svg>
+    `;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }, [accentColor, primaryColor, secondaryColor, workspaceInitials, workspaceName]);
+
   const backgroundStyle = workspace.portal_background_url
     ? { backgroundImage: `url(${normalizeImageUrl(workspace.portal_background_url)})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
     : {};
@@ -281,6 +349,7 @@ const PortalLayout = ({ isEmbedded = false }) => {
       slug,
       portalIdNormalized,
       portalDetails,
+      workspaceHeroImage,
       primaryColor,
       secondaryColor,
       accentColor,
@@ -452,3 +521,24 @@ const PortalLayout = ({ isEmbedded = false }) => {
 };
 
 export default PortalLayout;
+
+const escapeSvgText = (value = '') =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const getWorkspaceInitials = (name = '') => {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase())
+    .slice(0, 3)
+    .join('');
+  if (initials.length === 0) {
+    return (name.charAt(0) || 'W').toUpperCase();
+  }
+  return initials;
+};

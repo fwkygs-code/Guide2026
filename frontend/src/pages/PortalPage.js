@@ -16,7 +16,7 @@ import { usePortal } from '../contexts/PortalContext';
 
 const PortalPage = () => {
   const { t, ready } = useTranslation(['portal', 'common', 'translation']);
-  const { portal, workspace, slug, portalIdNormalized, portalDetails, primaryColor, inIframe } = usePortal();
+  const { portal, workspace, slug, portalIdNormalized, portalDetails, primaryColor, inIframe, workspaceHeroImage } = usePortal();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
@@ -191,7 +191,7 @@ const PortalPage = () => {
                     aria-label={t('portal:headers.tenant.imageCta')}
                     title={t('portal:headers.tenant.imageCta')}
                   >
-                    <img src={portalDetails.headerImage} alt="Guided journey checklist" className="w-full h-full object-cover" />
+                    <img src={workspaceHeroImage || portalDetails.headerImage} alt={`${workspace?.name || 'Workspace'} guided journey`} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
                       {t('portal:headers.tenant.imageCtaLabel')}
@@ -248,7 +248,7 @@ const PortalPage = () => {
                     </div>
                   </div>
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
-                    <img src={portalDetails.headerImage} alt="Knowledge maps and layered documents" className="w-full h-full object-cover" />
+                    <img src={portalDetails.headerImage} alt={`${workspace?.name || 'Workspace'} knowledge systems overview`} className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>
@@ -264,7 +264,7 @@ const PortalPage = () => {
               <div className="glass rounded-3xl p-8 md:p-12 shadow-2xl border border-border/60">
                 <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] items-center">
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
-                    <img src={portalDetails.headerImage} alt="Connected apps and automation flows" className="w-full h-full object-cover" />
+                    <img src={portalDetails.headerImage} alt={`${workspace?.name || 'Workspace'} integrations overview`} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t('portal:headers.integrations.label')}</p>
