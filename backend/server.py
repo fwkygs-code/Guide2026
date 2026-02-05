@@ -517,6 +517,7 @@ class ExtensionTargetResponse(ExtensionTarget):
 class ExtensionResolveMatch(BaseModel):
     walkthrough_id: str
     step_id: Optional[str] = None
+    selector: Optional[str] = None
 
 
 class ExtensionResolveResponse(BaseModel):
@@ -534,6 +535,7 @@ class ExtensionAdminWalkthrough(BaseModel):
     walkthrough_id: str
     workspace_id: str
     title: str
+    status: Optional[str] = None
     steps: List[ExtensionAdminStep] = []
 
 class WorkspaceCreate(BaseModel):

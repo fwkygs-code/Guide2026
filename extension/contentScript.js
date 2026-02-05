@@ -1,3 +1,139 @@
+  const setAdminWarning = (message) => {
+    const panel = ensureAdminPanel();
+    if (!adminWarningEl) {
+      adminWarningEl = panel.querySelector('#ig-ext-admin-warning');
+    }
+    if (!adminWarningEl) return;
+    adminWarningEl.textContent = message || '';
+    adminWarningEl.style.display = message ? 'block' : 'none';
+  };
+
+  const clearAdminWarning = () => setAdminWarning('');
+
+  const isStableId = (id) => {
+    if (!id) return false;
+    return /^[a-zA-Z_-]+$/.test(id);
+  };
+
+  const isUniqueSelector = (selector) => {
+    try {
+      return document.querySelectorAll(selector).length === 1;
+    } catch {
+      return false;
+    }
+  };
+
+  const getDataAttributeSelectors = (element) => {
+    const selectors = [];
+    const prioritized = ['data-interguide', 'data-testid', 'data-test', 'data-test-id'];
+    prioritized.forEach((attr) => {
+      const value = element.getAttribute(attr);
+      if (value) {
+        selectors.push(`[${attr}="${CSS.escape(value)}"]`);
+      }
+    });
+    Array.from(element.attributes).forEach((attr) => {
+      if (!attr.name.startsWith('data-')) return;
+      if (prioritized.includes(attr.name)) return;
+      if (!attr.value) return;
+      selectors.push(`[${attr.name}="${CSS.escape(attr.value)}"]`);
+    });
+    return selectors;
+  };
+
+  const getSemanticSelectors = (element) => {
+    const selectors = [];
+    const tag = element.nodeName.toLowerCase();
+    const ariaLabel = element.getAttribute('aria-label');
+    const role = element.getAttribute('role');
+    const nameAttr = element.getAttribute('name');
+    const typeAttr = element.getAttribute('type');
+
+    if (ariaLabel) {
+      selectors.push(`[aria-label="${CSS.escape(ariaLabel)}"]`);
+      selectors.push(`${tag}[aria-label="${CSS.escape(ariaLabel)}"]`);
+    }
+    if (role) {
+      selectors.push(`${tag}[role="${CSS.escape(role)}"]`);
+    }
+    if (nameAttr && (tag === 'input' || tag === 'button' || tag === 'select')) {
+      selectors.push(`${tag}[name="${CSS.escape(nameAttr)}"]`);
+    }
+    if (typeAttr && tag === 'input') {
+      selectors.push(`${tag}[type="${CSS.escape(typeAttr)}"]`);
+    }
+    return selectors;
+  };
+
+  const buildStructuralSelector = (element) => {
+    const segments = [];
+    let current = element;
+    let depth = 0;
+    while (current && current !== document.body && depth < 3) {
+      const id = current.id;
+      if (isStableId(id)) {
+        segments.unshift(`#${CSS.escape(id)}`);
+        break;
+      }
+      const dataAttrs = getDataAttributeSelectors(current);
+      if (dataAttrs.length) {
+        segments.unshift(dataAttrs[0]);
+        break;
+      }
+      let segment = current.nodeName.toLowerCase();
+      const nth = (() => {
+        let index = 1;
+        let sibling = current;
+        while (sibling.previousElementSibling) {
+          sibling = sibling.previousElementSibling;
+          if (sibling.nodeName === current.nodeName) {
+            index += 1;
+          }
+        }
+        return index;
+      })();
+      segment += `:nth-of-type(${nth})`;
+      segments.unshift(segment);
+      current = current.parentElement;
+      depth += 1;
+    }
+    if (!segments.length) return null;
+    return segments.join(' > ');
+  };
+
+  const generateSelectorCandidates = (element) => {
+    const candidates = [];
+    candidates.push(...getDataAttributeSelectors(element));
+    candidates.push(...getSemanticSelectors(element));
+    if (isStableId(element.id)) {
+      candidates.push(`#${CSS.escape(element.id)}`);
+    }
+    const structural = buildStructuralSelector(element);
+    if (structural) {
+      candidates.push(structural);
+    }
+    return [...new Set(candidates)].filter(Boolean);
+  };
+
+  const pickBestSelector = (element) => {
+    const candidates = generateSelectorCandidates(element);
+    for (const candidate of candidates) {
+      if (isUniqueSelector(candidate)) {
+        return candidate;
+      }
+    }
+    return candidates[0] || null;
+  };
+
+  const notifyPickerSelection = (selector) => {
+    pickerSelectListeners.forEach((cb) => {
+      try {
+        cb(selector);
+      } catch {
+        // ignore callback errors
+      }
+    });
+  };
   const ensureAdminPanel = () => {
     if (adminPanelRoot) return adminPanelRoot;
     const panel = document.createElement('div');
@@ -81,6 +217,7 @@
         <button id="ig-ext-cancel-admin" class="secondary" type="button">Cancel</button>
         <button id="ig-ext-save-admin" class="primary" type="button">Save</button>
       </div>
+      <div id="ig-ext-admin-warning" style="display:none; margin-top:8px; font-size:12px; color:#fbbf24;"></div>
     `;
     document.documentElement.appendChild(panel);
     adminPanelRoot = panel;
@@ -143,6 +280,11 @@
     const stepSelect = panel.querySelector('#ig-ext-step');
     const cancelBtn = panel.querySelector('#ig-ext-cancel-admin');
     const saveBtn = panel.querySelector('#ig-ext-save-admin');
+    const unregisterPickerListener = window.InterguideExtensionPicker?.register?.((selector) => {
+      selectorInput.value = selector || '';
+      adminPanelState.selector = selector || '';
+      clearAdminWarning();
+    });
 
     ruleType.value = adminPanelState.urlRuleType;
     ruleValue.value = adminPanelState.urlRuleValue;
@@ -187,6 +329,8 @@
       cancelBtn.onclick = null;
       saveBtn.onclick = null;
       pickerBtn.onclick = null;
+      unregisterPickerListener?.();
+      clearAdminWarning();
     };
 
     cancelBtn.onclick = () => {
@@ -199,11 +343,23 @@
     saveBtn.onclick = async () => {
       if (!ruleValue.value.trim() || !wSelect.value) {
         ruleValue.focus();
+        setAdminWarning('Provide a URL rule before saving.');
         return;
       }
 
       const selectorValue = window.InterguideExtensionPicker?.getSelector?.() || selectorInput.value || null;
       adminPanelState.selector = selectorValue;
+
+      if (!selectorValue) {
+        setAdminWarning('Pick an element to attach this walkthrough.');
+        return;
+      }
+
+      const validation = await validateSelectorUniqueness(selectorValue);
+      if (!validation.valid) {
+        setAdminWarning(validation.message || 'Selector is not unique.');
+        return;
+      }
 
       const payload = {
         url_rule: {
@@ -238,7 +394,18 @@
             stepId: '',
           };
           matches = [];
-          await resolveTargets(currentUrl || window.location.href);
+          const newMatches = await resolveTargets(currentUrl || window.location.href);
+          const hasMatch = newMatches?.some((match) => {
+            if (match.walkthrough_id !== payload.walkthrough_id) return false;
+            if (payload.step_id && match.step_id) {
+              return String(match.step_id) === String(payload.step_id);
+            }
+            return true;
+          });
+          if (!hasMatch) {
+            showAdminPanel();
+            setAdminWarning('Target saved but does not currently resolve on this page. Verify selector/URL.');
+          }
         }
       } catch (_err) {
         // Silent failure
@@ -247,6 +414,20 @@
 
     adminPanelVisible = true;
     adminPanelRoot.style.display = 'block';
+  };
+
+  const validateSelectorUniqueness = async (selector) => {
+    if (!selector) {
+      return { valid: false, message: 'Pick an element before saving.' };
+    }
+    if (!isUniqueSelector(selector)) {
+      return { valid: false, message: 'Selector must match exactly one element.' };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (!isUniqueSelector(selector)) {
+      return { valid: false, message: 'Selector became unstable after render. Refine your choice.' };
+    }
+    return { valid: true };
   };
   const checkAdminStatus = async () => {
     try {
@@ -282,39 +463,6 @@
     return overlayEl;
   };
 
-  const getElementSelector = (element) => {
-    if (!element || element === document.body) return 'body';
-    if (element.id) {
-      return `#${CSS.escape(element.id)}`;
-    }
-
-    const path = [];
-    let current = element;
-    while (current && current.nodeType === Node.ELEMENT_NODE && current !== document.body) {
-      let selector = current.nodeName.toLowerCase();
-      if (current.classList.length) {
-        selector += '.' + Array.from(current.classList)
-          .map((cls) => CSS.escape(cls))
-          .join('.');
-      }
-
-      const siblingIndex = (() => {
-        let index = 1;
-        let sibling = current;
-        while (sibling.previousElementSibling) {
-          sibling = sibling.previousElementSibling;
-          index += 1;
-        }
-        return index;
-      })();
-
-      selector += `:nth-of-type(${siblingIndex})`;
-      path.unshift(selector);
-      current = current.parentElement;
-    }
-    return path.join(' > ');
-  };
-
   const updatePickerOverlay = (target) => {
     const overlayEl = ensurePickerOverlay();
     if (!target) {
@@ -344,8 +492,10 @@
     event.stopPropagation();
     const target = event.target || pickerTarget;
     if (!target) return;
-    lastCapturedSelector = getElementSelector(target);
+    const bestSelector = pickBestSelector(target);
+    lastCapturedSelector = bestSelector;
     window.__IG_EXTENSION_LAST_SELECTOR__ = lastCapturedSelector;
+    notifyPickerSelection(bestSelector);
     stopElementPicker();
   };
 
@@ -397,6 +547,13 @@
     cancel: stopElementPicker,
     getSelector: () => lastCapturedSelector,
     isActive: () => pickerActive,
+    register: (callback) => {
+      if (typeof callback === 'function') {
+        pickerSelectListeners.add(callback);
+        return () => pickerSelectListeners.delete(callback);
+      }
+      return () => {};
+    },
   };
 
 (() => {
@@ -430,6 +587,8 @@
     walkthroughId: '',
     stepId: '',
   };
+  let adminWarningEl = null;
+  const pickerSelectListeners = new Set();
 
   const state = {
     button: null,
