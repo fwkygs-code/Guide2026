@@ -1525,11 +1525,18 @@ async def _validate_binding_token(request: Request) -> Tuple[str, str]:
     if not raw:
         raise HTTPException(status_code=401, detail="Missing binding token")
     token_hash = _hash_token(raw)
-    record = await db.workspace_binding_tokens.find_one({"token_hash": token_hash})
+    record = await db.workspace_binding_tokens.find_one(
+        {"token_hash": token_hash, "revoked_at": None},
+        sort=[("created_at", -1)]
+    )
     if not record:
+        stale = await db.workspace_binding_tokens.find_one(
+            {"token_hash": token_hash},
+            sort=[("created_at", -1)]
+        )
+        if stale and stale.get("revoked_at"):
+            raise HTTPException(status_code=403, detail="Token revoked")
         raise HTTPException(status_code=401, detail="Invalid token")
-    if record.get("revoked_at"):
-        raise HTTPException(status_code=403, detail="Token revoked")
     bound_ext_id = record.get("bound_extension_id")
     if bound_ext_id and bound_ext_id != request.headers.get("X-Extension-Id"):
         raise HTTPException(status_code=403, detail="Token bound to another extension")
@@ -5594,11 +5601,21 @@ async def bind_extension(request: Request, payload: ExtensionBindRequest):
     if not raw:
         raise HTTPException(status_code=401, detail="Missing binding token")
     token_hash = _hash_token(raw)
-    record = await db.workspace_binding_tokens.find_one({"token_hash": token_hash})
+    record = await db.workspace_binding_tokens.find_one(
+        {"token_hash": token_hash, "revoked_at": None},
+        sort=[("created_at", -1)]
+    )
     if not record:
+        stale = await db.workspace_binding_tokens.find_one(
+            {"token_hash": token_hash},
+            sort=[("created_at", -1)]
+        )
+        if stale:
+            if stale.get("revoked_at"):
+                raise HTTPException(status_code=403, detail="Token revoked")
+            if stale.get("bound_extension_id") and stale.get("bound_extension_id") != payload.extensionId:
+                raise HTTPException(status_code=403, detail="Token already bound to another extension")
         raise HTTPException(status_code=401, detail="Invalid token")
-    if record.get("revoked_at"):
-        raise HTTPException(status_code=403, detail="Token revoked")
     bound_ext_id = record.get("bound_extension_id")
     if bound_ext_id and bound_ext_id != payload.extensionId:
         raise HTTPException(status_code=403, detail="Token already bound to another extension")
@@ -5608,11 +5625,12 @@ async def bind_extension(request: Request, payload: ExtensionBindRequest):
         {"$set": {"bound_extension_id": payload.extensionId}}
     )
     logging.info(
-        "[ExtensionBind] workspace=%s token updated (previous=%s, new=%s, revoked_at=%s)",
+        "[ExtensionBind] workspace=%s token=%s bound previous=%s new=%s created_at=%s",
         record.get("workspace_id"),
+        record.get("_id"),
         bound_ext_id,
         payload.extensionId,
-        record.get("revoked_at")
+        record.get("created_at")
     )
     workspace = await db.workspaces.find_one({"id": record["workspace_id"]}, {"_id": 0, "name": 1})
     if not workspace:
