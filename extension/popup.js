@@ -130,7 +130,8 @@ async function loadAdminWalkthroughs() {
     walkthroughSelect.innerHTML = '<option value="">Select walkthrough...</option>';
     adminWalkthroughs.forEach(wt => {
       const option = document.createElement('option');
-      option.value = wt.walkthrough_id;
+      // Support both 'id' (new) and 'walkthrough_id' (old) field names
+      option.value = wt.id || wt.walkthrough_id;
       option.textContent = wt.title;
       walkthroughSelect.appendChild(option);
     });
@@ -213,11 +214,14 @@ function handleWalkthroughChange() {
   stepSelect.disabled = !walkthroughId;
   
   if (walkthroughId) {
-    const walkthrough = adminWalkthroughs.find(wt => wt.walkthrough_id === walkthroughId);
+    // Support both 'id' (new) and 'walkthrough_id' (old) field names
+    const walkthrough = adminWalkthroughs.find(wt => (wt.id || wt.walkthrough_id) === walkthroughId);
+    console.log('[IG Popup] Selected walkthrough:', walkthrough);
     if (walkthrough?.steps) {
-      walkthrough.steps.forEach(step => {
+      walkthrough.steps.forEach((step, idx) => {
         const option = document.createElement('option');
-        option.value = step.id || step.step_id;
+        // Support various step id field names from raw dict
+        option.value = step.id || step.step_id || step._id || `step-${idx}`;
         option.textContent = step.title || 'Untitled Step';
         stepSelect.appendChild(option);
       });
