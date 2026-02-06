@@ -27,6 +27,8 @@ async function getStoredBinding() {
 async function apiCall(endpoint, options = {}) {
   const { token, extensionId } = await getStoredBinding();
   
+  console.log('[IG Background] apiCall to', endpoint, 'token exists:', !!token);
+  
   if (!token) {
     throw new Error('No binding token');
   }
@@ -48,8 +50,10 @@ async function apiCall(endpoint, options = {}) {
     credentials: 'omit' // ZERO COOKIE POLICY
   });
   
-  // Handle revocation
-  if (response.status === 401 || response.status === 403) {
+  // Handle revocation - only clear on 403 (forbidden) which means token is revoked
+  // Don't clear on 401 (unauthorized) which could be transient
+  if (response.status === 403) {
+    console.error('[IG Background] Token revoked (403), clearing storage');
     // Token revoked or invalid - clear storage and notify
     await chrome.storage.local.remove([
       STORAGE_KEY_TOKEN,
@@ -69,6 +73,11 @@ async function apiCall(endpoint, options = {}) {
     throw new Error('Token revoked');
   }
   
+  if (response.status === 401) {
+    console.error('[IG Background] Token unauthorized (401) - not clearing storage, may be transient');
+    throw new Error('Token unauthorized');
+  }
+  
   return response;
 }
 
@@ -76,11 +85,25 @@ async function apiCall(endpoint, options = {}) {
 async function resolveTargets(url) {
   try {
     const response = await apiCall(`/extension/resolve?url=${encodeURIComponent(url)}`);
-    if (!response.ok) return { matches: [] };
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { matches: [], error: 'UNAUTHORIZED' };
+      }
+      if (response.status === 403) {
+        return { matches: [], error: 'FORBIDDEN' };
+      }
+      return { matches: [], error: 'API_ERROR' };
+    }
     return await response.json();
   } catch (error) {
     console.error('[IG Background] Resolve error:', error);
-    return { matches: [] };
+    if (error.message === 'No binding token') {
+      return { matches: [], error: 'NO_BINDING' };
+    }
+    if (error.message === 'Token revoked') {
+      return { matches: [], error: 'TOKEN_REVOKED' };
+    }
+    return { matches: [], error: 'NETWORK_ERROR' };
   }
 }
 
@@ -88,11 +111,25 @@ async function resolveTargets(url) {
 async function getWalkthroughs() {
   try {
     const response = await apiCall('/extension/walkthroughs');
-    if (!response.ok) return { walkthroughs: [] };
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { walkthroughs: [], error: 'UNAUTHORIZED' };
+      }
+      if (response.status === 403) {
+        return { walkthroughs: [], error: 'FORBIDDEN' };
+      }
+      return { walkthroughs: [], error: 'API_ERROR' };
+    }
     return await response.json();
   } catch (error) {
     console.error('[IG Background] Walkthroughs error:', error);
-    return { walkthroughs: [] };
+    if (error.message === 'No binding token') {
+      return { walkthroughs: [], error: 'NO_BINDING' };
+    }
+    if (error.message === 'Token revoked') {
+      return { walkthroughs: [], error: 'TOKEN_REVOKED' };
+    }
+    return { walkthroughs: [], error: 'NETWORK_ERROR' };
   }
 }
 
@@ -100,11 +137,25 @@ async function getWalkthroughs() {
 async function getAdminWalkthroughs() {
   try {
     const response = await apiCall('/extension/admin/walkthroughs');
-    if (!response.ok) return { walkthroughs: [] };
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { walkthroughs: [], error: 'UNAUTHORIZED' };
+      }
+      if (response.status === 403) {
+        return { walkthroughs: [], error: 'FORBIDDEN' };
+      }
+      return { walkthroughs: [], error: 'API_ERROR' };
+    }
     return await response.json();
   } catch (error) {
     console.error('[IG Background] Admin walkthroughs error:', error);
-    return { walkthroughs: [] };
+    if (error.message === 'No binding token') {
+      return { walkthroughs: [], error: 'NO_BINDING' };
+    }
+    if (error.message === 'Token revoked') {
+      return { walkthroughs: [], error: 'TOKEN_REVOKED' };
+    }
+    return { walkthroughs: [], error: 'NETWORK_ERROR' };
   }
 }
 
@@ -167,12 +218,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
       case 'GET_ADMIN_WALKTHROUGHS':
         // Popup requesting admin walkthroughs for target creation
+        // ENFORCE: Must have token and workspace binding
+        const adminBinding = await getStoredBinding();
+        console.log('[BG] GET_ADMIN_WALKTHROUGHS, token exists:', !!adminBinding.token, 'workspace exists:', !!adminBinding.workspace);
+        
+        if (!adminBinding.token) {
+          sendResponse({ walkthroughs: [], error: 'NO_TOKEN' });
+          return;
+        }
+        if (!adminBinding.workspace) {
+          sendResponse({ walkthroughs: [], error: 'NOT_BOUND' });
+          return;
+        }
+        
         const adminWalkthroughs = await getAdminWalkthroughs();
         sendResponse(adminWalkthroughs);
         break;
         
       case 'CREATE_TARGET':
         // Popup/content script creating a new target
+        // ENFORCE: Must have token and workspace binding
+        const createBinding = await getStoredBinding();
+        if (!createBinding.token || !createBinding.workspace) {
+          sendResponse({ success: false, error: 'NOT_BOUND' });
+          return;
+        }
+        
         try {
           const newTarget = await createTarget(message.data);
           sendResponse({ success: true, target: newTarget });
@@ -228,3 +299,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 console.log('[IG Background] Service worker loaded - capability binding mode');
+
+// Debug: Monitor storage changes
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local') {
+    console.log('[IG Storage changed]', changes);
+  }
+});

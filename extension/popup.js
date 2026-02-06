@@ -45,8 +45,85 @@ let adminWalkthroughs = [];
 // Load admin walkthroughs for target creation
 async function loadAdminWalkthroughs() {
   try {
+    // Check if we have a token first
+    const data = await chrome.storage.local.get([STORAGE_KEY_TOKEN, STORAGE_KEY_WORKSPACE]);
+    if (!data[STORAGE_KEY_TOKEN]) {
+      console.warn('[IG Popup] No token, skipping walkthrough load');
+      showError('Extension not bound. Please enter a binding token first.');
+      showState('unbound');
+      return;
+    }
+    if (!data[STORAGE_KEY_WORKSPACE]) {
+      console.warn('[IG Popup] No workspace, skipping walkthrough load');
+      showError('Workspace binding incomplete. Please rebind the extension.');
+      showState('unbound');
+      return;
+    }
+    
     const response = await chrome.runtime.sendMessage({ type: 'GET_ADMIN_WALKTHROUGHS' });
-    adminWalkthroughs = response?.walkthroughs || [];
+    
+    // Handle structured errors from background
+    if (response?.error) {
+      console.error('[IG Popup] Walkthrough load error:', response.error);
+      switch (response.error) {
+        case 'NO_TOKEN':
+        case 'NOT_BOUND':
+          showError('Extension not bound to workspace. Please enter a binding token.');
+          showState('unbound');
+          return;
+        case 'UNAUTHORIZED':
+          showError('Session expired. Please rebind the extension.');
+          showState('unbound');
+          return;
+        case 'FORBIDDEN':
+          showError('Access denied. Token may be revoked.');
+          showState('revoked');
+          return;
+        case 'TOKEN_REVOKED':
+          showError('Token revoked. Please generate a new token.');
+          showState('revoked');
+          return;
+        case 'NETWORK_ERROR':
+          showError('Network error. Please check your connection.');
+          return;
+        default:
+          showError('Failed to load walkthroughs: ' + response.error);
+          return;
+      }
+    }
+    
+    // If response has no walkthroughs and no explicit error, binding is likely invalid
+    if (!response?.walkthroughs) {
+      showState('unbound');
+      return;
+    }
+    
+    // If no walkthroughs returned but binding might be valid, double-check
+    if (response.walkthroughs.length === 0) {
+      const bindingCheck = await chrome.storage.local.get([STORAGE_KEY_TOKEN, STORAGE_KEY_WORKSPACE]);
+      if (!bindingCheck[STORAGE_KEY_TOKEN] || !bindingCheck[STORAGE_KEY_WORKSPACE]) {
+        console.warn('[IG Popup] Binding invalid - not rendering dropdown');
+        showState('unbound');
+        showError('Extension not bound. Please enter a binding token.');
+        return;
+      }
+      // Valid binding but no walkthroughs - show empty state
+      adminWalkthroughs = [];
+      walkthroughSelect.innerHTML = '<option value="">No walkthroughs available</option>';
+      return;
+    }
+    
+    // Valid response with walkthroughs - ensure binding is valid before rendering
+    const bindingCheck = await chrome.storage.local.get([STORAGE_KEY_TOKEN, STORAGE_KEY_WORKSPACE]);
+    if (!bindingCheck[STORAGE_KEY_TOKEN] || !bindingCheck[STORAGE_KEY_WORKSPACE]) {
+      console.warn('[IG Popup] Binding invalid despite walkthroughs - not rendering dropdown');
+      showState('unbound');
+      showError('Extension not bound. Please enter a binding token.');
+      return;
+    }
+    
+    // Binding valid - safe to render dropdown
+    adminWalkthroughs = response.walkthroughs;
     
     // Populate walkthrough dropdown
     walkthroughSelect.innerHTML = '<option value="">Select walkthrough...</option>';
@@ -58,7 +135,7 @@ async function loadAdminWalkthroughs() {
     });
   } catch (error) {
     console.error('Failed to load walkthroughs:', error);
-    showError('Failed to load walkthroughs');
+    showError('Failed to load walkthroughs: ' + error.message);
   }
 }
 
@@ -190,6 +267,14 @@ async function saveTarget() {
   saveText.textContent = 'Saving...';
   
   try {
+    // Verify binding before saving
+    const bindingCheck = await chrome.storage.local.get([STORAGE_KEY_TOKEN, STORAGE_KEY_WORKSPACE]);
+    if (!bindingCheck[STORAGE_KEY_TOKEN] || !bindingCheck[STORAGE_KEY_WORKSPACE]) {
+      showError('Extension not bound. Please enter a binding token first.');
+      showState('unbound');
+      return;
+    }
+    
     // Build URL rule from picked URL based on scope
     const fullUrl = pickedData.url;
     let urlType, urlValue;
@@ -231,12 +316,22 @@ async function saveTarget() {
     if (response?.success) {
       showSuccess('Target created successfully!');
       cancelTargetCreation();
+    } else if (response?.error) {
+      // Handle structured error
+      switch (response.error) {
+        case 'NOT_BOUND':
+          showError('Extension not bound. Please enter a binding token.');
+          showState('unbound');
+          break;
+        default:
+          showError(response.error || 'Failed to create target');
+      }
     } else {
-      showError(response?.error || 'Failed to create target');
+      showError('Failed to create target');
     }
   } catch (error) {
     console.error('Save target error:', error);
-    showError('Failed to save target');
+    showError('Failed to save target: ' + error.message);
   } finally {
     saveTargetBtn.disabled = false;
     saveSpinner.classList.add('hidden');
@@ -411,18 +506,30 @@ async function unbindExtension() {
 // Load current state from storage
 async function loadState() {
   try {
+    // ALWAYS re-read from storage - do not trust in-memory state
     const data = await chrome.storage.local.get([
       STORAGE_KEY_TOKEN,
       STORAGE_KEY_WORKSPACE,
       STORAGE_KEY_EXTENSION_ID
     ]);
     
-    if (data[STORAGE_KEY_TOKEN] && data[STORAGE_KEY_WORKSPACE]) {
-      // We have a token - check if it's still valid
+    console.log('[IG Popup] loadState storage snapshot:', data);
+    
+    const hasToken = !!data[STORAGE_KEY_TOKEN];
+    const hasWorkspace = !!data[STORAGE_KEY_WORKSPACE];
+    
+    if (hasToken && hasWorkspace) {
+      // Fully bound - update UI
       workspaceNameEl.textContent = data[STORAGE_KEY_WORKSPACE].name;
       extensionIdShortEl.textContent = (data[STORAGE_KEY_EXTENSION_ID] || getExtensionId()).substring(0, 8) + '...';
       showState('bound');
+    } else if (hasToken && !hasWorkspace) {
+      // Partial binding - corrupted state
+      console.warn('[IG Popup] Partial binding detected - token exists but no workspace');
+      showState('unbound');
+      showError('Binding incomplete. Please rebind the extension.');
     } else {
+      // No binding
       showState('unbound');
     }
   } catch (error) {

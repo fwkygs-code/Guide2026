@@ -72,9 +72,29 @@
   let isPickerMode = false;
   let pickerOverlay = null;
   let pickerCallback = null;
+  
+  // Picker state machine: IDLE -> ACTIVE -> SELECTED_LOCKED
+  // SELECTED_LOCKED persists until explicit STOP_PICKER, Cancel, or Publish
+  let pickerState = 'IDLE';
+  let lockedPickerData = null;
 
-  // Connect to background script
-  function connect() {
+  // State transition guard - prevents downgrading from SELECTED_LOCKED unless FORCE or CANCEL
+  function setPickerState(next, reason) {
+    if (
+      pickerState === 'SELECTED_LOCKED' &&
+      next !== 'SELECTED_LOCKED' &&
+      !['FORCE', 'CANCEL'].includes(reason)
+    ) {
+      console.warn('[IG Content] State change blocked:', pickerState, '→', next, 'reason:', reason);
+      return;
+    }
+    pickerState = next;
+  }
+
+  // Connect to background script with automatic reconnection for MV3
+  function ensurePort() {
+    if (port) return;
+    
     port = chrome.runtime.connect({ name: PORT_NAME });
     
     port.onMessage.addListener((message) => {
@@ -100,7 +120,8 @@
           break;
           
         case 'STOP_PICKER':
-          stopPickerMode();
+          // STOP_PICKER from background only stops if not locked
+          stopPickerMode('BACKGROUND');
           break;
           
         case 'CREATE_TARGET':
@@ -115,10 +136,14 @@
 
     port.onDisconnect.addListener(() => {
       port = null;
-      // Attempt reconnect after short delay
-      setTimeout(connect, 1000);
+      // Background restarted (MV3) — reconnect faster
+      console.log('[IG Content] Port disconnected, reconnecting...');
+      setTimeout(ensurePort, 500);
     });
   }
+  
+  // Initialize connection - exactly once
+  ensurePort();
 
   // Check initial binding status
   async function checkBinding() {
@@ -382,8 +407,20 @@
 
   // Element Picker Mode for creating targets
   function startPickerMode() {
-    if (isPickerMode) return;
+    // If picker is already locked with selection, don't restart
+    if (pickerState === 'SELECTED_LOCKED') {
+      console.log('[IG Content] Picker locked with selection - not restarting');
+      return;
+    }
+    
+    // If picker is already active, don't restart
+    if (isPickerMode || pickerState === 'ACTIVE') {
+      console.log('[IG Content] Picker already active - not restarting');
+      return;
+    }
+    
     isPickerMode = true;
+    setPickerState('ACTIVE', 'START');
     
     // Create picker overlay UI
     pickerOverlay = document.createElement('div');
@@ -428,7 +465,10 @@
     // Cancel button handler
     document.getElementById('ig-picker-cancel').addEventListener('click', (e) => {
       e.stopPropagation();
-      stopPickerMode();
+      stopPickerMode('CANCEL');
+      // Clear locked state on cancel
+      pickerState = 'IDLE';
+      lockedPickerData = null;
       // Notify popup that picker was cancelled
       chrome.runtime.sendMessage({ type: 'PICKER_CANCELLED' });
     });
@@ -438,7 +478,7 @@
     let highlightBox = null;
     
     pickerOverlay.addEventListener('mousemove', (e) => {
-      if (!isPickerMode) return;
+      if (!isPickerMode || pickerState !== 'ACTIVE') return;
       
       // Get element under cursor (ignoring our overlay)
       pickerOverlay.style.pointerEvents = 'none';
@@ -472,7 +512,7 @@
     
     // Click handler to select element
     pickerOverlay.addEventListener('click', (e) => {
-      if (!isPickerMode) return;
+      if (!isPickerMode || pickerState !== 'ACTIVE') return;
       e.preventDefault();
       e.stopPropagation();
       
@@ -485,10 +525,9 @@
         const { selector, confidence, confidenceLabel } = generateSelector(element);
         const url = window.location.href;
         
-        stopPickerMode();
-        
-        // Store picked data temporarily (popup may be closed)
-        const pickedData = {
+        // Transition to locked state
+        setPickerState('SELECTED_LOCKED', 'SELECT');
+        lockedPickerData = {
           selector: selector,
           confidence: confidence,
           confidenceLabel: confidenceLabel,
@@ -497,6 +536,28 @@
           elementText: element.textContent?.substring(0, 50) || ''
         };
         
+        // Keep picker overlay but change UI to show selection is locked
+        if (pickerOverlay) {
+          pickerOverlay.style.cursor = 'default';
+          pickerOverlay.style.background = 'rgba(79, 70, 229, 0.05)';
+          const tooltipEl = pickerOverlay.querySelector('div');
+          if (tooltipEl) {
+            tooltipEl.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 600;">Element selected! Open popup to save target.</span>
+                <button id="ig-picker-cancel-locked" style="margin-left: 12px; padding: 4px 12px; background: #4f46e5; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px;">Cancel</button>
+              </div>
+            `;
+            document.getElementById('ig-picker-cancel-locked').addEventListener('click', (e) => {
+              e.stopPropagation();
+              stopPickerMode('CANCEL');
+              setPickerState('IDLE', 'CANCEL');
+              lockedPickerData = null;
+              chrome.runtime.sendMessage({ type: 'PICKER_CANCELLED' });
+            });
+          }
+        }
+        
         // Show toast on page to guide user back to popup
         showPickerToast('Element selected! Open the Interguide extension to finish creating the target.');
         
@@ -504,22 +565,27 @@
         try {
           chrome.runtime.sendMessage({
             type: 'ELEMENT_PICKED',
-            data: pickedData
+            data: lockedPickerData
           });
         } catch (e) {
           console.log('[IG Content] Popup not available, storing data');
         }
         
         // Also store for when popup reopens
-        chrome.storage.local.set({ pending_picked_data: pickedData });
+        chrome.storage.local.set({ pending_picked_data: lockedPickerData });
       }
     });
     
-    console.log('[IG Content] Picker mode started');
+    console.log('[IG Content] Picker mode started - state: ACTIVE');
   }
   
-  function stopPickerMode() {
-    if (!isPickerMode) return;
+  function stopPickerMode(reason = 'UNKNOWN') {
+    // Hard gate: if locked, only specific reasons may clear
+    if (pickerState === 'SELECTED_LOCKED' && !['FORCE', 'CANCEL'].includes(reason)) {
+      console.warn('[IG Content] Cleanup blocked:', reason, '- picker is locked');
+      return;
+    }
+    
     isPickerMode = false;
     
     if (pickerOverlay) {
@@ -531,7 +597,11 @@
     const highlightBox = document.querySelector('[style*="z-index: 2147483645"]');
     if (highlightBox) highlightBox.remove();
     
-    console.log('[IG Content] Picker mode stopped');
+    // Note: pickerState and lockedPickerData are NOT cleared here unless FORCE
+    // They persist until explicit cancel, publish, or page unload
+    // This allows popup to reopen and find the selection still active
+    
+    console.log('[IG Content] Picker mode stopped - reason:', reason, 'state:', pickerState);
   }
   
   // Generate a CSS selector for an element with confidence score
@@ -649,14 +719,18 @@
   });
 
   // Initialize
-  connect();
   checkBinding();
   observer.observe(document, { subtree: true, childList: true });
 
-  // Handle page unload
+  // Handle page unload - FORCE clear on unload
   window.addEventListener('beforeunload', () => {
     observer.disconnect();
     clearAllOverlays();
+    if (pickerState !== 'IDLE') {
+      stopPickerMode('FORCE');
+      setPickerState('IDLE', 'FORCE');
+      lockedPickerData = null;
+    }
     if (port) {
       port.disconnect();
     }
