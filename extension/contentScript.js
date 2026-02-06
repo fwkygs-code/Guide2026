@@ -101,7 +101,10 @@
       switch (message.type) {
         case 'TOKEN_BOUND':
           isBound = true;
-          loadWalkthroughs();
+          (async () => {
+            await loadWalkthroughs();
+            await resolveTargets(window.location.href);
+          })();
           break;
           
         case 'TOKEN_REVOKED':
@@ -111,7 +114,13 @@
           
         case 'PAGE_CHANGED':
           if (isBound) {
-            resolveTargets(message.url);
+            (async () => {
+              // Ensure walkthroughs are loaded before resolving
+              if (currentWalkthroughs.length === 0) {
+                await loadWalkthroughs();
+              }
+              await resolveTargets(message.url);
+            })();
           }
           break;
           
@@ -150,9 +159,10 @@
     try {
       const response = await chrome.runtime.sendMessage({ type: 'GET_BINDING_STATUS' });
       isBound = response?.bound || false;
+      console.log('[IG Content] Binding status:', isBound);
       if (isBound) {
-        loadWalkthroughs();
-        resolveTargets(window.location.href);
+        await loadWalkthroughs();  // MUST await before resolving targets
+        await resolveTargets(window.location.href);
       }
     } catch (e) {
       console.log('[IG Content] Background not ready yet');
@@ -162,8 +172,10 @@
   // Load walkthroughs from background
   async function loadWalkthroughs() {
     try {
+      console.log('[IG Content] Loading walkthroughs...');
       const response = await chrome.runtime.sendMessage({ type: 'GET_WALKTHROUGHS' });
       currentWalkthroughs = response?.walkthroughs || [];
+      console.log('[IG Content] Loaded walkthroughs:', currentWalkthroughs.length, currentWalkthroughs);
     } catch (e) {
       console.error('[IG Content] Failed to load walkthroughs:', e);
     }
@@ -172,8 +184,11 @@
   // Resolve targets for current URL
   async function resolveTargets(url) {
     try {
+      console.log('[IG Content] Resolving targets for URL:', url);
       const response = await chrome.runtime.sendMessage({ type: 'RESOLVE_TARGETS', url });
+      console.log('[IG Content] Resolve response:', response);
       const matches = response?.matches || [];
+      console.log('[IG Content] Matches:', matches.length, matches);
       renderOverlays(matches);
     } catch (e) {
       console.error('[IG Content] Failed to resolve targets:', e);
@@ -185,24 +200,40 @@
     // Clear existing overlays
     clearAllOverlays();
     
-    if (!matches.length) return;
+    console.log('[IG Content] renderOverlays called with', matches.length, 'matches');
+    console.log('[IG Content] currentWalkthroughs:', currentWalkthroughs.length, currentWalkthroughs);
+    
+    if (!matches.length) {
+      console.log('[IG Content] No matches to render');
+      return;
+    }
 
-    matches.forEach((match) => {
+    matches.forEach((match, idx) => {
+      console.log(`[IG Content] Processing match ${idx}:`, match);
       const walkthrough = currentWalkthroughs.find(w => w.id === match.walkthrough_id);
-      if (!walkthrough) return;
+      console.log(`[IG Content] Found walkthrough:`, walkthrough);
+      if (!walkthrough) {
+        console.warn(`[IG Content] Walkthrough not found for id:`, match.walkthrough_id);
+        return;
+      }
 
       // Get step if specified
       const step = match.step_id 
-        ? walkthrough.steps?.find(s => (s.id || s.step_id) === match.step_id)
+        ? walkthrough.steps?.find(s => (s.step_id || s.id) === match.step_id)
         : walkthrough.steps?.[0];
+      console.log(`[IG Content] Found step:`, step, 'for step_id:', match.step_id);
 
-      if (!step) return;
+      if (!step) {
+        console.warn(`[IG Content] Step not found`);
+        return;
+      }
 
       // Find target element
       let targetElement = null;
       if (match.selector) {
         try {
           targetElement = document.querySelector(match.selector);
+          console.log(`[IG Content] Target element for selector "${match.selector}":`, targetElement);
         } catch (e) {
           console.warn('[IG Content] Invalid selector:', match.selector);
         }
@@ -698,8 +729,12 @@
       });
       
       if (response?.success) {
+        // Clear picker state and locked data
+        setPickerState('IDLE', 'FORCE');
+        lockedPickerData = null;
+        stopPickerMode('FORCE');
         // Refresh targets to show the new one
-        resolveTargets(window.location.href);
+        await resolveTargets(window.location.href);
       }
     } catch (e) {
       console.error('[IG Content] Failed to create target:', e);
