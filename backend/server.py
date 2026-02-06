@@ -5853,6 +5853,9 @@ async def create_extension_target(
             for step in walkthrough.get("steps", [])
             if isinstance(step, dict)
         }
+        logging.info(f"[create_extension_target] Received step_id: {payload.step_id}")
+        logging.info(f"[create_extension_target] Valid step_ids: {valid_step_ids}")
+        logging.info(f"[create_extension_target] Walkthrough steps: {walkthrough.get('steps', [])}")
         if payload.step_id not in valid_step_ids:
             raise HTTPException(status_code=400, detail="Invalid step_id for walkthrough")
     

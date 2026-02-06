@@ -220,8 +220,8 @@ function handleWalkthroughChange() {
     if (walkthrough?.steps) {
       walkthrough.steps.forEach((step, idx) => {
         const option = document.createElement('option');
-        // Support various step id field names from raw dict
-        option.value = step.id || step.step_id || step._id || `step-${idx}`;
+        // Backend stores step_id, fallback to id or index
+        option.value = step.step_id || step.id || `step-${idx}`;
         option.textContent = step.title || 'Untitled Step';
         stepSelect.appendChild(option);
       });
