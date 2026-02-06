@@ -121,6 +121,9 @@ def verify_csrf_token(provided_token: str, expected_hash: Optional[str]) -> bool
 app = FastAPI()
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://www.interguide.app')
+
+# Debug instrumentation
+DEBUG_BINDING_KEY = os.environ.get("DEBUG_BINDING_KEY")
 CORS_ALLOWED_HEADERS = [
     "Accept",
     "Authorization",
@@ -1525,10 +1528,8 @@ async def _validate_binding_token(request: Request) -> Tuple[str, str]:
     if not raw:
         raise HTTPException(status_code=401, detail="Missing binding token")
     token_hash = _hash_token(raw)
-    record = await db.workspace_binding_tokens.find_one(
-        {"token_hash": token_hash, "revoked_at": None},
-        sort=[("created_at", -1)]
-    )
+    selector = {"token_hash": token_hash, "revoked_at": None}
+    record = await db.workspace_binding_tokens.find_one(selector, sort=[("created_at", -1)])
     if not record:
         stale = await db.workspace_binding_tokens.find_one(
             {"token_hash": token_hash},
@@ -5620,17 +5621,23 @@ async def bind_extension(request: Request, payload: ExtensionBindRequest):
     if bound_ext_id and bound_ext_id != payload.extensionId:
         raise HTTPException(status_code=403, detail="Token already bound to another extension")
     # Bind to this extension
+    logging.info(
+        "[ExtensionBind] selected token=%s workspace=%s created_at=%s revoked_at=%s bound_extension_id=%s",
+        record.get("_id"),
+        record.get("workspace_id"),
+        record.get("created_at"),
+        record.get("revoked_at"),
+        bound_ext_id
+    )
     await db.workspace_binding_tokens.update_one(
         {"_id": record["_id"]},
         {"$set": {"bound_extension_id": payload.extensionId}}
     )
     logging.info(
-        "[ExtensionBind] workspace=%s token=%s bound previous=%s new=%s created_at=%s",
-        record.get("workspace_id"),
+        "[ExtensionBind] updated token=%s workspace=%s bound_extension_id=%s",
         record.get("_id"),
-        bound_ext_id,
-        payload.extensionId,
-        record.get("created_at")
+        record.get("workspace_id"),
+        payload.extensionId
     )
     workspace = await db.workspaces.find_one({"id": record["workspace_id"]}, {"_id": 0, "name": 1})
     if not workspace:
@@ -5672,13 +5679,20 @@ async def generate_binding_token(workspace_id: str, current_user: User = Depends
     token_hash = _hash_token(raw_token)
     
     # Store hashed token
-    await db.workspace_binding_tokens.insert_one({
+    now = datetime.now(timezone.utc)
+    doc = {
         "workspace_id": workspace_id,
         "token_hash": token_hash,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": now,
         "revoked_at": None,
         "bound_extension_id": None
-    })
+    }
+    await db.workspace_binding_tokens.insert_one(doc)
+    logging.info(
+        "[BindingToken] generated workspace=%s token_doc=%s",
+        workspace_id,
+        {k: v for k, v in doc.items() if k != "token_hash"}
+    )
     
     return BindingTokenResponse(
         token=raw_token,  # ONE-TIME REVEAL
@@ -5697,16 +5711,28 @@ async def get_binding_token_status(workspace_id: str, current_user: User = Depen
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Find active token
+    selector = {"workspace_id": workspace_id}
     token_doc = await db.workspace_binding_tokens.find_one(
-        {"workspace_id": workspace_id},
+        selector,
         {"_id": 0, "token_hash": 0},
         sort=[("created_at", -1)]
     )
     
     if not token_doc:
+        logging.info(
+            "[BindingTokenStatus] workspace=%s selector=%s result=none",
+            workspace_id,
+            selector
+        )
         return BindingTokenResponse(state="none", created_at=None, bound_extension_id=None)
     
     if token_doc.get("revoked_at"):
+        logging.info(
+            "[BindingTokenStatus] workspace=%s selector=%s result=revoked doc=%s",
+            workspace_id,
+            selector,
+            token_doc
+        )
         return BindingTokenResponse(
             state="none",
             created_at=token_doc.get("created_at"),
@@ -5714,11 +5740,62 @@ async def get_binding_token_status(workspace_id: str, current_user: User = Depen
         )
     
     state = "bound" if token_doc.get("bound_extension_id") else "unbound"
+    logging.info(
+        "[BindingTokenStatus] workspace=%s selector=%s result=%s doc=%s",
+        workspace_id,
+        selector,
+        state,
+        token_doc
+    )
     return BindingTokenResponse(
         state=state,
         created_at=token_doc.get("created_at"),
         bound_extension_id=token_doc.get("bound_extension_id")
     )
+
+
+@api_router.get("/debug/workspaces/{workspace_id}/binding-tokens")
+async def debug_binding_tokens(workspace_id: str, request: Request):
+    """Temporary debug endpoint for inspecting binding tokens (read-only)."""
+    if not DEBUG_BINDING_KEY:
+        raise HTTPException(status_code=404, detail="Not found")
+    header_key = request.headers.get("X-Debug-Key")
+    if header_key != DEBUG_BINDING_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    cursor = db.workspace_binding_tokens.find(
+        {"workspace_id": workspace_id},
+        {
+            "token_hash": 1,
+            "workspace_id": 1,
+            "created_at": 1,
+            "revoked_at": 1,
+            "bound_extension_id": 1
+        }
+    ).sort("created_at", -1)
+
+    docs = []
+    async for doc in cursor:
+        docs.append({
+            "_id": str(doc.get("_id")),
+            "workspace_id": doc.get("workspace_id"),
+            "created_at": doc.get("created_at"),
+            "revoked_at": doc.get("revoked_at"),
+            "bound_extension_id": doc.get("bound_extension_id"),
+            "token_hash_preview": doc.get("token_hash", "")[:10] + "…"
+        })
+
+    logging.info(
+        "[DebugBindingTokens] workspace=%s count=%s",
+        workspace_id,
+        len(docs)
+    )
+
+    return {
+        "workspace_id": workspace_id,
+        "count": len(docs),
+        "tokens": docs
+    }
 
 
 @api_router.post("/workspaces/{workspace_id}/binding-token/regenerate", response_model=BindingTokenResponse)

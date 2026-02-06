@@ -81,7 +81,18 @@ async function bindExtension(token) {
   bindText.textContent = 'Binding...';
   
   try {
-    const extensionId = getExtensionId();
+    const extensionId = (chrome?.runtime?.id || '').trim();
+    if (!extensionId) {
+      showError('Extension ID unavailable. Please reload the extension and try again.');
+      return false;
+    }
+
+    // Clear any stale binding info before attempting a fresh bind
+    await chrome.storage.local.remove([
+      STORAGE_KEY_TOKEN,
+      STORAGE_KEY_WORKSPACE,
+      STORAGE_KEY_EXTENSION_ID
+    ]);
     
     const response = await fetch(`${API_BASE}/extension/bind`, {
       method: 'POST',
