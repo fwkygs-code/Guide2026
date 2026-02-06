@@ -14,6 +14,7 @@ import json
 import logging
 import os
 from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks, status, APIRouter, Query, File, UploadFile, Form, Header, Body, Cookie
+from fastapi.exceptions import RequestValidationError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse, StreamingResponse, PlainTextResponse, RedirectResponse
