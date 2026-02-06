@@ -305,16 +305,6 @@ const PortalPage = () => {
                     <p className="text-base md:text-lg text-muted-foreground mb-6 leading-relaxed">
                       {portalDescription}
                     </p>
-                    <div className="relative max-w-2xl">
-                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
-                      <Input
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={t('portal:searchPlaceholder')}
-                        className="pl-12 h-12 md:h-14 text-base md:text-lg rounded-xl bg-background/70 border border-border/60 focus-visible:ring-primary/50"
-                        data-testid="portal-search-input"
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -335,16 +325,6 @@ const PortalPage = () => {
                       {portalTitle}
                     </h1>
                     <p className="text-lg text-muted-foreground mb-8">{portalDescription}</p>
-                    <div className="relative max-w-2xl">
-                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
-                      <Input
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={t('portal:searchPlaceholder')}
-                        className="pl-12 h-14 text-lg rounded-xl glass shadow-lg"
-                        data-testid="portal-search-input"
-                      />
-                    </div>
                   </div>
                   <div className="rounded-2xl overflow-hidden border border-border/60 bg-slate-950/60">
                     <img
@@ -394,30 +374,20 @@ const PortalPage = () => {
 
       {/* Guided Resolver Entry + Flow */}
       <section className="py-6 px-6">
-        <div className="max-w-7xl mx-auto space-y-3">
-          <div className="text-xs font-semibold tracking-[0.3em] text-muted-foreground uppercase">
-            {t('portal:guided.ctaHeading', { defaultValue: 'Guided journey' })}
-          </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                  {t('portal:search.manualLabel', { defaultValue: 'Manual search' })}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t('portal:guided.entryHelper', { defaultValue: 'Search manually or let us guide you.' })}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="link"
-                className="px-0 text-sm font-medium text-muted-foreground"
-                onClick={handleGuidedCtaReset}
-              >
-                {t('portal:guided.ctaReset', { defaultValue: 'Clear search' })}
-              </Button>
+        <div className="max-w-5xl mx-auto">
+          <div className="glass rounded-3xl p-6 md:p-9 shadow-2xl border border-border/60">
+            <div className="space-y-4 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+                {t('portal:guided.ctaHeading', { defaultValue: 'Guided journey' })}
+              </p>
+              <h2 className="text-2xl md:text-3xl font-heading font-semibold text-foreground">
+                {t('portal:guided.entryTitle', { defaultValue: 'Search manually or let us guide you.' })}
+              </h2>
+              <p className="text-sm md:text-base text-muted-foreground max-w-3xl mx-auto">
+                {t('portal:guided.entryHelper', { defaultValue: 'Use the search bar or tap the compass and we will match the perfect walkthrough for you.' })}
+              </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 rtl:flex-row-reverse">
+            <div className={`mt-6 flex flex-col gap-4 ${isRTL ? 'md:flex-row-reverse' : 'md:flex-row'} items-stretch`}>
               <div className="relative flex-1 min-w-[240px]">
                 <Search
                   className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 ${isRTL ? 'right-4' : 'left-4'}`}
@@ -426,21 +396,31 @@ const PortalPage = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('portal:searchPlaceholder')}
-                  className={`h-12 text-base rounded-xl bg-background/70 border border-border/60 focus-visible:ring-primary/50 ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                  className={`h-12 text-base rounded-2xl bg-background/80 border border-border/70 focus-visible:ring-primary/50 ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
                   data-testid="portal-search-input"
                 />
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                data-testid="guided-resolver-start"
-                className="h-12 w-12 rounded-xl border border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/70 transition"
-                aria-label={t('portal:guided.ctaButtonAria', { defaultValue: 'Open guided journey assistant' })}
-                onClick={openGuidedJourney}
-              >
-                <Compass className="w-5 h-5" />
-              </Button>
+              <div className={`flex gap-3 ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-12 px-4 rounded-2xl text-sm font-semibold"
+                  onClick={handleGuidedCtaReset}
+                >
+                  {t('portal:guided.ctaReset', { defaultValue: 'Clear search' })}
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="icon"
+                  data-testid="guided-resolver-start"
+                  className="h-12 w-12 rounded-2xl shadow-lg"
+                  aria-label={t('portal:guided.ctaButtonAria', { defaultValue: 'Open guided journey assistant' })}
+                  onClick={openGuidedJourney}
+                >
+                  <Compass className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
