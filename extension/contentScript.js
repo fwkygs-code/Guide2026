@@ -467,7 +467,7 @@
       e.stopPropagation();
       stopPickerMode('CANCEL');
       // Clear locked state on cancel
-      pickerState = 'IDLE';
+      setPickerState('IDLE', 'CANCEL');
       lockedPickerData = null;
       // Notify popup that picker was cancelled
       chrome.runtime.sendMessage({ type: 'PICKER_CANCELLED' });
