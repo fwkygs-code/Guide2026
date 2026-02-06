@@ -92,6 +92,13 @@ CSRF_EXEMPT_PATHS = {
     "/api/auth/signup",
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
+    "/api/auth/google",
+    "/api/auth/github",
+    "/api/billing/webhook",
+    "/api/paypal/webhook",
+    "/api/beta/access",
+    "/api/webhooks/render",
+    "/api/extension/bind",
     "/api/health",
     "/health",
 }
