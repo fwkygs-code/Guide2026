@@ -60,7 +60,8 @@ async function loadAdminWalkthroughs() {
       return;
     }
     
-    const response = await chrome.runtime.sendMessage({ type: 'GET_ADMIN_WALKTHROUGHS' });
+    const response = await chrome.runtime.sendMessage({ type: 'GET_WALKTHROUGHS' });
+    console.log('[IG Popup] GET_WALKTHROUGHS response:', response);
     
     // Handle structured errors from background
     if (response?.error) {

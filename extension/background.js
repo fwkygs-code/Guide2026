@@ -133,32 +133,6 @@ async function getWalkthroughs() {
   }
 }
 
-// Get admin walkthroughs for target creation
-async function getAdminWalkthroughs() {
-  try {
-    const response = await apiCall('/extension/admin/walkthroughs');
-    if (!response.ok) {
-      if (response.status === 401) {
-        return { walkthroughs: [], error: 'UNAUTHORIZED' };
-      }
-      if (response.status === 403) {
-        return { walkthroughs: [], error: 'FORBIDDEN' };
-      }
-      return { walkthroughs: [], error: 'API_ERROR' };
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('[IG Background] Admin walkthroughs error:', error);
-    if (error.message === 'No binding token') {
-      return { walkthroughs: [], error: 'NO_BINDING' };
-    }
-    if (error.message === 'Token revoked') {
-      return { walkthroughs: [], error: 'TOKEN_REVOKED' };
-    }
-    return { walkthroughs: [], error: 'NETWORK_ERROR' };
-  }
-}
-
 // Create a new extension target
 async function createTarget(targetData) {
   try {
@@ -211,28 +185,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
         
       case 'GET_WALKTHROUGHS':
-        // Content script requesting walkthrough data
+        // Content script OR popup requesting walkthrough data
+        // Uses binding token auth via /extension/walkthroughs endpoint
         const walkthroughs = await getWalkthroughs();
         sendResponse(walkthroughs);
-        break;
-        
-      case 'GET_ADMIN_WALKTHROUGHS':
-        // Popup requesting admin walkthroughs for target creation
-        // ENFORCE: Must have token and workspace binding
-        const adminBinding = await getStoredBinding();
-        console.log('[BG] GET_ADMIN_WALKTHROUGHS, token exists:', !!adminBinding.token, 'workspace exists:', !!adminBinding.workspace);
-        
-        if (!adminBinding.token) {
-          sendResponse({ walkthroughs: [], error: 'NO_TOKEN' });
-          return;
-        }
-        if (!adminBinding.workspace) {
-          sendResponse({ walkthroughs: [], error: 'NOT_BOUND' });
-          return;
-        }
-        
-        const adminWalkthroughs = await getAdminWalkthroughs();
-        sendResponse(adminWalkthroughs);
         break;
         
       case 'CREATE_TARGET':
