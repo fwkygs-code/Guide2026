@@ -808,6 +808,13 @@ async function saveTarget() {
       if (!targetsList.classList.contains('hidden')) {
         await loadTargets();
       }
+      // Notify content script to clear picker overlay
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        chrome.tabs.sendMessage(tab.id, { type: 'CLEAR_PICKER' }).catch(() => {});
+      }
+      // Also clear stored pending data
+      chrome.storage.local.remove(['pending_picked_data']);
     } else if (response?.error) {
       switch (response.error) {
         case 'NOT_BOUND':

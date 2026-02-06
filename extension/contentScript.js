@@ -140,6 +140,13 @@
         case 'REHIGHLIGHT_ELEMENT':
           rehighlightElement(message.selector);
           break;
+          
+        case 'CLEAR_PICKER':
+          // Force clear picker state and overlay after successful save
+          setPickerState('IDLE', 'FORCE');
+          lockedPickerData = null;
+          stopPickerMode('FORCE');
+          break;
       }
     });
 
@@ -228,7 +235,7 @@
         return;
       }
 
-      // Find target element
+      // Find target element (with retry for dynamic content)
       let targetElement = null;
       if (match.selector) {
         try {
@@ -240,8 +247,93 @@
       }
 
       // Create overlay
-      createOverlay(walkthrough, step, targetElement, match.selector);
+      const overlay = createOverlay(walkthrough, step, targetElement, match.selector);
+      
+      // If element not found, set up observer to find it when it appears
+      if (!targetElement && match.selector) {
+        setupElementWatcher(overlay, match.selector);
+      }
     });
+  }
+  
+  // Watch for element appearance and reposition indicator
+  function setupElementWatcher(overlay, selector) {
+    if (!overlay || !selector) return;
+    
+    console.log(`[IG Content] Setting up watcher for selector: ${selector}`);
+    
+    // Try to find element with retry
+    let attempts = 0;
+    const maxAttempts = 50; // Try for 5 seconds (100ms * 50)
+    
+    const tryFindElement = () => {
+      if (attempts >= maxAttempts) {
+        console.log(`[IG Content] Gave up finding element after ${maxAttempts} attempts: ${selector}`);
+        return;
+      }
+      
+      attempts++;
+      const element = document.querySelector(selector);
+      
+      if (element) {
+        console.log(`[IG Content] Found element after ${attempts} attempts:`, element);
+        // Update overlay with found element
+        overlay.targetElement = element;
+        positionIndicator(overlay.indicator, element);
+        
+        // Also update popup positioning
+        overlay.indicator.removeEventListener('click', overlay._clickHandler);
+        overlay._clickHandler = (e) => {
+          e.stopPropagation();
+          positionPopup(overlay.popup, element, overlay.indicator);
+          overlay.popup.style.display = 'block';
+        };
+        overlay.indicator.addEventListener('click', overlay._clickHandler);
+        
+        // Mark as found
+        overlay._elementFound = true;
+      } else {
+        // Try again in 100ms
+        setTimeout(tryFindElement, 100);
+      }
+    };
+    
+    // Start trying immediately
+    setTimeout(tryFindElement, 100);
+    
+    // Also set up mutation observer as backup
+    const observer = new MutationObserver((mutations) => {
+      if (overlay._elementFound) {
+        observer.disconnect();
+        return;
+      }
+      
+      const element = document.querySelector(selector);
+      if (element) {
+        console.log(`[IG Content] Found element via mutation observer:`, element);
+        overlay.targetElement = element;
+        positionIndicator(overlay.indicator, element);
+        overlay._elementFound = true;
+        observer.disconnect();
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
+    
+    // Store observer for cleanup
+    overlay._observer = observer;
+    
+    // Stop observing after 10 seconds regardless
+    setTimeout(() => {
+      if (observer && !overlay._elementFound) {
+        observer.disconnect();
+        console.log(`[IG Content] Mutation observer timeout for: ${selector}`);
+      }
+    }, 10000);
   }
 
   // Create a single overlay with blue dot indicator
@@ -774,8 +866,20 @@
     let confidence = 'very-low';
     let confidenceLabel = '⚠️ Very Low - May break on page updates';
     
-    // Try ID first (highest confidence)
-    if (element.id) {
+    // Helper to detect .NET WebForms dynamic IDs
+    function isDotNetDynamicId(id) {
+      if (!id) return false;
+      // Patterns: ctl00_, ContentPlaceHolder, _ctl00_, etc.
+      return /ctl\d+_|_ctl\d+_|ContentPlaceHolder|MasterPage|__VIEWSTATE/.test(id);
+    }
+    
+    // Helper to detect hashed classes (React/Vue/Angular scoped styles)
+    function isHashedClass(cls) {
+      return /^[a-f0-9]{5,}$/i.test(cls) || /_[a-z0-9]{5,}$/i.test(cls);
+    }
+    
+    // Try ID first (highest confidence) - but NOT if it's a .NET dynamic ID
+    if (element.id && !isDotNetDynamicId(element.id)) {
       selector = '#' + element.id;
       confidence = 'high';
       confidenceLabel = '✓ High - Stable across updates';
@@ -798,12 +902,28 @@
       return { selector, confidence, confidenceLabel };
     }
     
+    // Try aria-label (medium confidence)
+    if (element.getAttribute('aria-label')) {
+      selector = `[aria-label="${element.getAttribute('aria-label')}"]`;
+      confidence = 'medium';
+      confidenceLabel = '~ Medium - ARIA labels may change';
+      return { selector, confidence, confidenceLabel };
+    }
+    
+    // Try name attribute (medium confidence)
+    if (element.name) {
+      selector = `[name="${element.name}"]`;
+      confidence = 'medium';
+      confidenceLabel = '~ Medium - Names may vary';
+      return { selector, confidence, confidenceLabel };
+    }
+    
     // Try unique class (low confidence)
     if (element.className && typeof element.className === 'string') {
-      const classes = element.className.split(' ').filter(c => c && !c.startsWith('ig-'));
+      const classes = element.className.split(' ').filter(c => c && !c.startsWith('ig-') && !isHashedClass(c));
       for (const cls of classes) {
-        // Skip hashed classes (common in React/Vue/Angular)
-        if (/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(cls) && !cls.match(/^[a-f0-9]{5,}$/i)) {
+        // Skip numeric-only classes and very short classes
+        if (/^[a-zA-Z][a-zA-Z0-9_-]{2,}$/.test(cls)) {
           const testSelector = '.' + cls;
           if (document.querySelectorAll(testSelector).length === 1) {
             selector = testSelector;
@@ -814,6 +934,19 @@
         }
       }
     }
+    
+    // Try text content for links and buttons
+    if ((element.tagName === 'A' || element.tagName === 'BUTTON') && element.textContent) {
+      const text = element.textContent.trim().substring(0, 30);
+      if (text && text.length > 2) {
+        // Check if text is unique
+        const textSelector = `${element.tagName.toLowerCase()}:contains("${text}")`;
+        // Note: :contains is not standard CSS, but useful for reference
+        // Store the text for potential JavaScript matching
+        element._igTextContent = text;
+      }
+    }
+    
     // Build path from body (very low confidence)
     const path = [];
     let current = element;
@@ -821,20 +954,25 @@
     while (current && current.tagName !== 'BODY' && current.tagName !== 'HTML') {
       let sel = current.tagName.toLowerCase();
       
-      if (current.id) {
+      if (current.id && !isDotNetDynamicId(current.id)) {
+        // Found a stable ID in parent - use it as anchor
         sel = '#' + current.id;
         path.unshift(sel);
         break;
       }
       
+      // Add stable classes (skip dynamic/hashed ones)
       if (current.className && typeof current.className === 'string') {
-        const classes = current.className.split(' ').filter(c => c && !c.startsWith('ig-'));
+        const classes = current.className
+          .split(' ')
+          .filter(c => c && !c.startsWith('ig-') && !isHashedClass(c) && /^[a-zA-Z][a-zA-Z0-9_-]{2,}$/.test(c));
         if (classes.length > 0) {
+          // Use first stable class
           sel += '.' + classes[0];
         }
       }
       
-      // Add nth-child if needed
+      // Add nth-child if needed for uniqueness
       const siblings = Array.from(current.parentNode?.children || []).filter(
         sibling => sibling.tagName === current.tagName
       );
@@ -845,6 +983,11 @@
       
       path.unshift(sel);
       current = current.parentElement;
+      
+      // Limit path length to avoid extremely long selectors
+      if (path.length >= 6) {
+        break;
+      }
     }
     
     selector = path.join(' > ');
