@@ -294,5 +294,11 @@ export const api = {
   // Extension Binding Tokens (Workspace Integrations)
   generateBindingToken: (workspaceId) => apiClient.post(`/workspaces/${workspaceId}/binding-token`),
   getBindingTokenStatus: (workspaceId) => apiClient.get(`/workspaces/${workspaceId}/binding-token`),
-  regenerateBindingToken: (workspaceId) => apiClient.post(`/workspaces/${workspaceId}/binding-token/regenerate`)
+  regenerateBindingToken: (workspaceId) => apiClient.post(`/workspaces/${workspaceId}/binding-token/regenerate`),
+
+  // Extension Targets (Browser Extension Targets)
+  getAdminWalkthroughs: () => apiClient.get(`/extension/admin/walkthroughs`),
+  getExtensionTargets: () => apiClient.get(`/extension/targets`),
+  createExtensionTarget: (data) => apiClient.post(`/extension/targets`, data),
+  deleteExtensionTarget: (targetId) => apiClient.delete(`/extension/targets/${targetId}`)
 };

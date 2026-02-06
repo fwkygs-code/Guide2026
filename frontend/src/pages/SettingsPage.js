@@ -58,6 +58,18 @@ const SettingsPage = () => {
   const [loadingToken, setLoadingToken] = useState(false);
   const [showToken, setShowToken] = useState(false);
 
+  // Browser Extension Targets state
+  const [adminWalkthroughs, setAdminWalkthroughs] = useState([]);
+  const [extensionTargets, setExtensionTargets] = useState([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
+  const [selectedWalkthrough, setSelectedWalkthrough] = useState('');
+  const [selectedStep, setSelectedStep] = useState('');
+  const [urlRuleType, setUrlRuleType] = useState('exact');
+  const [urlRuleValue, setUrlRuleValue] = useState('');
+  const [targetSelector, setTargetSelector] = useState('');
+  const [targetEnabled, setTargetEnabled] = useState(true);
+  const [creatingTarget, setCreatingTarget] = useState(false);
+
   const checkOwnership = useCallback(async () => {
     if (!workspaceId || !user) return;
     try {
@@ -328,6 +340,82 @@ const SettingsPage = () => {
       toast.success('Token copied to clipboard');
     }
   };
+
+  // Extension Targets handlers
+  const fetchAdminWalkthroughs = useCallback(async () => {
+    if (!isOwner) return;
+    try {
+      const response = await api.getAdminWalkthroughs();
+      setAdminWalkthroughs(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch admin walkthroughs:', error);
+      toast.error('Failed to load walkthroughs');
+    }
+  }, [isOwner]);
+
+  const fetchExtensionTargets = useCallback(async () => {
+    if (!isOwner) return;
+    setLoadingTargets(true);
+    try {
+      const response = await api.getExtensionTargets();
+      setExtensionTargets(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch extension targets:', error);
+      toast.error('Failed to load extension targets');
+    } finally {
+      setLoadingTargets(false);
+    }
+  }, [isOwner]);
+
+  const handleCreateTarget = async () => {
+    if (!selectedWalkthrough || !selectedStep || !urlRuleValue || !targetSelector) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    setCreatingTarget(true);
+    try {
+      await api.createExtensionTarget({
+        walkthrough_id: selectedWalkthrough,
+        step_id: selectedStep,
+        url_rule: { type: urlRuleType, value: urlRuleValue },
+        selector: targetSelector
+      });
+      toast.success('Extension target created');
+      // Reset form
+      setSelectedWalkthrough('');
+      setSelectedStep('');
+      setUrlRuleValue('');
+      setTargetSelector('');
+      setTargetEnabled(true);
+      // Refresh list
+      fetchExtensionTargets();
+    } catch (error) {
+      console.error('Failed to create extension target:', error);
+      toast.error(error.response?.data?.detail || 'Failed to create target');
+    } finally {
+      setCreatingTarget(false);
+    }
+  };
+
+  const handleDeleteTarget = async (targetId) => {
+    if (!confirm('Are you sure you want to delete this target?')) return;
+    try {
+      await api.deleteExtensionTarget(targetId);
+      toast.success('Target deleted');
+      fetchExtensionTargets();
+    } catch (error) {
+      console.error('Failed to delete target:', error);
+      toast.error('Failed to delete target');
+    }
+  };
+
+  // Load walkthroughs and targets when component mounts
+  useEffect(() => {
+    if (isOwner) {
+      fetchAdminWalkthroughs();
+      fetchExtensionTargets();
+    }
+  }, [isOwner, fetchAdminWalkthroughs, fetchExtensionTargets]);
 
   // Use public portal URL for sharing (user-facing link)
   const portalUrl = `${getPublicPortalUrl()}/portal/${workspace?.slug}`;
@@ -978,6 +1066,157 @@ const SettingsPage = () => {
                     <li>Paste the token above and click "Bind to Workspace"</li>
                     <li>The extension will now display walkthroughs from this workspace on any matching website</li>
                   </ol>
+                </div>
+
+                {/* Browser Extension Targets */}
+                <div className="mt-6 border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Browser Extension Targets</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Associate existing walkthrough steps with specific URLs and DOM elements. The extension will render bubble buttons on matching pages.
+                  </p>
+
+                  {/* Create Target Form */}
+                  <div className="space-y-4 p-4 bg-secondary/30 rounded-lg mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Walkthrough Dropdown */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Walkthrough</Label>
+                        <Select value={selectedWalkthrough} onValueChange={(val) => { setSelectedWalkthrough(val); setSelectedStep(''); }}>
+                          <SelectTrigger className="mt-1.5">
+                            <SelectValue placeholder="Select walkthrough" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {adminWalkthroughs.map((wt) => (
+                              <SelectItem key={wt.walkthrough_id} value={wt.walkthrough_id}>
+                                {wt.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Step Dropdown */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Step</Label>
+                        <Select value={selectedStep} onValueChange={setSelectedStep} disabled={!selectedWalkthrough}>
+                          <SelectTrigger className="mt-1.5">
+                            <SelectValue placeholder={selectedWalkthrough ? "Select step" : "Select walkthrough first"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {adminWalkthroughs
+                              .find((wt) => wt.walkthrough_id === selectedWalkthrough)?.steps
+                              ?.map((step) => (
+                                <SelectItem key={step.id} value={step.id}>
+                                  {step.title}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* URL Rule */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">URL Match Type</Label>
+                        <Select value={urlRuleType} onValueChange={setUrlRuleType}>
+                          <SelectTrigger className="mt-1.5">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="exact">Exact</SelectItem>
+                            <SelectItem value="prefix">Prefix (wildcard)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">URL Pattern</Label>
+                        <Input
+                          value={urlRuleValue}
+                          onChange={(e) => setUrlRuleValue(e.target.value)}
+                          placeholder={urlRuleType === 'exact' ? 'https://example.com/page' : 'https://example.com/*'}
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+
+                    {/* CSS Selector */}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">CSS Selector</Label>
+                      <Input
+                        value={targetSelector}
+                        onChange={(e) => setTargetSelector(e.target.value)}
+                        className="mt-1.5 font-mono text-sm"
+                        placeholder={'#login-form, .help-button, [data-help="login"]'}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        The DOM element where the bubble button will appear
+                      </p>
+                    </div>
+
+                    {/* Add Button */}
+                    <Button
+                      onClick={handleCreateTarget}
+                      disabled={creatingTarget || !selectedWalkthrough || !selectedStep || !urlRuleValue || !targetSelector}
+                      className="w-full"
+                    >
+                      {creatingTarget ? (
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4 mr-2" />
+                      )}
+                      Add Target
+                    </Button>
+                  </div>
+
+                  {/* Existing Targets List */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">Existing Targets ({extensionTargets.length})</h4>
+                    {loadingTargets ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">Loading targets...</div>
+                    ) : extensionTargets.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground border border-border rounded-lg">
+                        No targets configured yet. Add one above.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {extensionTargets.map((target) => {
+                          const walkthrough = adminWalkthroughs.find((wt) => wt.walkthrough_id === target.walkthrough_id);
+                          const step = walkthrough?.steps?.find((s) => s.id === target.step_id);
+                          return (
+                            <div
+                              key={target.id}
+                              className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {walkthrough?.title || target.walkthrough_id}
+                                  {step && <span className="text-muted-foreground"> → {step.title}</span>}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {target.url_rule?.type}: {target.url_rule?.value}
+                                </p>
+                                <p className="text-xs font-mono text-muted-foreground mt-0.5 truncate">
+                                  {target.selector}
+                                </p>
+                                <Badge variant={target.status === 'active' ? 'success' : 'secondary'} className="mt-1.5">
+                                  {target.status}
+                                </Badge>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteTarget(target.id)}
+                                className="text-destructive hover:text-destructive shrink-0 ml-2"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
