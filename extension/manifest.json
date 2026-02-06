@@ -3,7 +3,7 @@
   "name": "Interguide Extension",
   "version": "0.4.0",
   "description": "Capability-based workspace binding for Interguide walkthroughs. Zero cookies, zero auth.",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["https://api.interguide.app/*", "<all_urls>"],
   "action": {
     "default_popup": "popup.html"

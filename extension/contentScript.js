@@ -527,7 +527,6 @@
         }
       }
     }
-    
     // Build path from body (very low confidence)
     const path = [];
     let current = element;
@@ -600,6 +599,37 @@
   connect();
   checkBinding();
   observer.observe(document, { subtree: true, childList: true });
+
+  // Listen for one-time messages from popup/background (not port-based)
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message?.type) return false;
+    
+    switch (message.type) {
+      case 'PING':
+        sendResponse({ ready: true, url: window.location.href });
+        break;
+        
+      case 'START_PICKER':
+        startPickerMode();
+        sendResponse({ success: true });
+        break;
+        
+      case 'STOP_PICKER':
+        stopPickerMode();
+        sendResponse({ success: true });
+        break;
+        
+      case 'REHIGHLIGHT_ELEMENT':
+        rehighlightElement(message.selector);
+        sendResponse({ success: true });
+        break;
+        
+      default:
+        return false;
+    }
+    
+    return true; // Keep channel open for async
+  });
 
   // Handle page unload
   window.addEventListener('beforeunload', () => {

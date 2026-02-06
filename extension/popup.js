@@ -64,22 +64,80 @@ async function loadAdminWalkthroughs() {
 
 // Start element picker on current tab
 async function startElementPicker() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  console.log('[IG Popup] Starting picker on tab:', tab?.id, 'URL:', tab?.url);
+  
+  if (!tab?.id) {
+    showError('[NO_TAB] Cannot access current tab');
+    return;
+  }
+  
+  // Check for restricted URLs
+  if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('about:') || tab.url.startsWith('edge://')) {
+    console.error('[IG Popup] Cannot inject on restricted URL:', tab.url);
+    showError('[RESTRICTED_URL] Cannot start picker on browser internal pages. Navigate to a regular website.');
+    return;
+  }
+  
+  // Phase 1: Try to ping existing content script
+  let contentScriptReady = false;
   try {
-    // Get current active tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) {
-      showError('Cannot access current tab');
+    const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
+    if (pingResponse?.ready) {
+      console.log('[IG Popup] Content script already ready:', pingResponse.url);
+      contentScriptReady = true;
+    }
+  } catch (pingError) {
+    console.log('[IG Popup] PING failed, will attempt injection:', pingError.message);
+  }
+  
+  // Phase 2: If not ready, inject content script
+  if (!contentScriptReady) {
+    console.log('[IG Popup] Injecting content script...');
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id, allFrames: true },
+        files: ['contentScript.js']
+      });
+      console.log('[IG Popup] Content script injected');
+      
+      // Phase 3: Wait for content script to be ready (max 10 attempts, 100ms apart)
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (!contentScriptReady && attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 100));
+        try {
+          const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
+          if (pingResponse?.ready) {
+            console.log('[IG Popup] Content script ready after injection:', pingResponse.url);
+            contentScriptReady = true;
+          }
+        } catch (e) {
+          // Still not ready, continue waiting
+        }
+        attempts++;
+      }
+      
+      if (!contentScriptReady) {
+        showError('[PING_TIMEOUT] Content script injected but did not respond. Reload the page and try again.');
+        return;
+      }
+    } catch (injectError) {
+      console.error('[IG Popup] Injection failed:', injectError);
+      showError('[INJECTION_FAILED] Cannot inject content script. Check extension permissions and reload the extension.');
       return;
     }
-    
-    // Send message to content script to start picker
+  }
+  
+  // Phase 4: Send START_PICKER command
+  try {
     await chrome.tabs.sendMessage(tab.id, { type: 'START_PICKER' });
-    
-    // Close popup so user can interact with page
+    console.log('[IG Popup] START_PICKER sent successfully');
     window.close();
-  } catch (error) {
-    console.error('Failed to start picker:', error);
-    showError('Cannot start picker. Make sure you are on a webpage (not chrome:// or extension page)');
+  } catch (startError) {
+    console.error('[IG Popup] START_PICKER failed:', startError);
+    showError('[START_FAILED] Content script ready but picker failed to start. Reload the page and try again.');
   }
 }
 
