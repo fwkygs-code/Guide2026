@@ -10,8 +10,61 @@
   window.__IG_EXTENSION_LOADED__ = true;
 
   const PORT_NAME = 'ig-content-script';
+  const isTopFrame = window.top === window;
   
-  // State
+  // Register message listener FIRST (before any frame checks)
+  // This ensures all frames can respond to PING
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message?.type) return false;
+    
+    // PING is handled by ALL frames
+    if (message.type === 'PING') {
+      sendResponse({ 
+        ready: true, 
+        url: window.location.href, 
+        isTopFrame: isTopFrame,
+        frameId: isTopFrame ? 'top' : 'iframe'
+      });
+      return true;
+    }
+    
+    // All other commands are TOP FRAME ONLY
+    if (!isTopFrame) {
+      // Silently ignore picker commands in iframes
+      return false;
+    }
+    
+    // Top frame handlers
+    switch (message.type) {
+      case 'START_PICKER':
+        startPickerMode();
+        sendResponse({ success: true });
+        break;
+        
+      case 'STOP_PICKER':
+        stopPickerMode();
+        sendResponse({ success: true });
+        break;
+        
+      case 'REHIGHLIGHT_ELEMENT':
+        rehighlightElement(message.selector);
+        sendResponse({ success: true });
+        break;
+        
+      default:
+        return false;
+    }
+    
+    return true;
+  });
+  
+  // If this is an iframe, stop here - don't run full content script logic
+  if (!isTopFrame) {
+    console.log('[IG Content] Running in iframe - minimal mode only');
+    return;
+  }
+  
+  // State (top frame only)
   let port = null;
   let currentWalkthroughs = [];
   let activeOverlays = [];
@@ -599,37 +652,6 @@
   connect();
   checkBinding();
   observer.observe(document, { subtree: true, childList: true });
-
-  // Listen for one-time messages from popup/background (not port-based)
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (!message?.type) return false;
-    
-    switch (message.type) {
-      case 'PING':
-        sendResponse({ ready: true, url: window.location.href });
-        break;
-        
-      case 'START_PICKER':
-        startPickerMode();
-        sendResponse({ success: true });
-        break;
-        
-      case 'STOP_PICKER':
-        stopPickerMode();
-        sendResponse({ success: true });
-        break;
-        
-      case 'REHIGHLIGHT_ELEMENT':
-        rehighlightElement(message.selector);
-        sendResponse({ success: true });
-        break;
-        
-      default:
-        return false;
-    }
-    
-    return true; // Keep channel open for async
-  });
 
   // Handle page unload
   window.addEventListener('beforeunload', () => {

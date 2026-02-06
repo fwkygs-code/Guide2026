@@ -79,65 +79,28 @@ async function startElementPicker() {
     return;
   }
   
-  // Phase 1: Try to ping existing content script
-  let contentScriptReady = false;
+  // Try to ping content script - must be top frame
   try {
     const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
-    if (pingResponse?.ready) {
-      console.log('[IG Popup] Content script already ready:', pingResponse.url);
-      contentScriptReady = true;
-    }
-  } catch (pingError) {
-    console.log('[IG Popup] PING failed, will attempt injection:', pingError.message);
-  }
-  
-  // Phase 2: If not ready, inject content script
-  if (!contentScriptReady) {
-    console.log('[IG Popup] Injecting content script...');
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id, allFrames: true },
-        files: ['contentScript.js']
-      });
-      console.log('[IG Popup] Content script injected');
-      
-      // Phase 3: Wait for content script to be ready (max 10 attempts, 100ms apart)
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      while (!contentScriptReady && attempts < maxAttempts) {
-        await new Promise(r => setTimeout(r, 100));
-        try {
-          const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
-          if (pingResponse?.ready) {
-            console.log('[IG Popup] Content script ready after injection:', pingResponse.url);
-            contentScriptReady = true;
-          }
-        } catch (e) {
-          // Still not ready, continue waiting
-        }
-        attempts++;
-      }
-      
-      if (!contentScriptReady) {
-        showError('[PING_TIMEOUT] Content script injected but did not respond. Reload the page and try again.');
-        return;
-      }
-    } catch (injectError) {
-      console.error('[IG Popup] Injection failed:', injectError);
-      showError('[INJECTION_FAILED] Cannot inject content script. Check extension permissions and reload the extension.');
+    console.log('[IG Popup] PING response:', pingResponse);
+    
+    if (!pingResponse?.ready) {
+      showError('[NOT_READY] Content script not ready. Reload the page.');
       return;
     }
-  }
-  
-  // Phase 4: Send START_PICKER command
-  try {
+    
+    if (!pingResponse.isTopFrame) {
+      showError('[NOT_TOP_FRAME] PING responded from iframe. Reload the page.');
+      return;
+    }
+    
+    // Content script is ready in top frame, send START_PICKER
     await chrome.tabs.sendMessage(tab.id, { type: 'START_PICKER' });
     console.log('[IG Popup] START_PICKER sent successfully');
     window.close();
-  } catch (startError) {
-    console.error('[IG Popup] START_PICKER failed:', startError);
-    showError('[START_FAILED] Content script ready but picker failed to start. Reload the page and try again.');
+  } catch (error) {
+    console.error('[IG Popup] Content script not responding:', error);
+    showError('[NO_CONTENT_SCRIPT] Content script not loaded. Reload the page or check extension permissions.');
   }
 }
 
