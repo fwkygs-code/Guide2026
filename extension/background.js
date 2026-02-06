@@ -96,6 +96,37 @@ async function getWalkthroughs() {
   }
 }
 
+// Get admin walkthroughs for target creation
+async function getAdminWalkthroughs() {
+  try {
+    const response = await apiCall('/extension/admin/walkthroughs');
+    if (!response.ok) return { walkthroughs: [] };
+    return await response.json();
+  } catch (error) {
+    console.error('[IG Background] Admin walkthroughs error:', error);
+    return { walkthroughs: [] };
+  }
+}
+
+// Create a new extension target
+async function createTarget(targetData) {
+  try {
+    const response = await apiCall('/extension/targets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(targetData)
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Failed to create target');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('[IG Background] Create target error:', error);
+    throw error;
+  }
+}
+
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || !message.type) return false;
@@ -132,6 +163,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Content script requesting walkthrough data
         const walkthroughs = await getWalkthroughs();
         sendResponse(walkthroughs);
+        break;
+        
+      case 'GET_ADMIN_WALKTHROUGHS':
+        // Popup requesting admin walkthroughs for target creation
+        const adminWalkthroughs = await getAdminWalkthroughs();
+        sendResponse(adminWalkthroughs);
+        break;
+        
+      case 'CREATE_TARGET':
+        // Popup/content script creating a new target
+        try {
+          const newTarget = await createTarget(message.data);
+          sendResponse({ success: true, target: newTarget });
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
         break;
         
       case 'GET_BINDING_STATUS':

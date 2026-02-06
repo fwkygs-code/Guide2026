@@ -23,6 +23,218 @@ const extensionIdShortEl = document.getElementById('extension-id-short');
 const errorMessage = document.getElementById('error-message');
 const successMessage = document.getElementById('success-message');
 
+// Target Creation Elements
+const createTargetBtn = document.getElementById('create-target-btn');
+const targetForm = document.getElementById('target-form');
+const pickedElementInfo = document.getElementById('picked-element-info');
+const walkthroughSelect = document.getElementById('walkthrough-select');
+const stepSelect = document.getElementById('step-select');
+const urlScopeSelect = document.getElementById('url-scope');
+const urlScopeHelp = document.getElementById('url-scope-help');
+const selectorInput = document.getElementById('selector-input');
+const selectorConfidence = document.getElementById('selector-confidence');
+const saveTargetBtn = document.getElementById('save-target-btn');
+const cancelTargetBtn = document.getElementById('cancel-target-btn');
+const saveSpinner = document.getElementById('save-spinner');
+const saveText = document.getElementById('save-text');
+
+// Track picked element data
+let pickedData = null;
+let adminWalkthroughs = [];
+
+// Load admin walkthroughs for target creation
+async function loadAdminWalkthroughs() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'GET_ADMIN_WALKTHROUGHS' });
+    adminWalkthroughs = response?.walkthroughs || [];
+    
+    // Populate walkthrough dropdown
+    walkthroughSelect.innerHTML = '<option value="">Select walkthrough...</option>';
+    adminWalkthroughs.forEach(wt => {
+      const option = document.createElement('option');
+      option.value = wt.walkthrough_id;
+      option.textContent = wt.title;
+      walkthroughSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Failed to load walkthroughs:', error);
+    showError('Failed to load walkthroughs');
+  }
+}
+
+// Start element picker on current tab
+async function startElementPicker() {
+  try {
+    // Get current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) {
+      showError('Cannot access current tab');
+      return;
+    }
+    
+    // Send message to content script to start picker
+    await chrome.tabs.sendMessage(tab.id, { type: 'START_PICKER' });
+    
+    // Close popup so user can interact with page
+    window.close();
+  } catch (error) {
+    console.error('Failed to start picker:', error);
+    showError('Cannot start picker. Make sure you are on a webpage (not chrome:// or extension page)');
+  }
+}
+
+// Handle element picked message from content script
+function handleElementPicked(data) {
+  pickedData = data;
+  
+  // Show the target form
+  createTargetBtn.classList.add('hidden');
+  targetForm.classList.remove('hidden');
+  
+  // Populate form with picked data
+  pickedElementInfo.textContent = `<${data.elementTag}> ${data.elementText}`;
+  selectorInput.value = data.selector;
+  
+  // Show confidence warning
+  selectorConfidence.textContent = data.confidenceLabel;
+  selectorConfidence.className = 'confidence-warning confidence-' + data.confidence;
+  
+  // Set default URL scope to 'domain' (entire website)
+  urlScopeSelect.value = 'domain';
+  updateUrlScopeHelp('domain');
+  
+  // Load walkthroughs
+  loadAdminWalkthroughs();
+}
+
+// Handle walkthrough selection change
+function handleWalkthroughChange() {
+  const walkthroughId = walkthroughSelect.value;
+  stepSelect.innerHTML = '<option value="">Select step...</option>';
+  stepSelect.disabled = !walkthroughId;
+  
+  if (walkthroughId) {
+    const walkthrough = adminWalkthroughs.find(wt => wt.walkthrough_id === walkthroughId);
+    if (walkthrough?.steps) {
+      walkthrough.steps.forEach(step => {
+        const option = document.createElement('option');
+        option.value = step.id || step.step_id;
+        option.textContent = step.title || 'Untitled Step';
+        stepSelect.appendChild(option);
+      });
+    }
+  }
+}
+
+// Handle URL scope change
+function handleUrlScopeChange() {
+  const scope = urlScopeSelect.value;
+  updateUrlScopeHelp(scope);
+}
+
+function updateUrlScopeHelp(scope) {
+  const helpTexts = {
+    'page': 'Target will only match this exact page URL',
+    'domain': 'Target will match any page on this website',
+    'global': 'Target will match any website (use sparingly)'
+  };
+  urlScopeHelp.textContent = helpTexts[scope] || '';
+}
+
+// Cancel target creation
+function cancelTargetCreation() {
+  pickedData = null;
+  targetForm.classList.add('hidden');
+  createTargetBtn.classList.remove('hidden');
+  walkthroughSelect.value = '';
+  stepSelect.value = '';
+  stepSelect.disabled = true;
+}
+
+// Save the new target
+async function saveTarget() {
+  if (!pickedData) return;
+  
+  const walkthroughId = walkthroughSelect.value;
+  const stepId = stepSelect.value;
+  const urlScope = urlScopeSelect.value;
+  
+  if (!walkthroughId || !stepId) {
+    showError('Please select a walkthrough and step');
+    return;
+  }
+  
+  saveTargetBtn.disabled = true;
+  saveSpinner.classList.remove('hidden');
+  saveText.textContent = 'Saving...';
+  
+  try {
+    // Build URL rule from picked URL based on scope
+    const fullUrl = pickedData.url;
+    let urlType, urlValue;
+    
+    if (urlScope === 'page') {
+      // Exact URL
+      urlType = 'exact';
+      urlValue = fullUrl.split('?')[0].split('#')[0]; // Remove query/hash
+    } else if (urlScope === 'domain') {
+      // Domain prefix
+      urlType = 'prefix';
+      try {
+        const urlObj = new URL(fullUrl);
+        urlValue = urlObj.origin + '/';
+      } catch (e) {
+        urlValue = fullUrl.split('/').slice(0, 3).join('/') + '/';
+      }
+    } else if (urlScope === 'global') {
+      // Global - match any http/https URL
+      urlType = 'prefix';
+      urlValue = 'http';
+    }
+    
+    const targetData = {
+      walkthrough_id: walkthroughId,
+      step_id: stepId,
+      url_rule: {
+        type: urlType,
+        value: urlValue
+      },
+      selector: pickedData.selector
+    };
+    
+    const response = await chrome.runtime.sendMessage({
+      type: 'CREATE_TARGET',
+      data: targetData
+    });
+    
+    if (response?.success) {
+      showSuccess('Target created successfully!');
+      cancelTargetCreation();
+    } else {
+      showError(response?.error || 'Failed to create target');
+    }
+  } catch (error) {
+    console.error('Save target error:', error);
+    showError('Failed to save target');
+  } finally {
+    saveTargetBtn.disabled = false;
+    saveSpinner.classList.add('hidden');
+    saveText.textContent = 'Save Target';
+  }
+}
+
+// Listen for messages from content script (picker events)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'ELEMENT_PICKED') {
+    handleElementPicked(message.data);
+    sendResponse({ received: true });
+  } else if (message.type === 'PICKER_CANCELLED') {
+    cancelTargetCreation();
+    sendResponse({ received: true });
+  }
+  return true;
+});
+
 // Get extension ID (chrome.runtime.id)
 const getExtensionId = () => chrome.runtime.id;
 
@@ -203,5 +415,33 @@ bindBtn.addEventListener('click', () => bindExtension(tokenInput.value));
 rebindBtn.addEventListener('click', () => bindExtension(tokenInputRevoked.value));
 unbindBtn.addEventListener('click', unbindExtension);
 
+// Target Creation Event Listeners
+createTargetBtn.addEventListener('click', startElementPicker);
+walkthroughSelect.addEventListener('change', handleWalkthroughChange);
+urlScopeSelect.addEventListener('change', handleUrlScopeChange);
+saveTargetBtn.addEventListener('click', saveTarget);
+cancelTargetBtn.addEventListener('click', cancelTargetCreation);
+
 // Initialize on load
-document.addEventListener('DOMContentLoaded', loadState);
+document.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  
+  // Check if we have pending picked data from a previous picker session
+  chrome.storage.local.get(['pending_picked_data']).then(result => {
+    if (result.pending_picked_data) {
+      handleElementPicked(result.pending_picked_data);
+      
+      // Trigger re-highlight on the active tab
+      chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+        if (tab?.id && result.pending_picked_data.selector) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: 'REHIGHLIGHT_ELEMENT',
+            selector: result.pending_picked_data.selector
+          }).catch(() => {});
+        }
+      });
+      
+      chrome.storage.local.remove(['pending_picked_data']);
+    }
+  });
+});
