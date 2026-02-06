@@ -5607,6 +5607,13 @@ async def bind_extension(request: Request, payload: ExtensionBindRequest):
         {"_id": record["_id"]},
         {"$set": {"bound_extension_id": payload.extensionId}}
     )
+    logging.info(
+        "[ExtensionBind] workspace=%s token updated (previous=%s, new=%s, revoked_at=%s)",
+        record.get("workspace_id"),
+        bound_ext_id,
+        payload.extensionId,
+        record.get("revoked_at")
+    )
     workspace = await db.workspaces.find_one({"id": record["workspace_id"]}, {"_id": 0, "name": 1})
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
@@ -5619,8 +5626,9 @@ async def bind_extension(request: Request, payload: ExtensionBindRequest):
 
 class BindingTokenResponse(BaseModel):
     token: Optional[str] = None  # Only shown once on generation
-    status: str  # "active", "revoked", "none"
+    state: Literal["none", "unbound", "bound"]
     created_at: Optional[datetime] = None
+    bound_extension_id: Optional[str] = None
 
 
 @api_router.post("/workspaces/{workspace_id}/binding-token", response_model=BindingTokenResponse)
@@ -5656,8 +5664,9 @@ async def generate_binding_token(workspace_id: str, current_user: User = Depends
     
     return BindingTokenResponse(
         token=raw_token,  # ONE-TIME REVEAL
-        status="active",
-        created_at=datetime.now(timezone.utc)
+        state="unbound",
+        created_at=datetime.now(timezone.utc),
+        bound_extension_id=None
     )
 
 
@@ -5671,16 +5680,26 @@ async def get_binding_token_status(workspace_id: str, current_user: User = Depen
     
     # Find active token
     token_doc = await db.workspace_binding_tokens.find_one(
-        {"workspace_id": workspace_id, "revoked_at": None},
-        {"_id": 0, "token_hash": 0}  # Never expose hash
+        {"workspace_id": workspace_id},
+        {"_id": 0, "token_hash": 0},
+        sort=[("created_at", -1)]
     )
     
     if not token_doc:
-        return BindingTokenResponse(status="none")
+        return BindingTokenResponse(state="none", created_at=None, bound_extension_id=None)
     
+    if token_doc.get("revoked_at"):
+        return BindingTokenResponse(
+            state="none",
+            created_at=token_doc.get("created_at"),
+            bound_extension_id=token_doc.get("bound_extension_id")
+        )
+    
+    state = "bound" if token_doc.get("bound_extension_id") else "unbound"
     return BindingTokenResponse(
-        status="active",
-        created_at=token_doc.get("created_at")
+        state=state,
+        created_at=token_doc.get("created_at"),
+        bound_extension_id=token_doc.get("bound_extension_id")
     )
 
 

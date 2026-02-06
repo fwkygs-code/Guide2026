@@ -54,6 +54,7 @@ const SettingsPage = () => {
   const [bindingToken, setBindingToken] = useState(null);
   const [tokenStatus, setTokenStatus] = useState('none');
   const [tokenCreatedAt, setTokenCreatedAt] = useState(null);
+  const [boundExtensionId, setBoundExtensionId] = useState(null);
   const [loadingToken, setLoadingToken] = useState(false);
   const [showToken, setShowToken] = useState(false);
 
@@ -262,8 +263,10 @@ const SettingsPage = () => {
     setLoadingToken(true);
     try {
       const response = await api.getBindingTokenStatus(workspaceId);
-      setTokenStatus(response.data.status);
+      const state = response.data.state || 'none';
+      setTokenStatus(state);
       setTokenCreatedAt(response.data.created_at);
+      setBoundExtensionId(response.data.bound_extension_id || null);
       setBindingToken(null);
       setShowToken(false);
     } catch (error) {
@@ -286,8 +289,9 @@ const SettingsPage = () => {
     try {
       const response = await api.generateBindingToken(workspaceId);
       setBindingToken(response.data.token);
-      setTokenStatus('active');
+      setTokenStatus('unbound');
       setTokenCreatedAt(response.data.created_at);
+      setBoundExtensionId(null);
       setShowToken(true);
       toast.success('Extension binding token generated');
     } catch (error) {
@@ -305,8 +309,9 @@ const SettingsPage = () => {
     try {
       const response = await api.regenerateBindingToken(workspaceId);
       setBindingToken(response.data.token);
-      setTokenStatus('active');
+      setTokenStatus('unbound');
       setTokenCreatedAt(response.data.created_at);
+      setBoundExtensionId(null);
       setShowToken(true);
       toast.success('Extension binding token regenerated (old token revoked)');
     } catch (error) {
@@ -318,7 +323,7 @@ const SettingsPage = () => {
   };
 
   const handleCopyToken = () => {
-    if (bindingToken) {
+    if (bindingToken && tokenStatus === 'unbound') {
       navigator.clipboard.writeText(bindingToken);
       toast.success('Token copied to clipboard');
     }
@@ -333,6 +338,22 @@ const SettingsPage = () => {
   const copyToClipboard = (text, message = 'Copied!') => {
     navigator.clipboard.writeText(text);
     toast.success(message);
+  };
+
+  const formatTokenStatusLabel = () => {
+    if (tokenStatus === 'unbound') {
+      return 'Active (unbound)';
+    }
+    if (tokenStatus === 'bound') {
+      return 'Active (bound)';
+    }
+    return 'No active token';
+  };
+
+  const tokenBadgeVariant = () => {
+    if (tokenStatus === 'unbound') return 'success';
+    if (tokenStatus === 'bound') return 'warning';
+    return 'secondary';
   };
 
   if (workspaceLoading || !workspaceId) {
@@ -852,20 +873,28 @@ const SettingsPage = () => {
                   <div>
                     <p className="text-sm font-medium text-foreground">Binding Token Status</p>
                     <p className="text-xs text-muted-foreground">
-                      {tokenStatus === 'active' 
-                        ? `Active (created ${tokenCreatedAt ? new Date(tokenCreatedAt).toLocaleDateString() : 'recently'})`
-                        : tokenStatus === 'revoked'
-                        ? 'Revoked - generate new token'
-                        : 'No token generated yet'}
+                      {tokenStatus === 'none'
+                        ? 'No token generated yet'
+                        : `${formatTokenStatusLabel()}${tokenCreatedAt ? ` · created ${new Date(tokenCreatedAt).toLocaleDateString()}` : ''}`}
                     </p>
                   </div>
-                  <Badge variant={tokenStatus === 'active' ? 'success' : tokenStatus === 'revoked' ? 'destructive' : 'secondary'}>
-                    {tokenStatus === 'active' ? 'Active' : tokenStatus === 'revoked' ? 'Revoked' : 'None'}
+                  <Badge variant={tokenBadgeVariant()}>
+                    {tokenStatus === 'none' ? 'None' : tokenStatus === 'unbound' ? 'Active' : 'Bound'}
                   </Badge>
                 </div>
 
+                {tokenStatus === 'bound' && (
+                  <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning-foreground">
+                    <p className="font-medium">Current token is already bound to an extension.</p>
+                    {boundExtensionId && (
+                      <p className="text-xs opacity-80 mt-1">Extension ID: {boundExtensionId}</p>
+                    )}
+                    <p className="text-xs mt-1">Regenerate to connect a new browser.</p>
+                  </div>
+                )}
+
                 {/* Token Display (one-time reveal) */}
-                {showToken && bindingToken && (
+                {showToken && bindingToken && tokenStatus === 'unbound' && (
                   <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <div className="flex items-start gap-2 mb-2">
                       <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5" />
@@ -925,7 +954,7 @@ const SettingsPage = () => {
                         )}
                         Regenerate Token
                       </Button>
-                      {!showToken && tokenStatus === 'active' && (
+                      {!showToken && tokenStatus === 'unbound' && (
                         <Button
                           variant="secondary"
                           onClick={() => setShowToken(true)}
