@@ -280,7 +280,7 @@
     
     // Try to find element with retry
     let attempts = 0;
-    const maxAttempts = 50; // Try for 5 seconds (100ms * 50)
+    const maxAttempts = 100; // Try for 10 seconds (100ms * 100)
     
     const tryFindElement = () => {
       if (attempts >= maxAttempts) {
@@ -295,6 +295,7 @@
         console.log(`[IG Content] Found element after ${attempts} attempts:`, element);
         // Update overlay with found element
         overlay.targetElement = element;
+        overlay.indicator.style.display = 'block'; // Show indicator now that element is found
         positionIndicator(overlay.indicator, element);
         
         // Also update popup positioning
@@ -328,6 +329,7 @@
       if (element) {
         console.log(`[IG Content] Found element via mutation observer:`, element);
         overlay.targetElement = element;
+        overlay.indicator.style.display = 'block'; // Show indicator now that element is found
         positionIndicator(overlay.indicator, element);
         overlay._elementFound = true;
         observer.disconnect();
@@ -343,13 +345,13 @@
     // Store observer for cleanup
     overlay._observer = observer;
     
-    // Stop observing after 10 seconds regardless
+    // Stop observing after 30 seconds regardless (longer for modal/dialog content)
     setTimeout(() => {
       if (observer && !overlay._elementFound) {
         observer.disconnect();
         console.log(`[IG Content] Mutation observer timeout for: ${selector}`);
       }
-    }, 10000);
+    }, 30000);
   }
 
   // Create a single overlay with blue dot indicator
@@ -368,6 +370,7 @@
       cursor: pointer;
       z-index: 2147483646;
       transition: transform 0.2s ease;
+      display: none; /* Hidden by default, shown when element found */
     `;
     indicator.addEventListener('mouseenter', () => {
       indicator.style.transform = 'scale(1.2)';
@@ -376,15 +379,12 @@
       indicator.style.transform = 'scale(1)';
     });
     
-    // Position indicator at top-right corner of target element
+    // Position indicator at top-right corner of target element (only if element exists now)
     if (targetElement) {
+      indicator.style.display = 'block';
       positionIndicator(indicator, targetElement);
-    } else {
-      // Default position: top-right of viewport
-      indicator.style.position = 'fixed';
-      indicator.style.top = '16px';
-      indicator.style.right = '16px';
     }
+    // If no targetElement, indicator stays hidden until watcher finds it
     
     // Create popup (hidden by default)
     const popup = document.createElement('div');
