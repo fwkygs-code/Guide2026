@@ -451,9 +451,9 @@
       return step.blocks.map(block => renderBlock(block)).join('');
     }
     
-    // Legacy: render content field
+    // Legacy: render content field as HTML (don't escape - content is already HTML)
     if (step.content) {
-      return `<div style="color: #4b5563;">${escapeHtml(step.content)}</div>`;
+      return `<div style="color: #4b5563;">${step.content}</div>`;
     }
     
     // Fallback
@@ -1033,16 +1033,47 @@
     }
   }
 
-  // SPA navigation detection
+  // SPA navigation detection - also detects significant DOM changes (tab switches)
   let lastUrl = window.location.href;
-  const observer = new MutationObserver(() => {
+  let lastTargetElements = new Set();
+  
+  function checkTargets() {
+    // Check if any target elements have appeared/disappeared
+    let changed = false;
+    activeOverlays.forEach(overlay => {
+      if (overlay.selector) {
+        const element = document.querySelector(overlay.selector);
+        const hadElement = overlay.targetElement !== null;
+        const hasElement = element !== null;
+        if (hadElement !== hasElement) {
+          changed = true;
+        }
+      }
+    });
+    
+    // If significant changes detected, re-resolve targets
+    if (changed && isBound) {
+      console.log('[IG Content] Target elements changed, re-resolving');
+      resolveTargets(window.location.href);
+    }
+  }
+  
+  const observer = new MutationObserver((mutations) => {
     const currentUrl = window.location.href;
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
       if (isBound && port) {
         resolveTargets(currentUrl);
       }
+      return;
     }
+    
+    // Check for significant DOM changes (modal/tab content appearing)
+    // Use debounce to avoid excessive checks
+    if (window._targetCheckTimeout) {
+      clearTimeout(window._targetCheckTimeout);
+    }
+    window._targetCheckTimeout = setTimeout(checkTargets, 500);
   });
 
   // Initialize
