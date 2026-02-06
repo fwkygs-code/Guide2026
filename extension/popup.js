@@ -38,9 +38,17 @@ const cancelTargetBtn = document.getElementById('cancel-target-btn');
 const saveSpinner = document.getElementById('save-spinner');
 const saveText = document.getElementById('save-text');
 
+// Target Management Elements
+const manageTargetsBtn = document.getElementById('manage-targets-btn');
+const targetsList = document.getElementById('targets-list');
+const targetsContainer = document.getElementById('targets-container');
+
 // Track picked element data
 let pickedData = null;
 let adminWalkthroughs = [];
+let existingTargets = [];
+let isEditingTarget = false;
+let editingTargetId = null;
 
 // Load admin walkthroughs for target creation
 async function loadAdminWalkthroughs() {
@@ -554,6 +562,296 @@ walkthroughSelect.addEventListener('change', handleWalkthroughChange);
 urlScopeSelect.addEventListener('change', handleUrlScopeChange);
 saveTargetBtn.addEventListener('click', saveTarget);
 cancelTargetBtn.addEventListener('click', cancelTargetCreation);
+
+// Target Management Event Listeners
+manageTargetsBtn.addEventListener('click', toggleTargetsList);
+
+// Target Management Functions
+async function toggleTargetsList() {
+  const isVisible = !targetsList.classList.contains('hidden');
+  if (isVisible) {
+    targetsList.classList.add('hidden');
+    manageTargetsBtn.textContent = '📋 Manage Existing Targets';
+  } else {
+    targetsList.classList.remove('hidden');
+    manageTargetsBtn.textContent = '📋 Hide Targets';
+    await loadTargets();
+  }
+}
+
+async function loadTargets() {
+  try {
+    targetsContainer.innerHTML = '<p style="color: #6b7280; font-style: italic;">Loading...</p>';
+    const response = await chrome.runtime.sendMessage({ type: 'GET_TARGETS' });
+    
+    if (response?.error) {
+      targetsContainer.innerHTML = `<p style="color: #dc2626;">Error: ${response.error}</p>`;
+      return;
+    }
+    
+    existingTargets = response?.targets || [];
+    
+    if (existingTargets.length === 0) {
+      targetsContainer.innerHTML = '<p style="color: #6b7280; font-style: italic;">No targets created yet.</p>';
+      return;
+    }
+    
+    // Group targets by walkthrough
+    const targetsByWalkthrough = {};
+    existingTargets.forEach(target => {
+      const wt = adminWalkthroughs.find(w => w.id === target.walkthrough_id);
+      const wtTitle = wt?.title || target.walkthrough_id;
+      if (!targetsByWalkthrough[wtTitle]) {
+        targetsByWalkthrough[wtTitle] = [];
+      }
+      targetsByWalkthrough[wtTitle].push(target);
+    });
+    
+    // Render targets
+    let html = '';
+    Object.entries(targetsByWalkthrough).forEach(([wtTitle, targets]) => {
+      html += `<div style="margin-bottom: 12px; border-left: 3px solid #4f46e5; padding-left: 8px;">`;
+      html += `<div style="font-weight: 600; color: #4f46e5; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">${escapeHtml(wtTitle)}</div>`;
+      
+      targets.forEach(target => {
+        const step = adminWalkthroughs
+          .find(w => w.id === target.walkthrough_id)?.steps
+          ?.find(s => (s.step_id || s.id) === target.step_id);
+        const stepTitle = step?.title || target.step_id?.substring(0, 20) || 'Step';
+        const urlPreview = target.url_rule?.value?.substring(0, 30) + '...' || 'Unknown';
+        
+        html += `
+          <div style="padding: 8px; background: #f9fafb; border-radius: 4px; margin-bottom: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div style="flex: 1; overflow: hidden;">
+                <div style="font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHtml(stepTitle)}
+                </div>
+                <div style="font-size: 10px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHtml(urlPreview)}
+                </div>
+                <div style="font-size: 10px; color: #9ca3af; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHtml(target.selector || 'No selector')}
+                </div>
+              </div>
+              <div style="display: flex; gap: 4px; margin-left: 8px;">
+                <button class="edit-target-btn" data-target-id="${target.id}" style="padding: 4px 8px; background: #e0e7ff; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; color: #4f46e5;">Edit</button>
+                <button class="delete-target-btn" data-target-id="${target.id}" style="padding: 4px 8px; background: #fee2e2; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; color: #dc2626;">×</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `</div>`;
+    });
+    
+    targetsContainer.innerHTML = html;
+    
+    // Add event listeners to edit/delete buttons
+    targetsContainer.querySelectorAll('.edit-target-btn').forEach(btn => {
+      btn.addEventListener('click', () => editTarget(btn.dataset.targetId));
+    });
+    targetsContainer.querySelectorAll('.delete-target-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteTarget(btn.dataset.targetId));
+    });
+    
+  } catch (error) {
+    console.error('Load targets error:', error);
+    targetsContainer.innerHTML = `<p style="color: #dc2626;">Failed to load targets</p>`;
+  }
+}
+
+async function editTarget(targetId) {
+  const target = existingTargets.find(t => t.id === targetId);
+  if (!target) return;
+  
+  // Switch to edit mode
+  isEditingTarget = true;
+  editingTargetId = targetId;
+  
+  // Populate form with target data
+  pickedData = {
+    selector: target.selector,
+    url: target.url_rule?.value || ''
+  };
+  
+  // Show the target form
+  createTargetBtn.classList.add('hidden');
+  targetForm.classList.remove('hidden');
+  
+  // Populate form fields
+  pickedElementInfo.textContent = `Editing: ${target.selector || 'Unknown element'}`;
+  selectorInput.value = target.selector || '';
+  
+  // Set URL scope based on url_rule
+  if (target.url_rule?.type === 'exact') {
+    urlScopeSelect.value = 'page';
+  } else if (target.url_rule?.type === 'prefix' && target.url_rule?.value === 'http') {
+    urlScopeSelect.value = 'global';
+  } else {
+    urlScopeSelect.value = 'domain';
+  }
+  updateUrlScopeHelp(urlScopeSelect.value);
+  
+  // Load walkthroughs if not loaded
+  if (adminWalkthroughs.length === 0) {
+    await loadAdminWalkthroughs();
+  }
+  
+  // Set walkthrough and step
+  walkthroughSelect.value = target.walkthrough_id;
+  await handleWalkthroughChange();
+  stepSelect.value = target.step_id;
+  
+  // Update save button text
+  saveText.textContent = 'Update Target';
+}
+
+async function deleteTarget(targetId) {
+  if (!confirm('Are you sure you want to delete this target?')) return;
+  
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'DELETE_TARGET',
+      targetId: targetId
+    });
+    
+    if (response?.success) {
+      showSuccess('Target deleted successfully');
+      await loadTargets();
+    } else {
+      showError(response?.error || 'Failed to delete target');
+    }
+  } catch (error) {
+    console.error('Delete target error:', error);
+    showError('Failed to delete target');
+  }
+}
+
+// Modify saveTarget to handle both create and update
+async function saveTarget() {
+  if (!pickedData) return;
+  
+  const walkthroughId = walkthroughSelect.value;
+  const stepId = stepSelect.value;
+  const urlScope = urlScopeSelect.value;
+  
+  if (!walkthroughId || !stepId) {
+    showError('Please select a walkthrough and step');
+    return;
+  }
+  
+  saveTargetBtn.disabled = true;
+  saveSpinner.classList.remove('hidden');
+  saveText.textContent = isEditingTarget ? 'Updating...' : 'Saving...';
+  
+  try {
+    // Verify binding before saving
+    const bindingCheck = await chrome.storage.local.get([STORAGE_KEY_TOKEN, STORAGE_KEY_WORKSPACE]);
+    if (!bindingCheck[STORAGE_KEY_TOKEN] || !bindingCheck[STORAGE_KEY_WORKSPACE]) {
+      showError('Extension not bound. Please enter a binding token first.');
+      showState('unbound');
+      return;
+    }
+    
+    // Build URL rule from picked URL based on scope
+    const fullUrl = pickedData.url;
+    let urlType, urlValue;
+    
+    if (urlScope === 'page') {
+      urlType = 'exact';
+      urlValue = fullUrl.split('?')[0].split('#')[0];
+    } else if (urlScope === 'domain') {
+      urlType = 'prefix';
+      try {
+        const urlObj = new URL(fullUrl);
+        urlValue = urlObj.origin + '/';
+      } catch (e) {
+        urlValue = fullUrl.split('/').slice(0, 3).join('/') + '/';
+      }
+    } else if (urlScope === 'global') {
+      urlType = 'prefix';
+      urlValue = 'http';
+    }
+    
+    const targetData = {
+      walkthrough_id: walkthroughId,
+      step_id: stepId,
+      url_rule: {
+        type: urlType,
+        value: urlValue
+      },
+      selector: pickedData.selector
+    };
+    
+    let response;
+    if (isEditingTarget && editingTargetId) {
+      // Update existing target
+      response = await chrome.runtime.sendMessage({
+        type: 'UPDATE_TARGET',
+        targetId: editingTargetId,
+        data: targetData
+      });
+    } else {
+      // Create new target
+      response = await chrome.runtime.sendMessage({
+        type: 'CREATE_TARGET',
+        data: targetData
+      });
+    }
+    
+    if (response?.success) {
+      showSuccess(isEditingTarget ? 'Target updated successfully!' : 'Target created successfully!');
+      cancelTargetCreation();
+      // Refresh targets list if visible
+      if (!targetsList.classList.contains('hidden')) {
+        await loadTargets();
+      }
+    } else if (response?.error) {
+      switch (response.error) {
+        case 'NOT_BOUND':
+          showError('Extension not bound. Please enter a binding token.');
+          showState('unbound');
+          break;
+        default:
+          showError(response.error || 'Failed to save target');
+      }
+    } else {
+      showError('Failed to save target');
+    }
+  } catch (error) {
+    console.error('Save target error:', error);
+    showError('Failed to save target: ' + error.message);
+  } finally {
+    saveTargetBtn.disabled = false;
+    saveSpinner.classList.add('hidden');
+    saveText.textContent = isEditingTarget ? 'Update Target' : 'Save Target';
+    isEditingTarget = false;
+    editingTargetId = null;
+  }
+}
+
+// Modify cancelTargetCreation to reset edit mode
+function cancelTargetCreation() {
+  pickedData = null;
+  isEditingTarget = false;
+  editingTargetId = null;
+  targetForm.classList.add('hidden');
+  createTargetBtn.classList.remove('hidden');
+  walkthroughSelect.value = '';
+  stepSelect.value = '';
+  stepSelect.disabled = true;
+  saveText.textContent = 'Save Target';
+}
+
+// Escape HTML helper function
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {

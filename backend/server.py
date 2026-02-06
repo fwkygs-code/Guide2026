@@ -5872,7 +5872,95 @@ async def create_extension_target(
 
 
 @api_router.get("/extension/targets", response_model=List[ExtensionTargetResponse])
-async def list_extension_targets(current_user: User = Depends(get_current_user)):
+async def list_extension_targets(request: Request):
+    """List extension targets using binding token auth.
+    
+    SECURITY: No user auth. Returns only targets belonging to the token's workspace.
+    """
+    workspace_id, _ = await _validate_binding_token(request)
+    
+    cursor = db.extension_targets.find({"workspace_id": workspace_id})
+    results = []
+    async for doc in cursor:
+        doc.pop("_id", None)
+        results.append(ExtensionTarget(**doc))
+    return results
+
+
+@api_router.put("/extension/targets/{target_id}", response_model=ExtensionTargetResponse)
+async def update_extension_target(request: Request, target_id: str, payload: ExtensionTargetCreateRequest):
+    """Update extension target using binding token auth.
+    
+    SECURITY: No user auth. Can only update targets in the token's workspace.
+    """
+    workspace_id, _ = await _validate_binding_token(request)
+    
+    # Find target in this workspace
+    existing = await db.extension_targets.find_one(
+        {"id": target_id, "workspace_id": workspace_id}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Target not found in workspace")
+    
+    # Verify walkthrough exists and step is valid
+    walkthrough = await db.walkthroughs.find_one(
+        {"id": payload.walkthrough_id, "workspace_id": workspace_id},
+        {"_id": 0, "steps": 1}
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=404, detail="Walkthrough not found in workspace")
+    
+    if payload.step_id:
+        valid_step_ids = {
+            step.get("step_id") or step.get("id")
+            for step in walkthrough.get("steps", [])
+            if isinstance(step, dict)
+        }
+        if payload.step_id not in valid_step_ids:
+            raise HTTPException(status_code=400, detail="Invalid step_id for walkthrough")
+    
+    # Update target
+    update_data = {
+        "walkthrough_id": payload.walkthrough_id,
+        "step_id": payload.step_id,
+        "url_rule": payload.url_rule.model_dump(),
+        "selector": payload.selector,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.extension_targets.update_one(
+        {"id": target_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated target
+    updated = await db.extension_targets.find_one({"id": target_id})
+    updated.pop("_id", None)
+    return ExtensionTarget(**updated)
+
+
+@api_router.delete("/extension/targets/{target_id}")
+async def delete_extension_target(request: Request, target_id: str):
+    """Delete extension target using binding token auth.
+    
+    SECURITY: No user auth. Can only delete targets in the token's workspace.
+    """
+    workspace_id, _ = await _validate_binding_token(request)
+    
+    # Find target in this workspace
+    existing = await db.extension_targets.find_one(
+        {"id": target_id, "workspace_id": workspace_id}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Target not found in workspace")
+    
+    await db.extension_targets.delete_one({"id": target_id, "workspace_id": workspace_id})
+    return {"message": "Target deleted"}
+
+
+# Admin-scoped endpoints (use JWT auth for admin panel)
+@api_router.get("/extension/admin/targets", response_model=List[ExtensionTargetResponse])
+async def list_extension_targets_admin(current_user: User = Depends(get_current_user)):
     owner_cursor = db.workspaces.find({"owner_id": current_user.id}, {"_id": 0, "id": 1})
     owner_workspace_ids = [doc["id"] async for doc in owner_cursor]
 

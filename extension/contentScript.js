@@ -244,90 +244,223 @@
     });
   }
 
-  // Create a single overlay
+  // Create a single overlay with blue dot indicator
   function createOverlay(walkthrough, step, targetElement, selector) {
-    const overlay = document.createElement('div');
-    overlay.className = 'ig-walkthrough-overlay';
-    overlay.setAttribute('data-walkthrough-id', walkthrough.id);
-    overlay.setAttribute('data-step-id', step.id || step.step_id);
+    // Create blue dot indicator
+    const indicator = document.createElement('div');
+    indicator.className = 'ig-indicator';
+    indicator.style.cssText = `
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #4f46e5;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      cursor: pointer;
+      z-index: 2147483646;
+      transition: transform 0.2s ease;
+    `;
+    indicator.addEventListener('mouseenter', () => {
+      indicator.style.transform = 'scale(1.2)';
+    });
+    indicator.addEventListener('mouseleave', () => {
+      indicator.style.transform = 'scale(1)';
+    });
     
-    // Styles
-    overlay.style.cssText = `
+    // Position indicator at top-right corner of target element
+    if (targetElement) {
+      positionIndicator(indicator, targetElement);
+    } else {
+      // Default position: top-right of viewport
+      indicator.style.position = 'fixed';
+      indicator.style.top = '16px';
+      indicator.style.right = '16px';
+    }
+    
+    // Create popup (hidden by default)
+    const popup = document.createElement('div');
+    popup.className = 'ig-walkthrough-popup';
+    popup.style.cssText = `
       position: fixed;
       z-index: 2147483647;
-      max-width: 320px;
+      max-width: 400px;
+      max-height: 500px;
+      overflow-y: auto;
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
       border: 1px solid #e5e7eb;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.6;
       color: #1f2937;
-      padding: 16px;
-      pointer-events: auto;
+      display: none;
     `;
-
-    // Content
-    const title = step.title || walkthrough.title || 'Walkthrough';
-    const content = step.content || step.description || '';
     
-    overlay.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-        <div style="width: 24px; height: 24px; background: #4f46e5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">IG</div>
-        <div style="font-weight: 600; color: #111827;">${escapeHtml(title)}</div>
-        <button class="ig-close-btn" style="margin-left: auto; background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280;">×</button>
+    // Build content from step blocks or legacy content
+    const contentHtml = renderStepContent(step);
+    
+    popup.innerHTML = `
+      <div style="padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">
+          <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">IG</div>
+          <div style="font-weight: 600; color: #111827; font-size: 16px;">${escapeHtml(step.title || walkthrough.title || 'Walkthrough')}</div>
+          <button class="ig-close-popup" style="margin-left: auto; background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280; font-size: 18px; line-height: 1;">×</button>
+        </div>
+        <div class="ig-step-content">${contentHtml}</div>
       </div>
-      <div style="color: #4b5563;">${escapeHtml(content)}</div>
     `;
-
-    // Position
-    if (targetElement) {
-      positionOverlay(overlay, targetElement);
-    } else {
-      // Default position: bottom-right
-      overlay.style.right = '16px';
-      overlay.style.bottom = '16px';
-    }
-
-    // Close handler
-    overlay.querySelector('.ig-close-btn').addEventListener('click', () => {
-      overlay.remove();
-      activeOverlays = activeOverlays.filter(o => o !== overlay);
+    
+    // Click indicator to show popup
+    indicator.addEventListener('click', (e) => {
+      e.stopPropagation();
+      positionPopup(popup, targetElement, indicator);
+      popup.style.display = 'block';
     });
-
-    document.body.appendChild(overlay);
-    activeOverlays.push(overlay);
+    
+    // Close popup handler
+    popup.querySelector('.ig-close-popup').addEventListener('click', () => {
+      popup.style.display = 'none';
+    });
+    
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+      if (popup.style.display === 'block' && !popup.contains(e.target) && !indicator.contains(e.target)) {
+        popup.style.display = 'none';
+      }
+    });
+    
+    document.body.appendChild(indicator);
+    document.body.appendChild(popup);
+    activeOverlays.push({ indicator, popup, targetElement, selector });
   }
-
-  // Position overlay near target element
-  function positionOverlay(overlay, targetElement) {
+  
+  // Render step content from blocks or legacy fields
+  function renderStepContent(step) {
+    // If step has blocks, render them
+    if (step.blocks && Array.isArray(step.blocks) && step.blocks.length > 0) {
+      return step.blocks.map(block => renderBlock(block)).join('');
+    }
+    
+    // Legacy: render content field
+    if (step.content) {
+      return `<div style="color: #4b5563;">${escapeHtml(step.content)}</div>`;
+    }
+    
+    // Fallback
+    return '<div style="color: #9ca3af; font-style: italic;">No content available</div>';
+  }
+  
+  // Render a single block
+  function renderBlock(block) {
+    if (!block || typeof block !== 'object') return '';
+    
+    const type = block.type || 'text';
+    const data = block.data || {};
+    const settings = block.settings || {};
+    
+    switch (type) {
+      case 'text':
+        const text = data.text || data.content || '';
+        const textAlign = settings.textAlign || 'left';
+        return `<div style="color: #374151; margin-bottom: 12px; text-align: ${textAlign};">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+        
+      case 'heading':
+        const headingText = data.text || data.content || '';
+        const level = data.level || settings.level || 'h2';
+        const fontSize = level === 'h1' ? '24px' : level === 'h2' ? '20px' : '16px';
+        return `<${level} style="color: #111827; margin: 16px 0 12px 0; font-size: ${fontSize}; font-weight: 600;">${escapeHtml(headingText)}</${level}>`;
+        
+      case 'image':
+        const imageUrl = data.url || data.src || '';
+        const imageAlt = data.alt || '';
+        const maxWidth = settings.maxWidth || '100%';
+        if (!imageUrl) return '';
+        return `<div style="margin: 12px 0;"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(imageAlt)}" style="max-width: ${maxWidth}; border-radius: 8px; display: block;"></div>`;
+        
+      case 'video':
+        const videoUrl = data.url || data.src || '';
+        if (!videoUrl) return '';
+        return `<div style="margin: 12px 0;"><video src="${escapeHtml(videoUrl)}" controls style="max-width: 100%; border-radius: 8px; display: block;"></video></div>`;
+        
+      case 'link':
+        const linkUrl = data.url || data.href || '#';
+        const linkText = data.text || data.label || linkUrl;
+        const linkStyle = settings.style || 'button';
+        if (linkStyle === 'button') {
+          return `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener" style="display: inline-block; padding: 10px 20px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-weight: 500; margin: 8px 0;">${escapeHtml(linkText)}</a>`;
+        } else {
+          return `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener" style="color: #4f46e5; text-decoration: underline;">${escapeHtml(linkText)}</a>`;
+        }
+        
+      case 'list':
+        const items = data.items || data.list || [];
+        const listType = settings.listType || data.listType || 'bullet';
+        const listStyle = listType === 'numbered' ? 'decimal' : 'disc';
+        const tag = listType === 'numbered' ? 'ol' : 'ul';
+        return `<${tag} style="margin: 12px 0; padding-left: 24px; color: #374151;">${items.map(item => `<li style="margin-bottom: 4px;">${escapeHtml(item)}</li>`).join('')}</${tag}>`;
+        
+      case 'divider':
+        return '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">';
+        
+      default:
+        return `<div style="color: #9ca3af; margin: 8px 0;">Unknown block type: ${escapeHtml(type)}</div>`;
+    }
+  }
+  
+  // Position indicator at element corner
+  function positionIndicator(indicator, targetElement) {
     const rect = targetElement.getBoundingClientRect();
     const scrollX = window.scrollX || window.pageXOffset;
     const scrollY = window.scrollY || window.pageYOffset;
     
-    // Position below element by default
-    let top = rect.bottom + scrollY + 8;
-    let left = rect.left + scrollX;
-    
-    // Check if it goes off screen
-    const overlayRect = overlay.getBoundingClientRect();
-    if (left + 320 > window.innerWidth) {
-      left = rect.right + scrollX - 320;
+    // Position at top-right corner of element
+    indicator.style.position = 'absolute';
+    indicator.style.top = `${rect.top + scrollY - 6}px`;
+    indicator.style.left = `${rect.right + scrollX - 6}px`;
+  }
+  
+  // Position popup near indicator
+  function positionPopup(popup, targetElement, indicator) {
+    if (targetElement) {
+      const rect = targetElement.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+      
+      // Position to the right of the element
+      let left = rect.right + scrollX + 16;
+      let top = rect.top + scrollY;
+      
+      // Check if goes off screen to right
+      if (left + 400 > window.innerWidth + scrollX) {
+        // Position to the left instead
+        left = rect.left + scrollX - 416;
+      }
+      
+      // Check if goes off screen to bottom
+      if (top + 300 > window.innerHeight + scrollY) {
+        top = Math.max(16, window.innerHeight + scrollY - 300);
+      }
+      
+      popup.style.left = `${left}px`;
+      popup.style.top = `${top}px`;
+    } else {
+      // Center in viewport
+      popup.style.left = '50%';
+      popup.style.top = '50%';
+      popup.style.transform = 'translate(-50%, -50%)';
     }
-    if (top + 200 > window.innerHeight + scrollY) {
-      top = rect.top + scrollY - overlayRect.height - 8;
-    }
-    
-    overlay.style.top = `${top}px`;
-    overlay.style.left = `${left}px`;
   }
 
   // Clear all overlays
   function clearAllOverlays() {
     activeOverlays.forEach(overlay => {
-      if (overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
+      if (overlay.indicator && overlay.indicator.parentNode) {
+        overlay.indicator.parentNode.removeChild(overlay.indicator);
+      }
+      if (overlay.popup && overlay.popup.parentNode) {
+        overlay.popup.parentNode.removeChild(overlay.popup);
       }
     });
     activeOverlays = [];

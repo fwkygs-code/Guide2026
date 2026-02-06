@@ -152,6 +152,58 @@ async function createTarget(targetData) {
   }
 }
 
+// List all targets in workspace
+async function listTargets() {
+  try {
+    const response = await apiCall('/extension/targets');
+    if (!response.ok) {
+      if (response.status === 401) return [];
+      if (response.status === 403) return [];
+      return [];
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('[IG Background] List targets error:', error);
+    return [];
+  }
+}
+
+// Update existing target
+async function updateTarget(targetId, targetData) {
+  try {
+    const response = await apiCall(`/extension/targets/${targetId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(targetData)
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Failed to update target');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('[IG Background] Update target error:', error);
+    throw error;
+  }
+}
+
+// Delete target
+async function deleteTarget(targetId) {
+  try {
+    const response = await apiCall(`/extension/targets/${targetId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Failed to delete target');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('[IG Background] Delete target error:', error);
+    throw error;
+  }
+}
+
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || !message.type) return false;
@@ -203,6 +255,51 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           const newTarget = await createTarget(message.data);
           sendResponse({ success: true, target: newTarget });
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
+        break;
+        
+      case 'GET_TARGETS':
+        // Popup requesting all targets for management
+        const listBinding = await getStoredBinding();
+        if (!listBinding.token || !listBinding.workspace) {
+          sendResponse({ targets: [], error: 'NOT_BOUND' });
+          return;
+        }
+        try {
+          const targets = await listTargets();
+          sendResponse({ targets });
+        } catch (error) {
+          sendResponse({ targets: [], error: error.message });
+        }
+        break;
+        
+      case 'UPDATE_TARGET':
+        // Popup updating existing target
+        const updateBinding = await getStoredBinding();
+        if (!updateBinding.token || !updateBinding.workspace) {
+          sendResponse({ success: false, error: 'NOT_BOUND' });
+          return;
+        }
+        try {
+          const updated = await updateTarget(message.targetId, message.data);
+          sendResponse({ success: true, target: updated });
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
+        break;
+        
+      case 'DELETE_TARGET':
+        // Popup deleting target
+        const deleteBinding = await getStoredBinding();
+        if (!deleteBinding.token || !deleteBinding.workspace) {
+          sendResponse({ success: false, error: 'NOT_BOUND' });
+          return;
+        }
+        try {
+          await deleteTarget(message.targetId);
+          sendResponse({ success: true });
         } catch (error) {
           sendResponse({ success: false, error: error.message });
         }
