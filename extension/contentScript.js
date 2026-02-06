@@ -161,6 +161,22 @@
   // Initialize connection - exactly once
   ensurePort();
 
+  // Listen for direct messages from popup (not through port)
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'CLEAR_PICKER') {
+      console.log('[IG Content] Received CLEAR_PICKER message');
+      // Force clear picker state and overlay
+      setPickerState('IDLE', 'FORCE');
+      lockedPickerData = null;
+      stopPickerMode('FORCE');
+      // Also remove any toast
+      const toast = document.getElementById('ig-picker-toast');
+      if (toast) toast.remove();
+      sendResponse({ success: true });
+    }
+    return true; // Keep channel open for async response
+  });
+
   // Check initial binding status
   async function checkBinding() {
     try {
