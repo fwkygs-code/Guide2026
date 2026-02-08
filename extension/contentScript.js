@@ -1,5 +1,6 @@
 // Interguide Extension Content Script
 // Capability-based binding: renders walkthroughs from background-provided data
+// Walkthrough Engine: Active overlay and interaction blocking system
 // ZERO AUTH LOGIC HERE - all auth handled by background service worker
 
 (function() {
@@ -12,6 +13,14 @@
   const PORT_NAME = 'ig-content-script';
   const isTopFrame = window.top === window;
   
+  // =========================================================================
+  // WALKTHROUGH ENGINE INTEGRATION
+  // =========================================================================
+  
+  // Walkthrough state (managed by walkthrough-overlay.js if loaded)
+  let walkthroughActive = false;
+  let walkthroughSession = null;
+  
   // Register message listener FIRST (before any frame checks)
   // This ensures all frames can respond to PING
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -23,8 +32,88 @@
         ready: true, 
         url: window.location.href, 
         isTopFrame: isTopFrame,
-        frameId: isTopFrame ? 'top' : 'iframe'
+        frameId: isTopFrame ? 'top' : 'iframe',
+        walkthroughActive: walkthroughActive
       });
+      return true;
+    }
+    
+    // WALKTHROUGH MESSAGES - handled by top frame only
+    if (message.type.startsWith('ACTIVATE_') || 
+        message.type.startsWith('DEACTIVATE_') ||
+        message.type.startsWith('STEP_') ||
+        message.type === 'WALKTHROUGH_ABORT' ||
+        message.type === 'WALKTHROUGH_COMPLETE' ||
+        message.type === 'STATE_UPDATE') {
+      
+      if (!isTopFrame) return false;
+      
+      switch (message.type) {
+        case 'ACTIVATE_OVERLAY':
+          // Activate walkthrough overlay system
+          if (typeof activateWalkthrough === 'function') {
+            walkthroughActive = true;
+            walkthroughSession = message.session;
+            activateWalkthrough(message.session);
+            if (message.step) {
+              setTimeout(() => activateStep(message.step, 0), 100);
+            }
+          } else {
+            console.error('[IG Content] Walkthrough overlay not loaded');
+          }
+          sendResponse({ success: true });
+          break;
+          
+        case 'DEACTIVATE_OVERLAY':
+          if (typeof deactivateWalkthrough === 'function') {
+            deactivateWalkthrough(message.reason);
+            walkthroughActive = false;
+            walkthroughSession = null;
+          }
+          sendResponse({ success: true });
+          break;
+          
+        case 'STEP_ADVANCE':
+          if (typeof activateStep === 'function' && message.step) {
+            activateStep(message.step, message.stepIndex);
+          }
+          sendResponse({ success: true });
+          break;
+          
+        case 'STEP_RETRY':
+          if (typeof activateStep === 'function' && message.step) {
+            activateStep(message.step, message.stepIndex || 0);
+          }
+          sendResponse({ success: true });
+          break;
+          
+        case 'WALKTHROUGH_ABORT':
+          if (typeof deactivateWalkthrough === 'function') {
+            deactivateWalkthrough('abort');
+          }
+          walkthroughActive = false;
+          sendResponse({ success: true });
+          break;
+          
+        case 'WALKTHROUGH_COMPLETE':
+          if (typeof deactivateWalkthrough === 'function') {
+            deactivateWalkthrough('complete');
+          }
+          walkthroughActive = false;
+          // Show completion notification
+          showCompletionNotification(message.progress);
+          sendResponse({ success: true });
+          break;
+          
+        case 'STATE_UPDATE':
+          // Handle state updates (pause/resume)
+          handleWalkthroughStateUpdate(message.state);
+          sendResponse({ success: true });
+          break;
+          
+        default:
+          return false;
+      }
       return true;
     }
     
@@ -57,6 +146,60 @@
     
     return true;
   });
+  
+  // Handle walkthrough state updates
+  function handleWalkthroughStateUpdate(state) {
+    const overlay = document.getElementById('ig-walkthrough-overlay');
+    if (!overlay) return;
+    
+    switch (state) {
+      case 'PAUSED':
+        overlay.style.opacity = '0.5';
+        overlay.style.pointerEvents = 'none';
+        break;
+      case 'ACTIVE':
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+        break;
+    }
+  }
+  
+  // Show walkthrough completion notification
+  function showCompletionNotification(progress) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      z-index: 2147483647;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 300px;
+      animation: ig-toast-in 0.5s ease;
+    `;
+    
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">✓</div>
+        <div style="font-weight: 600; font-size: 16px;">Walkthrough Complete!</div>
+      </div>
+      <div style="font-size: 14px; opacity: 0.9;">
+        You've completed all ${progress?.total || ''} steps.
+      </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+      notification.style.animation = 'ig-toast-in 0.5s ease reverse';
+      setTimeout(() => notification.remove(), 500);
+    }, 5000);
+  }
   
   // If this is an iframe, stop here - don't run full content script logic
   if (!isTopFrame) {

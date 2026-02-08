@@ -1,5 +1,5 @@
 // Interguide Extension Popup
-// Handles token binding UI and state transitions
+// Handles token binding UI, target creation, and walkthrough progress display
 
 const API_BASE = 'https://api.interguide.app/api';
 const STORAGE_KEY_TOKEN = 'ig_binding_token';
@@ -43,12 +43,210 @@ const manageTargetsBtn = document.getElementById('manage-targets-btn');
 const targetsList = document.getElementById('targets-list');
 const targetsContainer = document.getElementById('targets-container');
 
+// Walkthrough Progress Elements (NEW)
+let walkthroughProgressSection = null;
+let walkthroughProgressBar = null;
+let walkthroughStepInfo = null;
+let walkthroughStatusText = null;
+
+// Admin mode tracking
+let isAdminMode = false;
+const STORAGE_KEY_ADMIN_MODE = 'ig_walkthrough_admin_mode';
+
 // Track picked element data
 let pickedData = null;
 let adminWalkthroughs = [];
 let existingTargets = [];
 let isEditingTarget = false;
 let editingTargetId = null;
+
+// ============================================================================
+// WALKTHROUGH PROGRESS UI (NEW)
+// ============================================================================
+
+/**
+ * Create walkthrough progress UI elements
+ * This UI displays during active walkthrough - shows progress, not controls
+ * Exit button is ADMIN ONLY - normal users cannot exit enforced walkthroughs
+ */
+function createWalkthroughProgressUI() {
+  // Check if already exists
+  if (document.getElementById('walkthrough-progress-section')) return;
+  
+  const section = document.createElement('div');
+  section.id = 'walkthrough-progress-section';
+  section.className = 'walkthrough-progress hidden';
+  section.style.cssText = `
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    color: white;
+  `;
+  
+  // Exit button is only shown in admin mode
+  const exitButtonHTML = isAdminMode ? `
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2);">
+      <div style="font-size: 11px; opacity: 0.8; margin-bottom: 8px;">🔧 Admin: Exit available</div>
+      <button id="walkthrough-exit-btn" style="
+        width: 100%;
+        padding: 8px;
+        background: rgba(239, 68, 68, 0.8);
+        border: 1px solid rgba(239, 68, 68, 1);
+        border-radius: 6px;
+        color: white;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+      ">Force Exit Walkthrough (Admin)</button>
+    </div>
+  ` : `
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2);">
+      <div style="font-size: 11px; opacity: 0.8;">⚠️ Complete all steps to finish</div>
+    </div>
+  `;
+  
+  section.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">🎯</div>
+      <div>
+        <div style="font-weight: 600; font-size: 14px;">Walkthrough Active</div>
+        <div id="walkthrough-status-text" style="font-size: 12px; opacity: 0.9;">Follow the on-screen instructions</div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 8px;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+        <span id="walkthrough-step-info">Step 1 of 5</span>
+        <span id="walkthrough-percentage">0%</span>
+      </div>
+      <div style="background: rgba(255,255,255,0.2); height: 6px; border-radius: 3px; overflow: hidden;">
+        <div id="walkthrough-progress-bar" style="background: white; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+      </div>
+    </div>
+    
+    <div id="walkthrough-current-step" style="font-size: 13px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-top: 10px;">
+      Loading step...
+    </div>
+    
+    ${exitButtonHTML}
+  `;
+  
+  // Insert after status badge
+  const container = document.querySelector('.container');
+  if (container) {
+    container.insertBefore(section, container.firstChild);
+  }
+  
+  // Store references
+  walkthroughProgressSection = section;
+  walkthroughProgressBar = section.querySelector('#walkthrough-progress-bar');
+  walkthroughStepInfo = section.querySelector('#walkthrough-step-info');
+  walkthroughStatusText = section.querySelector('#walkthrough-status-text');
+  
+  // Add exit handler ONLY if admin mode
+  if (isAdminMode) {
+    const exitBtn = section.querySelector('#walkthrough-exit-btn');
+    if (exitBtn) {
+      exitBtn.addEventListener('click', async () => {
+        if (confirm('ADMIN: Are you sure you want to force exit this walkthrough?')) {
+          await chrome.runtime.sendMessage({ type: 'WALKTHROUGH_FORCE_ABORT', reason: 'ADMIN_EXIT_POPUP' });
+          hideWalkthroughProgress();
+          loadWalkthroughProgress();
+        }
+      });
+    }
+  }
+}
+
+/**
+ * Update walkthrough progress display
+ */
+function updateWalkthroughProgressUI(progress, currentStep) {
+  if (!walkthroughProgressSection) {
+    createWalkthroughProgressUI();
+  }
+  
+  walkthroughProgressSection.classList.remove('hidden');
+  
+  // Update progress bar
+  if (walkthroughProgressBar) {
+    walkthroughProgressBar.style.width = `${progress.percentage}%`;
+  }
+  
+  // Update step info
+  if (walkthroughStepInfo) {
+    walkthroughStepInfo.textContent = `Step ${progress.current} of ${progress.total}`;
+  }
+  
+  // Update percentage
+  const percentageEl = walkthroughProgressSection?.querySelector('#walkthrough-percentage');
+  if (percentageEl) {
+    percentageEl.textContent = `${progress.percentage}%`;
+  }
+  
+  // Update current step display
+  const stepEl = walkthroughProgressSection?.querySelector('#walkthrough-current-step');
+  if (stepEl && currentStep) {
+    stepEl.innerHTML = `
+      <div style="font-weight: 500; margin-bottom: 4px;">${currentStep.title || 'Current Step'}</div>
+      ${currentStep.description ? `<div style="opacity: 0.9; font-size: 12px;">${currentStep.description}</div>` : ''}
+    `;
+  }
+  
+  // Update status text based on step state
+  if (walkthroughStatusText) {
+    const statusMap = {
+      'active': 'Follow the on-screen instructions',
+      'validating': 'Validating your action...',
+      'completed': 'Step completed! Moving to next...',
+      'failed': 'Please try again'
+    };
+    walkthroughStatusText.textContent = statusMap[progress.stepState] || 'Follow the on-screen instructions';
+  }
+}
+
+function hideWalkthroughProgress() {
+  if (walkthroughProgressSection) {
+    walkthroughProgressSection.classList.add('hidden');
+  }
+}
+
+/**
+ * Load and display walkthrough progress
+ * Called on popup open and periodically
+ */
+async function loadWalkthroughProgress() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'GET_WALKTHROUGH_PROGRESS' });
+    
+    if (response?.isActive) {
+      // Show walkthrough progress UI
+      updateWalkthroughProgressUI(response.progress, response.currentStep);
+      
+      // Disable target creation during walkthrough
+      if (createTargetBtn) {
+        createTargetBtn.disabled = true;
+        createTargetBtn.title = 'Target creation disabled during walkthrough';
+      }
+    } else {
+      // Hide walkthrough UI
+      hideWalkthroughProgress();
+      
+      // Re-enable target creation
+      if (createTargetBtn) {
+        createTargetBtn.disabled = false;
+        createTargetBtn.title = '';
+      }
+    }
+  } catch (error) {
+    console.error('[IG Popup] Failed to load walkthrough progress:', error);
+  }
+}
+
+// ============================================================================
+// EXISTING FUNCTIONS (Preserved)
+// ============================================================================
 
 // Load admin walkthroughs for target creation
 async function loadAdminWalkthroughs() {
@@ -864,6 +1062,24 @@ function escapeHtml(text) {
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
   
+  // Load admin mode setting
+  loadAdminMode();
+  
+  // Load walkthrough progress
+  loadWalkthroughProgress();
+  
+  // Poll for walkthrough progress updates while popup is open
+  const progressInterval = setInterval(() => {
+    if (!document.hidden) {
+      loadWalkthroughProgress();
+    }
+  }, 1000);
+  
+  // Cleanup on unload
+  window.addEventListener('unload', () => {
+    clearInterval(progressInterval);
+  });
+  
   // Check if we have pending picked data from a previous picker session
   chrome.storage.local.get(['pending_picked_data']).then(result => {
     if (result.pending_picked_data) {
@@ -883,3 +1099,233 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+/**
+ * Load admin mode setting from storage
+ */
+async function loadAdminMode() {
+  try {
+    const stored = await chrome.storage.local.get([STORAGE_KEY_ADMIN_MODE]);
+    isAdminMode = stored[STORAGE_KEY_ADMIN_MODE] || false;
+    console.log('[IG Popup] Admin mode:', isAdminMode);
+    
+    // If admin mode, show telemetry button
+    if (isAdminMode) {
+      showTelemetryButton();
+    }
+  } catch (e) {
+    console.error('[IG Popup] Failed to load admin mode:', e);
+    isAdminMode = false;
+  }
+}
+
+/**
+ * TELEMETRY VIEWER (Admin Only)
+ */
+function showTelemetryButton() {
+  // Find a good place to add the button
+  const container = document.querySelector('.container');
+  if (!container) return;
+  
+  const btn = document.createElement('button');
+  btn.id = 'telemetry-viewer-btn';
+  btn.textContent = '📊 View Telemetry';
+  btn.style.cssText = `
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  btn.onclick = openTelemetryViewer;
+  
+  container.appendChild(btn);
+}
+
+async function openTelemetryViewer() {
+  // Create modal
+  const modal = document.createElement('div');
+  modal.id = 'telemetry-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+  
+  // Get telemetry data
+  const telemetry = await chrome.runtime.sendMessage({ type: 'GET_TELEMETRY' });
+  const events = telemetry?.events || [];
+  
+  // Calculate stats
+  const stats = calculateTelemetryStats(events);
+  
+  modal.innerHTML = `
+    <div style="background: white; border-radius: 16px; width: 90%; max-width: 600px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+      <div style="padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 style="margin: 0; font-size: 18px; color: #1f2937;">📊 Telemetry Log</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">${events.length} events recorded</p>
+        </div>
+        <button onclick="closeTelemetryModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #9ca3af;">×</button>
+      </div>
+      
+      <div style="padding: 20px; overflow-y: auto; flex: 1;">
+        <!-- Stats Summary -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div style="background: #f9fafb; padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #4f46e5;">${stats.sessions}</div>
+            <div style="font-size: 12px; color: #6b7280;">Sessions</div>
+          </div>
+          <div style="background: #f9fafb; padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #22c55e;">${stats.completions}</div>
+            <div style="font-size: 12px; color: #6b7280;">Completed</div>
+          </div>
+          <div style="background: #f9fafb; padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #ef4444;">${stats.aborts}</div>
+            <div style="font-size: 12px; color: #6b7280;">Aborted</div>
+          </div>
+        </div>
+        
+        <!-- Event List -->
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+          <div style="background: #f9fafb; padding: 12px; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">
+            Recent Events
+          </div>
+          <div style="max-height: 300px; overflow-y: auto;">
+            ${events.slice(0, 50).map(e => formatTelemetryEvent(e)).join('')}
+          </div>
+        </div>
+        
+        ${stats.topFailures.length > 0 ? `
+        <!-- Top Failures -->
+        <div style="margin-top: 20px;">
+          <div style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">⚠️ Common Failure Reasons</div>
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px;">
+            ${stats.topFailures.map(f => `
+              <div style="display: flex; justify-content: space-between; font-size: 13px; color: #dc2626; padding: 4px 0;">
+                <span>${f.reason}</span>
+                <span style="font-weight: 600;">${f.count}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+      </div>
+      
+      <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 12px;">
+        <button onclick="exportTelemetryData()" style="flex: 1; padding: 10px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
+          📥 Export JSON
+        </button>
+        <button onclick="clearTelemetryData()" style="padding: 10px 16px; background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
+          Clear
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+function formatTelemetryEvent(event) {
+  const time = new Date(event.timestamp).toLocaleTimeString();
+  const colors = {
+    'session_start': '#22c55e',
+    'session_complete': '#22c55e',
+    'session_abort': '#ef4444',
+    'step_failure': '#f59e0b',
+    'validation_success': '#22c55e',
+    'validation_fail': '#ef4444',
+    'target_resolved': '#3b82f6'
+  };
+  
+  const color = colors[event.type] || '#6b7280';
+  
+  return `
+    <div style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6; font-size: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="color: ${color}; font-weight: 500;">${event.type}</span>
+        <span style="color: #9ca3af; font-size: 11px;">${time}</span>
+      </div>
+      ${event.data ? `<div style="color: #6b7280; margin-top: 4px; font-size: 11px;">${JSON.stringify(event.data).slice(0, 100)}</div>` : ''}
+    </div>
+  `;
+}
+
+function calculateTelemetryStats(events) {
+  const sessions = new Set();
+  let completions = 0;
+  let aborts = 0;
+  const failureReasons = {};
+  
+  for (const event of events) {
+    if (event.data?.sessionId) {
+      sessions.add(event.data.sessionId);
+    }
+    
+    if (event.type === 'session_complete') completions++;
+    if (event.type === 'session_abort') {
+      aborts++;
+      const reason = event.data?.reason || 'unknown';
+      failureReasons[reason] = (failureReasons[reason] || 0) + 1;
+    }
+  }
+  
+  const topFailures = Object.entries(failureReasons)
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+  
+  return {
+    sessions: sessions.size,
+    completions,
+    aborts,
+    topFailures
+  };
+}
+
+function closeTelemetryModal() {
+  const modal = document.getElementById('telemetry-modal');
+  if (modal) modal.remove();
+}
+
+async function exportTelemetryData() {
+  const telemetry = await chrome.runtime.sendMessage({ type: 'GET_TELEMETRY' });
+  const data = {
+    exportDate: new Date().toISOString(),
+    ...telemetry
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `walkthrough-telemetry-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function clearTelemetryData() {
+  if (!confirm('Clear all telemetry data? This cannot be undone.')) return;
+  
+  await chrome.runtime.sendMessage({ type: 'CLEAR_TELEMETRY' });
+  closeTelemetryModal();
+  openTelemetryViewer(); // Refresh
+}
+
+// Global functions for onclick handlers
+window.closeTelemetryModal = closeTelemetryModal;
+window.exportTelemetryData = exportTelemetryData;
+window.clearTelemetryData = clearTelemetryData;
