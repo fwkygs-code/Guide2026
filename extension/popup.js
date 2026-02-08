@@ -677,6 +677,10 @@ async function bindExtension(token) {
     showSuccess(`Successfully bound to "${data.workspaceName}"`);
     showState('bound');
     
+    // Auto-enable admin mode since only admins can connect tokens
+    await chrome.storage.local.set({ [STORAGE_KEY_ADMIN_MODE]: true });
+    isAdminMode = true;
+    
     // Notify background script
     chrome.runtime.sendMessage({ type: 'TOKEN_BOUND', token: token.trim() });
     
