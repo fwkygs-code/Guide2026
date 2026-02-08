@@ -312,6 +312,28 @@
     <p class="help-text">
       Disconnecting clears the token from this device. The token remains valid for other devices.
     </p>
+    
+    <!-- Walkthrough Authoring (Admin Only) -->
+    <div id="authoring-section" class="section hidden" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+      <div class="section-title">Walkthrough Authoring</div>
+      <button id="enter-authoring-btn" class="btn btn-primary" style="background: #f59e0b; margin-bottom: 8px;">
+        ✏️ Enter Authoring Mode
+      </button>
+      <button id="manage-walkthroughs-btn" class="btn btn-secondary" style="margin-bottom: 8px;">
+        📚 Manage Walkthroughs
+      </button>
+      <p class="help-text">
+        Create and publish guided tours for users. Admin mode only.
+      </p>
+    </div>
+    
+    <!-- Walkthrough List (for management) -->
+    <div id="walkthrough-list-section" class="hidden" style="margin-top: 12px; max-height: 200px; overflow-y: auto;">
+      <div class="section-title">Your Walkthroughs</div>
+      <div id="walkthrough-container" style="font-size: 12px;">
+        <p style="color: #6b7280; font-style: italic;">Loading...</p>
+      </div>
+    </div>
   </div>
 
   <!-- Revoked State -->

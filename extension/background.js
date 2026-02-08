@@ -1278,4 +1278,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ cleared: true });
     return true;
   }
+  
+  if (message.type === 'TELEMETRY_LOG') {
+    // Product-layer telemetry events
+    const { eventType, data } = message;
+    
+    // Log via state machine's telemetry system
+    if (walkthroughSM && walkthroughSM._logTelemetry) {
+      walkthroughSM._logTelemetry(eventType, {
+        ...data,
+        source: 'product_layer'
+      });
+    }
+    
+    console.log('[IG Telemetry]', eventType, data);
+    sendResponse({ logged: true });
+    return true;
+  }
 });

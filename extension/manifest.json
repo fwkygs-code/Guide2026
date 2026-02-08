@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Interguide Extension",
-  "version": "0.5.0",
-  "description": "Capability-based workspace binding with active walkthrough/onboarding engine. Zero cookies, zero auth.",
+  "version": "1.0.0",
+  "description": "Walkthrough engine with admin authoring, publishing, and user onboarding. v1.0.0 product complete.",
   "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "host_permissions": ["https://api.interguide.app/*", "<all_urls>"],
   "action": {
@@ -14,14 +14,29 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["contentScript.js", "walkthrough-overlay.js"],
+      "js": [
+        "storage/walkthrough-repository.js",
+        "authoring/authoring-controller.js",
+        "authoring/admin-test-mode.js",
+        "ui/admin-toolbar.js",
+        "ui/step-editor.js",
+        "ui/onboarding-launcher.js",
+        "ui/visual-indicators.js",
+        "contentScript.js",
+        "walkthrough-overlay.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["walkthrough-models.js"],
+      "resources": [
+        "walkthrough-models.js",
+        "storage/*.js",
+        "authoring/*.js",
+        "ui/*.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

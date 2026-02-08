@@ -1329,3 +1329,290 @@ async function clearTelemetryData() {
 window.closeTelemetryModal = closeTelemetryModal;
 window.exportTelemetryData = exportTelemetryData;
 window.clearTelemetryData = clearTelemetryData;
+
+// ============================================================================
+// WALKTHROUGH AUTHORING (Admin Only)
+// ============================================================================
+
+const enterAuthoringBtn = document.getElementById('enter-authoring-btn');
+const manageWalkthroughsBtn = document.getElementById('manage-walkthroughs-btn');
+const authoringSection = document.getElementById('authoring-section');
+const walkthroughListSection = document.getElementById('walkthrough-list-section');
+const walkthroughContainer = document.getElementById('walkthrough-container');
+
+/**
+ * Initialize authoring section - show only for admins
+ */
+async function initAuthoringSection() {
+  if (!authoringSection) return;
+  
+  const isAdmin = await checkAdminPermission();
+  if (isAdmin) {
+    authoringSection.classList.remove('hidden');
+    loadAuthoringWalkthroughs();
+  }
+}
+
+/**
+ * Check if user has admin permission
+ */
+async function checkAdminPermission() {
+  const stored = await chrome.storage.local.get(['ig_walkthrough_admin_mode']);
+  return stored.ig_walkthrough_admin_mode === true;
+}
+
+/**
+ * Load walkthroughs for authoring management
+ */
+async function loadAuthoringWalkthroughs() {
+  if (!walkthroughContainer) return;
+  
+  try {
+    // Load from repository
+    const drafts = await window.walkthroughRepository?.getAllDrafts() || [];
+    const published = await window.walkthroughRepository?.getAllPublished() || [];
+    
+    const allWalkthroughs = [...drafts, ...published].sort((a, b) => b.updatedAt - a.updatedAt);
+    
+    if (allWalkthroughs.length === 0) {
+      walkthroughContainer.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: #9ca3af;">
+          <div style="font-size: 32px; margin-bottom: 8px;">📝</div>
+          <div>No walkthroughs yet</div>
+          <div style="font-size: 12px; margin-top: 4px;">Click "Enter Authoring Mode" to create one</div>
+        </div>
+      `;
+      return;
+    }
+    
+    walkthroughContainer.innerHTML = allWalkthroughs.map(w => {
+      const isDraft = w.status === 'draft';
+      const stepCount = w.steps?.length || 0;
+      
+      return `
+        <div style="
+          padding: 12px;
+          background: ${isDraft ? '#fef3c7' : '#dcfce7'};
+          border-radius: 8px;
+          margin-bottom: 8px;
+          border: 1px solid ${isDraft ? '#fcd34d' : '#86efac'};
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+              <div style="font-weight: 600; font-size: 14px; color: #1f2937;">${escapeHtml(w.name)}</div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                ${stepCount} step${stepCount !== 1 ? 's' : ''} • ${isDraft ? 'Draft' : 'Published'}
+              </div>
+            </div>
+            <span style="
+              font-size: 10px;
+              padding: 2px 6px;
+              border-radius: 4px;
+              background: ${isDraft ? '#f59e0b' : '#22c55e'};
+              color: white;
+              font-weight: 500;
+            ">${isDraft ? 'DRAFT' : 'LIVE'}</span>
+          </div>
+          
+          <div style="display: flex; gap: 6px; margin-top: 10px;">
+            ${isDraft ? `
+              <button class="wt-edit-btn" data-id="${w.walkthroughId}" style="
+                flex: 1;
+                padding: 6px;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 12px;
+                cursor: pointer;
+              ">Edit</button>
+              <button class="wt-publish-btn" data-id="${w.walkthroughId}" style="
+                flex: 1;
+                padding: 6px;
+                background: #4f46e5;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 12px;
+                cursor: pointer;
+              ">Publish</button>
+              <button class="wt-test-btn" data-id="${w.walkthroughId}" style="
+                flex: 1;
+                padding: 6px;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 12px;
+                cursor: pointer;
+              ">Test</button>
+            ` : `
+              <button class="wt-test-btn" data-id="${w.walkthroughId}" style="
+                flex: 1;
+                padding: 6px;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 12px;
+                cursor: pointer;
+              ">Test</button>
+              <button class="wt-archive-btn" data-id="${w.walkthroughId}" style="
+                flex: 1;
+                padding: 6px;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #ef4444;
+              ">Archive</button>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Add event listeners
+    walkthroughContainer.querySelectorAll('.wt-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => editWalkthrough(btn.dataset.id));
+    });
+    
+    walkthroughContainer.querySelectorAll('.wt-publish-btn').forEach(btn => {
+      btn.addEventListener('click', () => publishWalkthroughFromPopup(btn.dataset.id));
+    });
+    
+    walkthroughContainer.querySelectorAll('.wt-test-btn').forEach(btn => {
+      btn.addEventListener('click', () => testWalkthrough(btn.dataset.id));
+    });
+    
+    walkthroughContainer.querySelectorAll('.wt-archive-btn').forEach(btn => {
+      btn.addEventListener('click', () => archiveWalkthrough(btn.dataset.id));
+    });
+    
+  } catch (error) {
+    console.error('Failed to load walkthroughs:', error);
+    walkthroughContainer.innerHTML = '<p style="color: #dc2626;">Failed to load walkthroughs</p>';
+  }
+}
+
+/**
+ * Enter authoring mode on current page
+ */
+async function enterAuthoringMode() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+  if (!tab?.id) {
+    showError('Cannot access current tab');
+    return;
+  }
+  
+  // Send message to content script to enter authoring mode
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: 'ENTER_AUTHORING_MODE' });
+    window.close(); // Close popup
+  } catch (error) {
+    showError('Failed to enter authoring mode. Reload the page and try again.');
+  }
+}
+
+/**
+ * Toggle walkthrough list visibility
+ */
+async function toggleWalkthroughList() {
+  if (!walkthroughListSection) return;
+  
+  const isVisible = !walkthroughListSection.classList.contains('hidden');
+  if (isVisible) {
+    walkthroughListSection.classList.add('hidden');
+    manageWalkthroughsBtn.textContent = '📚 Manage Walkthroughs';
+  } else {
+    walkthroughListSection.classList.remove('hidden');
+    manageWalkthroughsBtn.textContent = '📚 Hide Walkthroughs';
+    await loadAuthoringWalkthroughs();
+  }
+}
+
+/**
+ * Edit walkthrough
+ */
+async function editWalkthrough(walkthroughId) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+  if (!tab?.id) return;
+  
+  // Send message to content script to edit this walkthrough
+  try {
+    await chrome.tabs.sendMessage(tab.id, { 
+      type: 'EDIT_WALKTHROUGH',
+      walkthroughId 
+    });
+    window.close();
+  } catch (error) {
+    showError('Failed to open walkthrough editor');
+  }
+}
+
+/**
+ * Publish walkthrough from popup
+ */
+async function publishWalkthroughFromPopup(walkthroughId) {
+  if (!confirm('Publish this walkthrough? It will become live for all users.')) {
+    return;
+  }
+  
+  try {
+    await window.walkthroughRepository?.publish(walkthroughId);
+    showSuccess('Walkthrough published successfully!');
+    await loadAuthoringWalkthroughs();
+  } catch (error) {
+    showError('Failed to publish: ' + error.message);
+  }
+}
+
+/**
+ * Test walkthrough
+ */
+async function testWalkthrough(walkthroughId) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+  if (!tab?.id) return;
+  
+  try {
+    await chrome.tabs.sendMessage(tab.id, { 
+      type: 'TEST_WALKTHROUGH',
+      walkthroughId 
+    });
+    window.close();
+  } catch (error) {
+    showError('Failed to start test mode');
+  }
+}
+
+/**
+ * Archive walkthrough
+ */
+async function archiveWalkthrough(walkthroughId) {
+  if (!confirm('Archive this walkthrough? It will no longer be available to users.')) {
+    return;
+  }
+  
+  try {
+    await window.walkthroughRepository?.archive(walkthroughId);
+    showSuccess('Walkthrough archived');
+    await loadAuthoringWalkthroughs();
+  } catch (error) {
+    showError('Failed to archive: ' + error.message);
+  }
+}
+
+// Add event listeners for authoring buttons
+if (enterAuthoringBtn) {
+  enterAuthoringBtn.addEventListener('click', enterAuthoringMode);
+}
+
+if (manageWalkthroughsBtn) {
+  manageWalkthroughsBtn.addEventListener('click', toggleWalkthroughList);
+}
+
+// Initialize authoring section on load
+document.addEventListener('DOMContentLoaded', () => {
+  initAuthoringSection();
+});
