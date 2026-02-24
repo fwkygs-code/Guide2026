@@ -131,38 +131,24 @@ const PortalLayout = ({ isEmbedded = false }) => {
     const gradientEnd = secondaryColor;
     const accent = accentColor;
     const svg = `
-      <svg width="720" height="480" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+      <svg width="720" height="120" viewBox="0 0 720 120" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stop-color="${gradientStart}" />
             <stop offset="100%" stop-color="${gradientEnd}" />
           </linearGradient>
-          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="${accent}" stop-opacity="0.9" />
-            <stop offset="100%" stop-color="${gradientEnd}" stop-opacity="0.4" />
-          </linearGradient>
-          <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="22" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
         </defs>
-        <rect width="720" height="480" rx="40" fill="#040714" />
-        <rect x="24" y="28" width="672" height="80" rx="16" fill="url(#heroGradient)" opacity="0.92" />
-        <circle cx="620" cy="68" r="40" fill="url(#accentGradient)" opacity="0.2" filter="url(#softGlow)" />
-        <g>
-          <text x="60" y="55" fill="rgba(255,255,255,0.65)" font-size="12" letter-spacing="0.4em" font-family="'Poppins', 'Segoe UI', sans-serif">
-            GUIDED JOURNEY
-          </text>
-          <text x="60" y="75" fill="#ffffff" font-size="28" font-family="'Clash Display', 'Poppins', 'Segoe UI', sans-serif" font-weight="600">
-            ${escapeSvgText(workspaceName)}
-          </text>
-          <text x="62" y="92" fill="rgba(255,255,255,0.7)" font-size="14" font-family="'Inter', 'Segoe UI', sans-serif">
-            Step-by-step instructions tailored to your journey.
-          </text>
-        </g>
+        <rect width="720" height="120" fill="#040714" />
+        <rect x="20" y="40" width="680" height="40" rx="20" fill="url(#heroGradient)" opacity="0.92" />
+        <text x="40" y="58" fill="rgba(255,255,255,0.65)" font-size="10" letter-spacing="0.3em" font-family="'Poppins', 'Segoe UI', sans-serif">
+          GUIDED JOURNEY
+        </text>
+        <text x="40" y="72" fill="#ffffff" font-size="18" font-family="'Clash Display', 'Poppins', 'Segoe UI', sans-serif" font-weight="600">
+          ${escapeSvgText(workspaceName)}
+        </text>
+        <text x="42" y="85" fill="rgba(255,255,255,0.7)" font-size="11" font-family="'Inter', 'Segoe UI', sans-serif">
+          Step-by-step instructions tailored to your journey.
+        </text>
       </svg>
     `;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
