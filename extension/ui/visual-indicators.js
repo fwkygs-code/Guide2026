@@ -48,6 +48,77 @@ class VisualRoleIndicators {
   }
 
   /**
+   * Show walkthrough indicators for available walkthroughs
+   */
+  showWalkthroughIndicators(matches) {
+    console.log('[IG Visual] Showing walkthrough indicators for', matches.length, 'matches');
+    
+    // Clear existing indicators
+    this.clearWalkthroughIndicators();
+    
+    matches.forEach((match, index) => {
+      if (!match.selector) return;
+      
+      const element = document.querySelector(match.selector);
+      if (!element) return;
+      
+      const indicator = document.createElement('div');
+      indicator.className = 'ig-walkthrough-indicator';
+      indicator.style.cssText = `
+        position: fixed;
+        width: 12px;
+        height: 12px;
+        background: #4f46e5;
+        border: 2px solid white;
+        border-radius: 50%;
+        z-index: 2147483645;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      `;
+      
+      // Position indicator near element
+      const rect = element.getBoundingClientRect();
+      indicator.style.top = (rect.top + window.scrollY - 6) + 'px';
+      indicator.style.left = (rect.left + window.scrollX + rect.width + 8) + 'px';
+      
+      // Add hover effect
+      indicator.addEventListener('mouseenter', () => {
+        indicator.style.transform = 'scale(1.2)';
+        indicator.style.background = '#6366f1';
+      });
+      
+      indicator.addEventListener('mouseleave', () => {
+        indicator.style.transform = 'scale(1)';
+        indicator.style.background = '#4f46e5';
+      });
+      
+      // Click to start walkthrough
+      indicator.addEventListener('click', () => {
+        console.log('[IG Visual] Starting walkthrough for match:', match);
+        if (match.walkthrough_id) {
+          // Send message to start walkthrough
+          chrome.runtime.sendMessage({
+            type: 'WALKTHROUGH_START',
+            walkthrough: { walkthroughId: match.walkthrough_id },
+            progress: { currentStep: 0, completed: false }
+          });
+        }
+      });
+      
+      document.body.appendChild(indicator);
+    });
+  }
+  
+  /**
+   * Clear walkthrough indicators
+   */
+  clearWalkthroughIndicators() {
+    const indicators = document.querySelectorAll('.ig-walkthrough-indicator');
+    indicators.forEach(indicator => indicator.remove());
+  }
+
+  /**
    * Admin badge - prominent indicator of admin status
    */
   showAdminBadge() {
@@ -326,3 +397,8 @@ class VisualRoleIndicators {
 
 // Global instance
 window.visualRoleIndicators = new VisualRoleIndicators();
+
+// Expose walkthrough indicators function globally
+window.showWalkthroughIndicators = (matches) => {
+  window.visualRoleIndicators.showWalkthroughIndicators(matches);
+};

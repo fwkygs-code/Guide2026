@@ -1,6 +1,8 @@
 // Interguide Extension Popup
 // Handles token binding UI, target creation, and walkthrough progress display
 
+console.log('[Popup] Popup script loaded');
+
 const API_BASE = 'https://api.interguide.app/api';
 const STORAGE_KEY_TOKEN = 'ig_binding_token';
 const STORAGE_KEY_WORKSPACE = 'ig_workspace';
@@ -22,6 +24,44 @@ const workspaceNameEl = document.getElementById('workspace-name');
 const extensionIdShortEl = document.getElementById('extension-id-short');
 const errorMessage = document.getElementById('error-message');
 const successMessage = document.getElementById('success-message');
+const startGuideBtn = document.getElementById('start-guide-btn');
+const userWalkthroughList = document.getElementById('user-walkthrough-list');
+const userWalkthroughContainer = document.getElementById('user-walkthrough-container');
+
+// New guide selection elements
+const guideSelection = document.getElementById('guide-selection');
+const guideList = document.getElementById('guide-list');
+const guideContainer = document.getElementById('guide-container');
+const stepsView = document.getElementById('steps-view');
+const currentGuideName = document.getElementById('current-guide-name');
+const stepsContainer = document.getElementById('steps-container');
+const backToGuides = document.getElementById('back-to-guides');
+const startSelectedGuide = document.getElementById('start-selected-guide');
+const createNewGuideBtn = document.getElementById('create-new-guide-btn');
+
+// Bound state elements
+const startGuideBtnBound = document.getElementById('start-guide-btn-bound');
+const guideSelectionBound = document.getElementById('guide-selection-bound');
+const guideListBound = document.getElementById('guide-list-bound');
+const guideContainerBound = document.getElementById('guide-container-bound');
+const stepsViewBound = document.getElementById('steps-view-bound');
+const currentGuideNameBound = document.getElementById('current-guide-name-bound');
+const stepsContainerBound = document.getElementById('steps-container-bound');
+const backToGuidesBound = document.getElementById('back-to-guides-bound');
+const startSelectedGuideBound = document.getElementById('start-selected-guide-bound');
+const createNewGuideBtnBound = document.getElementById('create-new-guide-btn-bound');
+
+// Mode toggle elements
+const toggleAdminBtn = document.getElementById('toggle-admin-btn');
+const toggleUserBtn = document.getElementById('toggle-user-btn');
+const adminPanel = document.getElementById('admin-panel');
+const showUserModeBtn = document.getElementById('show-user-mode');
+const showAdminModeBtn = document.getElementById('show-admin-mode');
+const boundUserContent = document.getElementById('bound-user-content');
+const boundAdminContent = document.getElementById('bound-admin-content');
+
+// State for selected walkthrough
+let selectedWalkthrough = null;
 
 // Target Creation Elements
 const createTargetBtn = document.getElementById('create-target-btn');
@@ -565,33 +605,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Get extension ID (chrome.runtime.id)
 const getExtensionId = () => chrome.runtime.id;
 
-// Show/hide sections based on state
+// Show appropriate section based on binding status
 function showState(state) {
-  // Hide all sections
+  // Hide all sections first
   unboundSection.classList.add('hidden');
   boundSection.classList.add('hidden');
   revokedSection.classList.add('hidden');
-  errorMessage.classList.add('hidden');
-  successMessage.classList.add('hidden');
   
-  // Update badge
-  statusBadge.className = 'status-badge';
+  // Reset mode toggles to default state
+  if (toggleAdminBtn) toggleAdminBtn.classList.remove('hidden');
+  if (toggleUserBtn) toggleUserBtn.classList.add('hidden');
+  if (adminPanel) adminPanel.classList.add('hidden');
   
+  // Show appropriate section
   switch (state) {
     case 'unbound':
       unboundSection.classList.remove('hidden');
-      statusBadge.classList.add('status-unbound');
-      statusBadge.textContent = 'Unbound';
+      // User mode is shown by default, admin panel hidden
+      statusBadge.textContent = 'User Mode';
+      statusBadge.className = 'status-badge status-unbound';
       break;
+      
     case 'bound':
       boundSection.classList.remove('hidden');
-      statusBadge.classList.add('status-bound');
-      statusBadge.textContent = 'Bound';
+      statusBadge.textContent = 'User Mode';
+      statusBadge.className = 'status-badge status-bound';
+      
+      // Show user content by default
+      if (boundUserContent) boundUserContent.classList.remove('hidden');
+      if (boundAdminContent) boundAdminContent.classList.add('hidden');
+      
+      // Set toggle button states
+      if (showUserModeBtn) {
+        showUserModeBtn.style.background = '#22c55e';
+        showUserModeBtn.style.color = 'white';
+        showUserModeBtn.style.borderColor = '#22c55e';
+      }
+      if (showAdminModeBtn) {
+        showAdminModeBtn.style.background = '#f3f4f4f6';
+        showAdminModeBtn.style.color = '#6b7280';
+        showAdminModeBtn.style.borderColor = '#d1d5db';
+      }
       break;
+      
     case 'revoked':
       revokedSection.classList.remove('hidden');
-      statusBadge.classList.add('status-revoked');
-      statusBadge.textContent = 'Revoked';
+      statusBadge.textContent = 'Token Revoked';
+      statusBadge.className = 'status-badge status-revoked';
       break;
   }
 }
@@ -738,6 +798,11 @@ async function loadState() {
       workspaceNameEl.textContent = data[STORAGE_KEY_WORKSPACE].name;
       extensionIdShortEl.textContent = (data[STORAGE_KEY_EXTENSION_ID] || getExtensionId()).substring(0, 8) + '...';
       showState('bound');
+      
+      // Auto-enable admin mode for existing bound extensions
+      // (since only admins can bind tokens)
+      await chrome.storage.local.set({ [STORAGE_KEY_ADMIN_MODE]: true });
+      isAdminMode = true;
     } else if (hasToken && !hasWorkspace) {
       // Partial binding - corrupted state
       console.warn('[IG Popup] Partial binding detected - token exists but no workspace');
@@ -757,6 +822,130 @@ async function loadState() {
 bindBtn.addEventListener('click', () => bindExtension(tokenInput.value));
 rebindBtn.addEventListener('click', () => bindExtension(tokenInputRevoked.value));
 unbindBtn.addEventListener('click', unbindExtension);
+
+// User Mode: Start Guide
+if (startGuideBtn) {
+  console.log('[Popup] Start guide button found, adding listener');
+  startGuideBtn.addEventListener('click', startAvailableGuide);
+}
+if (startGuideBtnBound) {
+  console.log('[Popup] Start guide button (bound) found, adding listener');
+  startGuideBtnBound.addEventListener('click', startAvailableGuide);
+}
+
+// Back to guides buttons
+if (backToGuides) {
+  backToGuides.addEventListener('click', () => {
+    if (stepsView) stepsView.classList.add('hidden');
+    if (guideList) guideList.classList.remove('hidden');
+  });
+}
+if (backToGuidesBound) {
+  backToGuidesBound.addEventListener('click', () => {
+    if (stepsViewBound) stepsViewBound.classList.add('hidden');
+    if (guideListBound) guideListBound.classList.remove('hidden');
+  });
+}
+
+// Start selected guide buttons
+if (startSelectedGuide) {
+  startSelectedGuide.addEventListener('click', () => {
+    if (selectedWalkthrough) {
+      startUserWalkthrough(selectedWalkthrough.walkthroughId);
+    }
+  });
+}
+if (startSelectedGuideBound) {
+  startSelectedGuideBound.addEventListener('click', () => {
+    if (selectedWalkthrough) {
+      startUserWalkthrough(selectedWalkthrough.walkthroughId);
+    }
+  });
+}
+
+// Create new guide buttons (placeholder for now)
+if (createNewGuideBtn) {
+  createNewGuideBtn.addEventListener('click', () => {
+    showError('Create new guide feature coming soon!');
+  });
+}
+if (createNewGuideBtnBound) {
+  createNewGuideBtnBound.addEventListener('click', () => {
+    showError('Create new guide feature coming soon!');
+  });
+}
+
+// Mode toggle buttons
+if (toggleAdminBtn) {
+  toggleAdminBtn.addEventListener('click', () => {
+    adminPanel.classList.remove('hidden');
+    toggleAdminBtn.classList.add('hidden');
+    toggleUserBtn.classList.remove('hidden');
+    
+    // Show Create New Guide buttons in admin mode
+    if (createNewGuideBtn) {
+      createNewGuideBtn.classList.remove('hidden');
+    }
+    if (createNewGuideBtnBound) {
+      createNewGuideBtnBound.classList.remove('hidden');
+    }
+  });
+}
+
+if (toggleUserBtn) {
+  toggleUserBtn.addEventListener('click', () => {
+    adminPanel.classList.add('hidden');
+    toggleAdminBtn.classList.remove('hidden');
+    toggleUserBtn.classList.add('hidden');
+    
+    // Hide Create New Guide buttons when switching to user mode
+    if (createNewGuideBtn) {
+      createNewGuideBtn.classList.add('hidden');
+    }
+    if (createNewGuideBtnBound) {
+      createNewGuideBtnBound.classList.add('hidden');
+    }
+  });
+}
+
+// Bound state mode toggles
+if (showUserModeBtn) {
+  showUserModeBtn.addEventListener('click', () => {
+    boundUserContent.classList.remove('hidden');
+    boundAdminContent.classList.add('hidden');
+    showUserModeBtn.style.background = '#22c55e';
+    showUserModeBtn.style.color = 'white';
+    showUserModeBtn.style.borderColor = '#22c55e';
+    if (showAdminModeBtn) {
+      showAdminModeBtn.style.background = '#f3f4f6';
+      showAdminModeBtn.style.color = '#6b7280';
+      showAdminModeBtn.style.borderColor = '#d1d5db';
+    }
+    
+    // Hide Create New Guide buttons in user mode
+    if (createNewGuideBtnBound) {
+      createNewGuideBtnBound.classList.add('hidden');
+    }
+  });
+}
+
+if (showAdminModeBtn) {
+  showAdminModeBtn.addEventListener('click', () => {
+    boundUserContent.classList.add('hidden');
+    boundAdminContent.classList.remove('hidden');
+    showAdminModeBtn.style.background = '#4f46e5';
+    showAdminModeBtn.style.color = 'white';
+    showAdminModeBtn.style.borderColor = '#4f46e5';
+    showUserModeBtn.style.background = '#f3f4f6';
+    showUserModeBtn.style.color = '#6b7280';
+    showUserModeBtn.style.borderColor = '#d1d5db';
+    
+    // Show Create New Guide buttons in admin mode
+    if (createNewGuideBtnBound) {
+      createNewGuideBtnBound.classList.remove('hidden');
+    }
+  });
+}
 
 // Target Creation Event Listeners
 createTargetBtn.addEventListener('click', startElementPicker);
@@ -1062,27 +1251,21 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-  loadState();
-  
-  // Load admin mode setting
-  loadAdminMode();
-  
-  // Load walkthrough progress
-  loadWalkthroughProgress();
-  
-  // Poll for walkthrough progress updates while popup is open
-  const progressInterval = setInterval(() => {
-    if (!document.hidden) {
-      loadWalkthroughProgress();
-    }
-  }, 1000);
-  
-  // Cleanup on unload
-  window.addEventListener('unload', () => {
-    clearInterval(progressInterval);
-  });
+// Initialize
+loadState();
+checkWalkthroughStatus(); // Check if walkthrough is active on load
+
+// Poll for walkthrough progress updates while popup is open
+const progressInterval = setInterval(() => {
+  if (!document.hidden) {
+    loadWalkthroughProgress();
+  }
+}, 1000);
+
+// Cleanup on unload
+window.addEventListener('unload', () => {
+  clearInterval(progressInterval);
+});
   
   // Check if we have pending picked data from a previous picker session
   chrome.storage.local.get(['pending_picked_data']).then(result => {
@@ -1102,7 +1285,6 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.storage.local.remove(['pending_picked_data']);
     }
   });
-});
 
 /**
  * Load admin mode setting from storage
@@ -1345,7 +1527,7 @@ const walkthroughListSection = document.getElementById('walkthrough-list-section
 const walkthroughContainer = document.getElementById('walkthrough-container');
 
 /**
- * Initialize authoring section - show only for admins
+ * Initialize authoring section - show only for admins, hide old UI
  */
 async function initAuthoringSection() {
   if (!authoringSection) return;
@@ -1353,6 +1535,16 @@ async function initAuthoringSection() {
   const isAdmin = await checkAdminPermission();
   if (isAdmin) {
     authoringSection.classList.remove('hidden');
+    
+    // Hide old target UI when in admin mode
+    const oldTargetUI = document.getElementById('create-target-btn');
+    const oldManageBtn = document.getElementById('manage-targets-btn');
+    const oldTargetsList = document.getElementById('targets-list');
+    
+    if (oldTargetUI) oldTargetUI.classList.add('hidden');
+    if (oldManageBtn) oldManageBtn.classList.add('hidden');
+    if (oldTargetsList) oldTargetsList.classList.add('hidden');
+    
     loadAuthoringWalkthroughs();
   }
 }
@@ -1568,6 +1760,524 @@ async function publishWalkthroughFromPopup(walkthroughId) {
     await loadAuthoringWalkthroughs();
   } catch (error) {
     showError('Failed to publish: ' + error.message);
+  }
+}
+
+/**
+ * Start available guide in user mode
+ */
+async function startAvailableGuide() {
+  try {
+    console.log('[Popup] startAvailableGuide called');
+    
+    // Get the current tab's URL, not the popup's URL
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentUrl = tabs[0]?.url || window.location.href;
+    console.log('[Popup] Getting available guides for URL:', currentUrl);
+    
+    // Test if background is responding
+    console.log('[Popup] Sending PING to background...');
+    const pingResponse = await chrome.runtime.sendMessage({ type: 'PING' });
+    console.log('[Popup] PING response:', pingResponse);
+    
+    // Check if there are any published walkthroughs for this URL
+    console.log('[Popup] Sending GET_AVAILABLE_GUIDE to background...');
+    chrome.runtime.sendMessage(
+      {
+        type: 'GET_AVAILABLE_GUIDE',
+        url: currentUrl
+      },
+      (response) => {
+        console.log('[Popup] GET_AVAILABLE_GUIDE response:', response);
+
+        if (!response) {
+          console.error('[Popup] No response from background');
+          return;
+        }
+
+        if (response.error) {
+          console.error('[Popup] Background error:', response.error);
+          showError('Failed to load guides: ' + response.error);
+          return;
+        }
+
+        const walkthroughs = response.walkthroughs || [];
+        console.log('[Popup] Walkthrough count:', walkthroughs.length);
+
+        if (walkthroughs.length > 0) {
+          console.log('[Popup] Showing', walkthroughs.length, 'walkthroughs');
+          renderGuideList(walkthroughs);
+          showGuideList();
+        } else {
+          console.log('[Popup] No walkthroughs found for URL:', currentUrl);
+          showGuideList();
+          guideContainer.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #6b7280;">
+              <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+              <h3 style="margin: 0 0 8px 0; color: #374151;">No guides available</h3>
+              <p style="margin: 0 0 16px 0; font-size: 14px;">
+                No walkthroughs have been created for this page yet.
+              </p>
+              <div style="font-size: 12px; color: #9ca3af; background: #f9fafb; padding: 12px; border-radius: 6px; margin-top: 16px;">
+                <strong>Tip:</strong> Use "Enter Authoring Mode" to create walkthroughs for this page.
+              </div>
+            </div>
+          `;
+          if (guideContainerBound) {
+            guideContainerBound.innerHTML = `
+              <p style="color: #059669; font-style: italic;">
+                No guides available for this page
+              </p>
+            `;
+          }
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error('[Popup] Failed to load guides:', error);
+    showError('Failed to load guides: ' + error.message);
+  }
+}
+
+/**
+ * Show guide list view
+ */
+function showGuideList() {
+  guideSelection.classList.add('hidden');
+  guideList.classList.remove('hidden');
+  stepsView.classList.add('hidden');
+  
+  // For bound state
+  if (guideSelectionBound) {
+    guideSelectionBound.classList.add('hidden');
+    guideListBound.classList.remove('hidden');
+    stepsViewBound.classList.add('hidden');
+  }
+}
+
+/**
+ * Show guide list view
+ */
+function showUserMode() {
+  // Hide admin panel
+  adminPanel.classList.add('hidden');
+  
+  // Hide Create New Guide buttons in user mode
+  if (createNewGuideBtn) {
+    createNewGuideBtn.classList.add('hidden');
+  }
+  if (createNewGuideBtnBound) {
+    createNewGuideBtnBound.classList.add('hidden');
+  }
+  
+  // Reset to guide selection
+  guideSelection.classList.remove('hidden');
+  guideList.classList.add('hidden');
+  stepsView.classList.add('hidden');
+  
+  // For bound state
+  if (guideSelectionBound) {
+    guideSelectionBound.classList.remove('hidden');
+    guideListBound.classList.add('hidden');
+    stepsViewBound.classList.add('hidden');
+  }
+}
+
+/**
+ * Hide guide list and show steps view
+ */
+function showStepsView(walkthrough) {
+  selectedWalkthrough = walkthrough;
+  
+  // Unbound state
+  if (guideList) guideList.classList.add('hidden');
+  if (stepsView) {
+    stepsView.classList.remove('hidden');
+    currentGuideName.textContent = walkthrough.name;
+    renderStepsList(walkthrough);
+  }
+  
+  // Bound state
+  if (guideListBound) guideListBound.classList.add('hidden');
+  if (stepsViewBound) {
+    stepsViewBound.classList.remove('hidden');
+    currentGuideNameBound.textContent = walkthrough.name;
+    renderStepsListBound(walkthrough);
+  }
+}
+
+/**
+ * Render guide list
+ */
+function renderGuideList(walkthroughs) {
+  const html = walkthroughs.map(wt => {
+    const isPublished = wt.status === 'PUBLISHED';
+    const statusColor = isPublished ? '#22c55e' : '#f59e0b';
+    const statusText = isPublished ? 'Published' : 'Draft';
+    
+    return `
+      <div style="
+        padding: 12px;
+        background: white;
+        border: 1px solid #bbf7d0;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+      " class="guide-item" data-walkthrough-id="${wt.walkthroughId}">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600; color: #166534; margin-bottom: 4px;">
+              ${escapeHtml(wt.name)}
+            </div>
+            <div style="font-size: 11px; color: #059669;">
+              ${wt.steps?.length || 0} steps
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <span style="
+              font-size: 10px;
+              padding: 2px 6px;
+              background: ${statusColor};
+              color: white;
+              border-radius: 4px;
+              font-weight: 600;
+            ">
+              ${statusText}
+            </span>
+            ${!isPublished ? `
+              <button class="publish-guide-btn btn btn-primary" data-walkthrough-id="${wt.walkthroughId}" style="
+                padding: 4px 8px;
+                font-size: 10px;
+                background: #22c55e;
+                border: none;
+                border-radius: 4px;
+                color: white;
+                cursor: pointer;
+              ">
+                Publish
+              </button>
+            ` : ''}
+          </div>
+        </div>
+        <button class="view-steps-btn btn btn-primary" data-walkthrough-id="${wt.walkthroughId}" style="
+          width: 100%;
+          padding: 6px;
+          font-size: 11px;
+          background: #22c55e;
+          border: none;
+          border-radius: 4px;
+          color: white;
+          cursor: pointer;
+        ">
+          View Steps
+        </button>
+      </div>
+    `;
+  }).join('');
+  
+  if (guideContainer) guideContainer.innerHTML = html;
+  if (guideContainerBound) guideContainerBound.innerHTML = html;
+  
+  // Add click handlers for guide items
+  const containers = [guideContainer, guideContainerBound].filter(Boolean);
+  containers.forEach(container => {
+    container.querySelectorAll('.guide-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.classList.contains('view-steps-btn')) {
+          e.stopPropagation();
+          e.preventDefault();
+          const walkthroughId = item.dataset.walkthroughId;
+          const walkthrough = walkthroughs.find(wt => wt.walkthroughId === walkthroughId);
+          if (walkthrough) {
+            showStepsView(walkthrough);
+          }
+        }
+      });
+    });
+    
+    // Add publish button handlers
+    container.querySelectorAll('.publish-guide-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const walkthroughId = btn.dataset.walkthroughId;
+        await publishGuideFromUserMode(walkthroughId);
+      });
+    });
+  });
+}
+
+/**
+ * Render steps list
+ */
+function renderStepsList(walkthrough) {
+  const stepsHtml = (walkthrough.steps || []).map((step, index) => `
+    <div style="
+      padding: 8px;
+      background: white;
+      border: 1px solid #bbf7d0;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    ">
+      <div style="font-weight: 600; color: #166534; font-size: 11px;">
+        Step ${index + 1}
+      </div>
+      <div style="font-size: 10px; color: #059669; margin-top: 2px;">
+        ${escapeHtml(step.instruction || 'No instruction')}
+      </div>
+    </div>
+  `).join('');
+  
+  if (stepsContainer) stepsContainer.innerHTML = stepsHtml || '<p style="color: #059669; font-style: italic;">No steps available</p>';
+  if (stepsContainerBound) stepsContainerBound.innerHTML = stepsHtml || '<p style="color: #059669; font-style: italic;">No steps available</p>';
+}
+
+/**
+ * Publish a guide from user mode
+ */
+async function publishGuideFromUserMode(walkthroughId) {
+  try {
+    // Get the walkthrough data
+    const response = await chrome.runtime.sendMessage({ 
+      type: 'GET_AVAILABLE_GUIDE',
+      url: window.location.href 
+    });
+    
+    if (response.walkthroughs && response.walkthroughs.length > 0) {
+      const walkthrough = response.walkthroughs.find(wt => wt.walkthroughId === walkthroughId);
+      
+      if (walkthrough) {
+        // Update status to published
+        walkthrough.status = 'PUBLISHED';
+        walkthrough.publishedAt = Date.now();
+        
+        // Save to local storage
+        const stored = await chrome.storage.local.get(['ig_published_walkthroughs']);
+        const published = stored.ig_published_walkthroughs || {};
+        published[walkthroughId] = walkthrough;
+        await chrome.storage.local.set({
+          ig_published_walkthroughs: published
+        });
+        
+        // Also remove from drafts if it exists there
+        await chrome.storage.local.remove([`ig_draft_walkthrough_${walkthroughId}`]);
+        
+        showSuccess('Guide published successfully!');
+        
+        // Refresh the guide list
+        setTimeout(() => {
+          startAvailableGuide();
+        }, 1000);
+      } else {
+        showError('Guide not found');
+      }
+    } else {
+      showError('No guides available');
+    }
+  } catch (error) {
+    showError('Failed to publish guide: ' + error.message);
+  }
+}
+
+/**
+ * Render steps list for bound state
+ */
+function renderStepsListBound(walkthrough) {
+  renderStepsList(walkthrough);
+}
+
+/**
+ * Render user walkthrough list
+ */
+function renderUserWalkthroughs(walkthroughs) {
+  if (!walkthroughs || walkthroughs.length === 0) {
+    userWalkthroughContainer.innerHTML = `
+      <p style="color: #059669; font-style: italic;">
+        No guides available for this page
+      </p>
+    `;
+    return;
+  }
+  
+  userWalkthroughContainer.innerHTML = walkthroughs.map(wt => `
+    <div style="
+      padding: 12px;
+      background: white;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    " class="user-walkthrough-item" data-walkthrough-id="${wt.walkthroughId}">
+      <div style="font-weight: 600; color: #166534; margin-bottom: 4px;">
+        ${escapeHtml(wt.name)}
+      </div>
+      <div style="font-size: 11px; color: #059669; margin-bottom: 8px;">
+        ${wt.steps?.length || 0} steps
+      </div>
+      <button class="btn btn-primary" style="
+        width: 100%;
+        padding: 8px;
+        font-size: 12px;
+        background: #22c55e;
+      ">
+        Start Guide
+      </button>
+    </div>
+  `).join('');
+  
+  // Add click handlers
+  userWalkthroughContainer.querySelectorAll('.user-walkthrough-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') {
+        e.stopPropagation();
+        e.preventDefault();
+        const walkthroughId = item.dataset.walkthroughId;
+        startUserWalkthrough(walkthroughId);
+      }
+    });
+  });
+}
+
+// Check if walkthrough is active and update UI accordingly
+async function checkWalkthroughStatus() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'GET_WALKTHROUGH_STATUS' });
+    if (response && response.active) {
+      // Walkthrough is active - show stop button only
+      showWalkthroughActiveUI(response.walkthrough);
+    } else {
+      // No active walkthrough - show normal UI
+      showNormalUI();
+    }
+  } catch (error) {
+    console.error('[Popup] Failed to check walkthrough status:', error);
+    showNormalUI();
+  }
+}
+
+// Show UI when walkthrough is active
+function showWalkthroughActiveUI(walkthrough) {
+  // Hide all sections
+  if (unboundSection) unboundSection.classList.add('hidden');
+  if (boundSection) boundSection.classList.add('hidden');
+  
+  // Create walkthrough active section
+  let activeSection = document.getElementById('walkthrough-active-section');
+  if (!activeSection) {
+    activeSection = document.createElement('div');
+    activeSection.id = 'walkthrough-active-section';
+    activeSection.className = 'section';
+    activeSection.innerHTML = `
+      <div class="section-title">Walkthrough in Progress</div>
+      <div style="padding: 16px; background: #fef3c7; border-radius: 8px; border: 1px solid #f59e0b;">
+        <div style="font-weight: 600; color: #92400e; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">🚶</span>
+          ${walkthrough?.name || 'Walkthrough'} in Progress
+        </div>
+        <p style="font-size: 13px; color: #92400e; margin-bottom: 12px;">
+          A walkthrough is currently running on this page.
+        </p>
+        <button id="stop-walkthrough-btn" class="btn btn-danger">
+          ⏹️ Stop Walkthrough
+        </button>
+      </div>
+    `;
+    document.body.appendChild(activeSection);
+    
+    // Add stop button listener
+    document.getElementById('stop-walkthrough-btn').addEventListener('click', async () => {
+      try {
+        await chrome.runtime.sendMessage({ type: 'WALKTHROUGH_ABORT', reason: 'user_stop' });
+        window.close();
+      } catch (error) {
+        showError('Failed to stop walkthrough');
+      }
+    });
+  }
+}
+
+// Show normal UI when no walkthrough is active
+function showNormalUI() {
+  // Remove walkthrough active section if it exists
+  const activeSection = document.getElementById('walkthrough-active-section');
+  if (activeSection) {
+    activeSection.remove();
+  }
+  
+  // Check current binding state by looking at which section is visible
+  const isBoundVisible = boundSection && !boundSection.classList.contains('hidden');
+  
+  // Show appropriate section based on binding status
+  if (isBoundVisible) {
+    if (boundSection) boundSection.classList.remove('hidden');
+    if (unboundSection) unboundSection.classList.add('hidden');
+  } else {
+    if (unboundSection) unboundSection.classList.remove('hidden');
+    if (boundSection) boundSection.classList.add('hidden');
+  }
+}
+async function startUserWalkthrough(walkthroughId) {
+  try {
+    console.log('[Popup] startUserWalkthrough called with ID:', walkthroughId);
+    
+    // Get the current tab's URL, not the popup's URL
+    console.log('[Popup] Querying active tab...');
+    const tabs = await chrome.tabs.query({ active: true });
+    console.log('[Popup] Tabs query result:', tabs);
+    const tabId = tabs[0]?.id;
+    const currentUrl = tabs[0]?.url || window.location.href;
+    console.log('[Popup] Current tab ID:', tabId);
+    console.log('[Popup] Current tab URL:', currentUrl);
+    
+    if (!tabId) {
+      console.error('[Popup] No active tab found - tabs array:', tabs);
+      showError('No active tab found. Please refresh the page and try again.');
+      return;
+    }
+    
+    // Get all available walkthroughs
+    const response = await chrome.runtime.sendMessage({ 
+      type: 'GET_AVAILABLE_GUIDE',
+      url: currentUrl 
+    });
+    console.log('[Popup] Available walkthroughs response:', response);
+    
+    if (response.walkthroughs && response.walkthroughs.length > 0) {
+      // Find the specific walkthrough
+      const walkthrough = response.walkthroughs.find(wt => wt.walkthroughId === walkthroughId);
+      console.log('[Popup] Found walkthrough:', walkthrough);
+      
+      if (walkthrough) {
+        // Use current URL for activation instead of walkthrough.startUrl
+        const activationWalkthrough = {
+          ...walkthrough,
+          startUrl: currentUrl
+        };
+        
+        // Start the walkthrough
+        console.log('[Popup] Sending WALKTHROUGH_START message...');
+        const startResponse = await chrome.runtime.sendMessage({
+          type: 'WALKTHROUGH_START',
+          walkthrough: activationWalkthrough,
+          progress: { currentStep: 0, completed: false },
+          tabId: tabId // Include the tab ID
+        });
+        console.log('[Popup] WALKTHROUGH_START response:', startResponse);
+        window.close();
+      } else {
+        console.error('[Popup] Guide not found with ID:', walkthroughId);
+        showError('Guide not found');
+      }
+    } else {
+      console.error('[Popup] No guides available');
+      showError('No guides available');
+    }
+  } catch (error) {
+    console.error('[Popup] Failed to start guide:', error);
+    showError('Failed to start guide: ' + error.message);
   }
 }
 

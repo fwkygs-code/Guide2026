@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .game-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #776e65;
+            margin: 0;
+        }
+
+        .score-container {
+            display: flex;
+            gap: 15px;
+        }
+
+        .score-box {
+            background: #bbada0;
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .score-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .game-board {
+            background: #bbada0;
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+            height: 100%;
+        }
+
+        .grid-cell {
+            background: #cdc1b4;
+            border-radius: 6px;
+        }
+
+        .tile {
+            position: absolute;
+            width: calc(25% - 7.5px);
+            height: calc(25% - 7.5px);
+            background: #eee4da;
+            border-radius: 6px;
+            font-size: 32px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.15s ease-in-out;
+            z-index: 1;
+        }
+
+        .tile-2 { background: #eee4da; color: #776e65; }
+        .tile-4 { background: #ede0c8; color: #776e65; }
+        .tile-8 { background: #f2b179; color: #f9f6f2; }
+        .tile-16 { background: #f59563; color: #f9f6f2; }
+        .tile-32 { background: #f67c5f; color: #f9f6f2; }
+        .tile-64 { background: #f65e3b; color: #f9f6f2; }
+        .tile-128 { background: #edcf72; color: #f9f6f2; font-size: 28px; }
+        .tile-256 { background: #edcc61; color: #f9f6f2; font-size: 28px; }
+        .tile-512 { background: #edc850; color: #f9f6f2; font-size: 28px; }
+        .tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 24px; }
+        .tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 24px; }
+
+        .tile-new {
+            animation: appear 0.2s ease-in-out;
+        }
+
+        .tile-merged {
+            animation: merge 0.2s ease-in-out;
+        }
+
+        @keyframes appear {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes merge {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: #8f7a66;
+            color: #f9f6f2;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #9f8a76;
+        }
+
+        .game-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: none;
+        }
+
+        .game-message.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .message-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #776e65;
+            margin-bottom: 20px;
+        }
+
+        .message-score {
+            font-size: 20px;
+            color: #776e65;
+            margin-bottom: 30px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .instructions {
+            text-align: center;
+            color: #776e65;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 520px) {
+            .game-container {
+                padding: 20px;
+            }
+            
+            .game-title {
+                font-size: 36px;
+            }
+            
+            .tile {
+                font-size: 24px;
+            }
+            
+            .tile-128, .tile-256, .tile-512 {
+                font-size: 20px;
+            }
+            
+            .tile-1024, .tile-2048 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">2048</h1>
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">Score</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">Best</div>
+                    <div class="score-value" id="best">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <div class="grid-container">
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button class="btn" id="newGameBtn">New Game</button>
+            <button class="btn" id="undoBtn">Undo</button>
+        </div>
+
+        <div class="instructions">
+            Use arrow keys or swipe to play. Join tiles to reach 2048!
+        </div>
+    </div>
+
+    <div class="game-message" id="gameMessage">
+        <div class="message-title" id="messageTitle">Game Over!</div>
+        <div class="message-score" id="messageScore">Final Score: 0</div>
+        <button class="btn" id="tryAgainBtn">Try Again</button>
+    </div>
+
+    <script>
+        class Game2048 {
+            constructor() {
+                this.board = [];
+                this.score = 0;
+                this.best = parseInt(localStorage.getItem('best2048') || '0');
+                this.previousState = null;
+                this.boardElement = document.getElementById('gameBoard');
+                this.scoreElement = document.getElementById('score');
+                this.bestElement = document.getElementById('best');
+                this.messageElement = document.getElementById('gameMessage');
+                this.messageTitleElement = document.getElementById('messageTitle');
+                this.messageScoreElement = document.getElementById('messageScore');
+                
+                this.init();
+                this.setupEventListeners();
+            }
+
+            init() {
+                this.board = Array(4).fill().map(() => Array(4).fill(0));
+                this.score = 0;
+                this.updateScore();
+                this.addNewTile();
+                this.addNewTile();
+                this.updateDisplay();
+            }
+
+            setupEventListeners() {
+                document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+                
+                document.getElementById('newGameBtn').addEventListener('click', () => {
+                    this.hideMessage();
+                    this.init();
+                });
+
+                document.getElementById('undoBtn').addEventListener('click', () => {
+                    this.undo();
+                });
+
+                document.getElementById('tryAgainBtn').addEventListener('click', () => {
+                    this.hideMessage();
+                    this.init();
+                });
+
+                // Touch controls
+                let touchStartX = 0;
+                let touchStartY = 0;
+
+                this.boardElement.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                });
+
+                this.boardElement.addEventListener('touchend', (e) => {
+                    if (!touchStartX || !touchStartY) return;
+
+                    let touchEndX = e.changedTouches[0].clientX;
+                    let touchEndY = e.changedTouches[0].clientY;
+
+                    let dx = touchEndX - touchStartX;
+                    let dy = touchEndY - touchStartY;
+
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        if (dx > 0) {
+                            this.move('right');
+                        } else {
+                            this.move('left');
+                        }
+                    } else {
+                        if (dy > 0) {
+                            this.move('down');
+                        } else {
+                            this.move('up');
+                        }
+                    }
+
+                    touchStartX = 0;
+                    touchStartY = 0;
+                });
+            }
+
+            handleKeyPress(e) {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.move('up');
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.move('down');
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    this.move('left');
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    this.move('right');
+                }
+            }
+
+            move(direction) {
+                this.savePreviousState();
+                let moved = false;
+
+                if (direction === 'left') {
+                    moved = this.moveLeft();
+                } else if (direction === 'right') {
+                    moved = this.moveRight();
+                } else if (direction === 'up') {
+                    moved = this.moveUp();
+                } else if (direction === 'down') {
+                    moved = this.moveDown();
+                }
+
+                if (moved) {
+                    this.addNewTile();
+                    this.updateDisplay();
+                    this.updateScore();
+
+                    if (this.checkWin()) {
+                        this.showMessage('You Win!', `Score: ${this.score}`);
+                    } else if (this.checkGameOver()) {
+                        this.showMessage('Game Over!', `Final Score: ${this.score}`);
+                    }
+                }
+            }
+
+            moveLeft() {
+                let moved = false;
+                for (let row = 0; row < 4; row++) {
+                    let newRow = this.board[row].filter(val => val !== 0);
+                    
+                    for (let i = 0; i < newRow.length - 1; i++) {
+                        if (newRow[i] === newRow[i + 1]) {
+                            newRow[i] *= 2;
+                            this.score += newRow[i];
+                            newRow.splice(i + 1, 1);
+                        }
+                    }
+                    
+                    while (newRow.length < 4) {
+                        newRow.push(0);
+                    }
+                    
+                    if (JSON.stringify(this.board[row]) !== JSON.stringify(newRow)) {
+                        moved = true;
+                    }
+                    
+                    this.board[row] = newRow;
+                }
+                return moved;
+            }
+
+            moveRight() {
+                let moved = false;
+                for (let row = 0; row < 4; row++) {
+                    let newRow = this.board[row].filter(val => val !== 0);
+                    
+                    for (let i = newRow.length - 1; i > 0; i--) {
+                        if (newRow[i] === newRow[i - 1]) {
+                            newRow[i] *= 2;
+                            this.score += newRow[i];
+                            newRow.splice(i - 1, 1);
+                            i--;
+                        }
+                    }
+                    
+                    while (newRow.length < 4) {
+                        newRow.unshift(0);
+                    }
+                    
+                    if (JSON.stringify(this.board[row]) !== JSON.stringify(newRow)) {
+                        moved = true;
+                    }
+                    
+                    this.board[row] = newRow;
+                }
+                return moved;
+            }
+
+            moveUp() {
+                let moved = false;
+                for (let col = 0; col < 4; col++) {
+                    let column = [];
+                    for (let row = 0; row < 4; row++) {
+                        column.push(this.board[row][col]);
+                    }
+                    
+                    let newColumn = column.filter(val => val !== 0);
+                    
+                    for (let i = 0; i < newColumn.length - 1; i++) {
+                        if (newColumn[i] === newColumn[i + 1]) {
+                            newColumn[i] *= 2;
+                            this.score += newColumn[i];
+                            newColumn.splice(i + 1, 1);
+                        }
+                    }
+                    
+                    while (newColumn.length < 4) {
+                        newColumn.push(0);
+                    }
+                    
+                    for (let row = 0; row < 4; row++) {
+                        if (this.board[row][col] !== newColumn[row]) {
+                            moved = true;
+                        }
+                        this.board[row][col] = newColumn[row];
+                    }
+                }
+                return moved;
+            }
+
+            moveDown() {
+                let moved = false;
+                for (let col = 0; col < 4; col++) {
+                    let column = [];
+                    for (let row = 0; row < 4; row++) {
+                        column.push(this.board[row][col]);
+                    }
+                    
+                    let newColumn = column.filter(val => val !== 0);
+                    
+                    for (let i = newColumn.length - 1; i > 0; i--) {
+                        if (newColumn[i] === newColumn[i - 1]) {
+                            newColumn[i] *= 2;
+                            this.score += newColumn[i];
+                            newColumn.splice(i - 1, 1);
+                            i--;
+                        }
+                    }
+                    
+                    while (newColumn.length < 4) {
+                        newColumn.unshift(0);
+                    }
+                    
+                    for (let row = 0; row < 4; row++) {
+                        if (this.board[row][col] !== newColumn[row]) {
+                            moved = true;
+                        }
+                        this.board[row][col] = newColumn[row];
+                    }
+                }
+                return moved;
+            }
+
+            addNewTile() {
+                let emptyCells = [];
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        if (this.board[row][col] === 0) {
+                            emptyCells.push({row, col});
+                        }
+                    }
+                }
+
+                if (emptyCells.length > 0) {
+                    let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    this.board[randomCell.row][randomCell.col] = Math.random() < 0.9 ? 2 : 4;
+                }
+            }
+
+            updateDisplay() {
+                // Remove existing tiles
+                const existingTiles = this.boardElement.querySelectorAll('.tile');
+                existingTiles.forEach(tile => tile.remove());
+
+                // Add new tiles
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        if (this.board[row][col] !== 0) {
+                            const tile = document.createElement('div');
+                            tile.className = `tile tile-${this.board[row][col]}`;
+                            tile.textContent = this.board[row][col];
+                            tile.style.left = `${col * 25 + (col + 1) * 2.5}%`;
+                            tile.style.top = `${row * 25 + (row + 1) * 2.5}%`;
+                            this.boardElement.appendChild(tile);
+                        }
+                    }
+                }
+            }
+
+            updateScore() {
+                this.scoreElement.textContent = this.score;
+                if (this.score > this.best) {
+                    this.best = this.score;
+                    this.bestElement.textContent = this.best;
+                    localStorage.setItem('best2048', this.best.toString());
+                }
+            }
+
+            checkWin() {
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        if (this.board[row][col] === 2048) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            checkGameOver() {
+                // Check for empty cells
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        if (this.board[row][col] === 0) {
+                            return false;
+                        }
+                    }
+                }
+
+                // Check for possible merges
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        let current = this.board[row][col];
+                        if ((row < 3 && current === this.board[row + 1][col]) ||
+                            (col < 3 && current === this.board[row][col + 1])) {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            savePreviousState() {
+                this.previousState = {
+                    board: this.board.map(row => [...row]),
+                    score: this.score
+                };
+            }
+
+            undo() {
+                if (this.previousState) {
+                    this.board = this.previousState.board.map(row => [...row]);
+                    this.score = this.previousState.score;
+                    this.updateDisplay();
+                    this.updateScore();
+                    this.previousState = null;
+                }
+            }
+
+            showMessage(title, score) {
+                this.messageTitleElement.textContent = title;
+                this.messageScoreElement.textContent = score;
+                this.messageElement.classList.add('show');
+            }
+
+            hideMessage() {
+                this.messageElement.classList.remove('show');
+            }
+        }
+
+        // Start the game
+        const game = new Game2048();
+    </script>
+</body>
+</html>

@@ -34,6 +34,99 @@ class AuthoringController {
     this.toolbar = null;
     this.stepEditor = null;
     this.walkthroughList = null;
+    
+    // Persist across URL changes
+    this.initializePersistence();
+  }
+  
+  /**
+   * Initialize persistence across URL changes
+   */
+  initializePersistence() {
+    // Check for active authoring session on load
+    this.checkActiveAuthoringSession();
+    
+    // Listen for URL changes
+    let lastUrl = window.location.href;
+    const checkUrlChange = () => {
+      if (window.location.href !== lastUrl) {
+        lastUrl = window.location.href;
+        this.onUrlChange();
+      }
+    };
+    
+    // Use multiple methods to detect URL changes
+    window.addEventListener('popstate', checkUrlChange);
+    window.addEventListener('hashchange', checkUrlChange);
+    
+    // Also check periodically for SPA navigation
+    setInterval(checkUrlChange, 1000);
+  }
+  
+  /**
+   * Check for active authoring session
+   */
+  async checkActiveAuthoringSession() {
+    try {
+      const stored = await chrome.storage.local.get(['ig_active_authoring_session']);
+      if (stored.ig_active_authoring_session) {
+        const session = stored.ig_active_authoring_session;
+        
+        // Restore session if recent (within 30 minutes)
+        if (Date.now() - session.timestamp < 30 * 60 * 1000) {
+          this.currentWalkthrough = session.walkthrough;
+          this.state = AuthoringState.CONFIGURING_STEP;
+          
+          // Show UI
+          this.showAuthoringToolbar();
+          this.showStepEditor();
+          
+          console.log('[IG Authoring] Restored active session');
+        } else {
+          // Clear old session
+          chrome.storage.local.remove(['ig_active_authoring_session']);
+        }
+      }
+    } catch (e) {
+      console.error('[IG Authoring] Failed to check session:', e);
+    }
+  }
+  
+  /**
+   * Save active authoring session
+   */
+  async saveActiveSession() {
+    if (this.currentWalkthrough && this.state !== AuthoringState.IDLE) {
+      await chrome.storage.local.set({
+        ig_active_authoring_session: {
+          walkthrough: this.currentWalkthrough,
+          state: this.state,
+          timestamp: Date.now()
+        }
+      });
+    }
+  }
+  
+  /**
+   * Handle URL change during authoring
+   */
+  onUrlChange() {
+    if (this.state !== AuthoringState.IDLE && this.currentWalkthrough) {
+      console.log('[IG Authoring] URL changed, preserving session');
+      
+      // Save session
+      this.saveActiveSession();
+      
+      // Re-show UI if it was hidden
+      setTimeout(() => {
+        if (this.state !== AuthoringState.IDLE) {
+          this.showAuthoringToolbar();
+          if (this.state === AuthoringState.CONFIGURING_STEP) {
+            this.showStepEditor();
+          }
+        }
+      }, 500);
+    }
   }
 
   /**
@@ -46,6 +139,10 @@ class AuthoringController {
       return;
     }
     
+    // Auto-enable admin mode if not set
+    await chrome.storage.local.set({ 'ig_walkthrough_admin_mode': true });
+    console.log('[IG Authoring] Admin mode auto-enabled');
+    
     // Check admin permission
     const isAdmin = await this.checkAdminPermission();
     if (!isAdmin) {
@@ -53,11 +150,21 @@ class AuthoringController {
       return;
     }
     
-    this.state = AuthoringState.CREATING_WALKTHROUGH;
+    // Try to restore active session first
+    const restored = await this.restoreActiveSession();
+    
+    if (!restored) {
+      this.state = AuthoringState.CREATING_WALKTHROUGH;
+    }
     
     // Show authoring UI
     this.showAuthoringToolbar();
-    this.showWalkthroughList();
+    
+    if (!this.currentWalkthrough) {
+      this.showWalkthroughList();
+    } else {
+      this.showStepEditor();
+    }
     
     // EMIT TELEMETRY: AUTHORING_START
     this.logTelemetry('AUTHORING_START', {
@@ -66,6 +173,36 @@ class AuthoringController {
     });
     
     console.log('[IG Authoring] Entered authoring mode');
+  }
+  
+  /**
+   * Restore active session from storage
+   */
+  async restoreActiveSession() {
+    try {
+      const stored = await chrome.storage.local.get(['ig_active_authoring_session']);
+      const session = stored.ig_active_authoring_session;
+      
+      if (session && session.walkthroughId) {
+        console.log('[IG Authoring] Restoring active session:', session);
+        
+        // Load walkthrough from storage
+        const walkthroughs = await this.loadWalkthroughs();
+        const walkthrough = walkthroughs.all.find(w => w.walkthroughId === session.walkthroughId);
+        
+        if (walkthrough) {
+          this.currentWalkthrough = walkthrough;
+          this.currentStepIndex = session.currentStepIndex || -1;
+          this.state = AuthoringState.CONFIGURING_STEP;
+          console.log('[IG Authoring] Restored walkthrough:', walkthrough.walkthroughId);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('[IG Authoring] Failed to restore session:', e);
+    }
+    
+    return false;
   }
 
   /**
@@ -111,6 +248,12 @@ class AuthoringController {
     
     // Save as draft
     await this.saveDraft();
+    await this.saveActiveSession();
+    
+    // Update toolbar with current walkthrough
+    if (window.AuthoringToolbar) {
+      window.AuthoringToolbar.setCurrentWalkthrough(this.currentWalkthrough);
+    }
     
     // Show step editor
     this.showStepEditor();
@@ -127,6 +270,20 @@ class AuthoringController {
     if (!this.currentWalkthrough) {
       console.error('[IG Authoring] No active walkthrough');
       return;
+    }
+    
+    // Hide UI panels while picking
+    if (window.AuthoringToolbar) {
+      window.AuthoringToolbar.hide();
+    }
+    if (window.StepEditor) {
+      window.StepEditor.hide();
+    }
+    
+    // Disable old picker if it's active
+    const oldPickerOverlay = document.querySelector('.ig-picker-overlay');
+    if (oldPickerOverlay) {
+      oldPickerOverlay.style.display = 'none';
     }
     
     this.state = AuthoringState.PICKING_ELEMENT;
@@ -175,6 +332,14 @@ class AuthoringController {
     this.state = AuthoringState.CONFIGURING_STEP;
     this.showStepConfiguration(selector, stability);
     
+    // Restore UI panels
+    if (window.AuthoringToolbar) {
+      window.AuthoringToolbar.show();
+    }
+    if (window.StepEditor) {
+      window.StepEditor.show(this.currentWalkthrough);
+    }
+    
     console.log('[IG Authoring] Element picked:', selector);
   }
 
@@ -184,11 +349,13 @@ class AuthoringController {
   async saveStep(stepConfig) {
     if (!this.currentWalkthrough) return;
     
+    console.log('[IG Authoring] Saving step:', stepConfig);
+    
     const step = {
       id: crypto.randomUUID(),
       order: this.currentWalkthrough.steps.length,
       urlScope: {
-        type: 'url_pattern',
+        type: 'page',
         value: window.location.href
       },
       targetSelectors: {
@@ -210,8 +377,13 @@ class AuthoringController {
     
     this.currentWalkthrough.steps.push(step);
     
+    console.log('[IG Authoring] Walkthrough now has', this.currentWalkthrough.steps.length, 'steps');
+    
     // Save draft
     await this.saveDraft();
+    
+    // Save active session for persistence
+    await this.saveActiveSession();
     
     // EMIT TELEMETRY: STEP_CREATED
     this.logTelemetry('STEP_CREATED', {
@@ -221,6 +393,9 @@ class AuthoringController {
       hasFallbacks: step.targetSelectors?.fallbacks?.length > 0
     });
     
+    // Show success feedback
+    this.showStepSavedFeedback();
+    
     // Reset for next step
     this.pickedElement = null;
     this.selectorPreview = null;
@@ -228,35 +403,89 @@ class AuthoringController {
     console.log('[IG Authoring] Step saved:', step.id);
     return step;
   }
+  
+  /**
+   * Show feedback when step is saved
+   */
+  showStepSavedFeedback() {
+    const feedback = document.createElement('div');
+    feedback.style.cssText = `
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #22c55e;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 2147483647;
+      animation: ig-slide-up 0.3s ease;
+    `;
+    feedback.textContent = '✓ Step saved successfully';
+    
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes ig-slide-up {
+        from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(feedback);
+    
+    // Remove after 2 seconds
+    setTimeout(() => {
+      feedback.style.animation = 'ig-slide-up 0.3s ease reverse';
+      setTimeout(() => feedback.remove(), 300);
+    }, 2000);
+  }
 
   /**
    * Finish and publish walkthrough
    */
   async publishWalkthrough() {
-    if (!this.currentWalkthrough) return;
+    console.log('[IG Authoring] Publish walkthrough called');
+    console.log('[IG Authoring] Current walkthrough:', this.currentWalkthrough);
+    
+    if (!this.currentWalkthrough) {
+      console.error('[IG Authoring] No current walkthrough to publish');
+      alert('No walkthrough to publish');
+      return;
+    }
     
     // Validate all steps
     const validation = await this.validateWalkthrough();
     if (!validation.valid) {
+      console.error('[IG Authoring] Validation failed:', validation.errors);
       alert('Cannot publish: ' + validation.errors.join(', '));
       return;
     }
     
     // Check minimum requirements
     if (this.currentWalkthrough.steps.length === 0) {
+      console.error('[IG Authoring] No steps defined');
       alert('Cannot publish: No steps defined');
       return;
     }
+    
+    console.log('[IG Authoring] Publishing walkthrough with', this.currentWalkthrough.steps.length, 'steps');
     
     // Update status
     this.currentWalkthrough.status = WalkthroughStatus.PUBLISHED;
     this.currentWalkthrough.publishedAt = Date.now();
     
+    console.log('[IG Authoring] Updated status to PUBLISHED');
+    
     // Save to published storage
     await this.savePublished();
+    console.log('[IG Authoring] Saved to published storage');
     
     // Clear draft
     await this.clearDraft();
+    console.log('[IG Authoring] Cleared draft');
     
     // EMIT TELEMETRY: WALKTHROUGH_PUBLISHED
     this.logTelemetry('WALKTHROUGH_PUBLISHED', {
@@ -270,12 +499,13 @@ class AuthoringController {
     this.currentWalkthrough = null;
     this.currentStepIndex = -1;
     
-    // Hide authoring UI
-    this.hideAuthoringToolbar();
-    this.hideStepEditor();
-    
-    console.log('[IG Authoring] Walkthrough published');
+    console.log('[IG Authoring] Walkthrough published successfully');
     alert('Walkthrough published successfully!');
+    
+    // Exit authoring mode after successful publish
+    setTimeout(() => {
+      this.exitAuthoringMode();
+    }, 1000);
   }
 
   /**
@@ -322,10 +552,18 @@ class AuthoringController {
    * Load all walkthroughs for admin
    */
   async loadWalkthroughs() {
+    console.log('[IG Authoring] Loading walkthroughs...');
+    
     const [drafts, published] = await Promise.all([
       this.loadDrafts(),
       this.loadPublished()
     ]);
+    
+    console.log('[IG Authoring] Loaded walkthroughs:', {
+      drafts: drafts.length,
+      published: published.length,
+      all: [...drafts, ...published].length
+    });
     
     return {
       drafts,
@@ -341,12 +579,16 @@ class AuthoringController {
     const all = await chrome.storage.local.get(null);
     const drafts = [];
     
+    console.log('[IG Authoring] All storage keys:', Object.keys(all));
+    
     for (const key of Object.keys(all)) {
       if (key.startsWith('ig_draft_walkthrough_')) {
+        console.log('[IG Authoring] Found draft:', key);
         drafts.push(all[key]);
       }
     }
     
+    console.log('[IG Authoring] Draft walkthroughs:', drafts);
     return drafts;
   }
 
@@ -356,7 +598,10 @@ class AuthoringController {
   async loadPublished() {
     const stored = await chrome.storage.local.get(['ig_published_walkthroughs']);
     const published = stored.ig_published_walkthroughs || {};
-    return Object.values(published);
+    const publishedArray = Object.values(published);
+    
+    console.log('[IG Authoring] Published walkthroughs:', publishedArray);
+    return publishedArray;
   }
 
   /**
@@ -493,6 +738,11 @@ class AuthoringController {
    * Calculate selector stability score
    */
   calculateStabilityScore(selector) {
+    if (!selector) {
+      console.warn('[IG Authoring] No selector provided for stability calculation');
+      return 0.1; // Very low score for missing selector
+    }
+    
     const scores = {
       'css_id': 1.0,
       'test_id': 1.0,
@@ -523,6 +773,7 @@ class AuthoringController {
    */
   async checkAdminPermission() {
     const stored = await chrome.storage.local.get(['ig_walkthrough_admin_mode']);
+    console.log('[IG Authoring] Admin permission check:', stored.ig_walkthrough_admin_mode);
     return stored.ig_walkthrough_admin_mode === true;
   }
 
@@ -568,9 +819,109 @@ class AuthoringController {
 
   // UI Methods
   showAuthoringToolbar() {
-    // Implemented in admin-toolbar.js
+    // Show toolbar and connect events
     if (window.AuthoringToolbar) {
       window.AuthoringToolbar.show();
+      
+      // Connect event handlers
+      window.AuthoringToolbar.onCreateClick = (name, url) => {
+        this.createNewWalkthrough(name, url);
+      };
+      
+      window.AuthoringToolbar.onEditClick = (walkthroughId) => {
+        this.editWalkthrough(walkthroughId);
+      };
+      
+      window.AuthoringToolbar.onPublishClick = (walkthroughId) => {
+        this.publishWalkthroughById(walkthroughId);
+      };
+      
+      window.AuthoringToolbar.onTestClick = (walkthroughId) => {
+        this.testWalkthrough(walkthroughId);
+      };
+      
+      window.AuthoringToolbar.onDeleteClick = (walkthroughId) => {
+        this.deleteWalkthrough(walkthroughId);
+      };
+      
+      window.AuthoringToolbar.onStepEdit = (index) => {
+        this.editStep(index);
+      };
+      
+      window.AuthoringToolbar.onStepDelete = (index) => {
+        this.deleteStep(index);
+      };
+      
+      // Override close button to properly exit
+      const closeBtn = window.AuthoringToolbar.element?.querySelector('#ig-toolbar-close');
+      if (closeBtn) {
+        // Remove existing listeners
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+        
+        // Add proper exit handler
+        newCloseBtn.addEventListener('click', () => {
+          if (confirm('Exit authoring mode? Any unsaved changes will be lost.')) {
+            this.exitAuthoringMode();
+          }
+        });
+      }
+      
+      // Add minimize button listener
+      const minimizeBtn = window.AuthoringToolbar.element?.querySelector('#ig-toolbar-minimize');
+      if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', () => {
+          window.AuthoringToolbar.toggleMinimize();
+        });
+      }
+      
+      // Add create walkthrough button listener
+      const createBtn = window.AuthoringToolbar.element?.querySelector('#ig-create-walkthrough');
+      if (createBtn) {
+        createBtn.addEventListener('click', () => {
+          window.AuthoringToolbar.showCreateModal();
+        });
+      }
+      
+      // Add publish walkthrough button listener
+      const publishBtn = window.AuthoringToolbar.element?.querySelector('#ig-publish-walkthrough');
+      if (publishBtn) {
+        publishBtn.addEventListener('click', () => {
+          if (window.AuthoringController) {
+            window.AuthoringController.publishWalkthrough();
+          }
+        });
+      }
+      
+      // Add exit admin mode button listener
+      const exitAdminBtn = window.AuthoringToolbar.element?.querySelector('#ig-exit-admin');
+      if (exitAdminBtn) {
+        exitAdminBtn.addEventListener('click', () => {
+          if (window.AuthoringController) {
+            window.AuthoringController.exitAuthoringMode();
+          }
+        });
+      }
+      
+      // Add steps overview listeners
+      const viewStepsBtn = window.AuthoringToolbar.element?.querySelector('#ig-view-steps');
+      if (viewStepsBtn) {
+        viewStepsBtn.addEventListener('click', () => {
+          window.AuthoringToolbar.showStepsOverview();
+        });
+      }
+      
+      const closeStepsBtn = window.AuthoringToolbar.element?.querySelector('#ig-close-steps');
+      if (closeStepsBtn) {
+        closeStepsBtn.addEventListener('click', () => {
+          window.AuthoringToolbar.hideStepsOverview();
+        });
+      }
+      
+      // Update toolbar with current walkthrough
+      if (this.currentWalkthrough) {
+        window.AuthoringToolbar.setCurrentWalkthrough(this.currentWalkthrough);
+      }
     }
   }
 
@@ -581,10 +932,14 @@ class AuthoringController {
   }
 
   showWalkthroughList() {
+    console.log('[IG Authoring] Showing walkthrough list...');
     // Load and display walkthrough list
     this.loadWalkthroughs().then(walkthroughs => {
+      console.log('[IG Authoring] Walkthroughs to display:', walkthroughs);
       if (window.AuthoringToolbar) {
         window.AuthoringToolbar.setWalkthroughList(walkthroughs);
+      } else {
+        console.error('[IG Authoring] AuthoringToolbar not available');
       }
     });
   }
@@ -616,22 +971,82 @@ class AuthoringController {
       top: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: #4f46e5;
+      background: #f59e0b;
       color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
+      padding: 16px 24px;
+      border-radius: 12px;
       font-family: system-ui, sans-serif;
       font-weight: 600;
       z-index: 2147483647;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      font-size: 15px;
     `;
-    overlay.innerHTML = '🖱️ Click any element to select it';
+    overlay.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px;">🖱️</div>
+        <div>
+          <div style="font-weight: 700; margin-bottom: 2px;">Click any element to select it</div>
+          <div style="font-size: 12px; opacity: 0.9;">This will be the target for your step</div>
+        </div>
+        <button id="ig-authoring-picker-cancel" style="
+          margin-left: 12px;
+          padding: 6px 12px;
+          background: rgba(255,255,255,0.2);
+          border: 1px solid rgba(255,255,255,0.3);
+          border-radius: 6px;
+          color: white;
+          cursor: pointer;
+          font-weight: 500;
+          font-size: 12px;
+        ">Cancel</button>
+      </div>
+    `;
     document.body.appendChild(overlay);
+    
+    // Add cancel handler
+    document.getElementById('ig-authoring-picker-cancel').addEventListener('click', () => {
+      this.stopElementPicking();
+    });
     
     // Remove on next click
     this.pickingCleanup = () => {
       overlay.remove();
     };
+  }
+  
+  /**
+   * Stop element picking
+   */
+  stopElementPicking() {
+    if (this.pickingListener) {
+      document.removeEventListener('click', this.pickingListener, true);
+      this.pickingListener = null;
+    }
+    
+    window.elementPickerEnabled = false;
+    document.body.style.cursor = '';
+    
+    // Restore old picker if it was hidden
+    const oldPickerOverlay = document.querySelector('.ig-picker-overlay');
+    if (oldPickerOverlay) {
+      oldPickerOverlay.style.display = '';
+    }
+    
+    // Restore UI panels
+    if (window.AuthoringToolbar) {
+      window.AuthoringToolbar.show();
+    }
+    if (window.StepEditor) {
+      window.StepEditor.show(this.currentWalkthrough);
+    }
+    
+    if (this.pickingCleanup) {
+      this.pickingCleanup();
+      this.pickingCleanup = null;
+    }
+    
+    this.state = AuthoringState.CONFIGURING_STEP;
+    console.log('[IG Authoring] Element picking stopped');
   }
 
   exitAuthoringMode() {
@@ -640,6 +1055,19 @@ class AuthoringController {
     this.currentStepIndex = -1;
     this.pickedElement = null;
     this.selectorPreview = null;
+    
+    // Clear active session
+    chrome.storage.local.remove(['ig_active_authoring_session']);
+    
+    // Clear admin mode when exiting authoring (with delay to ensure proper state)
+    setTimeout(() => {
+      chrome.storage.local.remove(['ig_walkthrough_admin_mode']);
+      
+      // Trigger launcher recheck after clearing admin mode
+      if (window.onboardingLauncher) {
+        window.onboardingLauncher.init();
+      }
+    }, 500);
     
     this.hideAuthoringToolbar();
     this.hideStepEditor();
@@ -651,7 +1079,237 @@ class AuthoringController {
     
     console.log('[IG Authoring] Exited authoring mode');
   }
+  
+  /**
+   * Edit existing walkthrough
+   */
+  async editWalkthrough(walkthroughId) {
+    // Load walkthrough from storage
+    const walkthroughs = await this.loadWalkthroughs();
+    const walkthrough = walkthroughs.all.find(w => w.walkthroughId === walkthroughId);
+    
+    if (!walkthrough) {
+      console.error('[IG Authoring] Walkthrough not found:', walkthroughId);
+      return;
+    }
+    
+    this.currentWalkthrough = walkthrough;
+    this.state = AuthoringState.CONFIGURING_STEP;
+    
+    // Show authoring UI
+    this.showAuthoringToolbar();
+    this.showStepEditor();
+    
+    // Update toolbar with current walkthrough
+    if (window.AuthoringToolbar) {
+      window.AuthoringToolbar.setCurrentWalkthrough(this.currentWalkthrough);
+    }
+    
+    console.log('[IG Authoring] Editing walkthrough:', walkthroughId);
+  }
+  
+  /**
+   * Edit existing step
+   */
+  async editStep(index) {
+    console.log('[IG Authoring] Editing step:', index, 'total steps:', this.currentWalkthrough?.steps?.length);
+    
+    if (!this.currentWalkthrough || index < 0 || index >= this.currentWalkthrough.steps.length) {
+      console.error('[IG Authoring] Invalid step index:', index);
+      return;
+    }
+    
+    const step = this.currentWalkthrough.steps[index];
+    console.log('[IG Authoring] Step data:', step);
+    
+    this.currentStepIndex = index;
+    
+    // Load step data into step editor
+    if (window.StepEditor) {
+      window.StepEditor.currentSelector = step.targetSelectors?.primary;
+      window.StepEditor.isMultiField = step.isMultiField || false;
+      window.StepEditor.fieldSelectors = step.isMultiField ? (step.fields || []) : [];
+      
+      // Show step editor with loaded data
+      window.StepEditor.show(this.currentWalkthrough);
+      window.StepEditor.showConfiguration(step.targetSelectors?.primary, 0.8);
+      
+      // Update form fields
+      const instruction = window.StepEditor.element.querySelector('#ig-instruction');
+      const actionType = window.StepEditor.element.querySelector('#ig-action-type');
+      const validation = window.StepEditor.element.querySelector('#ig-validation');
+      const allowSkip = window.StepEditor.element.querySelector('#ig-allow-skip');
+      const isOptional = window.StepEditor.element.querySelector('#ig-is-optional');
+      const multiField = window.StepEditor.element.querySelector('#ig-multi-field');
+      
+      console.log('[IG Authoring] Form elements found:', {
+        instruction: !!instruction,
+        actionType: !!actionType,
+        validation: !!validation,
+        allowSkip: !!allowSkip,
+        isOptional: !!isOptional,
+        multiField: !!multiField
+      });
+      
+      if (instruction) {
+        instruction.value = step.instruction || '';
+        console.log('[IG Authoring] Set instruction to:', step.instruction);
+      }
+      if (actionType) {
+        actionType.value = step.actionType || 'click';
+        console.log('[IG Authoring] Set actionType to:', step.actionType);
+      }
+      if (validation) {
+        validation.value = step.validation?.rule || 'clicked';
+        console.log('[IG Authoring] Set validation to:', step.validation?.rule);
+      }
+      if (allowSkip) {
+        allowSkip.checked = step.ui?.allowSkip || false;
+        console.log('[IG Authoring] Set allowSkip to:', step.ui?.allowSkip);
+      }
+      if (isOptional) {
+        isOptional.checked = step.isOptional || false;
+        console.log('[IG Authoring] Set isOptional to:', step.isOptional);
+      }
+      if (multiField) {
+        multiField.checked = step.isMultiField || false;
+        multiField.dispatchEvent(new Event('change'));
+        console.log('[IG Authoring] Set multiField to:', step.isMultiField);
+      }
+      
+      window.StepEditor.renderFieldList();
+    }
+    
+    console.log('[IG Authoring] Editing step:', index);
+  }
+  
+  /**
+   * Delete step
+   */
+  async deleteStep(index) {
+    if (!this.currentWalkthrough || index < 0 || index >= this.currentWalkthrough.steps.length) {
+      console.error('[IG Authoring] Invalid step index:', index);
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to delete this step?')) {
+      return;
+    }
+    
+    // Remove step
+    this.currentWalkthrough.steps.splice(index, 1);
+    
+    // Reorder remaining steps
+    this.currentWalkthrough.steps.forEach((step, i) => {
+      step.order = i;
+    });
+    
+    // Save draft
+    await this.saveDraft();
+    await this.saveActiveSession();
+    
+    // Update UI
+    if (window.AuthoringToolbar) {
+      window.AuthoringToolbar.setCurrentWalkthrough(this.currentWalkthrough);
+    }
+    
+    // If we deleted the current step being edited, reset step editor
+    if (this.currentStepIndex === index) {
+      this.currentStepIndex = -1;
+      if (window.StepEditor) {
+        window.StepEditor.resetForm();
+      }
+    } else if (this.currentStepIndex > index) {
+      this.currentStepIndex--;
+    }
+    
+    console.log('[IG Authoring] Deleted step:', index);
+  }
+  
+  /**
+   * Publish walkthrough by ID
+   */
+  async publishWalkthroughById(walkthroughId) {
+    // Load walkthrough
+    const walkthroughs = await this.loadWalkthroughs();
+    const walkthrough = walkthroughs.all.find(w => w.walkthroughId === walkthroughId);
+    
+    if (!walkthrough) {
+      console.error('[IG Authoring] Walkthrough not found:', walkthroughId);
+      return;
+    }
+    
+    this.currentWalkthrough = walkthrough;
+    await this.publishWalkthrough();
+  }
+  
+  /**
+   * Delete walkthrough by ID
+   */
+  async deleteWalkthrough(walkthroughId) {
+    if (!confirm('Are you sure you want to delete this walkthrough? This action cannot be undone.')) {
+      return;
+    }
+    
+    console.log('[IG Authoring] Deleting walkthrough:', walkthroughId);
+    
+    try {
+      // Remove from draft storage
+      await chrome.storage.local.remove([`ig_draft_walkthrough_${walkthroughId}`]);
+      
+      // Remove from published storage if it exists
+      const stored = await chrome.storage.local.get(['ig_published_walkthroughs']);
+      const published = stored.ig_published_walkthroughs || {};
+      if (published[walkthroughId]) {
+        delete published[walkthroughId];
+        await chrome.storage.local.set({ ig_published_walkthroughs: published });
+      }
+      
+      // Clear active session if it's the current walkthrough
+      if (this.currentWalkthrough?.walkthroughId === walkthroughId) {
+        await chrome.storage.local.remove(['ig_active_authoring_session']);
+        this.currentWalkthrough = null;
+        this.currentStepIndex = -1;
+        this.state = AuthoringState.IDLE;
+        this.hideStepEditor();
+      }
+      
+      // Refresh the walkthrough list
+      this.showWalkthroughList();
+      
+      console.log('[IG Authoring] Walkthrough deleted successfully');
+      alert('Walkthrough deleted successfully');
+    } catch (e) {
+      console.error('[IG Authoring] Failed to delete walkthrough:', e);
+      alert('Failed to delete walkthrough');
+    }
+  }
+  
+  /**
+   * Test walkthrough
+   */
+  async testWalkthrough(walkthroughId) {
+    console.log('[IG Authoring] Testing walkthrough:', walkthroughId);
+    
+    // Initialize admin test mode if available
+    if (window.AdminTestMode) {
+      window.AdminTestMode.startTest(walkthroughId);
+    } else {
+      // Fallback: start the walkthrough directly
+      const walkthroughs = await this.loadWalkthroughs();
+      const walkthrough = walkthroughs.all.find(w => w.walkthroughId === walkthroughId);
+      
+      if (walkthrough) {
+        // Send to background to start walkthrough
+        chrome.runtime.sendMessage({
+          type: 'WALKTHROUGH_START',
+          walkthrough: walkthrough,
+          progress: { currentStep: 0, completed: false }
+        });
+      }
+    }
+  }
 }
 
 // Global instance
-window.authoringController = new AuthoringController();
+window.AuthoringController = window.authoringController = new AuthoringController();

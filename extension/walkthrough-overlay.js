@@ -154,6 +154,19 @@ const SelectorEngine = {
    */
   cancel() {
     this.currentToken = null;
+    // Clear any pending intervals/timeouts
+    if (this._intervalId) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
+    }
+    if (this._timeoutId) {
+      clearTimeout(this._timeoutId);
+      this._timeoutId = null;
+    }
+    if (this._observer) {
+      this._observer.disconnect();
+      this._observer = null;
+    }
   },
 
   /**
@@ -369,10 +382,11 @@ const SelectorEngine = {
       let observer = null;
       let intervalId = null;
       let timeoutId = null;
+      let observerActive = true;
       
       const tryFind = async () => {
         // Check cancellation before each attempt
-        if (!this.isValid(token)) {
+        if (!this.isValid(token) || !observerActive) {
           cleanup();
           return resolve({ success: false, cancelled: true });
         }
@@ -381,19 +395,19 @@ const SelectorEngine = {
         
         // Try primary and fallbacks
         const primary = this._trySelector(selectorSet.primary, context, 'primary', token);
-        if (primary.success && this.isValid(token)) {
+        if (primary.success && this.isValid(token) && observerActive) {
           cleanup();
           return resolve({ success: true, element: primary.element, selectorUsed: selectorSet.primary });
         }
         
         for (const fallback of selectorSet.fallbacks || []) {
-          if (!this.isValid(token)) {
+          if (!this.isValid(token) || !observerActive) {
             cleanup();
             return resolve({ success: false, cancelled: true });
           }
           
           const result = this._trySelector(fallback, context, 'fallback', token);
-          if (result.success && this.isValid(token)) {
+          if (result.success && this.isValid(token) && observerActive) {
             cleanup();
             return resolve({ success: true, element: result.element, selectorUsed: fallback });
           }
@@ -409,6 +423,7 @@ const SelectorEngine = {
       };
       
       const cleanup = () => {
+        observerActive = false;
         if (observer) {
           observer.disconnect();
           observer = null;
@@ -423,9 +438,14 @@ const SelectorEngine = {
         }
       };
       
+      // Store IDs for cancellation
+      this._intervalId = intervalId;
+      this._timeoutId = timeoutId;
+      this._observer = observer;
+      
       // Mutation observer
       observer = new MutationObserver(() => {
-        if (this.isValid(token)) {
+        if (this.isValid(token) && observerActive) {
           tryFind();
         } else {
           cleanup();
@@ -433,11 +453,14 @@ const SelectorEngine = {
         }
       });
       
+      // Update stored ID
+      this._observer = observer;
+      
       observer.observe(document.body, { childList: true, subtree: true });
       
       // Polling fallback
       intervalId = setInterval(() => {
-        if (this.isValid(token)) {
+        if (this.isValid(token) && observerActive) {
           tryFind();
         } else {
           cleanup();
@@ -445,13 +468,19 @@ const SelectorEngine = {
         }
       }, this.config.retryInterval);
       
-      // Timeout
+      // Update stored ID
+      this._intervalId = intervalId;
+      
+      // Timeout - use mutation timeout from config
       timeoutId = setTimeout(() => {
         if (this.isValid(token)) {
           cleanup();
           resolve({ success: false, timedOut: true });
         }
       }, this.config.mutationTimeout);
+      
+      // Update stored ID
+      this._timeoutId = timeoutId;
       
       // First attempt
       tryFind();
@@ -525,28 +554,23 @@ function activateWalkthrough(session) {
   walkthroughState.isActive = true;
   walkthroughState.sessionId = session.id;
   
-  // Create the blocking overlay
-  createOverlay();
+  console.log('[IG Walkthrough] Activating walkthrough', session.id);
   
-  // Block all non-walkthrough interactions
-  installInteractionBlockers();
+  // DO NOT create overlay yet - wait for successful step activation
+  // This prevents hard-lock if step activation fails
+  console.log('[IG Walkthrough] Walkthrough activated for session:', session.id);
   
-  // Install navigation prevention
-  installNavigationBlocker(session.walkthrough?.scope);
-  
-  console.log('[IG Walkthrough] Overlay activated for session:', session.id);
-  
-  // If there's a current step, activate it
-  if (session.progress && session.progress.stepId) {
-    // Step will be activated via separate message
-  }
+  // Overlay will be created only after step activation succeeds
 }
 
 /**
  * Deactivate and clean up walkthrough overlay
  */
 function deactivateWalkthrough(reason = 'complete') {
-  if (!walkthroughState.isActive) return;
+  // Idempotent check - safe to call multiple times
+  if (!walkthroughState.isActive && !walkthroughState.overlay) {
+    return;
+  }
   
   // CRITICAL: Cancel any pending selector resolution to prevent stale activation
   if (SelectorEngine && typeof SelectorEngine.cancel === 'function') {
@@ -554,15 +578,20 @@ function deactivateWalkthrough(reason = 'complete') {
     console.log('[IG Walkthrough] Cancelled pending selector resolution');
   }
   
-  // Remove all DOM elements
-  removeOverlay();
+  // Remove all DOM elements (check existence before removal)
+  if (walkthroughState.overlay) {
+    walkthroughState.overlay.remove();
+    walkthroughState.overlay = null;
+  }
   removeHighlight();
   removeTooltip();
   hideFailureUI();
   
-  // Remove all event blockers
-  removeInteractionBlockers();
-  removeNavigationBlocker();
+  // Remove all event blockers (check if handlers exist)
+  if (walkthroughState.eventHandlers && walkthroughState.eventHandlers.size > 0) {
+    removeInteractionBlockers();
+    removeNavigationBlocker();
+  }
   
   // Disconnect observers
   if (walkthroughState.targetObserver) {
@@ -577,7 +606,6 @@ function deactivateWalkthrough(reason = 'complete') {
   walkthroughState.stepIndex = -1;
   walkthroughState.targetElement = null;
   walkthroughState.targetSelector = null;
-  walkthroughState.eventHandlers.clear();
   walkthroughState.validationPending = false;
   walkthroughState.collectedData = {};
   walkthroughState.selectorResolution = {
@@ -607,6 +635,13 @@ function createOverlay() {
   const overlay = document.createElement('div');
   overlay.className = WALKTHROUGH_CONFIG.classes.overlay;
   overlay.id = 'ig-walkthrough-overlay';
+  
+  // Tag with ownership for security
+  if (walkthroughState.sessionId) {
+    overlay.dataset.igOwner = walkthroughState.sessionId;
+    overlay.dataset.igType = 'overlay';
+  }
+  
   overlay.style.cssText = `
     position: fixed;
     top: 0;
@@ -636,10 +671,11 @@ function createOverlay() {
       display: flex;
       align-items: center;
       gap: 16px;
-    ">
+    " data-ig-owner="${walkthroughState.sessionId}" data-ig-type="header">
       <div style="display: flex; align-items: center; gap: 8px;">
         <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">IG</div>
         <span style="font-weight: 600; color: #1f2937;">Guided Walkthrough</span>
+        <span style="color: #6b7280; font-size: 11px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">Active</span>
       </div>
       <div id="ig-walkthrough-progress" style="color: #6b7280; font-size: 13px;">Loading...</div>
     </div>
@@ -652,7 +688,7 @@ function createOverlay() {
       transition: all 0.3s ease;
       z-index: ${WALKTHROUGH_CONFIG.zIndex.overlay + 2};
       display: none;
-    "></div>
+    " data-ig-owner="${walkthroughState.sessionId}" data-ig-type="hole"></div>
   `;
   
   document.body.appendChild(overlay);
@@ -664,9 +700,29 @@ function createOverlay() {
 
 function removeOverlay() {
   if (walkthroughState.overlay) {
-    walkthroughState.overlay.remove();
+    // Verify ownership before removing
+    if (walkthroughState.overlay.dataset.igOwner === walkthroughState.sessionId) {
+      walkthroughState.overlay.remove();
+    } else {
+      console.warn('[IG Walkthrough] Overlay ownership mismatch, forcing removal');
+      walkthroughState.overlay.remove();
+    }
     walkthroughState.overlay = null;
   }
+}
+
+// Click-through invariant check
+function assertClickThroughInvariant() {
+  const overlay = document.getElementById('ig-walkthrough-overlay');
+  const hole = document.getElementById('ig-walkthrough-hole');
+  
+  if (overlay && !hole) {
+    console.error('[IG Walkthrough] Click-through invariant violated: overlay exists without hole');
+    hardResetAll();
+    return false;
+  }
+  
+  return true;
 }
 
 /**
@@ -759,9 +815,10 @@ function installStrictKeyboardBlocker() {
   const keyHandler = (event) => {
     if (!walkthroughState.isActive) return;
     
-    // Always allow Escape (for abort request)
+    // UNCONDITIONAL ESCAPE HATCH - always allow abort
     if (event.key === 'Escape') {
-      // Optional: trigger abort confirmation
+      console.log('[IG Walkthrough] Escape pressed - aborting walkthrough');
+      abortWalkthrough();
       return;
     }
     
@@ -812,30 +869,10 @@ function installStrictKeyboardBlocker() {
 function isKeyAllowedForStep(event) {
   if (!walkthroughState.currentStep) return false;
   
-  const action = walkthroughState.currentStep.requiredAction;
+  const action = walkthroughState.currentStep.actionType || walkthroughState.currentStep.requiredAction;
   const target = event.target;
   
   switch (action) {
-    case 'input':
-      // Allow typing in input/textareas when input action required
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-        // Allow printable characters, navigation, editing
-        if (event.key.length === 1 || // Printable
-            ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
-             'Home', 'End', 'Tab', 'Enter'].includes(event.key)) {
-          return true;
-        }
-      }
-      return false;
-      
-    case 'check':
-    case 'select':
-      // Allow Space for checkbox, Enter for select
-      if (target.tagName === 'INPUT' && target.type === 'checkbox' && event.key === ' ') {
-        return true;
-      }
-      return false;
-      
     case 'click':
     case 'submit':
       // Allow Enter/Space for buttons
@@ -844,11 +881,6 @@ function isKeyAllowedForStep(event) {
         return true;
       }
       return false;
-      
-    case 'keypress':
-      // Custom keypress action - check against configured allowed keys
-      const allowedKeys = walkthroughState.currentStep.actionConfig?.allowedKeys || [];
-      return allowedKeys.includes(event.key);
       
     default:
       // For other actions, be restrictive
@@ -1148,71 +1180,104 @@ function isUrlInScope(url, scope) {
 async function activateStep(step, stepIndex) {
   walkthroughState.currentStep = step;
   walkthroughState.stepIndex = stepIndex;
-  walkthroughState.validationPending = false;
   
-  // Reset failure state
-  walkthroughState.failureState = {
-    type: null,
-    retryCount: 0,
-    maxRetries: step.onFailure?.maxRetries || 3,
-    lastError: null,
-    isRecovering: false
-  };
+  console.log('[IG Walkthrough] Activating step:', step.title, 'index:', stepIndex);
   
   // Hide any previous failure UI
   hideFailureUI();
   
-  // Resolve target using robust selector engine
+  // ENSURE OVERLAY EXISTS FOR ANY STEP - this must happen first
+  // Check teardown guard to prevent race between resolution and render
+  if (window.__ig_content_script?.teardownInProgress) {
+    console.warn('[IG Walkthrough] Teardown in progress, aborting overlay creation');
+    return false;
+  }
+  
+  console.log('[IG Walkthrough] Creating overlay shell');
+  createOverlay();
+  
+  // Install blockers after overlay is created
+  installInteractionBlockers();
+  installNavigationBlocker(step.urlScope?.value);
+  
+  // ALWAYS RENDER TOOLTIP FIRST - every step needs visual feedback
+  const isFloating = !step?.targetSelectors?.primary?.value && !step?.targetSelector;
+  console.log('[IG Walkthrough] Rendering tooltip for step', stepIndex, isFloating ? '(floating)' : '(targeted)');
+  const tooltip = renderTooltip(step, stepIndex, isFloating);
+  
+  // Update progress UI
+  updateProgressUI(step, stepIndex);
+  
+  // VALIDATE STEP DATA BEFORE PROCEEDING
+  if (isFloating) {
+    // Step has no selector - floating tooltip
+    console.log('[IG Walkthrough] Floating step — centered tooltip');
+    positionTooltipCentered(tooltip);
+    
+    console.log('[IG Walkthrough] Floating step activated:', step.title);
+    return true;
+  }
+  
+  // TARGETED STEP: Resolve target using robust selector engine
   const selectorSet = step.targetSelectors || {
     primary: { type: 'css_path', value: step.targetSelector },
     fallbacks: (step.targetAlternatives || []).map(s => ({ type: 'css_path', value: s }))
   };
   
-  updateProgressUI(step, stepIndex);
+  console.log('[IG Walkthrough] Using selector set:', selectorSet);
   
   // Pass stepId for cancellation token
   const resolution = await SelectorEngine.resolve(selectorSet, document, step.id);
   
   if (!resolution.success) {
-    // Target not found after all retries
-    handleStepFailure('ELEMENT_NOT_FOUND', {
-      selector: step.targetSelector,
-      attempts: resolution.attempts,
-      suggestions: resolution.suggestions
-    });
-    return;
+    // LOUD FAILURE: Step target not found
+    console.error('[IG Walkthrough] CRITICAL: Step target not found - walkthrough cannot continue');
+    console.error('[IG Walkthrough] Step:', step);
+    console.error('[IG Walkthrough] Selector set:', selectorSet);
+    console.error('[IG Walkthrough] Resolution attempts:', resolution.attempts);
+    console.error('[IG Walkthrough] Page URL:', window.location.href);
+    console.error('[IG Walkthrough] Page title:', document.title);
+    
+    // Notify background of failure
+    try {
+      chrome.runtime.sendMessage({
+        type: 'WALKTHROUGH_ABORT',
+        reason: 'STEP_TARGET_NOT_FOUND',
+        details: {
+          stepId: step.id,
+          selectorSet: selectorSet,
+          attempts: resolution.attempts,
+          url: window.location.href
+        }
+      });
+    } catch (msgError) {
+      console.error('[IG Walkthrough] Failed to notify background of step failure:', msgError);
+    }
+    
+    // Force walkthrough abort
+    abortWalkthrough('STEP_TARGET_NOT_FOUND');
+    return false;
   }
   
-  const target = resolution.element;
-  walkthroughState.targetElement = target;
+  // SUCCESS: Target found
+  walkthroughState.targetElement = resolution.element;
   walkthroughState.targetSelector = resolution.selectorUsed;
   
-  // Log successful resolution for debug
-  logDebugEvent('target_resolved', {
-    stepId: step.id,
-    selector: resolution.selectorUsed,
-    timeMs: resolution.totalTimeMs,
-    attempts: resolution.attempts.length
-  });
+  // Position tooltip near target
+  positionTooltipNearTarget(tooltip, resolution.element);
   
   // Highlight target
-  highlightTarget(target, step.ui?.highlightStyle || 'pulse');
+  highlightTarget(resolution.element);
+  updateHolePosition(resolution.element);
   
-  // Update overlay hole
-  updateHolePosition(target);
+  // Assert click-through invariant
+  assertClickThroughInvariant();
   
-  // Scroll target into view
-  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Start monitoring target
+  startTargetMonitoring(resolution.element);
   
-  // Show tooltip
-  if (step.ui?.showTooltip !== false) {
-    showTooltip(target, step);
-  }
-  
-  // Setup target monitoring
-  startTargetMonitoring(target);
-  
-  console.log('[IG Walkthrough] Step activated:', step.title);
+  console.log('[IG Walkthrough] Targeted step activated:', step.title);
+  return true;
 }
 
 /**
@@ -1390,7 +1455,135 @@ function startTargetWatcher(step) {
 // TOOLTIP SYSTEM
 // ============================================================================
 
-function showTooltip(target, step) {
+function renderTooltip(step, stepIndex, isFloating = false) {
+  removeTooltip();
+  
+  const tooltip = document.createElement('div');
+  tooltip.className = WALKTHROUGH_CONFIG.classes.tooltip;
+  tooltip.id = 'ig-walkthrough-tooltip';
+  
+  const content = step.ui?.tooltipContent || buildDefaultTooltipContent(step);
+  
+  const maxWidth = isFloating ? '400px' : '360px';
+  
+  tooltip.innerHTML = `
+    <div style="
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      max-width: ${maxWidth};
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+    ">
+      <div style="padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div style="
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+          ">${stepIndex + 1}</div>
+          <div style="font-weight: 600; font-size: 16px; color: #1f2937;">${step.title || 'Step ' + (stepIndex + 1)}</div>
+        </div>
+        <div style="color: #4b5563; line-height: 1.6;">${content}</div>
+        
+        ${step.description ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">${step.description}</div>` : ''}
+      </div>
+      
+      <div style="
+        background: #f9fafb;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #e5e7eb;
+      ">
+        <div style="font-size: 12px; color: #9ca3af;">
+          Step ${stepIndex + 1} of ${step.totalSteps || '?'}
+        </div>
+        ${isFloating ? `
+          <div style="display: flex; gap: 8px;">
+            <button id="ig-walkthrough-skip" style="
+              padding: 6px 12px;
+              background: #f3f4f6;
+              border: 1px solid #d1d5db;
+              border-radius: 6px;
+              color: #6b7280;
+              font-size: 12px;
+              cursor: pointer;
+            ">Skip</button>
+            <button id="ig-walkthrough-continue" style="
+              padding: 6px 12px;
+              background: #4f46e5;
+              border: none;
+              border-radius: 6px;
+              color: white;
+              font-size: 12px;
+              font-weight: 500;
+              cursor: pointer;
+            ">Continue</button>
+          </div>
+        ` : `
+          <button id="ig-walkthrough-exit" style="
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            color: #6b7280;
+            font-size: 12px;
+            cursor: pointer;
+          ">Exit Walkthrough</button>
+        `}
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(tooltip);
+  walkthroughState.tooltipElement = tooltip;
+  
+  // Add event handlers
+  if (isFloating) {
+    const skipBtn = tooltip.querySelector('#ig-walkthrough-skip');
+    const continueBtn = tooltip.querySelector('#ig-walkthrough-continue');
+    
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({
+          type: 'WALKTHROUGH_ABORT',
+          reason: 'USER_SKIP'
+        });
+      });
+    }
+    
+    if (continueBtn) {
+      continueBtn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({
+          type: 'STEP_ADVANCE'
+        });
+      });
+    }
+  } else {
+    const exitBtn = tooltip.querySelector('#ig-walkthrough-exit');
+    if (exitBtn) {
+      exitBtn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({
+          type: 'WALKTHROUGH_ABORT',
+          reason: 'USER_EXIT'
+        });
+      });
+    }
+  }
+  
+  return tooltip;
+}
+
+function showFloatingTooltip(step) {
   removeTooltip();
   
   const tooltip = document.createElement('div');
@@ -1404,7 +1597,7 @@ function showTooltip(target, step) {
       background: white;
       border-radius: 12px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-      max-width: 360px;
+      max-width: 400px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       overflow: hidden;
     ">
@@ -1440,15 +1633,27 @@ function showTooltip(target, step) {
         <div style="font-size: 12px; color: #9ca3af;">
           Step ${walkthroughState.stepIndex + 1} of ${step.totalSteps || '?'}
         </div>
-        <button id="ig-walkthrough-exit" style="
-          padding: 6px 12px;
-          background: transparent;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          color: #6b7280;
-          font-size: 12px;
-          cursor: pointer;
-        ">Exit Walkthrough</button>
+        <div style="display: flex; gap: 8px;">
+          <button id="ig-walkthrough-skip" style="
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            color: #6b7280;
+            font-size: 12px;
+            cursor: pointer;
+          ">Skip</button>
+          <button id="ig-walkthrough-continue" style="
+            padding: 6px 12px;
+            background: #4f46e5;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+          ">Continue</button>
+        </div>
       </div>
     </div>
   `;
@@ -1456,25 +1661,71 @@ function showTooltip(target, step) {
   document.body.appendChild(tooltip);
   walkthroughState.tooltipElement = tooltip;
   
-  // Position tooltip
-  positionTooltip(target, tooltip);
+  // Center the tooltip on screen
+  positionFloatingTooltip(tooltip);
   
-  // Add exit handler
-  tooltip.querySelector('#ig-walkthrough-exit')?.addEventListener('click', () => {
-    chrome.runtime.sendMessage({
-      type: 'WALKTHROUGH_ABORT',
-      reason: 'USER_EXIT'
+  // Add event handlers
+  const skipBtn = tooltip.querySelector('#ig-walkthrough-skip');
+  const continueBtn = tooltip.querySelector('#ig-walkthrough-continue');
+  
+  if (skipBtn) {
+    skipBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({
+        type: 'WALKTHROUGH_ABORT',
+        reason: 'USER_SKIP'
+      });
     });
-  });
-}
-
-function removeTooltip() {
-  if (walkthroughState.tooltipElement) {
-    walkthroughState.tooltipElement.remove();
-    walkthroughState.tooltipElement = null;
+  }
+  
+  if (continueBtn) {
+    continueBtn.addEventListener('click', () => {
+      // Advance to next step
+      chrome.runtime.sendMessage({
+        type: 'STEP_ADVANCE'
+      });
+    });
   }
 }
 
+function positionTooltipCentered(tooltip) {
+  // Center horizontally and position near top of viewport
+  const rect = tooltip.getBoundingClientRect();
+  tooltip.style.position = 'fixed';
+  tooltip.style.top = '20%';
+  tooltip.style.left = '50%';
+  tooltip.style.transform = 'translateX(-50%)';
+  tooltip.style.zIndex = WALKTHROUGH_CONFIG.zIndex.tooltip;
+}
+
+function positionTooltipNearTarget(tooltip, target) {
+  const targetRect = target.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  
+  const scrollX = window.scrollX || window.pageXOffset;
+  const scrollY = window.scrollY || window.pageYOffset;
+  
+  // Try right side first
+  let left = targetRect.right + scrollX + 16;
+  let top = targetRect.top + scrollY;
+  
+  // Check if off-screen right
+  if (left + 360 > window.innerWidth + scrollX) {
+    // Position to left
+    left = targetRect.left + scrollX - 376;
+  }
+  
+  // Check if off-screen bottom
+  if (top + tooltipRect.height > window.innerHeight + scrollY) {
+    top = window.innerHeight + scrollY - tooltipRect.height - 16;
+  }
+  
+  tooltip.style.cssText += `
+    position: absolute;
+    left: ${left}px;
+    top: ${top}px;
+    z-index: ${WALKTHROUGH_CONFIG.zIndex.tooltip};
+  `;
+}
 function buildDefaultTooltipContent(step) {
   const actionDescriptions = {
     'click': 'Click on the highlighted element',
@@ -1487,7 +1738,7 @@ function buildDefaultTooltipContent(step) {
     'custom': 'Complete the required action'
   };
   
-  return `<p style="margin: 0;">${actionDescriptions[step.requiredAction] || 'Complete the required action'}</p>`;
+  return `<p style="margin: 0;">${step.instruction || actionDescriptions[step.actionType] || 'Complete the required action'}</p>`;
 }
 
 function positionTooltip(target, tooltip) {
@@ -1525,6 +1776,7 @@ function positionTooltip(target, tooltip) {
 // ============================================================================
 
 function checkEventMatchesAction(event, requiredAction) {
+  const action = walkthroughState.currentStep?.actionType || walkthroughState.currentStep?.requiredAction || requiredAction;
   const eventActionMap = {
     'click': ['click'],
     'input': ['input', 'keydown'],
@@ -1535,7 +1787,7 @@ function checkEventMatchesAction(event, requiredAction) {
     'keypress': ['keydown']
   };
   
-  const allowedEvents = eventActionMap[requiredAction] || [];
+  const allowedEvents = eventActionMap[action] || [];
   return allowedEvents.includes(event.type);
 }
 
@@ -1639,7 +1891,7 @@ function reportBlockedNavigation(url) {
 function updateProgressUI(step, stepIndex) {
   const progressEl = document.getElementById('ig-walkthrough-progress');
   if (progressEl) {
-    progressEl.textContent = `Step ${stepIndex + 1}: ${step.title}`;
+    progressEl.textContent = `Step ${stepIndex + 1}: ${step.instruction || 'Step ' + (stepIndex + 1)}`;
   }
 }
 
@@ -1887,11 +2139,16 @@ function skipCurrentStep() {
 }
 
 function abortWalkthrough() {
-  hideFailureUI();
+  console.log('[IG Walkthrough] Aborting walkthrough');
+  
+  // Notify background of abort
   chrome.runtime.sendMessage({
     type: 'WALKTHROUGH_ABORT',
-    reason: 'USER_ABORT_FAILURE'
+    reason: 'USER_ABORT'
   });
+  
+  // Clean up overlay
+  deactivateWalkthrough('abort');
 }
 
 function adminBypassStep() {
@@ -2301,6 +2558,11 @@ function setupWalkthroughMessageHandlers() {
 
 // Initialize message handlers
 setupWalkthroughMessageHandlers();
+
+// Expose functions to global scope for content script
+window.activateWalkthrough = activateWalkthrough;
+window.deactivateWalkthrough = deactivateWalkthrough;
+window.activateStep = activateStep;
 
 // Export for module use
 if (typeof module !== 'undefined' && module.exports) {

@@ -7,11 +7,17 @@ class AuthoringToolbar {
   constructor() {
     this.element = null;
     this.isVisible = false;
+    this.isMinimized = false;
     this.walkthroughList = [];
+    this.currentWalkthrough = null;
     this.onCreateClick = null;
     this.onEditClick = null;
     this.onPublishClick = null;
     this.onTestClick = null;
+    this.onDeleteClick = null;
+    this.onStepEdit = null;
+    this.onStepDelete = null;
+    this.onStepReorder = null;
   }
 
   show() {
@@ -60,18 +66,33 @@ class AuthoringToolbar {
           <div style="font-weight: 600; font-size: 15px;">Authoring Mode</div>
           <div style="font-size: 12px; opacity: 0.9;">Create walkthroughs</div>
         </div>
-        <button id="ig-toolbar-close" style="
-          margin-left: auto;
-          background: none;
-          border: none;
-          color: white;
-          font-size: 20px;
-          cursor: pointer;
-          padding: 4px;
-        ">×</button>
+        <div style="margin-left: auto; display: flex; gap: 4px;">
+          <button id="ig-toolbar-minimize" style="
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">−</button>
+          <button id="ig-toolbar-close" style="
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+          ">×</button>
+        </div>
       </div>
       
-      <div style="padding: 16px;">
+      <div id="ig-toolbar-content" style="padding: 16px;">
         <button id="ig-create-walkthrough" style="
           width: 100%;
           padding: 12px;
@@ -85,6 +106,87 @@ class AuthoringToolbar {
           margin-bottom: 16px;
         ">
           + Create New Walkthrough
+        </button>
+        
+        <button id="ig-publish-walkthrough" style="
+          width: 100%;
+          padding: 12px;
+          background: #22c55e;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 14px;
+          margin-bottom: 16px;
+          display: none;
+        ">
+          ✅ Publish Walkthrough
+        </button>
+        
+        <button id="ig-exit-admin" style="
+          width: 100%;
+          padding: 12px;
+          background: #ef4444;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 14px;
+          margin-bottom: 16px;
+        ">
+          🚪 Exit Admin Mode
+        </button>
+        
+        <div id="ig-steps-overview" style="
+          display: none;
+          margin-bottom: 16px;
+        ">
+          <div style="
+            font-weight: 600;
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          ">
+            <span>Steps Overview</span>
+            <button id="ig-close-steps" style="
+              background: none;
+              border: none;
+              color: #6b7280;
+              cursor: pointer;
+              padding: 2px;
+              font-size: 16px;
+            ">×</button>
+          </div>
+          <div id="ig-steps-list" style="
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 8px;
+            background: #f9fafb;
+          ">
+            <!-- Steps will be listed here -->
+          </div>
+        </div>
+        
+        <button id="ig-view-steps" style="
+          width: 100%;
+          padding: 10px;
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 13px;
+          margin-bottom: 16px;
+          display: none;
+        ">
+          📋 View All Steps
         </button>
         
         <div id="ig-walkthrough-list" style="
@@ -110,15 +212,7 @@ class AuthoringToolbar {
     document.body.appendChild(this.element);
     this.isVisible = true;
 
-    // Event listeners
-    this.element.querySelector('#ig-toolbar-close').addEventListener('click', () => {
-      this.hide();
-    });
-
-    this.element.querySelector('#ig-create-walkthrough').addEventListener('click', () => {
-      this.showCreateModal();
-    });
-
+    // Note: Close button listener is added by AuthoringController.showAuthoringToolbar()
     console.log('[IG Toolbar] Admin toolbar shown');
   }
 
@@ -128,9 +222,179 @@ class AuthoringToolbar {
       this.isVisible = false;
     }
   }
+  
+  minimize() {
+    const content = this.element?.querySelector('#ig-toolbar-content');
+    const minimizeBtn = this.element?.querySelector('#ig-toolbar-minimize');
+    
+    if (content && minimizeBtn) {
+      content.style.display = 'none';
+      minimizeBtn.textContent = '+';
+      this.isMinimized = true;
+      
+      // Shrink toolbar
+      if (this.element) {
+        this.element.style.minWidth = '200px';
+        this.element.style.maxWidth = '200px';
+      }
+    }
+  }
+  
+  restore() {
+    const content = this.element?.querySelector('#ig-toolbar-content');
+    const minimizeBtn = this.element?.querySelector('#ig-toolbar-minimize');
+    
+    if (content && minimizeBtn) {
+      content.style.display = 'block';
+      minimizeBtn.textContent = '−';
+      this.isMinimized = false;
+      
+      // Restore toolbar size
+      if (this.element) {
+        this.element.style.minWidth = '280px';
+        this.element.style.maxWidth = '360px';
+      }
+    }
+  }
+  
+  toggleMinimize() {
+    if (this.isMinimized) {
+      this.restore();
+    } else {
+      this.minimize();
+    }
+  }
+
+  setCurrentWalkthrough(walkthrough) {
+    this.currentWalkthrough = walkthrough;
+    
+    // Show/hide create button based on whether we have an active walkthrough
+    const createBtn = this.element?.querySelector('#ig-create-walkthrough');
+    if (createBtn) {
+      createBtn.style.display = walkthrough ? 'none' : 'block';
+    }
+    
+    // Show/hide publish button based on whether we have an active walkthrough
+    const publishBtn = this.element?.querySelector('#ig-publish-walkthrough');
+    if (publishBtn) {
+      publishBtn.style.display = walkthrough && walkthrough.steps?.length > 0 ? 'block' : 'none';
+    }
+    
+    // Show/hide steps button based on whether we have an active walkthrough
+    const viewStepsBtn = this.element?.querySelector('#ig-view-steps');
+    if (viewStepsBtn) {
+      viewStepsBtn.style.display = walkthrough && walkthrough.steps?.length > 0 ? 'block' : 'none';
+    }
+    
+    // Update steps list if visible
+    this.renderStepsList();
+  }
+  
+  showStepsOverview() {
+    const overview = this.element?.querySelector('#ig-steps-overview');
+    const viewBtn = this.element?.querySelector('#ig-view-steps');
+    
+    if (overview) {
+      overview.style.display = 'block';
+      if (viewBtn) viewBtn.style.display = 'none';
+      this.renderStepsList();
+    }
+  }
+  
+  hideStepsOverview() {
+    const overview = this.element?.querySelector('#ig-steps-overview');
+    const viewBtn = this.element?.querySelector('#ig-view-steps');
+    
+    if (overview) {
+      overview.style.display = 'none';
+      if (viewBtn && this.currentWalkthrough?.steps?.length > 0) {
+        viewBtn.style.display = 'block';
+      }
+    }
+  }
+  
+  renderStepsList() {
+    const container = this.element?.querySelector('#ig-steps-list');
+    if (!container || !this.currentWalkthrough) return;
+    
+    const steps = this.currentWalkthrough.steps || [];
+    
+    if (steps.length === 0) {
+      container.innerHTML = '<div style="color: #9ca3af; font-style: italic; text-align: center; padding: 20px;">No steps created yet</div>';
+      return;
+    }
+    
+    container.innerHTML = steps.map((step, index) => {
+      const isMultiField = step.isMultiField;
+      const fieldCount = isMultiField ? step.fields?.length || 0 : 0;
+      
+      return `
+        <div style="
+          padding: 8px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          margin-bottom: 6px;
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; font-size: 13px; color: #1f2937;">
+                Step ${index + 1}
+                ${isMultiField ? ` (${fieldCount} fields)` : ''}
+              </div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                ${step.instruction?.substring(0, 50) || 'No instruction'}${step.instruction?.length > 50 ? '...' : ''}
+              </div>
+              ${isMultiField ? `
+                <div style="font-size: 11px; color: #4f46e5; margin-top: 2px;">
+                  Fields: ${step.fields?.map(f => f.name).join(', ') || 'Unnamed'}
+                </div>
+              ` : ''}
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <button class="ig-step-edit" data-index="${index}" style="
+                padding: 4px 8px;
+                background: #4f46e5;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 11px;
+                cursor: pointer;
+              ">Edit</button>
+              <button class="ig-step-delete" data-index="${index}" style="
+                padding: 4px 8px;
+                background: #ef4444;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 11px;
+                cursor: pointer;
+              ">×</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Add event listeners
+    container.querySelectorAll('.ig-step-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.dataset.index);
+        if (this.onStepEdit) this.onStepEdit(index);
+      });
+    });
+    
+    container.querySelectorAll('.ig-step-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.dataset.index);
+        if (this.onStepDelete) this.onStepDelete(index);
+      });
+    });
+  }
 
   setWalkthroughList(walkthroughs) {
-    this.walkthroughList = walkthroughs;
+    console.log('[IG Toolbar] Setting walkthrough list:', walkthroughs);
+    this.walkthroughList = walkthroughs.all || walkthroughs.drafts || [];
     this.renderWalkthroughList();
   }
 
@@ -205,6 +469,16 @@ class AuthoringToolbar {
                 font-size: 12px;
                 cursor: pointer;
               ">Publish</button>
+              <button class="ig-btn-delete" data-id="${w.walkthroughId}" style="
+                flex: 1;
+                padding: 6px;
+                background: white;
+                border: 1px solid #ef4444;
+                border-radius: 6px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #ef4444;
+              ">Delete</button>
             ` : `
               <button class="ig-btn-test" data-id="${w.walkthroughId}" style="
                 flex: 1;
@@ -241,6 +515,12 @@ class AuthoringToolbar {
     container.querySelectorAll('.ig-btn-publish').forEach(btn => {
       btn.addEventListener('click', () => {
         if (this.onPublishClick) this.onPublishClick(btn.dataset.id);
+      });
+    });
+
+    container.querySelectorAll('.ig-btn-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (this.onDeleteClick) this.onDeleteClick(btn.dataset.id);
       });
     });
 

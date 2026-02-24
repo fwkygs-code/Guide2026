@@ -26,6 +26,8 @@ const WalkthroughMessageType = {
   WALKTHROUGH_RESUME: 'walkthrough_resume',
   WALKTHROUGH_ABORT: 'walkthrough_abort',
   WALKTHROUGH_COMPLETE: 'walkthrough_complete',
+  ACTIVATE_OVERLAY: 'ACTIVATE_OVERLAY',
+  DEACTIVATE_OVERLAY: 'DEACTIVATE_OVERLAY',
   STEP_ADVANCE: 'step_advance',
   STEP_BACK: 'step_back',
   STEP_VALIDATE: 'step_validate',
@@ -44,16 +46,19 @@ const WalkthroughMessageType = {
 
 class WalkthroughStateMachine {
   constructor() {
-    // Core state - ONLY ONE WALKTHROUGH CAN BE ACTIVE
+    this.STORAGE_KEY_SESSION = 'ig_walkthrough_session';
+    this.STORAGE_KEY_STATE = 'ig_walkthrough_state';
+    
+    // Bind methods to preserve context
+    this._sendToContentScript = this._sendToContentScript.bind(this);
+    
     this.activeSession = null;
+    this.activeTabId = null;
     this.sessionState = WalkthroughState.IDLE;
     this.currentStepIndex = -1;
     this.currentStepState = StepState.PENDING;
     this.currentStepId = null;
-    this.activeTabId = null;
     this.isValidating = false;
-    this.STORAGE_KEY_SESSION = 'ig_walkthrough_session';
-    this.STORAGE_KEY_STATE = 'ig_walkthrough_state';
     this.rejectedCommands = [];
     
     // Load persisted session on init
@@ -62,6 +67,15 @@ class WalkthroughStateMachine {
   
   get isWalkthroughActive() {
     return this.sessionState === WalkthroughState.ACTIVE && this.activeSession !== null;
+  }
+  
+  getStatus() {
+    return {
+      active: this.isWalkthroughActive,
+      walkthrough: this.activeSession?.walkthrough || null,
+      progress: this.progress,
+      sessionId: this.activeSession?.id || null
+    };
   }
   
   get currentStep() {
@@ -85,35 +99,50 @@ class WalkthroughStateMachine {
   }
   
   async startWalkthrough(walkthrough, tabId) {
-    if (this.isWalkthroughActive) {
-      return {
-        success: false,
-        error: 'WALKTHROUGH_ALREADY_ACTIVE',
-        message: 'Only one walkthrough can be active at a time',
-        currentProgress: this.progress
-      };
+    // Enforce state transitions: IDLE → STARTING → ACTIVE
+    if (this.sessionState !== WalkthroughState.IDLE) {
+      console.warn('[IG Walkthrough] Cannot start walkthrough: invalid state transition from', this.sessionState, 'to STARTING');
+      return { success: false, error: 'INVALID_STATE_TRANSITION' };
     }
     
-    if (!walkthrough?.steps?.length) {
-      return {
-        success: false,
-        error: 'INVALID_WALKTHROUGH',
-        message: 'Walkthrough must have at least one step'
-      };
+    this.sessionState = WalkthroughState.STARTING;
+    
+    // Generate session nonce for this walkthrough
+    const activeSessionId = walkthrough.id || crypto.randomUUID();
+    const activeSessionNonce = crypto.randomUUID();
+    
+    console.log('[Background] Starting walkthrough:', walkthrough);
+    console.log('[Background] Steps:', walkthrough.steps);
+    console.log('[Background] Session ID:', activeSessionId);
+    console.log('[Background] Session Nonce:', activeSessionNonce);
+    
+    // Enforce session TTL (60 seconds maximum)
+    const sessionTTL = setTimeout(() => {
+      if (this.sessionState !== WalkthroughState.IDLE && this.activeSession?.id === activeSessionId) {
+        console.warn('[IG Walkthrough] Session TTL expired, aborting');
+        this.abortWalkthrough('SESSION_TTL_EXPIRED');
+      }
+    }, 60000); // 60 seconds
+    
+    // Prevent multiple sessions
+    if (this.activeSession) {
+      await this.abortWalkthrough('MULTIPLE_START_ATTEMPT');
     }
     
     this.activeSession = {
-      id: crypto.randomUUID(),
+      id: activeSessionId,
       walkthrough: walkthrough,
-      tabId: tabId,
+      progress: { currentStep: 0, completed: false },
       startedAt: Date.now(),
-      completedSteps: [],
-      collectedData: {}
+      sessionId: activeSessionId,
+      sessionNonce: activeSessionNonce,
+      ttlTimeout: sessionTTL
     };
     
-    this.sessionState = WalkthroughState.ACTIVE;
     this.activeTabId = tabId;
+    this.sessionState = WalkthroughState.ACTIVE;
     
+    // Enter first step
     await this._enterStep(0);
     await this._persistSession();
     
@@ -121,6 +150,22 @@ class WalkthroughStateMachine {
       type: WalkthroughMessageType.ACTIVATE_OVERLAY,
       session: this._getSessionSnapshot(),
       step: this.currentStep
+    });
+    
+    console.log('[IG Walkthrough] Sent ACTIVATE_OVERLAY to tab:', tabId);
+    console.log('[IG Walkthrough] Session snapshot:', this._getSessionSnapshot());
+    console.log('[IG Walkthrough] Current step:', JSON.stringify(this.currentStep, null, 2));
+    
+    // Also try sending via runtime.sendMessage as fallback
+    chrome.tabs.sendMessage(tabId, {
+      type: 'ACTIVATE_OVERLAY',
+      session: this._getSessionSnapshot(),
+      step: this.currentStep
+    }, (response) => {
+      console.log('[IG Walkthrough] Runtime sendMessage response:', response);
+      if (chrome.runtime.lastError) {
+        console.error('[IG Walkthrough] Runtime sendMessage error:', chrome.runtime.lastError);
+      }
     });
     
     console.log('[IG Walkthrough] Started:', this.activeSession.id);
@@ -236,7 +281,7 @@ class WalkthroughStateMachine {
   }
   
   shouldRejectCommand(commandType) {
-    const systemCommands = ['PING', 'GET_BINDING_STATUS', 'TOKEN_BOUND', 'TOKEN_UNBOUND', 'TOKEN_REVOKED'];
+    const systemCommands = ['PING', 'GET_BINDING_STATUS', 'TOKEN_BOUND', 'TOKEN_UNBOUND', 'TOKEN_REVOKED', 'GET_AVAILABLE_GUIDE', 'RESOLVE_TARGETS'];
     const walkthroughCommands = Object.values(WalkthroughMessageType);
     
     if (systemCommands.includes(commandType) || walkthroughCommands.includes(commandType)) {
@@ -375,15 +420,106 @@ class WalkthroughStateMachine {
   
   async _sendToContentScript(tabId, message) {
     try {
-      await chrome.tabs.sendMessage(tabId, message);
+      console.log('[IG Walkthrough] Sending message to tab', tabId, ':', message.type);
+      
+      // Add timeout to prevent hanging on dead content scripts
+      const CONTENT_TIMEOUT = 3000;
+      const response = await Promise.race([
+        chrome.tabs.sendMessage(tabId, message),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('CONTENT_NO_RESPONSE')), CONTENT_TIMEOUT)
+        )
+      ]);
+      
+      console.log('[IG Walkthrough] Message response:', response);
+      return response;
     } catch (e) {
       console.warn('[IG Walkthrough] Failed to send to tab', tabId, e.message);
+      
+      // Mark tab as invalid on communication failure
+      if (e.message === 'CONTENT_NO_RESPONSE') {
+        console.error('[IG Walkthrough] Content script not responding - marking tab invalid');
+        // Abort any active walkthrough for this tab
+        if (walkthroughSM.activeTabId === tabId) {
+          await walkthroughSM.abortWalkthrough('CONTENT_SCRIPT_DEAD');
+        }
+      }
+      
+      return null;
     }
   }
 }
 
 // Initialize state machine
 const walkthroughSM = new WalkthroughStateMachine();
+
+// Wrap the original method to ensure all calls are protected
+// Safety check to prevent Status 15 if class isn't loaded
+const originalSendToContentScript = (
+  typeof WalkthroughStateMachine !== 'undefined' &&
+  WalkthroughStateMachine.prototype &&
+  WalkthroughStateMachine.prototype._sendToContentScript
+) ? WalkthroughStateMachine.prototype._sendToContentScript : null;
+
+// Apply wrapper only if original method exists
+if (originalSendToContentScript) {
+  WalkthroughStateMachine.prototype._sendToContentScript = async function(tabId, message) {
+    // Add session nonce to message for authentication
+    if (activeSessionNonce && !message.sessionId) {
+      message.sessionId = activeSessionId;
+      message.sessionNonce = activeSessionNonce;
+    }
+    
+    return withTimeout(originalSendToContentScript.call(this, tabId, message), 3000);
+  };
+}
+
+// Session nonce for message authentication
+let activeSessionId = null;
+let activeSessionNonce = null;
+
+function generateSessionNonce() {
+  // Use timestamp + random for MV3 compatibility
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2);
+  return timestamp + random;
+}
+
+// Timeout wrapper for all content script communications
+async function withTimeout(promise, timeoutMs = 3000, error = 'CONTENT_NO_RESPONSE') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(error)), timeoutMs)
+    )
+  ]);
+}
+
+// Message allowlist for security
+const ALLOWED_MESSAGE_TYPES = new Set([
+  'PING',
+  'GET_AVAILABLE_GUIDE',
+  'GET_WALKTHROUGHS',
+  'GET_WALKTHROUGH_STATUS',
+  'GET_WALKTHROUGH_PROGRESS',
+  'WALKTHROUGH_START',
+  'WALKTHROUGH_ABORT',
+  'WALKTHROUGH_COMPLETE',
+  'ACTIVATE_OVERLAY',
+  'DEACTIVATE_OVERLAY',
+  'STEP_ADVANCE',
+  'STEP_RETRY',
+  'STATE_UPDATE',
+  'GET_BINDING_STATUS',
+  'RESOLVE_TARGETS',
+  'CLEAR_PICKER',
+  'START_PICKER',
+  'STOP_PICKER',
+  'REHIGHLIGHT_ELEMENT',
+  'ENTER_AUTHORING_MODE',
+  'EDIT_WALKTHROUGH',
+  'TEST_WALKTHROUGH'
+]);
 
 const API_BASE = 'https://api.interguide.app/api';
 const STORAGE_KEY_TOKEN = 'ig_binding_token';
@@ -517,6 +653,59 @@ async function getWalkthroughs() {
   }
 }
 
+// URL normalization for discovery matching
+function normalize(url) {
+  try {
+    const u = new URL(url);
+    return u.origin + u.pathname.replace(/\/$/, '');
+  } catch {
+    return url;
+  }
+}
+
+// Get available walkthroughs for user mode (no auth required)
+async function getAvailableWalkthroughs(url) {
+  try {
+    // For now, check local storage for published walkthroughs
+    // In production, this would call a public API endpoint
+    const stored = await chrome.storage.local.get(['ig_published_walkthroughs']);
+    const published = stored.ig_published_walkthroughs || {};
+    console.log('[Background] All published walkthroughs:', published);
+    console.log('[Background] Current URL:', url);
+    
+    // Convert to array and filter by URL
+    const walkthroughs = Object.values(published).filter(w => {
+      console.log('[Background] Checking walkthrough:', w.name, 'status:', w.status, 'startUrl:', w.startUrl);
+      if (!w.status || w.status !== 'published') return false;
+      
+      // Check if walkthrough startUrl matches current URL using normalized equality
+      if (w.startUrl) {
+        const normalizedCurrentUrl = normalize(url);
+        const normalizedWalkthroughUrl = normalize(w.startUrl);
+        
+        console.log('[Background] Normalized URLs:', {
+          current: normalizedCurrentUrl,
+          walkthrough: normalizedWalkthroughUrl,
+          match: normalizedCurrentUrl === normalizedWalkthroughUrl
+        });
+        
+        if (normalizedCurrentUrl === normalizedWalkthroughUrl) {
+          return true;
+        }
+      }
+      
+      // No fallback to step-based matching in user discovery - too dangerous
+      return false;
+    });
+    
+    console.log('[Background] Matching walkthroughs found:', walkthroughs.length, walkthroughs);
+    return walkthroughs;
+  } catch (error) {
+    console.error('[IG Background] Available walkthroughs error:', error);
+    return [];
+  }
+}
+
 // Create a new extension target
 async function createTarget(targetData) {
   try {
@@ -590,11 +779,23 @@ async function deleteTarget(targetId) {
 
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || !message.type) return false;
+  console.log('[Background] === MESSAGE RECEIVED ===', message.type);
+  console.log('[Background] Full message:', message);
+  console.log('[Background] Sender:', sender);
+  
+  // Test handler
+  if (message.type === 'PING') {
+    console.log('[Background] PING received, sending PONG');
+    sendResponse({ type: 'PONG', timestamp: Date.now() });
+    return true;
+  }
+
+  
+  if (!message?.type) return false;
   
   // WALKTHROUGH COMMAND REJECTION: Check if non-walkthrough commands should be rejected
   if (!message.type.startsWith('WALKTHROUGH') && 
-      !['PING', 'GET_BINDING_STATUS', 'TOKEN_BOUND', 'TOKEN_UNBOUND', 'TOKEN_REVOKED'].includes(message.type)) {
+      !['PING', 'GET_BINDING_STATUS', 'TOKEN_BOUND', 'TOKEN_UNBOUND', 'TOKEN_REVOKED', 'GET_AVAILABLE_GUIDE', 'RESOLVE_TARGETS', 'WALKTHROUGH_START', 'GET_WALKTHROUGH_STATUS', 'GET_WALKTHROUGH_PROGRESS'].includes(message.type)) {
     const rejection = walkthroughSM.shouldRejectCommand(message.type);
     if (rejection.rejected) {
       console.warn('[IG Walkthrough] Command rejected:', message.type, rejection.error);
@@ -614,40 +815,191 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // WALKTHROUGH ENGINE MESSAGES
       // =========================================================================
       
+      case 'GET_WALKTHROUGHS':
+        // Content script OR popup requesting walkthrough data
+        // Uses binding token auth via /extension/walkthroughs endpoint
+        try {
+          const walkthroughData = await getWalkthroughs();
+          sendResponse(walkthroughData);
+        } catch (error) {
+          sendResponse({ error: error.message });
+        }
+        break;
+        
+      case 'GET_AVAILABLE_GUIDE':
+        // User mode: Check for available walkthroughs for current URL
+        // No token required - uses public walkthroughs
+        console.log('[Background] Received GET_AVAILABLE_GUIDE for URL:', message.url);
+        console.log('[Background] Message object:', message);
+        try {
+          const availableWalkthroughs = await getAvailableWalkthroughs(message.url);
+          console.log('[Background] Sending walkthroughs:', availableWalkthroughs);
+          console.log('[Background] Walkthroughs count:', availableWalkthroughs.length);
+          sendResponse({ walkthroughs: availableWalkthroughs });
+        } catch (error) {
+          console.error('[Background] Error in GET_AVAILABLE_GUIDE:', error);
+          sendResponse({ walkthroughs: [], error: error.message });
+        }
+        break;
+        
       case 'WALKTHROUGH_START':
         // Start a new walkthrough session
-        const startResult = await walkthroughSM.startWalkthrough(message.walkthrough, message.tabId);
-        sendResponse(startResult);
+        console.log('[Background] Received WALKTHROUGH_START:', message.walkthrough);
+        console.log('[Background] Sender:', sender);
+        
+        // Normalize tabId: prefer explicit message.tabId, fallback to sender.tab.id
+        const resolvedTabId = message.tabId ?? sender?.tab?.id ?? null;
+        
+        // Guard: Check if tab ID is available after normalization
+        if (!resolvedTabId) {
+          console.error('[Background] WALKTHROUGH_START: No active tab after normalization', {
+            message,
+            sender
+          });
+          sendResponse({ success: false, error: 'No active tab for walkthrough activation' });
+          break;
+        }
+        
+        try {
+          // Preflight: Check if step 0 target can be resolved (only if step requires it)
+          const step0 = message.walkthrough.steps[0];
+          
+          // DEBUG: Log step 0 object to see selector configuration
+          console.log('[Background] Step 0 full object:', JSON.stringify(step0, null, 2));
+          
+          // Step 0 is allowed to be floating (no selector) for intro/onboarding
+          const step0RequiresTarget =
+            step0.targetSelectors?.primary?.value ||
+            step0.targetSelector;
+          
+          if (step0RequiresTarget) {
+            console.log('[Background] Step 0 requires target resolution:', {
+              targetSelectors: step0.targetSelectors,
+              targetSelector: step0.targetSelector,
+              primaryValue: step0.targetSelectors?.primary?.value,
+              url: message.walkthrough.startUrl
+            });
+            
+            // Only check resolvability if step 0 has a selector
+            const canResolve = await chrome.tabs.sendMessage(resolvedTabId, {
+              type: 'CAN_RESOLVE_STEP',
+              step: step0
+            });
+            
+            if (!canResolve?.ok) {
+              console.error('[Background] Step 0 target required but not found on startUrl');
+              sendResponse({
+                success: false,
+                error: 'Step 0 target not found on page'
+              });
+              break;
+            }
+          } else {
+            console.log('[Background] Step 0 is floating (no selector) - allowing start');
+          }
+          
+          // Verify content script is alive before starting walkthrough
+          try {
+            await chrome.tabs.sendMessage(resolvedTabId, { type: 'PING' });
+          } catch {
+            throw new Error('Content script not ready');
+          }
+          
+          const startResult = await walkthroughSM.startWalkthrough(message.walkthrough, resolvedTabId);
+          console.log('[Background] Walkthrough start result:', startResult);
+          
+          // Explicitly dispatch start message to content script
+          try {
+            await chrome.tabs.sendMessage(resolvedTabId, {
+              type: 'START_WALKTHROUGH',
+              walkthrough: message.walkthrough,
+              progress: { currentStep: 0, completed: false },
+              sessionNonce: startResult.sessionId // Include session nonce for security
+            });
+            console.log('[Background] START_WALKTHROUGH message sent to tab:', resolvedTabId);
+          } catch (dispatchError) {
+            console.error('[Background] Failed to dispatch START_WALKTHROUGH to tab:', dispatchError);
+            throw new Error('Failed to start walkthrough in content script');
+          }
+          
+          // LOG: Verify ACTIVATE_OVERLAY dispatch
+          console.log('[Background] Walkthrough session started - ACTIVATE_OVERLAY should be dispatched by state machine', {
+            sessionId: startResult?.sessionId,
+            tabId: resolvedTabId,
+            step0: message.walkthrough.steps[0]?.id
+          });
+          
+          // EXPLICIT RENDER COMMIT: Send ACTIVATE_OVERLAY to trigger step 0 rendering
+          console.log('[Background] SENDING ACTIVATE_OVERLAY NOW');
+          try {
+            await chrome.tabs.sendMessage(resolvedTabId, {
+              type: 'ACTIVATE_OVERLAY',
+              session: startResult.session,
+              step: message.walkthrough.steps[0],
+              stepIndex: 0,
+              sessionNonce: startResult.sessionId // Include session nonce for security
+            });
+            console.log('[Background] ACTIVATE_OVERLAY sent successfully');
+          } catch (renderError) {
+            console.error('[Background] Failed to dispatch ACTIVATE_OVERLAY:', renderError);
+            throw new Error('Failed to start walkthrough rendering');
+          }
+          
+          sendResponse(startResult);
+        } catch (error) {
+          console.error('[Background] Walkthrough activation failed:', error);
+          sendResponse({ success: false, error: error.message });
+        }
         break;
         
       case 'WALKTHROUGH_ABORT':
         // Abort active walkthrough
-        const abortResult = await walkthroughSM.abortWalkthrough(message.reason);
-        sendResponse(abortResult);
+        try {
+          const abortResult = await walkthroughSM.abortWalkthrough(message.reason);
+          sendResponse(abortResult);
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
         break;
         
       case 'WALKTHROUGH_PAUSE':
         // Pause active walkthrough
-        const pauseResult = await walkthroughSM.pauseWalkthrough?.() || { success: false, error: 'NOT_IMPLEMENTED' };
-        sendResponse(pauseResult);
+        try {
+          const pauseResult = await (walkthroughSM.pauseWalkthrough?.() || Promise.resolve({ success: false, error: 'NOT_IMPLEMENTED' }));
+          sendResponse(pauseResult);
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
         break;
         
       case 'WALKTHROUGH_RESUME':
         // Resume paused walkthrough
-        const resumeResult = await walkthroughSM.resumeWalkthrough?.() || { success: false, error: 'NOT_IMPLEMENTED' };
-        sendResponse(resumeResult);
+        try {
+          const resumeResult = await (walkthroughSM.resumeWalkthrough?.() || Promise.resolve({ success: false, error: 'NOT_IMPLEMENTED' }));
+          sendResponse(resumeResult);
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
         break;
         
       case 'VALIDATION_REQUEST':
         // Validate step based on user action
-        const validationResult = await walkthroughSM.validateStep(message.eventData);
-        sendResponse(validationResult);
+        try {
+          const validationResult = await walkthroughSM.validateStep(message.eventData);
+          sendResponse(validationResult);
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
         break;
         
       case 'STEP_ADVANCE':
         // Advance to next step (only after validation)
-        const advanceResult = await walkthroughSM.advanceStep();
-        sendResponse(advanceResult);
+        try {
+          const advanceResult = await walkthroughSM.advanceStep();
+          sendResponse(advanceResult);
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
         break;
         
       case 'GET_WALKTHROUGH_PROGRESS':
@@ -727,13 +1079,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse(targets);
         break;
         
-      case 'GET_WALKTHROUGHS':
-        // Content script OR popup requesting walkthrough data
-        // Uses binding token auth via /extension/walkthroughs endpoint
-        const walkthroughs = await getWalkthroughs();
-        sendResponse(walkthroughs);
-        break;
-        
       case 'CREATE_TARGET':
         // Popup/content script creating a new target
         // ENFORCE: Must have token and workspace binding
@@ -803,6 +1148,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           bound: !!binding.token,
           workspace: binding.workspace
         });
+        break;
+        
+      case 'VALIDATE_STEP':
+        const stepResult = StepAuthoringAPI.validateStep(message.step);
+        sendResponse(stepResult);
+        break;
+        
+      case 'VALIDATE_WALKTHROUGH':
+        const walkthroughResult = StepAuthoringAPI.validateWalkthrough(message.walkthrough);
+        sendResponse(walkthroughResult);
+        break;
+        
+      case 'GENERATE_QA_TESTS':
+        const testsResult = QATestGenerator.generateTests(message.walkthrough);
+        sendResponse(testsResult);
+        break;
+        
+      case 'GET_TELEMETRY':
+        // Get telemetry from state machine
+        const telemetry = walkthroughSM.getTelemetry(message.limit);
+        sendResponse({ events: telemetry });
+        break;
+        
+      case 'GET_TELEMETRY_STATS':
+        const stats = walkthroughSM.getTelemetryStats();
+        sendResponse(stats);
+        break;
+        
+      case 'CLEAR_TELEMETRY':
+        walkthroughSM.clearTelemetry();
+        sendResponse({ cleared: true });
+        break;
+        
+      case 'TELEMETRY_LOG':
+        // Product-layer telemetry events
+        const { eventType, data } = message;
+        
+        // Log via state machine's telemetry system
+        if (walkthroughSM && walkthroughSM._logTelemetry) {
+          walkthroughSM._logTelemetry(eventType, {
+            ...data,
+            source: 'product_layer'
+          });
+        }
+        
+        console.log('[IG Telemetry]', eventType, data);
+        sendResponse({ logged: true });
         break;
         
       default:
@@ -1241,58 +1633,4 @@ ${walkthrough.steps.map((step, i) => `    // Step ${i + 1}: ${step.title}
 };
 
 // Add message handlers for authoring API and telemetry
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'VALIDATE_STEP') {
-    const result = StepAuthoringAPI.validateStep(message.step);
-    sendResponse(result);
-    return true;
-  }
-  
-  if (message.type === 'VALIDATE_WALKTHROUGH') {
-    const result = StepAuthoringAPI.validateWalkthrough(message.walkthrough);
-    sendResponse(result);
-    return true;
-  }
-  
-  if (message.type === 'GENERATE_QA_TESTS') {
-    const result = QATestGenerator.generateTests(message.walkthrough);
-    sendResponse(result);
-    return true;
-  }
-  
-  if (message.type === 'GET_TELEMETRY') {
-    // Get telemetry from state machine
-    const telemetry = walkthroughSM.getTelemetry(message.limit);
-    sendResponse({ events: telemetry });
-    return true;
-  }
-  
-  if (message.type === 'GET_TELEMETRY_STATS') {
-    const stats = walkthroughSM.getTelemetryStats();
-    sendResponse(stats);
-    return true;
-  }
-  
-  if (message.type === 'CLEAR_TELEMETRY') {
-    walkthroughSM.clearTelemetry();
-    sendResponse({ cleared: true });
-    return true;
-  }
-  
-  if (message.type === 'TELEMETRY_LOG') {
-    // Product-layer telemetry events
-    const { eventType, data } = message;
-    
-    // Log via state machine's telemetry system
-    if (walkthroughSM && walkthroughSM._logTelemetry) {
-      walkthroughSM._logTelemetry(eventType, {
-        ...data,
-        source: 'product_layer'
-      });
-    }
-    
-    console.log('[IG Telemetry]', eventType, data);
-    sendResponse({ logged: true });
-    return true;
-  }
-});
+// Message handlers for authoring API and telemetry are now merged into main handler above

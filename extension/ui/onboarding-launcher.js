@@ -18,7 +18,10 @@ class OnboardingLauncher {
   async init() {
     // Check if user is admin (don't show launcher in authoring mode)
     const isAdmin = await this.checkAdminMode();
-    if (isAdmin) return;
+    if (isAdmin) {
+      this.hideLauncher();
+      return;
+    }
 
     // Find walkthroughs matching current URL
     const matchingWalkthroughs = await this.findMatchingWalkthroughs();
@@ -39,27 +42,70 @@ class OnboardingLauncher {
    */
   async findMatchingWalkthroughs() {
     const currentUrl = window.location.href;
+    console.log('[IG Launcher] Current URL:', currentUrl);
     
     // Get published walkthroughs from storage
     const stored = await chrome.storage.local.get(['ig_published_walkthroughs']);
     const published = stored.ig_published_walkthroughs || {};
+    console.log('[IG Launcher] All published walkthroughs:', published);
     
-    return Object.values(published).filter(w => {
-      // Check if walkthrough is published
-      if (w.status !== 'published') return false;
+    const matchingWalkthroughs = Object.values(published).filter(w => {
+      console.log('[IG Launcher] Checking walkthrough:', w.name, 'status:', w.status);
       
-      // Check URL match
-      return w.targetUrls.some(targetUrl => {
-        if (targetUrl.includes('*')) {
+      // Check if walkthrough is published
+      if (w.status !== 'published') {
+        console.log('[IG Launcher] Skipping - not published');
+        return false;
+      }
+      
+      // Check URL match - support both startUrl and targetUrls for compatibility
+      if (w.startUrl) {
+        console.log('[IG Launcher] Checking startUrl:', w.startUrl);
+        // Check startUrl match
+        if (w.startUrl.includes('*')) {
           // Glob pattern matching
-          const pattern = targetUrl.replace(/\*/g, '.*');
-          return new RegExp(pattern).test(currentUrl);
+          const pattern = w.startUrl.replace(/\*/g, '.*');
+          const matches = new RegExp(pattern).test(currentUrl);
+          console.log('[IG Launcher] Glob pattern match:', matches);
+          return matches;
         }
         
-        // Simple includes matching
-        return currentUrl.includes(targetUrl) || targetUrl.includes(currentUrl);
-      });
+        // More permissive URL matching
+        const walkthroughUrl = new URL(w.startUrl);
+        const currentUrlObj = new URL(currentUrl);
+        
+        // Check if domains match
+        if (walkthroughUrl.hostname === currentUrlObj.hostname) {
+          console.log('[IG Launcher] Domains match - showing walkthrough');
+          return true;
+        }
+        
+        // Simple includes matching as fallback
+        const matches = currentUrl.includes(w.startUrl) || w.startUrl.includes(currentUrl);
+        console.log('[IG Launcher] URL match:', matches);
+        return matches;
+      }
+      
+      // Fallback to targetUrls if it exists
+      if (w.targetUrls) {
+        console.log('[IG Launcher] Checking targetUrls:', w.targetUrls);
+        return w.targetUrls.some(targetUrl => {
+          if (targetUrl.includes('*')) {
+            // Glob pattern matching
+            const pattern = targetUrl.replace(/\*/g, '.*');
+            return new RegExp(pattern).test(currentUrl);
+          }
+          // Simple includes matching
+          return currentUrl.includes(targetUrl) || targetUrl.includes(currentUrl);
+        });
+      }
+      
+      console.log('[IG Launcher] No URL found in walkthrough');
+      return false;
     });
+    
+    console.log('[IG Launcher] Matching walkthroughs:', matchingWalkthroughs);
+    return matchingWalkthroughs;
   }
 
   /**
@@ -687,6 +733,14 @@ class OnboardingLauncher {
 
 // Initialize on page load
 window.onboardingLauncher = new OnboardingLauncher();
+
+// Listen for storage changes to react to admin mode changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.ig_walkthrough_admin_mode) {
+    // Admin mode changed, reinitialize launcher
+    window.onboardingLauncher.init();
+  }
+});
 
 // Wait for page to be ready
 if (document.readyState === 'loading') {

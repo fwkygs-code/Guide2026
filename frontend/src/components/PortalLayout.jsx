@@ -167,23 +167,7 @@ const PortalLayout = ({ isEmbedded = false }) => {
             ${escapeSvgText(workspaceName)}
           </text>
           <text x="62" y="330" fill="rgba(255,255,255,0.7)" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif">
-            Confidence in every step
-          </text>
-        </g>
-        <g>
-          ${workspaceInitials.split('').map((char, index) => `
-            <g transform="translate(${60 + index * 78}, 360)">
-              <rect width="64" height="64" rx="18" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" />
-              <text x="32" y="41" fill="#ffffff" font-size="28" font-family="'Poppins', 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">
-                ${escapeSvgText(char)}
-              </text>
-            </g>
-          `).join('')}
-        </g>
-        <g transform="translate(420, 340)">
-          <rect width="240" height="86" rx="24" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.2)" />
-          <text x="120" y="45" fill="#ffffff" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif" text-anchor="middle">
-            Navigate your playbook
+            Step-by-step instructions tailored to your journey.
           </text>
         </g>
       </svg>
