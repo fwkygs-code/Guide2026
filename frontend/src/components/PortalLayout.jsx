@@ -150,23 +150,16 @@ const PortalLayout = ({ isEmbedded = false }) => {
           </filter>
         </defs>
         <rect width="720" height="480" rx="40" fill="#040714" />
-        <rect x="24" y="28" width="672" height="424" rx="32" fill="url(#heroGradient)" opacity="0.92" />
-        <circle cx="620" cy="60" r="120" fill="url(#accentGradient)" opacity="0.2" filter="url(#softGlow)" />
-        <circle cx="110" cy="400" r="110" fill="#ffffff" opacity="0.06" />
-        <circle cx="600" cy="420" r="70" fill="#ffffff" opacity="0.05" />
-        <g fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2">
-          <path d="M80 120 Q360 60 640 120" />
-          <path d="M80 200 Q360 140 640 200" />
-          <path d="M80 280 Q360 220 640 280" />
-        </g>
+        <rect x="24" y="28" width="672" height="80" rx="16" fill="url(#heroGradient)" opacity="0.92" />
+        <circle cx="620" cy="68" r="40" fill="url(#accentGradient)" opacity="0.2" filter="url(#softGlow)" />
         <g>
-          <text x="60" y="210" fill="rgba(255,255,255,0.65)" font-size="18" letter-spacing="0.6em" font-family="'Poppins', 'Segoe UI', sans-serif">
+          <text x="60" y="55" fill="rgba(255,255,255,0.65)" font-size="12" letter-spacing="0.4em" font-family="'Poppins', 'Segoe UI', sans-serif">
             GUIDED JOURNEY
           </text>
-          <text x="60" y="290" fill="#ffffff" font-size="66" font-family="'Clash Display', 'Poppins', 'Segoe UI', sans-serif" font-weight="600">
+          <text x="60" y="75" fill="#ffffff" font-size="28" font-family="'Clash Display', 'Poppins', 'Segoe UI', sans-serif" font-weight="600">
             ${escapeSvgText(workspaceName)}
           </text>
-          <text x="62" y="330" fill="rgba(255,255,255,0.7)" font-size="20" font-family="'Inter', 'Segoe UI', sans-serif">
+          <text x="62" y="92" fill="rgba(255,255,255,0.7)" font-size="14" font-family="'Inter', 'Segoe UI', sans-serif">
             Step-by-step instructions tailored to your journey.
           </text>
         </g>
